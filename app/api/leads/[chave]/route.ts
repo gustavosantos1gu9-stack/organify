@@ -9,10 +9,10 @@ const supabaseAdmin = createClient(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { chave: string } }
+  { params }: { params: Promise<{ chave: string }> }
 ) {
   try {
-    const { chave } = params;
+    const { chave } = await params;
     const body = await req.json();
 
     // Validar chave da API — buscar agência pela chave
