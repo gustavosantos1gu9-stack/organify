@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
             event_name: "Lead",
             event_time: Math.floor(Date.now() / 1000),
             action_source: "website",
-            user_data: { client_ip_address: req.ip || "0.0.0.0" },
+            user_data: { client_ip_address: req.headers.get("x-forwarded-for") || "0.0.0.0" },
             custom_data: { utm_source, utm_medium, utm_campaign, utm_content, utm_term },
           }],
           access_token: agencia.meta_token,

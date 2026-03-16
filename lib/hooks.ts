@@ -80,7 +80,7 @@ export interface Cliente {
   documento?: string; email?: string; telefone?: string; whatsapp?: boolean;
   instagram?: string; empresa?: string; valor_oportunidade?: number;
   faturamento?: number; status: string; responsavel_id?: string;
-  origem_id?: string; observacoes?: string;
+  origem_id?: string; categoria_id?: string; observacoes?: string;
   cep?: string; estado?: string; cidade?: string; logradouro?: string;
   numero?: string; complemento?: string; bairro?: string;
   utm_source?: string; utm_medium?: string; utm_campaign?: string;
@@ -88,6 +88,7 @@ export interface Cliente {
   servico?: string; frequencia?: string; status_recorrencia?: string;
   created_at: string;
   origens?: { nome: string };
+  categorias_clientes?: { nome: string };
 }
 
 export interface Lead {
@@ -95,7 +96,7 @@ export interface Lead {
   telefone?: string; etapa: string; valor?: number;
   utm_source?: string; utm_medium?: string; utm_campaign?: string;
   utm_content?: string; utm_term?: string;
-  origem_id?: string; responsavel_id?: string;
+  origem_id?: string; responsavel_id?: string; observacoes?: string;
   convertido_cliente_id?: string; created_at: string;
   origens?: { nome: string };
 }
@@ -206,6 +207,23 @@ export async function criarCliente(payload: Partial<Cliente>) {
     .select()
     .single();
   if (error) throw error;
+
+  // Disparar evento CompleteRegistration para o Meta
+  if (agenciaId && data) {
+    fetch("/api/meta/evento", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        agencia_id: agenciaId,
+        event_name: "CompleteRegistration",
+        email: data.email,
+        telefone: data.telefone,
+        nome: data.nome,
+        valor: data.valor_oportunidade,
+      }),
+    }).catch(e => console.error("Meta CompleteRegistration erro:", e));
+  }
+
   return data;
 }
 
@@ -354,13 +372,36 @@ export async function criarLead(payload: Partial<Lead>) {
     .select()
     .single();
   if (error) throw error;
+
+  // Disparar evento Lead para o Meta
+  if (agenciaId && data) {
+    fetch("/api/meta/evento", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        agencia_id: agenciaId,
+        event_name: "Lead",
+        email: data.email,
+        telefone: data.telefone,
+        nome: data.nome,
+        valor: data.valor,
+        utm_source: data.utm_source,
+        utm_campaign: data.utm_campaign,
+        utm_content: data.utm_content,
+        utm_term: data.utm_term,
+      }),
+    }).catch(e => console.error("Meta Lead evento erro:", e));
+  }
+
   return data;
 }
 
 export async function atualizarEtapaLead(id: string, etapa: string) {
-  // Buscar etapa atual antes de atualizar
+  // Buscar lead completo antes de atualizar
   const { data: leadAtual } = await supabase
-    .from("leads").select("etapa").eq("id", id).single();
+    .from("leads")
+    .select("etapa, nome, email, telefone, valor, utm_source, utm_campaign, utm_content, utm_term, agencia_id")
+    .eq("id", id).single();
 
   const { data, error } = await supabase
     .from("leads")
@@ -372,6 +413,36 @@ export async function atualizarEtapaLead(id: string, etapa: string) {
   if (leadAtual?.etapa && leadAtual.etapa !== etapa) {
     await registrarHistoricoLead(id, leadAtual.etapa, etapa);
   }
+
+  // Disparar evento Meta conforme etapa
+  if (leadAtual?.agencia_id) {
+    const eventoMap: Record<string, string> = {
+      em_contato: "Contact",
+      reuniao_agendada: "Schedule",
+      proposta_enviada: "InitiateCheckout",
+      ganho: "Purchase",
+    };
+    const nomeEvento = eventoMap[etapa];
+    if (nomeEvento) {
+      fetch("/api/meta/evento", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agencia_id: leadAtual.agencia_id,
+          event_name: nomeEvento,
+          email: leadAtual.email,
+          telefone: leadAtual.telefone,
+          nome: leadAtual.nome,
+          valor: leadAtual.valor,
+          utm_source: leadAtual.utm_source,
+          utm_campaign: leadAtual.utm_campaign,
+          utm_content: leadAtual.utm_content,
+          utm_term: leadAtual.utm_term,
+        }),
+      }).catch(e => console.error("Meta evento erro:", e));
+    }
+  }
+
   return data;
 }
 
@@ -514,6 +585,11 @@ export async function removerOrigem(id: string) {
   if (error) throw error;
 }
 
+export async function atualizarOrigem(id: string, nome: string) {
+  const { error } = await supabase.from("origens").update({ nome }).eq("id", id);
+  if (error) throw error;
+}
+
 // ─── CATEGORIAS CLIENTES ─────────────────────────────────────────────────────
 export function useCategoriasClientes() {
   return useQuery<CategoriaCliente[]>(async (agenciaId) => {
@@ -539,6 +615,11 @@ export async function criarCategoriaCliente(nome: string) {
 
 export async function removerCategoriaCliente(id: string) {
   const { error } = await supabase.from("categorias_clientes").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function atualizarCategoriaCliente(id: string, nome: string) {
+  const { error } = await supabase.from("categorias_clientes").update({ nome }).eq("id", id);
   if (error) throw error;
 }
 
@@ -569,6 +650,11 @@ export async function criarCategoriaFinanceira(nome: string, tipo: "entrada" | "
 
 export async function removerCategoriaFinanceira(id: string) {
   const { error } = await supabase.from("categorias_financeiras").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function atualizarCategoriaFinanceira(id: string, nome: string) {
+  const { error } = await supabase.from("categorias_financeiras").update({ nome }).eq("id", id);
   if (error) throw error;
 }
 
