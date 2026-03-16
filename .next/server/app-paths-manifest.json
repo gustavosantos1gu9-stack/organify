@@ -1,6 +1,0 @@
-{
-  "/api/evolution/route": "app/api/evolution/route.js",
-  "/(app)/crm/page": "app/(app)/crm/page.js",
-  "/(app)/configuracoes/integracoes/page": "app/(app)/configuracoes/integracoes/page.js",
-  "/(app)/page": "app/(app)/page.js"
-}
