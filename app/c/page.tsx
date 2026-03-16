@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
-export default function CapturePage() {
+function CaptureContent() {
   const params = useSearchParams();
   const [contador, setContador] = useState(5);
 
@@ -80,5 +80,17 @@ export default function CapturePage() {
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
     </div>
+  );
+}
+
+export default function CapturePage() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight:"100vh", background:"#0f0f0f", display:"flex", alignItems:"center", justifyContent:"center" }}>
+        <div style={{ width:"48px", height:"48px", borderRadius:"50%", border:"3px solid #2e2e2e", borderTop:"3px solid #22c55e" }}/>
+      </div>
+    }>
+      <CaptureContent/>
+    </Suspense>
   );
 }
