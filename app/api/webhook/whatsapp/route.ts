@@ -6,15 +6,19 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-const EVO_URL = "https://evolution-api-production-e0b8.up.railway.app";
-const EVO_KEY = "6656711fd37b4eadc6a9d6a31b84c8648e19708f55e7f09b85b7b61d9660d6ad";
-const AGENCIA_ID = "32cdce6e-4664-4ac6-979d-6d68a1a68745";
-const INSTANCIA = "salxdigital";
+async function getAgenciaPorInstancia(instancia: string) {
+  const { data } = await supabase
+    .from("agencias")
+    .select("id, evolution_url, evolution_key, whatsapp_numero, meta_pixel_id, meta_token, meta_ativo")
+    .eq("whatsapp_instancia", instancia)
+    .single();
+  return data;
+}
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { event, data } = body;
+    const { event, data, instance } = body;
 
     if (event === "messages.upsert" || event === "MESSAGES_UPSERT") {
       const msg = data?.messages?.[0] || data;
@@ -22,15 +26,18 @@ export async function POST(req: NextRequest) {
 
       const fromMe = msg.key?.fromMe || false;
       const remoteJid = msg.key?.remoteJid || "";
-      const remoteJidAlt = msg.key?.remoteJidAlt || "";
-      
-      // Ignorar grupos e mensagens enviadas por mim
+
+      // Ignorar grupos, @lid, e mensagens enviadas por mim
       if (!remoteJid || remoteJid.includes("@g.us")) return NextResponse.json({ ok: true });
+      if (remoteJid.includes("@lid")) return NextResponse.json({ ok: true });
       if (fromMe) return NextResponse.json({ ok: true });
 
-      // Usar número real: remoteJidAlt (@s.whatsapp.net) tem prioridade sobre @lid
-      const jidReal = remoteJidAlt.includes("@s.whatsapp.net") ? remoteJidAlt : remoteJid;
-      const numero = jidReal.replace("@s.whatsapp.net", "").replace("@lid", "").replace(/\D/g, "");
+      // Descobrir agência pela instância
+      const instanciaName = instance || body.instanceName || "";
+      const agencia = await getAgenciaPorInstancia(instanciaName);
+      if (!agencia) return NextResponse.json({ ok: true });
+
+      const numero = remoteJid.replace("@s.whatsapp.net", "");
       const nome = msg.pushName || numero;
       const msgId = msg.key?.id;
       const timestamp = msg.messageTimestamp
@@ -38,24 +45,23 @@ export async function POST(req: NextRequest) {
         : new Date().toISOString();
 
       // Extrair conteúdo
-      let tipo = "text";
-      let conteudo = "";
+      let tipo = "text"; let conteudo = "";
       const m = msg.message;
       if (m?.conversation) conteudo = m.conversation;
       else if (m?.extendedTextMessage?.text) conteudo = m.extendedTextMessage.text;
-      else if (m?.imageMessage) { tipo = "image"; conteudo = m.imageMessage.caption || ""; }
+      else if (m?.imageMessage) { tipo = "image"; conteudo = m.imageMessage.caption || "📷 Imagem"; }
       else if (m?.audioMessage) { tipo = "audio"; conteudo = "🎵 Áudio"; }
       else if (m?.videoMessage) { tipo = "video"; conteudo = m.videoMessage.caption || "🎥 Vídeo"; }
       else if (m?.documentMessage) { tipo = "document"; conteudo = m.documentMessage.fileName || "📄 Documento"; }
       else if (m?.stickerMessage) { tipo = "sticker"; conteudo = "😄 Sticker"; }
       else conteudo = "Mensagem";
 
-      // Buscar foto do contato se não tiver conversa ainda
+      // Buscar foto
       let foto = null;
       try {
-        const resPerfil = await fetch(`${EVO_URL}/chat/fetchProfile/${INSTANCIA}`, {
+        const resPerfil = await fetch(`${agencia.evolution_url}/chat/fetchProfile/${instanciaName}`, {
           method: "POST",
-          headers: { "apikey": EVO_KEY, "Content-Type": "application/json" },
+          headers: { "apikey": agencia.evolution_key, "Content-Type": "application/json" },
           body: JSON.stringify({ number: numero }),
         });
         const perfil = await resPerfil.json();
@@ -63,40 +69,38 @@ export async function POST(req: NextRequest) {
       } catch {}
 
       // Buscar ou criar conversa
-      let { data: conversa } = await supabase
-        .from("conversas")
-        .select("*")
-        .eq("agencia_id", AGENCIA_ID)
-        .eq("instancia", INSTANCIA)
-        .eq("contato_numero", numero)
-        .single();
+      let { data: conversa } = await supabase.from("conversas")
+        .select("*").eq("agencia_id", agencia.id).eq("contato_numero", numero).single();
 
       if (!conversa) {
         const { data: nova } = await supabase.from("conversas").insert({
-          agencia_id: AGENCIA_ID, instancia: INSTANCIA,
+          agencia_id: agencia.id, instancia: instanciaName,
           contato_numero: numero, contato_nome: nome, contato_foto: foto,
-          ultima_mensagem: conteudo, ultima_mensagem_at: timestamp,
-          nao_lidas: fromMe ? 0 : 1,
+          ultima_mensagem: conteudo, ultima_mensagem_at: timestamp, nao_lidas: 1,
         }).select().single();
         conversa = nova;
       } else {
         await supabase.from("conversas").update({
           ultima_mensagem: conteudo, ultima_mensagem_at: timestamp,
           contato_nome: nome,
-          nao_lidas: fromMe ? conversa.nao_lidas : (conversa.nao_lidas || 0) + 1,
+          nao_lidas: (conversa.nao_lidas || 0) + 1,
         }).eq("id", conversa.id);
       }
 
       if (conversa && msgId) {
         await supabase.from("mensagens").upsert({
-          conversa_id: conversa.id,
-          agencia_id: AGENCIA_ID,
-          mensagem_id: msgId,
-          de_mim: fromMe,
-          tipo,
-          conteudo,
-          created_at: timestamp,
+          conversa_id: conversa.id, agencia_id: agencia.id,
+          mensagem_id: msgId, de_mim: false, tipo, conteudo, created_at: timestamp,
         }, { onConflict: "mensagem_id" });
+      }
+
+      // Disparar evento Meta se configurado
+      if (agencia.meta_ativo && agencia.meta_pixel_id && agencia.meta_token && !conversa?.id) {
+        fetch(`https://graph.facebook.com/v18.0/${agencia.meta_pixel_id}/events?access_token=${agencia.meta_token}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ data: [{ event_name: "Lead", event_time: Math.floor(Date.now()/1000), action_source: "website" }] }),
+        }).catch(() => {});
       }
     }
 

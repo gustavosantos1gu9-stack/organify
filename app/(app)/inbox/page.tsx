@@ -122,9 +122,10 @@ export default function InboxPage() {
   const sincronizarHistorico = async (conversa: Conversa) => {
     setSincronizando(true);
     try {
+      const agId = await getAgenciaId();
       const res = await fetch("/api/evolution/sync", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ numero: conversa.contato_numero, conversa_id: conversa.id, limite: 100 }),
+        body: JSON.stringify({ numero: conversa.contato_numero, conversa_id: conversa.id, jid_original: (conversa as any).contato_jid, agencia_id: agId }),
       });
       const data = await res.json();
       await carregarMensagens(conversa);
@@ -137,6 +138,7 @@ export default function InboxPage() {
     if (!confirm("Vai importar todas as conversas (rápido, sem histórico). Continuar?")) return;
     setSincronizandoTudo(true);
     try {
+      const agId = await getAgenciaId();
       let offset = 0;
       let totalConversas = 0;
       let total = 0;
@@ -145,7 +147,7 @@ export default function InboxPage() {
       while (temMais) {
         const res = await fetch("/api/evolution/sync-all", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ offset, lote: 50, com_mensagens: false }),
+          body: JSON.stringify({ offset, lote: 50, com_mensagens: false, agencia_id: agId }),
         });
         const data = await res.json();
         if (!data.ok) break;

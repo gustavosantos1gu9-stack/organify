@@ -1,15 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
-const EVO_URL = "https://evolution-api-production-e0b8.up.railway.app";
-const EVO_KEY = "6656711fd37b4eadc6a9d6a31b84c8648e19708f55e7f09b85b7b61d9660d6ad";
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export async function POST(req: NextRequest) {
   try {
-    const { mensagem_id, instancia } = await req.json();
+    const { mensagem_id, instancia, agencia_id } = await req.json();
 
-    const res = await fetch(`${EVO_URL}/chat/getBase64FromMediaMessage/${instancia}`, {
+    // Buscar config da agência
+    const query = agencia_id
+      ? supabase.from("agencias").select("evolution_url,evolution_key").eq("id", agencia_id).single()
+      : supabase.from("agencias").select("evolution_url,evolution_key").eq("whatsapp_instancia", instancia).single();
+
+    const { data: agencia } = await query;
+    if (!agencia) return NextResponse.json({ error: "Não configurado" }, { status: 400 });
+
+    const res = await fetch(`${agencia.evolution_url}/chat/getBase64FromMediaMessage/${instancia}`, {
       method: "POST",
-      headers: { "apikey": EVO_KEY, "Content-Type": "application/json" },
+      headers: { "apikey": agencia.evolution_key, "Content-Type": "application/json" },
       body: JSON.stringify({ message: { key: { id: mensagem_id } }, convertToMp4: false }),
     });
 
