@@ -31,6 +31,7 @@ import {
   UserCog,
   Users2,
   Link2,
+  MessageCircle,
 } from "lucide-react";
 
 interface NavItem {
@@ -49,6 +50,7 @@ interface NavChild {
 const navItems: NavItem[] = [
   { href: "/", label: "Início", icon: <LayoutDashboard size={16} /> },
   { href: "/clientes", label: "Clientes", icon: <Users size={16} /> },
+  { href: "/inbox", label: "Inbox WhatsApp", icon: <MessageCircle size={16} /> },
   { href: "/crm", label: "CRM", icon: <CreditCard size={16} /> },
   { href: "/gerador-de-leads", label: "Churn", icon: <UserMinus size={16} /> },
   { href: "/ferramentas/gerador-links", label: "Links & Campanhas", icon: <Link2 size={16} /> },
