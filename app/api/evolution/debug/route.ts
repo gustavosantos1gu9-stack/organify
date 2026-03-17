@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 const EVO_URL = "https://evolution-api-production-e0b8.up.railway.app";
 const EVO_KEY = "6656711fd37b4eadc6a9d6a31b84c8648e19708f55e7f09b85b7b61d9660d6ad";
@@ -13,27 +13,30 @@ export async function GET() {
     });
     const chats = await res.json();
     const lista = Array.isArray(chats) ? chats : [];
+
+    // Pegar 3 amostras de @lid
+    const lids = lista.filter((c: any) => (c.remoteJid||"").includes("@lid")).slice(0, 3);
     
-    // Mostrar os primeiros 5 chats com todos os campos
-    const amostra = lista.slice(0, 5).map((c: any) => ({
-      id: c.id,
-      remoteJid: c.remoteJid,
-      pushName: c.pushName,
-      name: c.name,
-      profilePicUrl: c.profilePicUrl,
-      campos: Object.keys(c),
+    // Para cada @lid, buscar uma mensagem para ver o remoteJidAlt
+    const amostras = await Promise.all(lids.map(async (chat: any) => {
+      const resMsgs = await fetch(`${EVO_URL}/chat/findMessages/${INSTANCIA}`, {
+        method: "POST",
+        headers: { "apikey": EVO_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({ where: { key: { remoteJid: chat.remoteJid } }, limit: 1 }),
+      });
+      const msgsData = await resMsgs.json();
+      const msg = msgsData?.messages?.records?.[0];
+      return {
+        remoteJid: chat.remoteJid,
+        pushName: chat.pushName,
+        profilePicUrl: chat.profilePicUrl ? "tem foto" : "sem foto",
+        msg_key: msg?.key,
+        msg_remoteJidAlt: msg?.key?.remoteJidAlt,
+        todos_campos_chat: Object.keys(chat),
+      };
     }));
 
-    // Contar por tipo
-    const grupos = lista.filter((c: any) => (c.remoteJid||"").includes("@g.us")).length;
-    const individuaisS = lista.filter((c: any) => (c.remoteJid||"").includes("@s.whatsapp.net")).length;
-    const individuaisLid = lista.filter((c: any) => (c.remoteJid||"").includes("@lid")).length;
-    const outros = lista.filter((c: any) => !["@g.us","@s.whatsapp.net","@lid"].some(t => (c.remoteJid||"").includes(t))).length;
-
-    return NextResponse.json({ 
-      total: lista.length, grupos, individuaisS, individuaisLid, outros,
-      amostra 
-    });
+    return NextResponse.json({ total_lid: lids.length, amostras });
   } catch(e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }
