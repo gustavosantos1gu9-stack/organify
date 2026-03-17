@@ -135,7 +135,22 @@ export default function InboxPage() {
     finally { setEnviando(false); }
   };
 
-  const criarLead = async () => {
+  const [sincronizando, setSincronizando] = useState(false);
+
+  const sincronizarHistorico = async (conversa: Conversa) => {
+    setSincronizando(true);
+    try {
+      const res = await fetch("/api/evolution/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ numero: conversa.contato_numero, conversa_id: conversa.id, limite: 100 }),
+      });
+      const data = await res.json();
+      await carregarMensagens(conversa);
+      alert(`${data.total} mensagens sincronizadas!`);
+    } catch(e) { console.error(e); alert("Erro ao sincronizar"); }
+    finally { setSincronizando(false); }
+  };
     if (!selecionada) return;
     const agId = await getAgenciaId();
     const { data } = await supabase.from("leads").insert({
@@ -266,6 +281,11 @@ export default function InboxPage() {
                 ✓ No CRM
               </a>
             )}
+            <button className="btn-ghost" style={{ padding:"6px 10px", fontSize:"12px", cursor:"pointer" }}
+              onClick={()=>sincronizarHistorico(selecionada)} disabled={sincronizando}
+              title="Sincronizar histórico">
+              <RefreshCw size={14} style={{ animation:sincronizando?"spin 1s linear infinite":"none" }}/>
+            </button>
           </div>
 
           <div style={{ flex:1, overflowY:"auto", padding:"20px", display:"flex", flexDirection:"column", gap:"8px" }}>

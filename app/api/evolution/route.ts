@@ -38,6 +38,16 @@ export async function POST(req: NextRequest) {
         method = "POST";
         body = JSON.stringify(payload);
         break;
+      case "fetchChats":
+        url = `${EVO_URL}/chat/findChats/${instanceName}`;
+        method = "POST";
+        body = JSON.stringify(payload || {});
+        break;
+      case "fetchMessages":
+        url = `${EVO_URL}/chat/findMessages/${instanceName}`;
+        method = "POST";
+        body = JSON.stringify(payload || {});
+        break;
       default:
         return NextResponse.json({ error: "Ação inválida" }, { status: 400 });
     }
@@ -58,3 +68,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Erro na Evolution API" }, { status: 500 });
   }
 }
+// já existe - só adicionar o case de histórico
