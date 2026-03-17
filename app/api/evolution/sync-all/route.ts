@@ -11,39 +11,45 @@ const EVO_KEY = "6656711fd37b4eadc6a9d6a31b84c8648e19708f55e7f09b85b7b61d9660d6a
 const AGENCIA_ID = "32cdce6e-4664-4ac6-979d-6d68a1a68745";
 const INSTANCIA = "salxdigital";
 
+// Número do próprio WhatsApp conectado — mensagens fromMe não criam conversa
+const MEU_NUMERO = "555189840990"; // ajuste se necessário
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
-    const limite = body.limite || 200;
+    const pagina = body.pagina || 1;
+    const porPagina = 50;
 
+    // Buscar chats com paginação
     const resChats = await fetch(`${EVO_URL}/chat/findChats/${INSTANCIA}`, {
       method: "POST",
       headers: { "apikey": EVO_KEY, "Content-Type": "application/json" },
-      body: JSON.stringify({}),
+      body: JSON.stringify({ limit: porPagina, page: pagina }),
     });
     const chats = await resChats.json();
     const lista = Array.isArray(chats) ? chats : [];
 
-    // Filtrar individuais: @s.whatsapp.net OU @lid (excluir @g.us)
+    // Filtrar individuais (excluir grupos @g.us e meu próprio número)
     const individuais = lista.filter((c: any) => {
       const jid = c.remoteJid || "";
-      return !jid.includes("@g.us") && (jid.includes("@s.whatsapp.net") || jid.includes("@lid"));
+      if (jid.includes("@g.us")) return false;
+      if (jid.includes("@broadcast")) return false;
+      const num = jid.replace("@s.whatsapp.net","").replace("@lid","").replace(/\D/g,"");
+      if (num === MEU_NUMERO) return false;
+      return jid.includes("@s.whatsapp.net") || jid.includes("@lid");
     });
 
     let conversasSalvas = 0;
     let mensagensSalvas = 0;
 
-    for (const chat of individuais.slice(0, limite)) {
+    for (const chat of individuais) {
       const jid = chat.remoteJid || "";
-      
-      // Número real: se for @lid, buscar o número alternativo via mensagens
-      let numero = jid.replace("@s.whatsapp.net", "").replace("@lid", "").replace(/\D/g, "");
-      if (!numero) continue;
+      const numero = jid.replace("@s.whatsapp.net","").replace("@lid","").replace(/\D/g,"");
+      if (!numero || numero === MEU_NUMERO) continue;
 
       const nome = chat.pushName || numero;
       const foto = chat.profilePicUrl || null;
 
-      // Última mensagem
       const lm = chat.lastMessage;
       const ultimaMsg = lm?.message?.conversation ||
                         lm?.message?.extendedTextMessage?.text ||
@@ -53,7 +59,6 @@ export async function POST(req: NextRequest) {
         : new Date().toISOString();
       const naoLidas = chat.unreadCount || 0;
 
-      // Criar ou atualizar conversa
       let { data: conversa } = await supabase.from("conversas")
         .select("id").eq("agencia_id", AGENCIA_ID).eq("contato_numero", numero).single();
 
@@ -61,22 +66,20 @@ export async function POST(req: NextRequest) {
         const { data: nova } = await supabase.from("conversas").insert({
           agencia_id: AGENCIA_ID, instancia: INSTANCIA,
           contato_numero: numero, contato_nome: nome, contato_foto: foto,
-          ultima_mensagem: ultimaMsg, ultima_mensagem_at: ultimaAt,
-          nao_lidas: naoLidas,
+          ultima_mensagem: ultimaMsg, ultima_mensagem_at: ultimaAt, nao_lidas: naoLidas,
         }).select("id").single();
         conversa = nova;
         conversasSalvas++;
       } else {
         await supabase.from("conversas").update({
           contato_nome: nome, contato_foto: foto,
-          ultima_mensagem: ultimaMsg, ultima_mensagem_at: ultimaAt,
-          nao_lidas: naoLidas,
+          ultima_mensagem: ultimaMsg, ultima_mensagem_at: ultimaAt, nao_lidas: naoLidas,
         }).eq("id", conversa.id);
       }
 
       if (!conversa?.id) continue;
 
-      // Buscar mensagens pelo remoteJid original (@lid ou @s.whatsapp.net)
+      // Buscar mensagens
       const resMsgs = await fetch(`${EVO_URL}/chat/findMessages/${INSTANCIA}`, {
         method: "POST",
         headers: { "apikey": EVO_KEY, "Content-Type": "application/json" },
@@ -95,7 +98,7 @@ export async function POST(req: NextRequest) {
         if (!ts) continue;
         const timestamp = new Date(ts * 1000).toISOString();
 
-        // Pegar pushName da mensagem para atualizar nome se necessário
+        // Atualizar nome se veio da mensagem
         if (!chat.pushName && msg.pushName && !fromMe) {
           await supabase.from("conversas").update({ contato_nome: msg.pushName }).eq("id", conversa.id);
         }
@@ -118,7 +121,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ ok: true, conversas: conversasSalvas, mensagens: mensagensSalvas, total: individuais.length });
+    return NextResponse.json({
+      ok: true,
+      conversas: conversasSalvas,
+      mensagens: mensagensSalvas,
+      pagina,
+      total_pagina: lista.length,
+      tem_mais: lista.length === porPagina,
+    });
   } catch(e) {
     console.error(e);
     return NextResponse.json({ error: String(e) }, { status: 500 });

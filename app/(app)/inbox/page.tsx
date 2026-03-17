@@ -133,17 +133,30 @@ export default function InboxPage() {
     finally { setSincronizando(false); }
   };
 
-  const sincronizarTudo = async (limite = 200) => {
-    if (!confirm(`Vai importar até ${limite} conversas com histórico. Pode demorar. Continuar?`)) return;
+  const sincronizarTudo = async () => {
+    if (!confirm("Vai importar todas as conversas página por página. Pode demorar alguns minutos. Continuar?")) return;
     setSincronizandoTudo(true);
     try {
-      const res = await fetch("/api/evolution/sync-all", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ limite }),
-      });
-      const data = await res.json();
+      let pagina = 1;
+      let totalConversas = 0;
+      let totalMensagens = 0;
+      let temMais = true;
+
+      while (temMais && pagina <= 20) { // máximo 20 páginas = ~1000 conversas
+        const res = await fetch("/api/evolution/sync-all", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pagina }),
+        });
+        const data = await res.json();
+        if (!data.ok) break;
+        totalConversas += data.conversas || 0;
+        totalMensagens += data.mensagens || 0;
+        temMais = data.tem_mais;
+        pagina++;
+      }
+
       await carregarConversas();
-      alert(`Importado! ${data.conversas} novas conversas, ${data.mensagens} mensagens. Total de chats: ${data.total_chats}`);
+      alert(`Importado! ${totalConversas} conversas novas, ${totalMensagens} mensagens em ${pagina - 1} páginas.`);
     } catch(e) { alert("Erro ao sincronizar"); }
     finally { setSincronizandoTudo(false); }
   };
@@ -255,7 +268,7 @@ export default function InboxPage() {
               </span>
             )}
             <div style={{ marginLeft:"auto", display:"flex", gap:"4px" }}>
-              <button onClick={()=>sincronizarTudo(200)} disabled={sincronizandoTudo} title="Importar conversas"
+              <button onClick={()=>sincronizarTudo()} disabled={sincronizandoTudo} title="Importar conversas"
                 style={{ background:"#2a2a2a", border:"1px solid #3a3a3a", borderRadius:"6px", padding:"5px 8px", cursor:"pointer", color:"#a0a0a0", fontSize:"11px", display:"flex", alignItems:"center", gap:"4px" }}>
                 <RefreshCw size={12} style={{ animation:sincronizandoTudo?"spin 1s linear infinite":"none" }}/>
                 {sincronizandoTudo?"Importando...":"Importar"}
@@ -277,7 +290,7 @@ export default function InboxPage() {
             <div style={{ padding:"32px 20px", textAlign:"center", color:"#606060", fontSize:"13px" }}>
               <MessageCircle size={32} style={{ opacity:0.3, marginBottom:"8px" }}/>
               <p style={{ marginBottom:"12px" }}>Nenhuma conversa ainda</p>
-              <button onClick={()=>sincronizarTudo(200)} style={{ background:"#22c55e", color:"#000", border:"none", borderRadius:"8px", padding:"8px 16px", cursor:"pointer", fontSize:"12px", fontWeight:"600" }}>
+              <button onClick={()=>sincronizarTudo()} style={{ background:"#22c55e", color:"#000", border:"none", borderRadius:"8px", padding:"8px 16px", cursor:"pointer", fontSize:"12px", fontWeight:"600" }}>
                 Importar conversas
               </button>
             </div>
