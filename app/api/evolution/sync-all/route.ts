@@ -10,53 +10,47 @@ const EVO_URL = "https://evolution-api-production-e0b8.up.railway.app";
 const EVO_KEY = "6656711fd37b4eadc6a9d6a31b84c8648e19708f55e7f09b85b7b61d9660d6ad";
 const AGENCIA_ID = "32cdce6e-4664-4ac6-979d-6d68a1a68745";
 const INSTANCIA = "salxdigital";
-
-// Número do próprio WhatsApp conectado — mensagens fromMe não criam conversa
-const MEU_NUMERO = "555189840990"; // ajuste se necessário
+const MEU_NUMERO = "555193694003";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
-    const pagina = body.pagina || 1;
-    const porPagina = 50;
+    const offset = body.offset || 0; // índice de início
+    const lote = body.lote || 20;    // quantos processar por chamada
 
-    // Buscar chats com paginação
+    // Buscar todos os chats (só uma vez, sem paginação)
     const resChats = await fetch(`${EVO_URL}/chat/findChats/${INSTANCIA}`, {
       method: "POST",
       headers: { "apikey": EVO_KEY, "Content-Type": "application/json" },
-      body: JSON.stringify({ limit: porPagina, page: pagina }),
+      body: JSON.stringify({}),
     });
     const chats = await resChats.json();
     const lista = Array.isArray(chats) ? chats : [];
 
-    // Filtrar individuais (excluir grupos @g.us e meu próprio número)
+    // Filtrar individuais
     const individuais = lista.filter((c: any) => {
       const jid = c.remoteJid || "";
-      if (jid.includes("@g.us")) return false;
-      if (jid.includes("@broadcast")) return false;
+      if (jid.includes("@g.us") || jid.includes("@broadcast")) return false;
       const num = jid.replace("@s.whatsapp.net","").replace("@lid","").replace(/\D/g,"");
       if (num === MEU_NUMERO) return false;
       return jid.includes("@s.whatsapp.net") || jid.includes("@lid");
     });
 
+    // Processar só o lote atual
+    const loteAtual = individuais.slice(offset, offset + lote);
     let conversasSalvas = 0;
     let mensagensSalvas = 0;
 
-    for (const chat of individuais) {
+    for (const chat of loteAtual) {
       const jid = chat.remoteJid || "";
       const numero = jid.replace("@s.whatsapp.net","").replace("@lid","").replace(/\D/g,"");
       if (!numero || numero === MEU_NUMERO) continue;
 
       const nome = chat.pushName || numero;
       const foto = chat.profilePicUrl || null;
-
       const lm = chat.lastMessage;
-      const ultimaMsg = lm?.message?.conversation ||
-                        lm?.message?.extendedTextMessage?.text ||
-                        lm?.messageType || "";
-      const ultimaAt = lm?.messageTimestamp
-        ? new Date(Number(lm.messageTimestamp) * 1000).toISOString()
-        : new Date().toISOString();
+      const ultimaMsg = lm?.message?.conversation || lm?.message?.extendedTextMessage?.text || lm?.messageType || "";
+      const ultimaAt = lm?.messageTimestamp ? new Date(Number(lm.messageTimestamp) * 1000).toISOString() : new Date().toISOString();
       const naoLidas = chat.unreadCount || 0;
 
       let { data: conversa } = await supabase.from("conversas")
@@ -83,7 +77,7 @@ export async function POST(req: NextRequest) {
       const resMsgs = await fetch(`${EVO_URL}/chat/findMessages/${INSTANCIA}`, {
         method: "POST",
         headers: { "apikey": EVO_KEY, "Content-Type": "application/json" },
-        body: JSON.stringify({ where: { key: { remoteJid: jid } }, limit: 100 }),
+        body: JSON.stringify({ where: { key: { remoteJid: jid } }, limit: 50 }),
       });
       const msgsData = await resMsgs.json();
       const msgs = (msgsData?.messages?.records || msgsData?.records || [])
@@ -98,7 +92,6 @@ export async function POST(req: NextRequest) {
         if (!ts) continue;
         const timestamp = new Date(ts * 1000).toISOString();
 
-        // Atualizar nome se veio da mensagem
         if (!chat.pushName && msg.pushName && !fromMe) {
           await supabase.from("conversas").update({ contato_nome: msg.pushName }).eq("id", conversa.id);
         }
@@ -125,9 +118,11 @@ export async function POST(req: NextRequest) {
       ok: true,
       conversas: conversasSalvas,
       mensagens: mensagensSalvas,
-      pagina,
-      total_pagina: lista.length,
-      tem_mais: lista.length === porPagina,
+      offset,
+      processados: loteAtual.length,
+      total: individuais.length,
+      proximo_offset: offset + lote,
+      tem_mais: offset + lote < individuais.length,
     });
   } catch(e) {
     console.error(e);

@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
       const fromMe = msg.key?.fromMe || false;
       const remoteJid = msg.key?.remoteJid || "";
       if (!remoteJid || remoteJid.includes("@g.us")) return NextResponse.json({ ok: true });
+      if (fromMe) return NextResponse.json({ ok: true }); // ignorar mensagens enviadas por mim
 
       const numero = remoteJid.replace("@s.whatsapp.net", "").replace("@lid", "");
       const nome = msg.pushName || numero;
