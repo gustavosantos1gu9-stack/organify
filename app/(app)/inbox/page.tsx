@@ -9,10 +9,9 @@ interface Conversa {
   contato_foto?: string; ultima_mensagem: string; ultima_mensagem_at: string;
   nao_lidas: number; lead_id?: string;
 }
-
 interface Mensagem {
   id: string; de_mim: boolean; tipo: string; conteudo: string;
-  mensagem_id: string; midia_url?: string; created_at: string;
+  mensagem_id: string; created_at: string;
 }
 
 const INSTANCIA = "salxdigital";
@@ -28,8 +27,7 @@ function AudioPlayer({ mensagemId, deMim }: { mensagemId: string; deMim: boolean
     setLoading(true);
     try {
       const res = await fetch("/api/evolution/midia", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mensagem_id: mensagemId, instancia: INSTANCIA }),
       });
       const data = await res.json();
@@ -37,11 +35,7 @@ function AudioPlayer({ mensagemId, deMim }: { mensagemId: string; deMim: boolean
         const url = `data:audio/ogg;base64,${data.base64}`;
         setAudioUrl(url);
         setTimeout(() => {
-          if (audioRef.current) {
-            audioRef.current.src = url;
-            audioRef.current.play();
-            setPlaying(true);
-          }
+          if (audioRef.current) { audioRef.current.src = url; audioRef.current.play(); setPlaying(true); }
         }, 100);
       }
     } catch(e) { console.error(e); }
@@ -65,12 +59,9 @@ function AudioPlayer({ mensagemId, deMim }: { mensagemId: string; deMim: boolean
         {loading ? <RefreshCw size={14} style={{ animation:"spin 1s linear infinite" }}/> :
          playing ? <Pause size={14}/> : <Play size={14}/>}
       </button>
-      <div style={{ flex:1, height:"3px", background:deMim?"rgba(0,0,0,0.2)":"rgba(255,255,255,0.2)", borderRadius:"2px" }}>
-        <div style={{ width:playing?"50%":"0%", height:"100%", background:deMim?"#000":"#fff", borderRadius:"2px", transition:"width 0.1s" }}/>
-      </div>
+      <div style={{ flex:1, height:"3px", background:deMim?"rgba(0,0,0,0.2)":"rgba(255,255,255,0.2)", borderRadius:"2px" }}/>
       <span style={{ fontSize:"11px", opacity:0.7 }}>🎵</span>
       {audioUrl && <audio ref={audioRef} onEnded={()=>setPlaying(false)} style={{ display:"none" }}/>}
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
@@ -84,6 +75,7 @@ export default function InboxPage() {
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
   const [sincronizando, setSincronizando] = useState(false);
+  const [sincronizandoTudo, setSincronizandoTudo] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const carregarConversas = async () => {
@@ -107,15 +99,26 @@ export default function InboxPage() {
     setSincronizando(true);
     try {
       const res = await fetch("/api/evolution/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ numero: conversa.contato_numero, conversa_id: conversa.id, limite: 100 }),
       });
       const data = await res.json();
       await carregarMensagens(conversa);
       alert(`${data.total} mensagens sincronizadas!`);
-    } catch(e) { console.error(e); alert("Erro ao sincronizar"); }
+    } catch(e) { alert("Erro ao sincronizar"); }
     finally { setSincronizando(false); }
+  };
+
+  const sincronizarTudo = async () => {
+    if (!confirm("Vai importar todas as conversas. Pode demorar. Continuar?")) return;
+    setSincronizandoTudo(true);
+    try {
+      const res = await fetch("/api/evolution/sync-all", { method: "POST" });
+      const data = await res.json();
+      await carregarConversas();
+      alert(`Sincronizado! ${data.conversas} conversas e ${data.mensagens} mensagens importadas.`);
+    } catch(e) { alert("Erro ao sincronizar"); }
+    finally { setSincronizandoTudo(false); }
   };
 
   const enviarMensagem = async () => {
@@ -124,23 +127,15 @@ export default function InboxPage() {
     try {
       const agId = await getAgenciaId();
       await fetch("/api/evolution", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "sendText",
-          instanceName: INSTANCIA,
-          payload: { number: selecionada.contato_numero, text: texto },
-        }),
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "sendText", instanceName: INSTANCIA, payload: { number: selecionada.contato_numero, text: texto } }),
       });
       await supabase.from("mensagens").insert({
         conversa_id: selecionada.id, agencia_id: agId,
-        mensagem_id: `local-${Date.now()}`,
-        de_mim: true, tipo: "text", conteudo: texto,
+        mensagem_id: `local-${Date.now()}`, de_mim: true, tipo: "text", conteudo: texto,
         created_at: new Date().toISOString(),
       });
-      await supabase.from("conversas").update({
-        ultima_mensagem: texto, ultima_mensagem_at: new Date().toISOString(),
-      }).eq("id", selecionada.id);
+      await supabase.from("conversas").update({ ultima_mensagem: texto, ultima_mensagem_at: new Date().toISOString() }).eq("id", selecionada.id);
       setTexto("");
       await carregarMensagens(selecionada);
       await carregarConversas();
@@ -152,10 +147,8 @@ export default function InboxPage() {
     if (!selecionada) return;
     const agId = await getAgenciaId();
     const { data } = await supabase.from("leads").insert({
-      agencia_id: agId,
-      nome: selecionada.contato_nome || selecionada.contato_numero,
-      telefone: selecionada.contato_numero,
-      etapa: "novo",
+      agencia_id: agId, nome: selecionada.contato_nome || selecionada.contato_numero,
+      telefone: selecionada.contato_numero, etapa: "novo",
     }).select().single();
     if (data) {
       await supabase.from("conversas").update({ lead_id: data.id }).eq("id", selecionada.id);
@@ -164,24 +157,11 @@ export default function InboxPage() {
     }
   };
 
-  const [sincronizandoTudo, setSincronizandoTudo] = useState(false);
-
-  const sincronizarTudo = async () => {
-    if (!confirm("Isso vai importar todas as conversas e mensagens. Pode demorar alguns segundos. Continuar?")) return;
-    setSincronizandoTudo(true);
-    try {
-      const res = await fetch("/api/evolution/sync-all", { method: "POST" });
-      const data = await res.json();
-      await carregarConversas();
-      alert(`Sincronizado! ${data.conversas} conversas e ${data.mensagens} mensagens importadas.`);
-    } catch(e) { alert("Erro ao sincronizar"); }
-    finally { setSincronizandoTudo(false); }
-  };
+  const renderMensagem = (m: Mensagem) => {
     if (m.tipo === "audio") return <AudioPlayer mensagemId={m.mensagem_id} deMim={m.de_mim}/>;
     if (m.tipo === "image") return <p style={{ margin:0, fontSize:"12px", opacity:0.7 }}>📷 {m.conteudo || "Imagem"}</p>;
     if (m.tipo === "video") return <p style={{ margin:0 }}>🎥 {m.conteudo || "Vídeo"}</p>;
     if (m.tipo === "document") return <p style={{ margin:0 }}>📄 {m.conteudo}</p>;
-    if (m.tipo === "sticker") return <p style={{ margin:0 }}>😄 Sticker</p>;
     return <p style={{ margin:0, whiteSpace:"pre-wrap", wordBreak:"break-word" }}>{m.conteudo}</p>;
   };
 
@@ -189,12 +169,12 @@ export default function InboxPage() {
     const data = new Date(d);
     const hoje = new Date();
     if (data.toDateString() === hoje.toDateString())
-      return data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-    return data.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+      return data.toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
+    return data.toLocaleDateString("pt-BR", { day:"2-digit", month:"2-digit" });
   };
 
   useEffect(() => { carregarConversas(); }, []);
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [mensagens]);
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior:"smooth" }); }, [mensagens]);
   useEffect(() => {
     const interval = setInterval(() => {
       carregarConversas();
@@ -204,13 +184,14 @@ export default function InboxPage() {
   }, [selecionada]);
 
   const filtradas = conversas.filter(c =>
-    c.contato_nome?.toLowerCase().includes(busca.toLowerCase()) ||
-    c.contato_numero.includes(busca)
+    c.contato_nome?.toLowerCase().includes(busca.toLowerCase()) || c.contato_numero.includes(busca)
   );
 
   return (
     <div style={{ height:"calc(100vh - 116px)", display:"flex", borderRadius:"12px", overflow:"hidden", border:"1px solid #2e2e2e" }}>
-      {/* Lista */}
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
+      {/* Lista de conversas */}
       <div style={{ width:"320px", flexShrink:0, borderRight:"1px solid #2e2e2e", display:"flex", flexDirection:"column", background:"#141414" }}>
         <div style={{ padding:"16px", borderBottom:"1px solid #2e2e2e" }}>
           <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"12px" }}>
@@ -232,7 +213,12 @@ export default function InboxPage() {
           {loading ? (
             <div style={{ padding:"40px", textAlign:"center", color:"#606060", fontSize:"13px" }}>Carregando...</div>
           ) : !filtradas.length ? (
-            <div style={{ padding:"40px", textAlign:"center", color:"#606060", fontSize:"13px" }}>Nenhuma conversa ainda.</div>
+            <div style={{ padding:"40px", textAlign:"center", color:"#606060", fontSize:"13px" }}>
+              Nenhuma conversa.<br/>
+              <button onClick={sincronizarTudo} style={{ marginTop:"8px", background:"#22c55e", color:"#000", border:"none", borderRadius:"6px", padding:"8px 16px", cursor:"pointer", fontSize:"12px", fontWeight:"600" }}>
+                Importar conversas
+              </button>
+            </div>
           ) : filtradas.map(c => (
             <div key={c.id} onClick={()=>carregarMensagens(c)} style={{
               padding:"12px 16px", cursor:"pointer", borderBottom:"1px solid #1e1e1e",
@@ -289,7 +275,7 @@ export default function InboxPage() {
                 ✓ No CRM
               </a>
             )}
-            <button className="btn-ghost" title="Sincronizar histórico"
+            <button className="btn-ghost" title="Sincronizar histórico desta conversa"
               style={{ padding:"6px 10px", cursor:"pointer" }}
               onClick={()=>sincronizarHistorico(selecionada)} disabled={sincronizando}>
               <RefreshCw size={14} style={{ animation:sincronizando?"spin 1s linear infinite":"none" }}/>
@@ -299,7 +285,7 @@ export default function InboxPage() {
           <div style={{ flex:1, overflowY:"auto", padding:"20px", display:"flex", flexDirection:"column", gap:"8px" }}>
             {!mensagens.length && (
               <div style={{ textAlign:"center", color:"#606060", fontSize:"13px", marginTop:"40px" }}>
-                Nenhuma mensagem. Clique em ↺ para carregar o histórico.
+                Clique em ↺ para carregar o histórico desta conversa.
               </div>
             )}
             {mensagens.map(m => (
@@ -341,7 +327,6 @@ export default function InboxPage() {
           <p style={{ fontSize:"14px" }}>Selecione uma conversa para começar</p>
         </div>
       )}
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
