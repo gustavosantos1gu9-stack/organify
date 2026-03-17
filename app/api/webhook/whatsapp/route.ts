@@ -22,12 +22,15 @@ export async function POST(req: NextRequest) {
 
       const fromMe = msg.key?.fromMe || false;
       const remoteJid = msg.key?.remoteJid || "";
-      // Ignorar grupos, @lid, e mensagens enviadas por mim
+      const remoteJidAlt = msg.key?.remoteJidAlt || "";
+      
+      // Ignorar grupos e mensagens enviadas por mim
       if (!remoteJid || remoteJid.includes("@g.us")) return NextResponse.json({ ok: true });
-      if (remoteJid.includes("@lid")) return NextResponse.json({ ok: true });
       if (fromMe) return NextResponse.json({ ok: true });
 
-      const numero = remoteJid.replace("@s.whatsapp.net", "").replace("@lid", "");
+      // Usar número real: remoteJidAlt (@s.whatsapp.net) tem prioridade sobre @lid
+      const jidReal = remoteJidAlt.includes("@s.whatsapp.net") ? remoteJidAlt : remoteJid;
+      const numero = jidReal.replace("@s.whatsapp.net", "").replace("@lid", "").replace(/\D/g, "");
       const nome = msg.pushName || numero;
       const msgId = msg.key?.id;
       const timestamp = msg.messageTimestamp

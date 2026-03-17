@@ -12,6 +12,14 @@ const AGENCIA_ID = "32cdce6e-4664-4ac6-979d-6d68a1a68745";
 const INSTANCIA = "salxdigital";
 const MEU_NUMERO = "555193694003";
 
+function extrairNumero(jid: string, remoteJidAlt?: string): string {
+  // Se tiver remoteJidAlt (número real do @lid), usar ele
+  if (remoteJidAlt && remoteJidAlt.includes("@s.whatsapp.net")) {
+    return remoteJidAlt.replace("@s.whatsapp.net", "");
+  }
+  return jid.replace("@s.whatsapp.net", "").replace("@lid", "").replace(/\D/g, "");
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
@@ -19,7 +27,6 @@ export async function POST(req: NextRequest) {
     const lote = body.lote || 50;
     const comMensagens = body.com_mensagens || false;
 
-    // Buscar todos os chats
     const resChats = await fetch(`${EVO_URL}/chat/findChats/${INSTANCIA}`, {
       method: "POST",
       headers: { "apikey": EVO_KEY, "Content-Type": "application/json" },
@@ -28,18 +35,11 @@ export async function POST(req: NextRequest) {
     const chats = await resChats.json();
     const lista = Array.isArray(chats) ? chats : [];
 
-    // Filtrar individuais — só @s.whatsapp.net com número real (não @lid)
+    // Filtrar individuais: @s.whatsapp.net E @lid (ambos são contatos reais)
     const individuais = lista.filter((c: any) => {
       const jid = c.remoteJid || "";
       if (jid.includes("@g.us") || jid.includes("@broadcast")) return false;
-      // Ignorar @lid — são IDs internos, não números reais
-      if (jid.includes("@lid")) return false;
-      if (!jid.includes("@s.whatsapp.net")) return false;
-      const num = jid.replace("@s.whatsapp.net","").replace(/\D/g,"");
-      if (num === MEU_NUMERO) return false;
-      // Só números válidos: 10-15 dígitos
-      if (num.length < 10 || num.length > 15) return false;
-      return true;
+      return jid.includes("@s.whatsapp.net") || jid.includes("@lid");
     });
 
     const loteAtual = individuais.slice(offset, offset + lote);
@@ -48,8 +48,12 @@ export async function POST(req: NextRequest) {
 
     for (const chat of loteAtual) {
       const jid = chat.remoteJid || "";
-      const numero = jid.replace(/@\S+/g,"").replace(/\D/g,"");
-      if (!numero || numero === MEU_NUMERO) continue;
+      
+      // Pegar número real: para @lid usar remoteJidAlt da lastMessage
+      const remoteJidAlt = chat.lastMessage?.key?.remoteJidAlt;
+      const numero = extrairNumero(jid, remoteJidAlt);
+      
+      if (!numero || numero === MEU_NUMERO || numero.length < 8 || numero.length > 15) continue;
 
       const nome = chat.pushName || numero;
       const foto = chat.profilePicUrl || null;
@@ -57,6 +61,9 @@ export async function POST(req: NextRequest) {
       const ultimaMsg = lm?.message?.conversation || lm?.message?.extendedTextMessage?.text || lm?.messageType || "";
       const ultimaAt = lm?.messageTimestamp ? new Date(Number(lm.messageTimestamp) * 1000).toISOString() : new Date().toISOString();
       const naoLidas = chat.unreadCount || 0;
+
+      // Usar o JID real (@s.whatsapp.net) se disponível
+      const jidReal = remoteJidAlt || jid;
 
       let { data: conversa } = await supabase.from("conversas")
         .select("id").eq("agencia_id", AGENCIA_ID).eq("contato_numero", numero).single();
@@ -76,13 +83,13 @@ export async function POST(req: NextRequest) {
         }).eq("id", conversa.id);
       }
 
-      // Buscar mensagens só se solicitado
       if (!comMensagens || !conversa?.id) continue;
 
+      // Buscar mensagens usando o JID original (funciona para @lid e @s.whatsapp.net)
       const resMsgs = await fetch(`${EVO_URL}/chat/findMessages/${INSTANCIA}`, {
         method: "POST",
         headers: { "apikey": EVO_KEY, "Content-Type": "application/json" },
-        body: JSON.stringify({ where: { key: { remoteJid: jid } }, limit: 50 }),
+        body: JSON.stringify({ where: { key: { remoteJid: jid } }, limit: 100 }),
       });
       const msgsData = await resMsgs.json();
       const msgs = (msgsData?.messages?.records || msgsData?.records || [])
@@ -96,6 +103,7 @@ export async function POST(req: NextRequest) {
         const ts = Number(msg.messageTimestamp);
         if (!ts) continue;
         const timestamp = new Date(ts * 1000).toISOString();
+
         let tipo = "text"; let conteudo = "";
         const m = msg.message;
         if (m.conversation) conteudo = m.conversation;
@@ -105,6 +113,7 @@ export async function POST(req: NextRequest) {
         else if (m.videoMessage) { tipo = "video"; conteudo = "🎥 Vídeo"; }
         else if (m.documentMessage) { tipo = "document"; conteudo = m.documentMessage.fileName || "📄 Documento"; }
         else continue;
+
         const { error } = await supabase.from("mensagens").upsert({
           conversa_id: conversa.id, agencia_id: AGENCIA_ID,
           mensagem_id: msgId, de_mim: fromMe, tipo, conteudo, created_at: timestamp,
