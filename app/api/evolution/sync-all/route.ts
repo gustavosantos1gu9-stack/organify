@@ -13,6 +13,10 @@ const INSTANCIA = "salxdigital";
 
 export async function POST(req: NextRequest) {
   try {
+    const body = await req.json().catch(() => ({}));
+    const limite = body.limite || 200;
+
+    // Buscar todos os chats
     const resChats = await fetch(`${EVO_URL}/chat/findChats/${INSTANCIA}`, {
       method: "POST",
       headers: { "apikey": EVO_KEY, "Content-Type": "application/json" },
@@ -20,47 +24,75 @@ export async function POST(req: NextRequest) {
     });
     const chatsData = await resChats.json();
     const chats = Array.isArray(chatsData) ? chatsData : (chatsData?.chats || []);
-    const individuais = chats.filter((c: any) =>
-      (c.id || c.remoteJid || "").includes("@s.whatsapp.net")
-    );
+
+    // Filtrar só chats individuais
+    const individuais = chats.filter((c: any) => {
+      const jid = c.id || c.remoteJid || "";
+      return jid.includes("@s.whatsapp.net") || (c.remoteJidAlt && c.remoteJidAlt.includes("@s.whatsapp.net"));
+    });
 
     let conversasSalvas = 0;
     let mensagensSalvas = 0;
 
-    for (const chat of individuais.slice(0, 50)) {
+    for (const chat of individuais.slice(0, limite)) {
       const jid = chat.id || chat.remoteJid || "";
-      const numero = jid.replace("@s.whatsapp.net", "");
+      const numero = jid.replace("@s.whatsapp.net", "").replace(/\D/g, "");
       if (!numero) continue;
 
-      const nome = chat.name || chat.pushName || numero;
+      // Buscar nome e foto do contato via perfil
+      let nome = chat.name || chat.pushName || numero;
+      let foto = chat.profilePicUrl || null;
+
+      try {
+        const resPerfil = await fetch(`${EVO_URL}/chat/fetchProfile/${INSTANCIA}`, {
+          method: "POST",
+          headers: { "apikey": EVO_KEY, "Content-Type": "application/json" },
+          body: JSON.stringify({ number: numero }),
+        });
+        const perfil = await resPerfil.json();
+        if (perfil?.picture) foto = perfil.picture;
+        // nome vem do chat mesmo pois fetchProfile não retorna nome salvo
+      } catch {}
+
       const ultimaMsg = chat.lastMessage?.message?.conversation ||
                         chat.lastMessage?.message?.extendedTextMessage?.text || "";
       const ultimaAt = chat.lastMessage?.messageTimestamp
         ? new Date(Number(chat.lastMessage.messageTimestamp) * 1000).toISOString()
         : new Date().toISOString();
 
+      // Criar ou atualizar conversa
       let { data: conversa } = await supabase.from("conversas")
         .select("id").eq("agencia_id", AGENCIA_ID).eq("contato_numero", numero).single();
 
       if (!conversa) {
         const { data: nova } = await supabase.from("conversas").insert({
           agencia_id: AGENCIA_ID, instancia: INSTANCIA,
-          contato_numero: numero, contato_nome: nome,
+          contato_numero: numero, contato_nome: nome, contato_foto: foto,
           ultima_mensagem: ultimaMsg, ultima_mensagem_at: ultimaAt, nao_lidas: 0,
         }).select("id").single();
         conversa = nova;
         conversasSalvas++;
+      } else {
+        await supabase.from("conversas").update({
+          contato_nome: nome, contato_foto: foto,
+          ultima_mensagem: ultimaMsg, ultima_mensagem_at: ultimaAt,
+        }).eq("id", conversa.id);
       }
 
       if (!conversa?.id) continue;
 
+      // Buscar mensagens ordenadas
       const resMsgs = await fetch(`${EVO_URL}/chat/findMessages/${INSTANCIA}`, {
         method: "POST",
         headers: { "apikey": EVO_KEY, "Content-Type": "application/json" },
-        body: JSON.stringify({ where: { key: { remoteJid: jid } }, limit: 50 }),
+        body: JSON.stringify({
+          where: { key: { remoteJid: jid } },
+          limit: 100,
+        }),
       });
       const msgsData = await resMsgs.json();
-      const msgs = msgsData?.messages?.records || msgsData?.records || [];
+      const msgs = (msgsData?.messages?.records || msgsData?.records || [])
+        .sort((a: any, b: any) => Number(a.messageTimestamp) - Number(b.messageTimestamp));
 
       for (const msg of msgs) {
         const msgId = msg.key?.id;
@@ -78,6 +110,7 @@ export async function POST(req: NextRequest) {
         else if (m.videoMessage) { tipo = "video"; conteudo = "🎥 Vídeo"; }
         else if (m.documentMessage) { tipo = "document"; conteudo = m.documentMessage.fileName || "📄 Documento"; }
         else continue;
+
         const { error } = await supabase.from("mensagens").upsert({
           conversa_id: conversa.id, agencia_id: AGENCIA_ID,
           mensagem_id: msgId, de_mim: fromMe, tipo, conteudo, created_at: timestamp,
@@ -86,7 +119,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ ok: true, conversas: conversasSalvas, mensagens: mensagensSalvas });
+    return NextResponse.json({ ok: true, conversas: conversasSalvas, mensagens: mensagensSalvas, total_chats: individuais.length });
   } catch(e) {
     console.error("Sync all erro:", e);
     return NextResponse.json({ error: "Erro ao sincronizar" }, { status: 500 });

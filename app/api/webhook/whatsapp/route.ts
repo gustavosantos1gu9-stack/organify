@@ -6,6 +6,8 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+const EVO_URL = "https://evolution-api-production-e0b8.up.railway.app";
+const EVO_KEY = "6656711fd37b4eadc6a9d6a31b84c8648e19708f55e7f09b85b7b61d9660d6ad";
 const AGENCIA_ID = "32cdce6e-4664-4ac6-979d-6d68a1a68745";
 const INSTANCIA = "salxdigital";
 
@@ -42,6 +44,18 @@ export async function POST(req: NextRequest) {
       else if (m?.stickerMessage) { tipo = "sticker"; conteudo = "😄 Sticker"; }
       else conteudo = "Mensagem";
 
+      // Buscar foto do contato se não tiver conversa ainda
+      let foto = null;
+      try {
+        const resPerfil = await fetch(`${EVO_URL}/chat/fetchProfile/${INSTANCIA}`, {
+          method: "POST",
+          headers: { "apikey": EVO_KEY, "Content-Type": "application/json" },
+          body: JSON.stringify({ number: numero }),
+        });
+        const perfil = await resPerfil.json();
+        if (perfil?.picture) foto = perfil.picture;
+      } catch {}
+
       // Buscar ou criar conversa
       let { data: conversa } = await supabase
         .from("conversas")
@@ -54,7 +68,7 @@ export async function POST(req: NextRequest) {
       if (!conversa) {
         const { data: nova } = await supabase.from("conversas").insert({
           agencia_id: AGENCIA_ID, instancia: INSTANCIA,
-          contato_numero: numero, contato_nome: nome,
+          contato_numero: numero, contato_nome: nome, contato_foto: foto,
           ultima_mensagem: conteudo, ultima_mensagem_at: timestamp,
           nao_lidas: fromMe ? 0 : 1,
         }).select().single();
