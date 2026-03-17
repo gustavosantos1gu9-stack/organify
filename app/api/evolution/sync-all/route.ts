@@ -28,13 +28,18 @@ export async function POST(req: NextRequest) {
     const chats = await resChats.json();
     const lista = Array.isArray(chats) ? chats : [];
 
-    // Filtrar individuais
+    // Filtrar individuais — só @s.whatsapp.net com número real (não @lid)
     const individuais = lista.filter((c: any) => {
       const jid = c.remoteJid || "";
       if (jid.includes("@g.us") || jid.includes("@broadcast")) return false;
-      const num = jid.replace(/@\S+/g,"").replace(/\D/g,"");
+      // Ignorar @lid — são IDs internos, não números reais
+      if (jid.includes("@lid")) return false;
+      if (!jid.includes("@s.whatsapp.net")) return false;
+      const num = jid.replace("@s.whatsapp.net","").replace(/\D/g,"");
       if (num === MEU_NUMERO) return false;
-      return jid.includes("@s.whatsapp.net") || jid.includes("@lid");
+      // Só números válidos: 10-15 dígitos
+      if (num.length < 10 || num.length > 15) return false;
+      return true;
     });
 
     const loteAtual = individuais.slice(offset, offset + lote);
