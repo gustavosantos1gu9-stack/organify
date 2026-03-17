@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(req: NextRequest) {
-  const token = req.cookies.get("sb-dfjmnibyfowwmlmfbbpa-auth-token");
-  const isAuth = !!token;
   const path = req.nextUrl.pathname;
 
   const isPublic =
@@ -14,6 +12,13 @@ export function middleware(req: NextRequest) {
     path.startsWith("/api");
 
   if (isPublic) return NextResponse.next();
+
+  // Verificar qualquer cookie do Supabase
+  const cookies = req.cookies.getAll();
+  const isAuth = cookies.some(c => 
+    c.name.startsWith("sb-") && c.name.endsWith("-auth-token")
+  );
+
   if (!isAuth) return NextResponse.redirect(new URL("/login", req.url));
   return NextResponse.next();
 }
