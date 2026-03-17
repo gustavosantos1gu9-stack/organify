@@ -15,10 +15,11 @@ const MEU_NUMERO = "555193694003";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
-    const offset = body.offset || 0; // índice de início
-    const lote = body.lote || 20;    // quantos processar por chamada
+    const offset = body.offset || 0;
+    const lote = body.lote || 50;
+    const comMensagens = body.com_mensagens || false;
 
-    // Buscar todos os chats (só uma vez, sem paginação)
+    // Buscar todos os chats
     const resChats = await fetch(`${EVO_URL}/chat/findChats/${INSTANCIA}`, {
       method: "POST",
       headers: { "apikey": EVO_KEY, "Content-Type": "application/json" },
@@ -31,19 +32,18 @@ export async function POST(req: NextRequest) {
     const individuais = lista.filter((c: any) => {
       const jid = c.remoteJid || "";
       if (jid.includes("@g.us") || jid.includes("@broadcast")) return false;
-      const num = jid.replace("@s.whatsapp.net","").replace("@lid","").replace(/\D/g,"");
+      const num = jid.replace(/@\S+/g,"").replace(/\D/g,"");
       if (num === MEU_NUMERO) return false;
       return jid.includes("@s.whatsapp.net") || jid.includes("@lid");
     });
 
-    // Processar só o lote atual
     const loteAtual = individuais.slice(offset, offset + lote);
     let conversasSalvas = 0;
     let mensagensSalvas = 0;
 
     for (const chat of loteAtual) {
       const jid = chat.remoteJid || "";
-      const numero = jid.replace("@s.whatsapp.net","").replace("@lid","").replace(/\D/g,"");
+      const numero = jid.replace(/@\S+/g,"").replace(/\D/g,"");
       if (!numero || numero === MEU_NUMERO) continue;
 
       const nome = chat.pushName || numero;
@@ -71,9 +71,9 @@ export async function POST(req: NextRequest) {
         }).eq("id", conversa.id);
       }
 
-      if (!conversa?.id) continue;
+      // Buscar mensagens só se solicitado
+      if (!comMensagens || !conversa?.id) continue;
 
-      // Buscar mensagens
       const resMsgs = await fetch(`${EVO_URL}/chat/findMessages/${INSTANCIA}`, {
         method: "POST",
         headers: { "apikey": EVO_KEY, "Content-Type": "application/json" },
@@ -91,11 +91,6 @@ export async function POST(req: NextRequest) {
         const ts = Number(msg.messageTimestamp);
         if (!ts) continue;
         const timestamp = new Date(ts * 1000).toISOString();
-
-        if (!chat.pushName && msg.pushName && !fromMe) {
-          await supabase.from("conversas").update({ contato_nome: msg.pushName }).eq("id", conversa.id);
-        }
-
         let tipo = "text"; let conteudo = "";
         const m = msg.message;
         if (m.conversation) conteudo = m.conversation;
@@ -105,7 +100,6 @@ export async function POST(req: NextRequest) {
         else if (m.videoMessage) { tipo = "video"; conteudo = "🎥 Vídeo"; }
         else if (m.documentMessage) { tipo = "document"; conteudo = m.documentMessage.fileName || "📄 Documento"; }
         else continue;
-
         const { error } = await supabase.from("mensagens").upsert({
           conversa_id: conversa.id, agencia_id: AGENCIA_ID,
           mensagem_id: msgId, de_mim: fromMe, tipo, conteudo, created_at: timestamp,
@@ -115,14 +109,9 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({
-      ok: true,
-      conversas: conversasSalvas,
-      mensagens: mensagensSalvas,
-      offset,
-      processados: loteAtual.length,
-      total: individuais.length,
-      proximo_offset: offset + lote,
-      tem_mais: offset + lote < individuais.length,
+      ok: true, conversas: conversasSalvas, mensagens: mensagensSalvas,
+      offset, processados: loteAtual.length, total: individuais.length,
+      proximo_offset: offset + lote, tem_mais: offset + lote < individuais.length,
     });
   } catch(e) {
     console.error(e);

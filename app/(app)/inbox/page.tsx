@@ -134,33 +134,30 @@ export default function InboxPage() {
   };
 
   const sincronizarTudo = async () => {
-    if (!confirm("Vai importar todas as conversas em lotes. Pode demorar alguns minutos. Continuar?")) return;
+    if (!confirm("Vai importar todas as conversas (rápido, sem histórico). Continuar?")) return;
     setSincronizandoTudo(true);
     try {
       let offset = 0;
       let totalConversas = 0;
-      let totalMensagens = 0;
-      let temMais = true;
       let total = 0;
+      let temMais = true;
 
       while (temMais) {
         const res = await fetch("/api/evolution/sync-all", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ offset, lote: 15 }),
+          body: JSON.stringify({ offset, lote: 50, com_mensagens: false }),
         });
         const data = await res.json();
-        if (!data.ok) { console.error("Erro no lote:", data); break; }
+        if (!data.ok) break;
         totalConversas += data.conversas || 0;
-        totalMensagens += data.mensagens || 0;
         total = data.total || 0;
         temMais = data.tem_mais;
         offset = data.proximo_offset;
-        // Pequena pausa entre lotes para não sobrecarregar
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 300));
       }
 
       await carregarConversas();
-      alert(`Concluído! ${totalConversas} conversas novas e ${totalMensagens} mensagens de ${total} contatos.`);
+      alert(`Concluído! ${totalConversas} novas conversas de ${total} contatos.\nAbra uma conversa e clique ↺ para ver o histórico.`);
     } catch(e) { alert("Erro ao sincronizar"); }
     finally { setSincronizandoTudo(false); }
   };
