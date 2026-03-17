@@ -164,7 +164,19 @@ export default function InboxPage() {
     }
   };
 
-  const renderMensagem = (m: Mensagem) => {
+  const [sincronizandoTudo, setSincronizandoTudo] = useState(false);
+
+  const sincronizarTudo = async () => {
+    if (!confirm("Isso vai importar todas as conversas e mensagens. Pode demorar alguns segundos. Continuar?")) return;
+    setSincronizandoTudo(true);
+    try {
+      const res = await fetch("/api/evolution/sync-all", { method: "POST" });
+      const data = await res.json();
+      await carregarConversas();
+      alert(`Sincronizado! ${data.conversas} conversas e ${data.mensagens} mensagens importadas.`);
+    } catch(e) { alert("Erro ao sincronizar"); }
+    finally { setSincronizandoTudo(false); }
+  };
     if (m.tipo === "audio") return <AudioPlayer mensagemId={m.mensagem_id} deMim={m.de_mim}/>;
     if (m.tipo === "image") return <p style={{ margin:0, fontSize:"12px", opacity:0.7 }}>📷 {m.conteudo || "Imagem"}</p>;
     if (m.tipo === "video") return <p style={{ margin:0 }}>🎥 {m.conteudo || "Vídeo"}</p>;
@@ -205,6 +217,10 @@ export default function InboxPage() {
             <MessageCircle size={18} color="#22c55e"/>
             <h2 style={{ fontSize:"15px", fontWeight:"600" }}>WhatsApp</h2>
             <span style={{ fontSize:"11px", background:"rgba(34,197,94,0.15)", color:"#22c55e", padding:"2px 8px", borderRadius:"10px", marginLeft:"auto" }}>● Conectado</span>
+            <button onClick={sincronizarTudo} disabled={sincronizandoTudo} title="Importar todas conversas"
+              style={{ background:"none", border:"1px solid #2e2e2e", borderRadius:"6px", padding:"4px 6px", cursor:"pointer", color:"#606060" }}>
+              <RefreshCw size={12} style={{ animation:sincronizandoTudo?"spin 1s linear infinite":"none" }}/>
+            </button>
           </div>
           <div style={{ position:"relative" }}>
             <Search size={13} style={{ position:"absolute", left:"10px", top:"50%", transform:"translateY(-50%)", color:"#606060" }}/>
