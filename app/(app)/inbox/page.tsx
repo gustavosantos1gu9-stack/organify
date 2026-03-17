@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Send, Search, User, MessageCircle, ArrowLeft, UserPlus, RefreshCw, Play, Pause } from "lucide-react";
+import { Send, Search, User, MessageCircle, ArrowLeft, UserPlus, RefreshCw, Play, Pause, Check, CheckCheck } from "lucide-react";
 import { supabase, getAgenciaId } from "@/lib/hooks";
 
 interface Conversa {
@@ -11,15 +11,29 @@ interface Conversa {
 }
 interface Mensagem {
   id: string; de_mim: boolean; tipo: string; conteudo: string;
-  mensagem_id: string; created_at: string;
+  mensagem_id: string; created_at: string; status?: string;
 }
 
 const INSTANCIA = "salxdigital";
+
+function Avatar({ nome, foto, size = 40 }: { nome: string; foto?: string; size?: number }) {
+  const inicial = nome?.charAt(0)?.toUpperCase() || "?";
+  const cores = ["#22c55e","#3b82f6","#8b5cf6","#f59e0b","#ec4899","#06b6d4"];
+  const cor = cores[nome?.charCodeAt(0) % cores.length] || "#606060";
+  if (foto) return <img src={foto} alt={nome} style={{ width:size, height:size, borderRadius:"50%", objectFit:"cover" }}/>;
+  return (
+    <div style={{ width:size, height:size, borderRadius:"50%", background:cor, display:"flex", alignItems:"center", justifyContent:"center", fontSize:size*0.4, fontWeight:"700", color:"#fff", flexShrink:0 }}>
+      {inicial}
+    </div>
+  );
+}
 
 function AudioPlayer({ mensagemId, deMim }: { mensagemId: string; deMim: boolean }) {
   const [audioUrl, setAudioUrl] = useState<string|null>(null);
   const [playing, setPlaying] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement|null>(null);
 
   const carregarAudio = async () => {
@@ -49,19 +63,27 @@ function AudioPlayer({ mensagemId, deMim }: { mensagemId: string; deMim: boolean
   };
 
   return (
-    <div style={{ display:"flex", alignItems:"center", gap:"10px", minWidth:"180px" }}>
+    <div style={{ display:"flex", alignItems:"center", gap:"10px", minWidth:"200px" }}>
       <button onClick={carregarAudio} disabled={loading} style={{
-        width:"32px", height:"32px", borderRadius:"50%",
-        background:deMim?"rgba(0,0,0,0.2)":"rgba(34,197,94,0.2)",
+        width:"36px", height:"36px", borderRadius:"50%",
+        background:deMim?"rgba(0,0,0,0.25)":"rgba(34,197,94,0.2)",
         border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
-        color:deMim?"#000":"#22c55e",
+        color:deMim?"#000":"#22c55e", flexShrink:0,
       }}>
         {loading ? <RefreshCw size={14} style={{ animation:"spin 1s linear infinite" }}/> :
          playing ? <Pause size={14}/> : <Play size={14}/>}
       </button>
-      <div style={{ flex:1, height:"3px", background:deMim?"rgba(0,0,0,0.2)":"rgba(255,255,255,0.2)", borderRadius:"2px" }}/>
-      <span style={{ fontSize:"11px", opacity:0.7 }}>🎵</span>
-      {audioUrl && <audio ref={audioRef} onEnded={()=>setPlaying(false)} style={{ display:"none" }}/>}
+      <div style={{ flex:1 }}>
+        <div style={{ height:"3px", background:deMim?"rgba(0,0,0,0.2)":"rgba(255,255,255,0.15)", borderRadius:"2px", marginBottom:"4px" }}>
+          <div style={{ width:`${progress}%`, height:"100%", background:deMim?"rgba(0,0,0,0.5)":"#22c55e", borderRadius:"2px", transition:"width 0.1s" }}/>
+        </div>
+        <span style={{ fontSize:"10px", opacity:0.6 }}>{duration ? `${Math.floor(duration/60)}:${String(Math.floor(duration%60)).padStart(2,"0")}` : "0:00"}</span>
+      </div>
+      {audioUrl && <audio ref={audioRef}
+        onTimeUpdate={e=>setProgress((e.currentTarget.currentTime/e.currentTarget.duration)*100)}
+        onLoadedMetadata={e=>setDuration(e.currentTarget.duration)}
+        onEnded={()=>{setPlaying(false);setProgress(0);}}
+        style={{ display:"none" }}/>}
     </div>
   );
 }
@@ -91,8 +113,10 @@ export default function InboxPage() {
     const { data } = await supabase.from("mensagens").select("*")
       .eq("conversa_id", conversa.id).order("created_at", { ascending: true });
     setMensagens(data || []);
-    await supabase.from("conversas").update({ nao_lidas: 0 }).eq("id", conversa.id);
-    setConversas(prev => prev.map(c => c.id === conversa.id ? { ...c, nao_lidas: 0 } : c));
+    if (conversa.nao_lidas > 0) {
+      await supabase.from("conversas").update({ nao_lidas: 0 }).eq("id", conversa.id);
+      setConversas(prev => prev.map(c => c.id === conversa.id ? { ...c, nao_lidas: 0 } : c));
+    }
   };
 
   const sincronizarHistorico = async (conversa: Conversa) => {
@@ -109,14 +133,17 @@ export default function InboxPage() {
     finally { setSincronizando(false); }
   };
 
-  const sincronizarTudo = async () => {
-    if (!confirm("Vai importar todas as conversas. Pode demorar. Continuar?")) return;
+  const sincronizarTudo = async (limite = 200) => {
+    if (!confirm(`Vai importar até ${limite} conversas com histórico. Pode demorar. Continuar?`)) return;
     setSincronizandoTudo(true);
     try {
-      const res = await fetch("/api/evolution/sync-all", { method: "POST" });
+      const res = await fetch("/api/evolution/sync-all", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ limite }),
+      });
       const data = await res.json();
       await carregarConversas();
-      alert(`Sincronizado! ${data.conversas} conversas e ${data.mensagens} mensagens importadas.`);
+      alert(`Importado! ${data.conversas} novas conversas, ${data.mensagens} mensagens. Total de chats: ${data.total_chats}`);
     } catch(e) { alert("Erro ao sincronizar"); }
     finally { setSincronizandoTudo(false); }
   };
@@ -124,19 +151,20 @@ export default function InboxPage() {
   const enviarMensagem = async () => {
     if (!texto.trim() || !selecionada || enviando) return;
     setEnviando(true);
+    const textoEnviado = texto;
+    setTexto("");
     try {
       const agId = await getAgenciaId();
       await fetch("/api/evolution", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "sendText", instanceName: INSTANCIA, payload: { number: selecionada.contato_numero, text: texto } }),
+        body: JSON.stringify({ action: "sendText", instanceName: INSTANCIA, payload: { number: selecionada.contato_numero, text: textoEnviado } }),
       });
       await supabase.from("mensagens").insert({
         conversa_id: selecionada.id, agencia_id: agId,
-        mensagem_id: `local-${Date.now()}`, de_mim: true, tipo: "text", conteudo: texto,
+        mensagem_id: `local-${Date.now()}`, de_mim: true, tipo: "text", conteudo: textoEnviado,
         created_at: new Date().toISOString(),
       });
-      await supabase.from("conversas").update({ ultima_mensagem: texto, ultima_mensagem_at: new Date().toISOString() }).eq("id", selecionada.id);
-      setTexto("");
+      await supabase.from("conversas").update({ ultima_mensagem: textoEnviado, ultima_mensagem_at: new Date().toISOString() }).eq("id", selecionada.id);
       await carregarMensagens(selecionada);
       await carregarConversas();
     } catch(e) { console.error(e); }
@@ -159,7 +187,7 @@ export default function InboxPage() {
 
   const renderMensagem = (m: Mensagem) => {
     if (m.tipo === "audio") return <AudioPlayer mensagemId={m.mensagem_id} deMim={m.de_mim}/>;
-    if (m.tipo === "image") return <p style={{ margin:0, fontSize:"12px", opacity:0.7 }}>📷 {m.conteudo || "Imagem"}</p>;
+    if (m.tipo === "image") return <p style={{ margin:0, fontSize:"12px" }}>📷 {m.conteudo || "Imagem"}</p>;
     if (m.tipo === "video") return <p style={{ margin:0 }}>🎥 {m.conteudo || "Vídeo"}</p>;
     if (m.tipo === "document") return <p style={{ margin:0 }}>📄 {m.conteudo}</p>;
     return <p style={{ margin:0, whiteSpace:"pre-wrap", wordBreak:"break-word" }}>{m.conteudo}</p>;
@@ -168,9 +196,25 @@ export default function InboxPage() {
   const formatarHora = (d: string) => {
     const data = new Date(d);
     const hoje = new Date();
+    const ontem = new Date(hoje); ontem.setDate(ontem.getDate() - 1);
     if (data.toDateString() === hoje.toDateString())
       return data.toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
+    if (data.toDateString() === ontem.toDateString()) return "Ontem";
     return data.toLocaleDateString("pt-BR", { day:"2-digit", month:"2-digit" });
+  };
+
+  const formatarHoraChat = (d: string) =>
+    new Date(d).toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
+
+  const agruparPorDia = (msgs: Mensagem[]) => {
+    const grupos: { data: string; msgs: Mensagem[] }[] = [];
+    msgs.forEach(m => {
+      const dia = new Date(m.created_at).toLocaleDateString("pt-BR", { day:"2-digit", month:"2-digit", year:"numeric" });
+      const ultimo = grupos[grupos.length - 1];
+      if (ultimo?.data === dia) ultimo.msgs.push(m);
+      else grupos.push({ data: dia, msgs: [m] });
+    });
+    return grupos;
   };
 
   useEffect(() => { carregarConversas(); }, []);
@@ -178,73 +222,94 @@ export default function InboxPage() {
   useEffect(() => {
     const interval = setInterval(() => {
       carregarConversas();
-      if (selecionada) carregarMensagens(selecionada);
-    }, 5000);
+      if (selecionada) {
+        supabase.from("mensagens").select("*").eq("conversa_id", selecionada.id)
+          .order("created_at", { ascending: true }).then(({ data }) => {
+            if (data && data.length !== mensagens.length) setMensagens(data);
+          });
+      }
+    }, 4000);
     return () => clearInterval(interval);
-  }, [selecionada]);
+  }, [selecionada, mensagens.length]);
 
   const filtradas = conversas.filter(c =>
     c.contato_nome?.toLowerCase().includes(busca.toLowerCase()) || c.contato_numero.includes(busca)
   );
+  const totalNaoLidas = conversas.reduce((s, c) => s + (c.nao_lidas || 0), 0);
+  const grupos = agruparPorDia(mensagens);
 
   return (
     <div style={{ height:"calc(100vh - 116px)", display:"flex", borderRadius:"12px", overflow:"hidden", border:"1px solid #2e2e2e" }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
-      {/* Lista de conversas */}
-      <div style={{ width:"320px", flexShrink:0, borderRight:"1px solid #2e2e2e", display:"flex", flexDirection:"column", background:"#141414" }}>
-        <div style={{ padding:"16px", borderBottom:"1px solid #2e2e2e" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"12px" }}>
+      {/* Lista */}
+      <div style={{ width:"340px", flexShrink:0, borderRight:"1px solid #2e2e2e", display:"flex", flexDirection:"column", background:"#111" }}>
+        {/* Header */}
+        <div style={{ padding:"14px 16px", borderBottom:"1px solid #2e2e2e", background:"#1a1a1a" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"10px" }}>
             <MessageCircle size={18} color="#22c55e"/>
-            <h2 style={{ fontSize:"15px", fontWeight:"600" }}>WhatsApp</h2>
-            <span style={{ fontSize:"11px", background:"rgba(34,197,94,0.15)", color:"#22c55e", padding:"2px 8px", borderRadius:"10px", marginLeft:"auto" }}>● Conectado</span>
-            <button onClick={sincronizarTudo} disabled={sincronizandoTudo} title="Importar todas conversas"
-              style={{ background:"none", border:"1px solid #2e2e2e", borderRadius:"6px", padding:"4px 6px", cursor:"pointer", color:"#606060" }}>
-              <RefreshCw size={12} style={{ animation:sincronizandoTudo?"spin 1s linear infinite":"none" }}/>
-            </button>
+            <span style={{ fontSize:"15px", fontWeight:"700", color:"#f0f0f0" }}>Conversas</span>
+            {totalNaoLidas > 0 && (
+              <span style={{ background:"#22c55e", color:"#000", fontSize:"11px", fontWeight:"700", borderRadius:"10px", padding:"2px 8px" }}>
+                {totalNaoLidas}
+              </span>
+            )}
+            <div style={{ marginLeft:"auto", display:"flex", gap:"4px" }}>
+              <button onClick={()=>sincronizarTudo(200)} disabled={sincronizandoTudo} title="Importar conversas"
+                style={{ background:"#2a2a2a", border:"1px solid #3a3a3a", borderRadius:"6px", padding:"5px 8px", cursor:"pointer", color:"#a0a0a0", fontSize:"11px", display:"flex", alignItems:"center", gap:"4px" }}>
+                <RefreshCw size={12} style={{ animation:sincronizandoTudo?"spin 1s linear infinite":"none" }}/>
+                {sincronizandoTudo?"Importando...":"Importar"}
+              </button>
+            </div>
           </div>
           <div style={{ position:"relative" }}>
             <Search size={13} style={{ position:"absolute", left:"10px", top:"50%", transform:"translateY(-50%)", color:"#606060" }}/>
-            <input className="search-input" placeholder="Buscar..." value={busca}
-              onChange={e=>setBusca(e.target.value)} style={{ paddingLeft:"32px", width:"100%" }}/>
+            <input className="search-input" placeholder="Buscar conversa..." value={busca}
+              onChange={e=>setBusca(e.target.value)} style={{ paddingLeft:"32px", width:"100%", background:"#222", border:"1px solid #2e2e2e" }}/>
           </div>
         </div>
+
+        {/* Lista de conversas */}
         <div style={{ flex:1, overflowY:"auto" }}>
           {loading ? (
             <div style={{ padding:"40px", textAlign:"center", color:"#606060", fontSize:"13px" }}>Carregando...</div>
           ) : !filtradas.length ? (
-            <div style={{ padding:"40px", textAlign:"center", color:"#606060", fontSize:"13px" }}>
-              Nenhuma conversa.<br/>
-              <button onClick={sincronizarTudo} style={{ marginTop:"8px", background:"#22c55e", color:"#000", border:"none", borderRadius:"6px", padding:"8px 16px", cursor:"pointer", fontSize:"12px", fontWeight:"600" }}>
+            <div style={{ padding:"32px 20px", textAlign:"center", color:"#606060", fontSize:"13px" }}>
+              <MessageCircle size={32} style={{ opacity:0.3, marginBottom:"8px" }}/>
+              <p style={{ marginBottom:"12px" }}>Nenhuma conversa ainda</p>
+              <button onClick={()=>sincronizarTudo(200)} style={{ background:"#22c55e", color:"#000", border:"none", borderRadius:"8px", padding:"8px 16px", cursor:"pointer", fontSize:"12px", fontWeight:"600" }}>
                 Importar conversas
               </button>
             </div>
           ) : filtradas.map(c => (
             <div key={c.id} onClick={()=>carregarMensagens(c)} style={{
-              padding:"12px 16px", cursor:"pointer", borderBottom:"1px solid #1e1e1e",
+              padding:"12px 16px", cursor:"pointer", borderBottom:"1px solid #1a1a1a",
               background:selecionada?.id===c.id?"#1e1e1e":"transparent",
-            }}>
+              transition:"background 0.1s",
+            }}
+            onMouseEnter={e=>{if(selecionada?.id!==c.id)(e.currentTarget as HTMLDivElement).style.background="#181818";}}
+            onMouseLeave={e=>{if(selecionada?.id!==c.id)(e.currentTarget as HTMLDivElement).style.background="transparent";}}>
               <div style={{ display:"flex", alignItems:"center", gap:"10px" }}>
-                <div style={{ width:"40px", height:"40px", borderRadius:"50%", background:"#2a2a2a", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                  <User size={18} color="#606060"/>
+                <div style={{ position:"relative", flexShrink:0 }}>
+                  <Avatar nome={c.contato_nome||c.contato_numero} foto={c.contato_foto} size={44}/>
+                  {c.nao_lidas > 0 && (
+                    <span style={{ position:"absolute", top:"-2px", right:"-2px", background:"#22c55e", color:"#000", fontSize:"10px", fontWeight:"800", borderRadius:"50%", width:"18px", height:"18px", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                      {c.nao_lidas > 9 ? "9+" : c.nao_lidas}
+                    </span>
+                  )}
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"2px" }}>
-                    <span style={{ fontSize:"13px", fontWeight:"600", color:"#f0f0f0", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                    <span style={{ fontSize:"13px", fontWeight:c.nao_lidas>0?"700":"600", color:"#f0f0f0", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                       {c.contato_nome || c.contato_numero}
                     </span>
-                    <span style={{ fontSize:"11px", color:"#606060", flexShrink:0 }}>{formatarHora(c.ultima_mensagem_at)}</span>
-                  </div>
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                    <span style={{ fontSize:"12px", color:"#606060", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1 }}>
-                      {c.ultima_mensagem}
+                    <span style={{ fontSize:"11px", color:c.nao_lidas>0?"#22c55e":"#606060", flexShrink:0, marginLeft:"4px" }}>
+                      {formatarHora(c.ultima_mensagem_at)}
                     </span>
-                    {c.nao_lidas > 0 && (
-                      <span style={{ background:"#22c55e", color:"#000", fontSize:"10px", fontWeight:"700", borderRadius:"10px", padding:"2px 6px", marginLeft:"6px" }}>
-                        {c.nao_lidas}
-                      </span>
-                    )}
                   </div>
+                  <span style={{ fontSize:"12px", color:c.nao_lidas>0?"#a0a0a0":"#606060", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", display:"block", fontWeight:c.nao_lidas>0?"500":"400" }}>
+                    {c.ultima_mensagem}
+                  </span>
                 </div>
               </div>
             </div>
@@ -254,17 +319,16 @@ export default function InboxPage() {
 
       {/* Chat */}
       {selecionada ? (
-        <div style={{ flex:1, display:"flex", flexDirection:"column", background:"#0f0f0f" }}>
-          <div style={{ padding:"12px 20px", borderBottom:"1px solid #2e2e2e", display:"flex", alignItems:"center", gap:"12px", background:"#141414" }}>
+        <div style={{ flex:1, display:"flex", flexDirection:"column", background:"#0d0d0d" }}>
+          {/* Header chat */}
+          <div style={{ padding:"10px 20px", borderBottom:"1px solid #2e2e2e", display:"flex", alignItems:"center", gap:"12px", background:"#1a1a1a" }}>
             <button onClick={()=>setSelecionada(null)} className="btn-ghost" style={{ padding:"6px", cursor:"pointer" }}>
               <ArrowLeft size={16}/>
             </button>
-            <div style={{ width:"36px", height:"36px", borderRadius:"50%", background:"#2a2a2a", display:"flex", alignItems:"center", justifyContent:"center" }}>
-              <User size={16} color="#606060"/>
-            </div>
+            <Avatar nome={selecionada.contato_nome||selecionada.contato_numero} foto={selecionada.contato_foto} size={38}/>
             <div style={{ flex:1 }}>
-              <p style={{ fontSize:"14px", fontWeight:"600", color:"#f0f0f0" }}>{selecionada.contato_nome || selecionada.contato_numero}</p>
-              <p style={{ fontSize:"11px", color:"#606060" }}>+{selecionada.contato_numero}</p>
+              <p style={{ fontSize:"14px", fontWeight:"600", color:"#f0f0f0", margin:0 }}>{selecionada.contato_nome || selecionada.contato_numero}</p>
+              <p style={{ fontSize:"11px", color:"#606060", margin:0 }}>+{selecionada.contato_numero}</p>
             </div>
             {!selecionada.lead_id ? (
               <button className="btn-secondary" style={{ padding:"6px 12px", fontSize:"12px", cursor:"pointer" }} onClick={criarLead}>
@@ -275,56 +339,76 @@ export default function InboxPage() {
                 ✓ No CRM
               </a>
             )}
-            <button className="btn-ghost" title="Sincronizar histórico desta conversa"
+            <button className="btn-ghost" title="Sincronizar histórico"
               style={{ padding:"6px 10px", cursor:"pointer" }}
               onClick={()=>sincronizarHistorico(selecionada)} disabled={sincronizando}>
               <RefreshCw size={14} style={{ animation:sincronizando?"spin 1s linear infinite":"none" }}/>
             </button>
           </div>
 
-          <div style={{ flex:1, overflowY:"auto", padding:"20px", display:"flex", flexDirection:"column", gap:"8px" }}>
-            {!mensagens.length && (
+          {/* Mensagens */}
+          <div style={{ flex:1, overflowY:"auto", padding:"16px 20px", display:"flex", flexDirection:"column", gap:"2px",
+            backgroundImage:"radial-gradient(circle at 1px 1px, #1a1a1a 1px, transparent 0)", backgroundSize:"20px 20px" }}>
+            {!mensagens.length ? (
               <div style={{ textAlign:"center", color:"#606060", fontSize:"13px", marginTop:"40px" }}>
-                Clique em ↺ para carregar o histórico desta conversa.
+                <p>Clique em ↺ para carregar o histórico.</p>
               </div>
-            )}
-            {mensagens.map(m => (
-              <div key={m.id} style={{ display:"flex", justifyContent:m.de_mim?"flex-end":"flex-start" }}>
-                <div style={{
-                  maxWidth:"70%", padding:"10px 14px",
-                  borderRadius:m.de_mim?"16px 16px 4px 16px":"16px 16px 16px 4px",
-                  background:m.de_mim?"#22c55e":"#1e1e1e",
-                  color:m.de_mim?"#000":"#f0f0f0",
-                  fontSize:"13px", lineHeight:"1.5",
-                }}>
-                  {renderMensagem(m)}
-                  <p style={{ fontSize:"10px", opacity:0.6, margin:"4px 0 0", textAlign:"right" }}>
-                    {formatarHora(m.created_at)}
-                  </p>
+            ) : grupos.map(grupo => (
+              <div key={grupo.data}>
+                {/* Separador de data */}
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"center", margin:"12px 0" }}>
+                  <span style={{ background:"#1e1e1e", color:"#606060", fontSize:"11px", padding:"3px 12px", borderRadius:"10px", border:"1px solid #2e2e2e" }}>
+                    {grupo.data}
+                  </span>
                 </div>
+                {grupo.msgs.map(m => (
+                  <div key={m.id} style={{ display:"flex", justifyContent:m.de_mim?"flex-end":"flex-start", marginBottom:"4px" }}>
+                    {!m.de_mim && (
+                      <Avatar nome={selecionada.contato_nome||selecionada.contato_numero} foto={selecionada.contato_foto} size={28}/>
+                    )}
+                    <div style={{
+                      maxWidth:"65%", padding:"8px 12px",
+                      borderRadius:m.de_mim?"12px 12px 2px 12px":"12px 12px 12px 2px",
+                      background:m.de_mim?"#22c55e":"#1e1e1e",
+                      color:m.de_mim?"#000":"#f0f0f0",
+                      fontSize:"13px", lineHeight:"1.5",
+                      marginLeft:m.de_mim?"0":"8px",
+                      marginRight:m.de_mim?"0":"0",
+                    }}>
+                      {renderMensagem(m)}
+                      <div style={{ display:"flex", alignItems:"center", justifyContent:"flex-end", gap:"4px", marginTop:"2px" }}>
+                        <span style={{ fontSize:"10px", opacity:0.6 }}>{formatarHoraChat(m.created_at)}</span>
+                        {m.de_mim && <CheckCheck size={12} style={{ opacity:0.6 }}/>}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             ))}
             <div ref={messagesEndRef}/>
           </div>
 
-          <div style={{ padding:"16px 20px", borderTop:"1px solid #2e2e2e", display:"flex", gap:"10px", alignItems:"center", background:"#141414" }}>
-            <input className="form-input" placeholder="Digite uma mensagem..." value={texto}
+          {/* Input */}
+          <div style={{ padding:"12px 16px", borderTop:"1px solid #2e2e2e", display:"flex", gap:"10px", alignItems:"flex-end", background:"#1a1a1a" }}>
+            <textarea className="form-input" placeholder="Digite uma mensagem..." value={texto}
               onChange={e=>setTexto(e.target.value)}
-              onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&enviarMensagem()}
-              style={{ flex:1 }}/>
+              onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();enviarMensagem();}}}
+              style={{ flex:1, resize:"none", minHeight:"40px", maxHeight:"120px", lineHeight:"1.5", paddingTop:"10px" }}
+              rows={1}/>
             <button onClick={enviarMensagem} disabled={enviando||!texto.trim()} style={{
-              width:"40px", height:"40px", borderRadius:"50%", background:"#22c55e",
+              width:"42px", height:"42px", borderRadius:"50%", background:"#22c55e",
               border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
-              opacity:enviando||!texto.trim()?0.5:1,
+              opacity:enviando||!texto.trim()?0.4:1, flexShrink:0,
             }}>
               <Send size={16} color="#000"/>
             </button>
           </div>
         </div>
       ) : (
-        <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:"16px", color:"#606060" }}>
-          <MessageCircle size={48} style={{ opacity:0.3 }}/>
+        <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:"16px", color:"#606060", background:"#0d0d0d" }}>
+          <MessageCircle size={56} style={{ opacity:0.15 }}/>
           <p style={{ fontSize:"14px" }}>Selecione uma conversa para começar</p>
+          <p style={{ fontSize:"12px", color:"#404040" }}>ou clique em "Importar" para carregar o histórico</p>
         </div>
       )}
     </div>
