@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Organify — Organização para agências",
-  description: "Plataforma de gestão para agências digitais",
+  title: "Salx Convert - Aceleração de Vendas",
+  description: "Aceleração de Vendas",
 };
 
 export default function RootLayout({
