@@ -37,13 +37,13 @@ export default function LoginPage() {
     <div style={{ minHeight: "100vh", background: "#0f0f0f", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
       <div style={{ width: "100%", maxWidth: "380px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px", justifyContent: "center", marginBottom: "40px" }}>
-          <img src="/logo.png" alt="SALX Convert" style={{ width: "48px", height: "48px", objectFit: "contain" }}/>
+          <img src="/logo.png" alt="SALX Convert" style={{ width: "56px", height: "56px", objectFit: "contain" }}/>
           <div style={{ display: "flex", flexDirection: "column", lineHeight: 1 }}>
             <span style={{ fontSize: "22px", fontWeight: "800", color: "#f0f0f0", letterSpacing: "-0.5px" }}>
               SALX <span style={{ color: "#29ABE2" }}>Convert</span>
             </span>
             <span style={{ fontSize: "11px", color: "#606060", textAlign: "center", letterSpacing: "0.05em", marginTop: "3px" }}>
-              gestão de agências
+              acelerador de vendas
             </span>
           </div>
         </div>

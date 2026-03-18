@@ -141,13 +141,13 @@ export default function Sidebar() {
       >
         {!collapsed && (
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <img src="/logo.png" alt="SALX Convert" style={{ width: "36px", height: "36px", objectFit: "contain", flexShrink: 0 }}/>
+            <img src="/logo.png" alt="SALX Convert" style={{ width: "44px", height: "44px", objectFit: "contain", flexShrink: 0 }}/>
             <div style={{ display: "flex", flexDirection: "column", lineHeight: 1 }}>
               <span style={{ fontWeight: "800", fontSize: "16px", color: "#f0f0f0", letterSpacing: "-0.3px" }}>
                 SALX <span style={{ color: "#29ABE2" }}>Convert</span>
               </span>
               <span style={{ fontSize: "10px", color: "#606060", textAlign: "center", letterSpacing: "0.05em", marginTop: "2px" }}>
-                gestão de agências
+                acelerador de vendas
               </span>
             </div>
           </div>
