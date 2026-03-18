@@ -8,40 +8,21 @@ const supabase = createClient(
 
 export async function POST(req: NextRequest) {
   try {
-    const { link_id, utm_source, utm_medium, utm_campaign, utm_content, utm_term, agencia_id } = await req.json();
+    const body = await req.json();
+    const { wa_numero, utm_source, utm_medium, utm_campaign, utm_content, utm_term, fbclid, link_id, origem, url_completa } = body;
 
-    // Incrementar cliques no link
-    if (link_id) {
-      await supabase.rpc("incrementar_cliques", { link_id });
-    }
+    if (!wa_numero) return NextResponse.json({ ok: false });
 
-    // Disparar evento Lead para o Meta Pixel (server-side)
-    const { data: agencia } = await supabase
-      .from("agencias")
-      .select("meta_pixel_id, meta_token, meta_ativo")
-      .eq("id", agencia_id)
-      .single();
-
-    if (agencia?.meta_ativo && agencia?.meta_pixel_id && agencia?.meta_token) {
-      await fetch(`https://graph.facebook.com/v18.0/${agencia.meta_pixel_id}/events`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          data: [{
-            event_name: "Lead",
-            event_time: Math.floor(Date.now() / 1000),
-            action_source: "website",
-            user_data: { client_ip_address: req.headers.get("x-forwarded-for") || "0.0.0.0" },
-            custom_data: { utm_source, utm_medium, utm_campaign, utm_content, utm_term },
-          }],
-          access_token: agencia.meta_token,
-        }),
-      });
-    }
+    // Salvar rastreamento temporário (30 min de TTL via updated_at)
+    await supabase.from("rastreamentos_pendentes").upsert({
+      wa_numero: wa_numero.replace(/\D/g, ""),
+      utm_source, utm_medium, utm_campaign, utm_content, utm_term, fbclid, link_id, origem,
+      url_completa,
+      created_at: new Date().toISOString(),
+    }, { onConflict: "wa_numero" });
 
     return NextResponse.json({ ok: true });
   } catch(e) {
-    console.error(e);
-    return NextResponse.json({ ok: false }, { status: 500 });
+    return NextResponse.json({ ok: false });
   }
 }

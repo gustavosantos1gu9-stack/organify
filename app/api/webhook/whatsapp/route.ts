@@ -92,6 +92,35 @@ export async function POST(req: NextRequest) {
           conversa_id: conversa.id, agencia_id: agencia.id,
           mensagem_id: msgId, de_mim: false, tipo, conteudo, created_at: timestamp,
         }, { onConflict: "mensagem_id" });
+
+        // Cruzar com rastreamento pendente (UTMs do link rastreável)
+        const { data: tracking } = await supabase.from("rastreamentos_pendentes")
+          .select("*").eq("wa_numero", numero).single();
+        if (tracking) {
+          await supabase.from("conversas").update({
+            origem: tracking.origem || "Não Rastreada",
+            utm_source: tracking.utm_source,
+            utm_medium: tracking.utm_medium,
+            utm_campaign: tracking.utm_campaign,
+            utm_content: tracking.utm_content,
+            utm_term: tracking.utm_term,
+            fbclid: tracking.fbclid,
+            link_id: tracking.link_id,
+            primeira_mensagem_at: timestamp,
+          }).eq("id", conversa.id);
+          // Remover rastreamento usado
+          await supabase.from("rastreamentos_pendentes").delete().eq("wa_numero", numero);
+          // Incrementar cliques no link
+          if (tracking.link_id) {
+            await supabase.rpc("incrementar_cliques", { link_uuid: tracking.link_id });
+          }
+        } else {
+          // Marcar como não rastreada se for primeira mensagem
+          await supabase.from("conversas").update({
+            primeira_mensagem_at: timestamp,
+            origem: "Não Rastreada",
+          }).eq("id", conversa.id).is("primeira_mensagem_at", null);
+        }
       }
 
       // Disparar evento Meta se configurado
