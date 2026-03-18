@@ -54,6 +54,7 @@ const navItems: NavItem[] = [
   { href: "/crm", label: "CRM", icon: <CreditCard size={16} /> },
   { href: "/gerador-de-leads", label: "Churn", icon: <UserMinus size={16} /> },
   { href: "/ferramentas/gerador-links", label: "Links & Campanhas", icon: <Link2 size={16} /> },
+  { href: "/ferramentas/campanhas", label: "Configurar Campanha", icon: <Target size={16} /> },
   { href: "/jornada", label: "Jornada de Compra", icon: <Target size={16} /> },
   { href: "/dre", label: "DRE", icon: <BarChart3 size={16} /> },
   { href: "/metas", label: "Metas", icon: <Target size={16} /> },
@@ -139,9 +140,9 @@ export default function Sidebar() {
         }}
       >
         {!collapsed && (
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <img src="/logo.jpg" style={{ width: "36px", height: "36px", objectFit: "contain" }} alt="SALX Convert" />
-            <span style={{ fontWeight: "700", fontSize: "15px", color: "#f0f0f0" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <img src="/logo.jpg" alt="SALX Convert" style={{ width: "32px", height: "32px", objectFit: "contain", borderRadius: "6px", flexShrink: 0 }}/>
+            <span style={{ fontWeight: "700", fontSize: "15px", color: "#f0f0f0", letterSpacing: "-0.3px" }}>
               SALX Convert
             </span>
           </div>
@@ -198,7 +199,7 @@ export default function Sidebar() {
                   title={collapsed ? item.label : undefined}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <span style={{ color: hasActiveChild ? "#22c55e" : undefined, flexShrink: 0 }}>
+                    <span style={{ color: hasActiveChild ? "#29ABE2" : undefined, flexShrink: 0 }}>
                       {item.icon}
                     </span>
                     {!collapsed && <span>{item.label}</span>}
