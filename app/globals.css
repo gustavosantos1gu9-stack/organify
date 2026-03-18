@@ -83,7 +83,7 @@ select option {
   gap: 6px;
   white-space: nowrap;
 }
-.btn-primary:hover { background: #16a34a; box-shadow: 0 0 16px rgba(34,197,94,0.25); }
+.btn-primary:hover { background: #1d9acc; box-shadow: 0 0 16px rgba(41,171,226,0.25); }
 
 .btn-secondary {
   background: var(--bg-tertiary);

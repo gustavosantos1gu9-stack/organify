@@ -35,7 +35,7 @@ export default function Topbar() {
       padding: "0 24px", gap: "12px", position: "sticky", top: 0, zIndex: 10,
     }}>
       <span style={{
-        background: "#22c55e", color: "#000", fontSize: "10px",
+        background: "#29ABE2", color: "#000", fontSize: "10px",
         fontWeight: "700", padding: "3px 8px", borderRadius: "4px", letterSpacing: "0.05em",
       }}>ROOT</span>
 

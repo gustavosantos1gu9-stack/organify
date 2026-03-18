@@ -37,10 +37,15 @@ export default function LoginPage() {
     <div style={{ minHeight: "100vh", background: "#0f0f0f", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
       <div style={{ width: "100%", maxWidth: "380px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px", justifyContent: "center", marginBottom: "40px" }}>
-          <div style={{ width: "36px", height: "36px", background: "#29ABE2", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            
+          <img src="/logo.png" alt="SALX Convert" style={{ width: "48px", height: "48px", objectFit: "contain" }}/>
+          <div style={{ display: "flex", flexDirection: "column", lineHeight: 1 }}>
+            <span style={{ fontSize: "22px", fontWeight: "800", color: "#f0f0f0", letterSpacing: "-0.5px" }}>
+              SALX <span style={{ color: "#29ABE2" }}>Convert</span>
+            </span>
+            <span style={{ fontSize: "11px", color: "#606060", textAlign: "center", letterSpacing: "0.05em", marginTop: "3px" }}>
+              gestão de agências
+            </span>
           </div>
-          <span style={{ fontSize: "20px", fontWeight: "700", color: "#f0f0f0" }}>SALX Convert</span>
         </div>
         <div style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "16px", padding: "32px" }}>
           <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
