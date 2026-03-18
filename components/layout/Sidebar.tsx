@@ -140,20 +140,7 @@ export default function Sidebar() {
       >
         {!collapsed && (
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <div
-              style={{
-                width: "28px",
-                height: "28px",
-                background: "#29ABE2",
-                borderRadius: "8px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <img src="/logo.jpg" style={{ width: "28px", height: "28px", borderRadius: "6px", objectFit: "cover" }} alt="logo" />
-            </div>
+            <img src="/logo.jpg" style={{ width: "36px", height: "36px", objectFit: "contain" }} alt="SALX Convert" />
             <span style={{ fontWeight: "700", fontSize: "15px", color: "#f0f0f0" }}>
               SALX Convert
             </span>
