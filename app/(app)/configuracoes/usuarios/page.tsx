@@ -70,9 +70,9 @@ function UsuarioModal({ item, times, onClose, onSave }: { item?: Usuario; times:
               {[{v:true,l:"Ativo"},{v:false,l:"Inativo"}].map(s=>(
                 <button key={String(s.v)} onClick={()=>set("ativo",s.v)} style={{
                   flex:1,padding:"8px",borderRadius:"8px",cursor:"pointer",fontSize:"13px",fontWeight:"500",
-                  border:`1px solid ${form.ativo===s.v?"#22c55e":"#2e2e2e"}`,
-                  background:form.ativo===s.v?"rgba(34,197,94,0.1)":"#222",
-                  color:form.ativo===s.v?"#22c55e":"#a0a0a0",
+                  border:`1px solid ${form.ativo===s.v?"#f0f0f0":"#2e2e2e"}`,
+                  background:form.ativo===s.v?"rgba(41,171,226,0.1)":"#222",
+                  color:form.ativo===s.v?"#f0f0f0":"#a0a0a0",
                 }}>{s.l}</button>
               ))}
             </div>
@@ -153,8 +153,8 @@ export default function UsuariosPage() {
                 <td>
                   <span style={{
                     padding:"3px 10px",borderRadius:"20px",fontSize:"12px",fontWeight:"500",
-                    background:u.ativo?"rgba(34,197,94,0.15)":"rgba(96,96,96,0.15)",
-                    color:u.ativo?"#22c55e":"#606060"
+                    background:u.ativo?"rgba(41,171,226,0.15)":"rgba(96,96,96,0.15)",
+                    color:u.ativo?"#f0f0f0":"#606060"
                   }}>{u.ativo?"Ativo":"Inativo"}</span>
                 </td>
                 <td>

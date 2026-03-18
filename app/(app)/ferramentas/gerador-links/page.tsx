@@ -74,8 +74,8 @@ function FormLink({ onSave, onCancel, waNumero }: { onSave: () => void; onCancel
           </div>
           <h1 style={{ fontSize:"22px", fontWeight:"600" }}>Criar Link Rastreável</h1>
         </div>
-        <span style={{ display:"flex", alignItems:"center", gap:"6px", fontSize:"12px", color:"#22c55e", background:"rgba(34,197,94,0.1)", border:"1px solid rgba(34,197,94,0.2)", padding:"4px 10px", borderRadius:"20px" }}>
-          <span style={{ width:"6px", height:"6px", borderRadius:"50%", background:"#22c55e", display:"inline-block" }}/>
+        <span style={{ display:"flex", alignItems:"center", gap:"6px", fontSize:"12px", color:"#29ABE2", background:"rgba(41,171,226,0.1)", border:"1px solid rgba(41,171,226,0.2)", padding:"4px 10px", borderRadius:"20px" }}>
+          <span style={{ width:"6px", height:"6px", borderRadius:"50%", background:"#29ABE2", display:"inline-block" }}/>
           WhatsApp Conectado
         </span>
       </div>
@@ -117,9 +117,9 @@ function FormLink({ onSave, onCancel, waNumero }: { onSave: () => void; onCancel
                 <label key={op.value} style={{ display:"flex", alignItems:"center", gap:"10px", cursor:"pointer" }}>
                   <div onClick={()=>set("redirect_tipo",op.value)} style={{
                     width:"18px", height:"18px", borderRadius:"50%", flexShrink:0, cursor:"pointer",
-                    border:`2px solid ${form.redirect_tipo===op.value?"#22c55e":"#3a3a3a"}`,
+                    border:`2px solid ${form.redirect_tipo===op.value?"#29ABE2":"#3a3a3a"}`,
                     display:"flex", alignItems:"center", justifyContent:"center",
-                    background:form.redirect_tipo===op.value?"#22c55e":"transparent",
+                    background:form.redirect_tipo===op.value?"#29ABE2":"transparent",
                   }}>
                     {form.redirect_tipo===op.value && <div style={{ width:"6px", height:"6px", borderRadius:"50%", background:"#000" }}/>}
                   </div>
@@ -227,8 +227,8 @@ export default function GeradorLinksPage() {
           </p>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:"10px" }}>
-          <span style={{ display:"flex", alignItems:"center", gap:"6px", fontSize:"12px", color:"#22c55e", background:"rgba(34,197,94,0.1)", border:"1px solid rgba(34,197,94,0.2)", padding:"4px 10px", borderRadius:"20px" }}>
-            <span style={{ width:"6px", height:"6px", borderRadius:"50%", background:"#22c55e", display:"inline-block" }}/>
+          <span style={{ display:"flex", alignItems:"center", gap:"6px", fontSize:"12px", color:"#29ABE2", background:"rgba(41,171,226,0.1)", border:"1px solid rgba(41,171,226,0.2)", padding:"4px 10px", borderRadius:"20px" }}>
+            <span style={{ width:"6px", height:"6px", borderRadius:"50%", background:"#29ABE2", display:"inline-block" }}/>
             WhatsApp Conectado
           </span>
           <button className="btn-primary" onClick={() => setCriando(true)} style={{ cursor:"pointer" }}>
@@ -259,7 +259,7 @@ export default function GeradorLinksPage() {
               <tr key={l.id}>
                 <td style={{ fontWeight:"500" }}>{l.nome}</td>
                 <td>
-                  <span style={{ fontWeight:"600", color:l.cliques>0?"#22c55e":"#606060" }}>{l.cliques}</span>
+                  <span style={{ fontWeight:"600", color:l.cliques>0?"#f0f0f0":"#606060" }}>{l.cliques}</span>
                 </td>
                 <td style={{ color:"#a0a0a0", fontSize:"12px" }}>
                   {new Date(l.created_at).toLocaleDateString("pt-BR")}
@@ -269,7 +269,7 @@ export default function GeradorLinksPage() {
                     <button onClick={() => copiar(l.link_gerado, l.id)} style={{
                       display:"flex", alignItems:"center", gap:"4px", padding:"5px 10px",
                       borderRadius:"6px", border:"1px solid #2e2e2e", background:"#222",
-                      color:copiado===l.id?"#22c55e":"#a0a0a0", cursor:"pointer", fontSize:"12px"
+                      color:copiado===l.id?"#f0f0f0":"#a0a0a0", cursor:"pointer", fontSize:"12px"
                     }}>
                       {copiado===l.id?<Check size={12}/>:<Copy size={12}/>}
                       {copiado===l.id?"Copiado!":"Copiar"}

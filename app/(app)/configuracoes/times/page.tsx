@@ -75,9 +75,9 @@ function TimeModal({ item, onClose, onSave }: { item?: Time; onClose:()=>void; o
                         return (
                           <button key={p} onClick={()=>togglePerm(m.key,p)} style={{
                             padding:"4px 10px",borderRadius:"6px",cursor:"pointer",fontSize:"12px",fontWeight:"500",
-                            border:`1px solid ${ativo?"#22c55e":"#3a3a3a"}`,
-                            background:ativo?"rgba(34,197,94,0.15)":"#222",
-                            color:ativo?"#22c55e":"#606060",
+                            border:`1px solid ${ativo?"#29ABE2":"#3a3a3a"}`,
+                            background:ativo?"rgba(41,171,226,0.15)":"#222",
+                            color:ativo?"#f0f0f0":"#606060",
                           }}>{p}</button>
                         );
                       })}

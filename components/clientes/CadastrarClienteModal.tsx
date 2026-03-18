@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { X, User, Building2, ChevronRight, ChevronLeft, Check, MessageCircle } from "lucide-react";
 import InputValor from "@/components/ui/InputValor";
+import { useOrigens, useCategoriasClientes } from "@/lib/hooks";
 
 interface CadastrarClienteModalProps {
   onClose: () => void;
@@ -11,16 +12,17 @@ interface CadastrarClienteModalProps {
 
 const STEP_LABELS = ["Informações Básicas", "Endereço", "Informações Adicionais"];
 const ESTADOS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
-const ORIGENS = ["Facebook","Instagram","Google","LinkedIn","Indicação","Outro"];
 
 export default function CadastrarClienteModal({ onClose, onSave }: CadastrarClienteModalProps) {
+  const { data: origens } = useOrigens();
+  const { data: categorias } = useCategoriasClientes();
   const [step, setStep] = useState(1);
   const [tipo, setTipo] = useState<"fisica"|"juridica">("juridica");
   const [form, setForm] = useState({
     nome:"", documento:"", email:"", telefone:"", whatsapp:false,
     instagram:"", valor_oportunidade:"", faturamento:"", empresa:"",
     cep:"", estado:"", cidade:"", logradouro:"", numero:"", complemento:"", bairro:"",
-    responsavel:"", origem:"", categorias:"", observacoes:"",
+    responsavel:"", origem:"", origem_id:"", categoria_id:"", categorias:"", observacoes:"",
     servico:"mentoria", frequencia:"mensal", status_recorrencia:"ativo",
   });
 
@@ -48,7 +50,7 @@ export default function CadastrarClienteModal({ onClose, onSave }: CadastrarClie
                     onClick={() => isDone && setStep(n)}>
                     {isDone ? <Check size={14}/> : n}
                   </div>
-                  <span style={{ fontSize:"11px", color: isActive?"#22c55e":isDone?"#22c55e":"#606060", whiteSpace:"nowrap" }}>{label}</span>
+                  <span style={{ fontSize:"11px", color: isActive?"#f0f0f0":isDone?"#a0a0a0":"#606060", whiteSpace:"nowrap" }}>{label}</span>
                 </div>
                 {i < 2 && <div className={`step-line ${isDone?"done":""}`} style={{ marginBottom:"20px" }}/>}
               </div>
@@ -65,9 +67,9 @@ export default function CadastrarClienteModal({ onClose, onSave }: CadastrarClie
                 {(["fisica","juridica"] as const).map((t) => (
                   <button key={t} onClick={() => setTipo(t)} style={{
                     flex:1, padding:"10px", borderRadius:"8px", cursor:"pointer",
-                    border:`1px solid ${tipo===t?"#22c55e":"#2e2e2e"}`,
-                    background:tipo===t?"rgba(34,197,94,0.1)":"#222",
-                    color:tipo===t?"#22c55e":"#a0a0a0",
+                    border:`1px solid ${tipo===t?"#f0f0f0":"#2e2e2e"}`,
+                    background:tipo===t?"rgba(41,171,226,0.1)":"#222",
+                    color:tipo===t?"#f0f0f0":"#a0a0a0",
                     fontSize:"13px", fontWeight:"500",
                     display:"flex", alignItems:"center", justifyContent:"center", gap:"6px"
                   }}>
@@ -96,9 +98,9 @@ export default function CadastrarClienteModal({ onClose, onSave }: CadastrarClie
                   <input className="form-input" value={form.telefone} onChange={(e)=>set("telefone",e.target.value)} style={{ flex:1 }}/>
                   <button onClick={()=>set("whatsapp",!form.whatsapp)} style={{
                     width:"38px", height:"38px", borderRadius:"8px", cursor:"pointer", flexShrink:0,
-                    border:`1px solid ${form.whatsapp?"#22c55e":"#2e2e2e"}`,
-                    background:form.whatsapp?"rgba(34,197,94,0.1)":"#222",
-                    color:form.whatsapp?"#22c55e":"#606060",
+                    border:`1px solid ${form.whatsapp?"#f0f0f0":"#2e2e2e"}`,
+                    background:form.whatsapp?"rgba(41,171,226,0.1)":"#222",
+                    color:form.whatsapp?"#f0f0f0":"#606060",
                     display:"flex", alignItems:"center", justifyContent:"center"
                   }}><MessageCircle size={15}/></button>
                 </div>
@@ -180,11 +182,19 @@ export default function CadastrarClienteModal({ onClose, onSave }: CadastrarClie
               </div>
               <div className="form-group">
                 <label className="form-label">Origem</label>
-                <select className="form-input" value={form.origem} onChange={(e)=>set("origem",e.target.value)}>
+                <select className="form-input" value={form.origem_id} onChange={(e)=>set("origem_id",e.target.value)}>
                   <option value="">Selecione</option>
-                  {ORIGENS.map((o)=><option key={o} value={o}>{o}</option>)}
+                  {(origens||[]).map((o)=><option key={o.id} value={o.id}>{o.nome}</option>)}
                 </select>
               </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Categoria</label>
+              <select className="form-input" value={form.categoria_id} onChange={(e)=>set("categoria_id",e.target.value)}>
+                <option value="">Selecione</option>
+                {(categorias||[]).map((c)=><option key={c.id} value={c.id}>{c.nome}</option>)}
+              </select>
             </div>
 
             {/* Status */}
@@ -192,7 +202,7 @@ export default function CadastrarClienteModal({ onClose, onSave }: CadastrarClie
               <label className="form-label">Status</label>
               <div style={{ display:"flex", gap:"8px" }}>
                 {[
-                  { value:"ativo", label:"Ativo", color:"#22c55e" },
+                  { value:"ativo", label:"Ativo", color:"#29ABE2" },
                   { value:"pendencia", label:"Pendência", color:"#f59e0b" },
                   { value:"saiu", label:"Saiu", color:"#ef4444" },
                 ].map((s) => (
@@ -217,9 +227,9 @@ export default function CadastrarClienteModal({ onClose, onSave }: CadastrarClie
                 ].map((s) => (
                   <button key={s.value} onClick={()=>set("servico",s.value)} style={{
                     flex:1, padding:"10px", borderRadius:"8px", cursor:"pointer",
-                    border:`1px solid ${form.servico===s.value?"#22c55e":"#2e2e2e"}`,
-                    background:form.servico===s.value?"rgba(34,197,94,0.1)":"#222",
-                    color:form.servico===s.value?"#22c55e":"#a0a0a0",
+                    border:`1px solid ${form.servico===s.value?"#f0f0f0":"#2e2e2e"}`,
+                    background:form.servico===s.value?"rgba(41,171,226,0.1)":"#222",
+                    color:form.servico===s.value?"#f0f0f0":"#a0a0a0",
                     fontSize:"13px", fontWeight:"500",
                   }}>{s.label}</button>
                 ))}
@@ -238,9 +248,9 @@ export default function CadastrarClienteModal({ onClose, onSave }: CadastrarClie
                   ].map((f) => (
                     <button key={f.value} onClick={()=>set("frequencia",f.value)} style={{
                       flex:1, padding:"10px 8px", borderRadius:"8px", cursor:"pointer",
-                      border:`1px solid ${form.frequencia===f.value?"#22c55e":"#2e2e2e"}`,
-                      background:form.frequencia===f.value?"rgba(34,197,94,0.1)":"#222",
-                      color:form.frequencia===f.value?"#22c55e":"#a0a0a0",
+                      border:`1px solid ${form.frequencia===f.value?"#f0f0f0":"#2e2e2e"}`,
+                      background:form.frequencia===f.value?"rgba(41,171,226,0.1)":"#222",
+                      color:form.frequencia===f.value?"#f0f0f0":"#a0a0a0",
                       fontSize:"12px", fontWeight:"500",
                       display:"flex", flexDirection:"column", alignItems:"center", gap:"2px",
                     }}>
@@ -250,12 +260,12 @@ export default function CadastrarClienteModal({ onClose, onSave }: CadastrarClie
                   ))}
                 </div>
                 {form.valor_oportunidade && (
-                  <div style={{ marginTop:"10px", background:"rgba(34,197,94,0.06)", border:"1px solid rgba(34,197,94,0.15)", borderRadius:"8px", padding:"10px 14px", fontSize:"12px", color:"#a0a0a0" }}>
+                  <div style={{ marginTop:"10px", background:"rgba(41,171,226,0.06)", border:"1px solid rgba(41,171,226,0.15)", borderRadius:"8px", padding:"10px 14px", fontSize:"12px", color:"#a0a0a0" }}>
                     {(() => {
                       const v = parseFloat(form.valor_oportunidade.replace(/[^0-9,]/g,"").replace(",",".")) || 0;
-                      if (form.frequencia === "mensal") return <span>💰 Será cobrado <strong style={{color:"#22c55e"}}>{new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(v)}</strong> por mês</span>;
-                      if (form.frequencia === "quinzenal") return <span>💰 Será cobrado <strong style={{color:"#22c55e"}}>{new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(v/2)}</strong> a cada 15 dias</span>;
-                      if (form.frequencia === "trimestral") return <span>💰 Será cobrado <strong style={{color:"#22c55e"}}>{new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(v*3)}</strong> a cada 3 meses</span>;
+                      if (form.frequencia === "mensal") return <span>💰 Será cobrado <strong style={{color:"#29ABE2"}}>{new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(v)}</strong> por mês</span>;
+                      if (form.frequencia === "quinzenal") return <span>💰 Será cobrado <strong style={{color:"#29ABE2"}}>{new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(v/2)}</strong> a cada 15 dias</span>;
+                      if (form.frequencia === "trimestral") return <span>💰 Será cobrado <strong style={{color:"#29ABE2"}}>{new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(v*3)}</strong> a cada 3 meses</span>;
                     })()}
                   </div>
                 )}
@@ -283,7 +293,7 @@ export default function CadastrarClienteModal({ onClose, onSave }: CadastrarClie
               Próximo <ChevronRight size={14}/>
             </button>
           ) : (
-            <button className="btn-primary" onClick={()=>{ onSave({tipo,...form}); onClose(); }} style={{ cursor:"pointer" }}>
+            <button className="btn-primary" onClick={()=>{ onSave({tipo,...form, origem_id: form.origem_id||undefined, categoria_id: form.categoria_id||undefined}); onClose(); }} style={{ cursor:"pointer" }}>
               Cadastrar cliente
             </button>
           )}

@@ -50,9 +50,9 @@ function FornecedorModal({ item, onClose, onSave }: { item?: Fornecedor; onClose
               {(["fisica","juridica"] as const).map(t=>(
                 <button key={t} onClick={()=>setTipo(t)} style={{
                   flex:1,padding:"10px",borderRadius:"8px",cursor:"pointer",
-                  border:`1px solid ${tipo===t?"#22c55e":"#2e2e2e"}`,
-                  background:tipo===t?"rgba(34,197,94,0.1)":"#222",
-                  color:tipo===t?"#22c55e":"#a0a0a0",
+                  border:`1px solid ${tipo===t?"#f0f0f0":"#2e2e2e"}`,
+                  background:tipo===t?"rgba(41,171,226,0.1)":"#222",
+                  color:tipo===t?"#f0f0f0":"#a0a0a0",
                   fontSize:"13px",fontWeight:"500",
                   display:"flex",alignItems:"center",justifyContent:"center",gap:"6px"
                 }}>
