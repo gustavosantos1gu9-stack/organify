@@ -38,26 +38,22 @@ function CaptureContent() {
       display: "flex", alignItems: "center", justifyContent: "center",
       flexDirection: "column", gap: "24px", padding: "24px",
     }}>
-      {/* Logo / ícone */}
-      <div style={{
-        width: "64px", height: "64px", background: "#22c55e", borderRadius: "16px",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: "28px", fontWeight: "800", color: "#000",
-      }}>O</div>
+      {/* Logo */}
+      <img src="/logo.png" alt="Logo" style={{ width: "80px", height: "80px", objectFit: "contain" }}/>
 
       {/* Spinner */}
       <div style={{
         width: "48px", height: "48px", borderRadius: "50%",
-        border: "3px solid #2e2e2e", borderTop: "3px solid #22c55e",
+        border: "3px solid #2e2e2e", borderTop: "3px solid #29ABE2",
         animation: "spin 1s linear infinite",
       }}/>
 
       {/* Contador */}
       <div style={{
         width: "56px", height: "56px", borderRadius: "50%",
-        background: "rgba(34,197,94,0.1)", border: "2px solid #22c55e",
+        background: "rgba(41,171,226,0.1)", border: "2px solid #29ABE2",
         display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: "22px", fontWeight: "700", color: "#22c55e",
+        fontSize: "22px", fontWeight: "700", color: "#29ABE2",
       }}>{contador}</div>
 
       {/* Texto */}
@@ -69,7 +65,7 @@ function CaptureContent() {
       {/* Link manual */}
       {contador === 0 && (
         <a href={waUrl} style={{
-          padding: "12px 24px", background: "#22c55e", color: "#000",
+          padding: "12px 24px", background: "#29ABE2", color: "#000",
           borderRadius: "8px", textDecoration: "none", fontWeight: "600", fontSize: "14px",
         }}>
           Clique aqui para continuar →
@@ -87,7 +83,7 @@ export default function CapturePage() {
   return (
     <Suspense fallback={
       <div style={{ minHeight:"100vh", background:"#0f0f0f", display:"flex", alignItems:"center", justifyContent:"center" }}>
-        <div style={{ width:"48px", height:"48px", borderRadius:"50%", border:"3px solid #2e2e2e", borderTop:"3px solid #22c55e" }}/>
+        <div style={{ width:"48px", height:"48px", borderRadius:"50%", border:"3px solid #2e2e2e", borderTop:"3px solid #29ABE2" }}/>
       </div>
     }>
       <CaptureContent/>
