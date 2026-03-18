@@ -176,6 +176,23 @@ function DetalhesModal({ conversa, onClose, onEtapaChange }: { conversa: Convers
     setEtapa(novaEtapa);
     await supabase.from("conversas").update({ etapa_jornada: novaEtapa, etapa_alterada_at: new Date().toISOString() }).eq("id", conversa.id);
     onEtapaChange(novaEtapa);
+
+    // Disparar pixel para a nova etapa
+    const agId = await getAgenciaId();
+    fetch("/api/pixel", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        agencia_id: agId,
+        conversa_id: conversa.id,
+        etapa_nome: novaEtapa,
+        phone: conversa.contato_numero,
+        fbclid: conversa.fbclid,
+        utm_campaign: conversa.utm_campaign,
+        utm_content: conversa.utm_content,
+      }),
+    }).catch(() => {});
+
     setSalvando(false);
   };
 

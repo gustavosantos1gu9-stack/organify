@@ -121,6 +121,28 @@ export async function POST(req: NextRequest) {
             origem: "Não Rastreada",
           }).eq("id", conversa.id).is("primeira_mensagem_at", null);
         }
+
+        // Disparar pixel para etapa "Fez Contato" se for primeira mensagem
+        const { data: conversaAtual } = await supabase.from("conversas")
+          .select("primeira_mensagem_at, etapa_jornada, fbclid, utm_campaign, utm_content")
+          .eq("id", conversa.id).single();
+        
+        if (!conversaAtual?.primeira_mensagem_at || conversaAtual.primeira_mensagem_at === timestamp) {
+          // É primeira mensagem — disparar pixel
+          fetch(`${process.env.NEXT_PUBLIC_APP_URL || "https://organify-blond.vercel.app"}/api/pixel`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              agencia_id: agencia.id,
+              conversa_id: conversa.id,
+              etapa_nome: "Fez Contato",
+              phone: numero,
+              fbclid: conversaAtual?.fbclid,
+              utm_campaign: conversaAtual?.utm_campaign,
+              utm_content: conversaAtual?.utm_content,
+            }),
+          }).catch(() => {});
+        }
       }
 
       // Disparar evento Meta se configurado
