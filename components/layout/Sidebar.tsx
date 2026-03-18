@@ -15,7 +15,7 @@ import {
   LogOut,
 } from 'lucide-react'
 import { SalxLogo } from './SalxLogo'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { supabase } from "@/lib/supabase"
 import { useRouter } from 'next/navigation'
 
 const navItems = [
@@ -30,7 +30,7 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
-  const supabase = createClientComponentClient()
+  
   const router = useRouter()
 
   const handleLogout = async () => {
