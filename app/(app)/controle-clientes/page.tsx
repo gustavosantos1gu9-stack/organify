@@ -112,7 +112,7 @@ function StatusSelect({ valor, onSave }: { valor: string; onSave: (v: string) =>
         <span style={{ fontSize:"12px", color:opt.cor }}>{opt.label}</span>
       </button>
       {open && (
-        <div style={{ position:"absolute", top:"100%", left:0, background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", zIndex:100, minWidth:"110px", overflow:"hidden" }}>
+        <div style={{ position:"fixed", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", zIndex:9999, minWidth:"130px", overflow:"hidden", boxShadow:"0 4px 20px rgba(0,0,0,0.5)" }}>
           {STATUS_OPTS.map(s => (
             <button key={s.value} onClick={()=>{onSave(s.value);setOpen(false);}} style={{ display:"flex", alignItems:"center", gap:"8px", padding:"8px 12px", width:"100%", background:"none", border:"none", cursor:"pointer", color:s.cor, fontSize:"12px" }}>
               <span style={{ width:"8px", height:"8px", borderRadius:"50%", background:s.cor }}/>{s.label}
@@ -219,7 +219,7 @@ export default function ControleClientesPage() {
   const carregar = async () => {
     const id = await getAgenciaId();
     setAgId(id||"");
-    const { data } = await supabase.from("controle_clientes").select("*").eq("agencia_id",id!).eq("status","ativo");
+    const { data } = await supabase.from("controle_clientes").select("*").eq("agencia_id",id!).neq("status","saiu");
     setClientes(data||[]);
     const { data: users } = await supabase.from("configuracoes_usuarios").select("nome").eq("agencia_id",id!);
     const { data: tms } = await supabase.from("times").select("nome").eq("agencia_id",id!);
@@ -337,15 +337,31 @@ export default function ControleClientesPage() {
           } catch { return s; }
         }, 0) / comData.length : 0;
 
+        const ativos = clientes.filter(c=>c.status==="ativo");
+        const pausados = clientes.filter(c=>c.status==="pausado");
+        const entrada = clientes.filter(c=>c.status==="entrada");
+
+        // Clientes último mês: clientes ativos + pausados com data_entrada até último dia do mês passado
+        const primeiroDiaMesAtual = new Date(anoAtual, mesAtual, 1);
+        const ultimoMes = clientes.filter(c => {
+          if (!c.data_entrada) return false;
+          try {
+            const d = c.data_entrada.includes("/") ? new Date(c.data_entrada.split("/").reverse().join("-")) : new Date(c.data_entrada);
+            return d < primeiroDiaMesAtual;
+          } catch { return false; }
+        });
+
         const kpis = [
-          { label:"Clientes Ativos", value:clientes.length, cor:"#29ABE2" },
-          { label:"Ticket Médio", value:`R$ ${clientes.length > 0 ? Math.round(clientes.reduce((s,c)=>s+(Number(c.investimento_mensal)||0),0)/clientes.length).toLocaleString("pt-BR") : "0"}`, cor:"#f0f0f0" },
+          { label:"Clientes Totais", value:clientes.length, cor:"#f0f0f0" },
+          { label:"Clientes Ativos", value:ativos.length, cor:"#22c55e" },
+          { label:"Pausados", value:pausados.length, cor:"#f59e0b" },
+          { label:"Em Entrada", value:entrada.length, cor:"#eab308" },
+          { label:"Base Mês Passado", value:ultimoMes.length, cor:"#29ABE2" },
           { label:"Tempo Médio (meses)", value:tempoMedioDias > 0 ? tempoMedioDias.toFixed(1) : "—", cor:"#f0f0f0" },
-          { label:"Sem Consultor", value:clientes.filter(c=>!c.consultor).length, cor:"#f59e0b" },
         ];
 
         return (
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"12px", marginBottom:"20px" }}>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(6,1fr)", gap:"12px", marginBottom:"20px" }}>
             {kpis.map(k=>(
               <div key={k.label} className="card" style={{ padding:"12px 16px" }}>
                 <p style={{ fontSize:"11px", color:"#606060", margin:0 }}>{k.label}</p>

@@ -120,6 +120,46 @@ export default function ChurnPage() {
         );
       })()}
 
+      {/* Tabela resultado do mês */}
+      {(() => {
+        const hoje = new Date();
+        const meses = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+        const mesAtual = `${meses[hoje.getMonth()]}/${hoje.getFullYear()}`;
+        const mesPassadoIdx = hoje.getMonth()===0?11:hoje.getMonth()-1;
+        const anoMesPassado = hoje.getMonth()===0?hoje.getFullYear()-1:hoje.getFullYear();
+        const mesPassado = `${meses[mesPassadoIdx]}/${anoMesPassado}`;
+        const churnMes = clientes.filter(c=>c.data_churn===mesAtual).length;
+        const churnMesPassado = clientes.filter(c=>c.data_churn===mesPassado).length;
+        const diffChurn = churnMes - churnMesPassado;
+        const totalAtivos = 49; // base estimada - idealmente viria de controle_clientes
+        const churnRate = totalAtivos > 0 ? ((churnMes / totalAtivos) * 100).toFixed(1) : "0";
+        const churnRatePass = totalAtivos > 0 ? ((churnMesPassado / totalAtivos) * 100).toFixed(1) : "0";
+        
+        return (
+          <div className="card" style={{ marginBottom:"16px", padding:"16px 20px" }}>
+            <h3 style={{ fontSize:"13px", fontWeight:"600", color:"#f0f0f0", marginBottom:"12px" }}>
+              📊 Resultado — {mesAtual}
+            </h3>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"16px" }}>
+              <div>
+                <p style={{ fontSize:"11px", color:"#606060", margin:"0 0 4px" }}>Churn este mês vs mês passado</p>
+                <p style={{ fontSize:"16px", fontWeight:"700", color:diffChurn>0?"#ef4444":diffChurn<0?"#22c55e":"#f0f0f0", margin:0 }}>
+                  {diffChurn>0?`+${diffChurn}`:diffChurn} ({diffChurn>0?"▲":"▼"} {Math.abs(churnMes - churnMesPassado)} clientes)
+                </p>
+              </div>
+              <div>
+                <p style={{ fontSize:"11px", color:"#606060", margin:"0 0 4px" }}>Churn Rate este mês</p>
+                <p style={{ fontSize:"16px", fontWeight:"700", color:"#ef4444", margin:0 }}>{churnRate}%</p>
+              </div>
+              <div>
+                <p style={{ fontSize:"11px", color:"#606060", margin:"0 0 4px" }}>Churn Rate mês passado</p>
+                <p style={{ fontSize:"16px", fontWeight:"700", color:"#a0a0a0", margin:0 }}>{churnRatePass}%</p>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Filtro por Mês/Ano */}
       <div style={{ overflowX:"auto", paddingBottom:"8px", marginBottom:"16px" }}>
         <div style={{ display:"flex", gap:"6px", minWidth:"max-content" }}>
