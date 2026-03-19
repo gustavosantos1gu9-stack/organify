@@ -137,8 +137,11 @@ export default function IntegracoesPage() {
   const salvarMeta = async () => {
     try {
       const agId = await getAgenciaId();
-      await supabase.from("agencias").update({ meta_pixel_id: pixelId, meta_token: metaToken, meta_ativo: metaAtivo }).eq("id", agId!);
-      alert("Meta Ads salvo!");
+      // Ativar automaticamente se tiver pixel e token preenchidos
+      const ativar = pixelId.trim().length > 0 && metaToken.trim().length > 0 ? true : metaAtivo;
+      setMetaAtivo(ativar);
+      await supabase.from("agencias").update({ meta_pixel_id: pixelId, meta_token: metaToken, meta_ativo: ativar }).eq("id", agId!);
+      alert("Meta Ads salvo!" + (ativar ? " ✅ Ativo" : ""));
     } catch(e) { alert("Erro ao salvar"); }
   };
 
@@ -181,7 +184,7 @@ export default function IntegracoesPage() {
       {/* WhatsApp */}
       <div className="card" style={{marginBottom:"20px"}}>
         <div style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:"20px"}}>
-          <MessageCircle size={20} color="#22c55e"/>
+          <MessageCircle size={20} color="#29ABE2"/>
           <h2 style={{fontSize:"16px",fontWeight:"600"}}>WhatsApp</h2>
         </div>
 
@@ -191,7 +194,7 @@ export default function IntegracoesPage() {
               padding:"8px 20px",background:"none",border:"none",cursor:"pointer",
               fontSize:"13px",fontWeight:"500",
               color:waTab===tab?"#f0f0f0":"#606060",
-              borderBottom:waTab===tab?"2px solid #22c55e":"2px solid transparent",
+              borderBottom:waTab===tab?"2px solid #29ABE2":"2px solid transparent",
               marginBottom:"-1px",transition:"all 0.15s",
             }}>
               {tab==="conexao"?"Conexão":tab==="cobrancas"?"Cobranças":"API"}
@@ -240,7 +243,7 @@ export default function IntegracoesPage() {
                 return (
                   <div key={inst.id || nome} style={{
                     display:"flex",alignItems:"center",justifyContent:"space-between",
-                    padding:"12px 16px",background:"#1a1a1a",border:`1px solid ${conectado?"rgba(34,197,94,0.3)":"#2e2e2e"}`,
+                    padding:"12px 16px",background:"#1a1a1a",border:`1px solid ${conectado?"rgba(41,171,226,0.3)":"#2e2e2e"}`,
                     borderRadius:"8px",marginBottom:"8px",
                   }}>
                     <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
@@ -248,13 +251,13 @@ export default function IntegracoesPage() {
                         <img src={inst.profilePicUrl} alt="" style={{width:"36px",height:"36px",borderRadius:"50%",objectFit:"cover"}}/>
                       ) : (
                         conectado
-                          ? <Wifi size={16} style={{color:"#22c55e"}}/>
+                          ? <Wifi size={16} style={{color:"#29ABE2"}}/>
                           : <WifiOff size={16} style={{color:"#ef4444"}}/>
                       )}
                       <div>
                         <p style={{fontSize:"13px",fontWeight:"600",color:"#f0f0f0"}}>{inst.profileName || nome}</p>
                         <p style={{fontSize:"11px",color:"#606060"}}>{nome}</p>
-                        <p style={{fontSize:"11px",color:conectado?"#22c55e":"#ef4444",textTransform:"capitalize"}}>{conectado?"● Conectado":"● Desconectado"}</p>
+                        <p style={{fontSize:"11px",color:conectado?"#29ABE2":"#ef4444",textTransform:"capitalize"}}>{conectado?"● Conectado":"● Desconectado"}</p>
                       </div>
                     </div>
                     <div style={{display:"flex",gap:"8px"}}>
@@ -276,11 +279,11 @@ export default function IntegracoesPage() {
               {/* QR Code */}
               {qrCode && qrInstancia && (
                 <div style={{
-                  background:"#1a1a1a",border:"1px solid rgba(34,197,94,0.3)",
+                  background:"#1a1a1a",border:"1px solid rgba(41,171,226,0.3)",
                   borderRadius:"10px",padding:"20px",textAlign:"center",marginTop:"12px",
                 }}>
                   <p style={{fontSize:"13px",fontWeight:"600",color:"#f0f0f0",marginBottom:"4px"}}>
-                    Conectar: <span style={{color:"#22c55e"}}>{qrInstancia}</span>
+                    Conectar: <span style={{color:"#29ABE2"}}>{qrInstancia}</span>
                   </p>
                   <p style={{fontSize:"12px",color:"#606060",marginBottom:"16px"}}>
                     Abra o WhatsApp → Aparelhos conectados → Conectar aparelho → Escaneie o QR Code
@@ -344,13 +347,13 @@ export default function IntegracoesPage() {
 
         {waTab==="api" && (
           <div style={{display:"flex",flexDirection:"column",gap:"16px"}}>
-            <div style={{background:"rgba(34,197,94,0.06)",border:"1px solid rgba(34,197,94,0.2)",borderRadius:"8px",padding:"12px 16px",fontSize:"13px",color:"#a0a0a0"}}>
+            <div style={{background:"rgba(41,171,226,0.06)",border:"1px solid rgba(41,171,226,0.2)",borderRadius:"8px",padding:"12px 16px",fontSize:"13px",color:"#a0a0a0"}}>
               Use o endpoint abaixo para receber leads de formulários externos.
             </div>
             <div className="form-group">
               <label className="form-label">Endpoint Leads</label>
               <input className="form-input" value={typeof window!=="undefined"?`${window.location.origin}/api/leads/SuaChaveAPI`:""} readOnly
-                style={{fontFamily:"monospace",fontSize:"12px",color:"#22c55e"}}
+                style={{fontFamily:"monospace",fontSize:"12px",color:"#29ABE2"}}
                 onClick={e=>(e.target as HTMLInputElement).select()}/>
             </div>
           </div>
@@ -361,7 +364,7 @@ export default function IntegracoesPage() {
       <div className="card" style={{marginBottom:"20px"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"4px"}}>
           <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-            <div style={{width:"10px",height:"10px",borderRadius:"50%",background:metaAtivo?"#22c55e":"#ef4444"}}/>
+            <div style={{width:"10px",height:"10px",borderRadius:"50%",background:metaAtivo?"#29ABE2":"#ef4444"}}/>
             <Target size={18} color="#1877f2"/>
             <h2 style={{fontSize:"16px",fontWeight:"600"}}>Meta Ads</h2>
           </div>
@@ -396,7 +399,7 @@ export default function IntegracoesPage() {
       <div className="card" style={{marginBottom:"20px"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px"}}>
           <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-            <div style={{width:"10px",height:"10px",borderRadius:"50%",background:openaiAtivo?"#22c55e":"#ef4444"}}/>
+            <div style={{width:"10px",height:"10px",borderRadius:"50%",background:openaiAtivo?"#29ABE2":"#ef4444"}}/>
             <Bot size={18} color="#a0a0a0"/>
             <h2 style={{fontSize:"16px",fontWeight:"600"}}>OpenAI</h2>
           </div>
