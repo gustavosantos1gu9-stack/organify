@@ -21,6 +21,9 @@ const STATUS_OPTS = [
   { value:"ativo", label:"Ativo", cor:"#22c55e" },
   { value:"pausado", label:"Pausado", cor:"#f59e0b" },
   { value:"saiu", label:"Churn", cor:"#ef4444" },
+  { value:"entrada", label:"Entrada", cor:"#eab308" },
+  { value:"debito", label:"Em Débito", cor:"#f97316" },
+  { value:"renovar", label:"Renovar", cor:"#29ABE2" },
 ];
 
 const COLUNAS_DEF = [
@@ -202,7 +205,7 @@ export default function ControleClientesPage() {
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [sort, setSort] = useState("data_entrada");
-  const [sortDir, setSortDir] = useState<"asc"|"desc">("desc");
+  const [sortDir, setSortDir] = useState<"asc"|"desc">("asc");
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
   const [subitens, setSubitens] = useState<Record<string,Subitem[]>>({});
   const [novoSubitem, setNovoSubitem] = useState<Record<string,string>>({});
@@ -317,19 +320,41 @@ export default function ControleClientesPage() {
       </div>
 
       {/* KPIs */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"12px", marginBottom:"20px" }}>
-        {[
-          {label:"Total Ativos",value:clientes.length},
-          {label:"Investimento Total",value:`R$ ${clientes.reduce((s,c)=>s+(Number(c.investimento_mensal)||0),0).toLocaleString("pt-BR")}`},
-          {label:"Com Consultor",value:clientes.filter(c=>c.consultor).length},
-          {label:"Com Gestor",value:clientes.filter(c=>c.gestor).length},
-        ].map(k=>(
-          <div key={k.label} className="card" style={{ padding:"12px 16px" }}>
-            <p style={{ fontSize:"11px", color:"#606060", margin:0 }}>{k.label}</p>
-            <p style={{ fontSize:"20px", fontWeight:"700", color:"#f0f0f0", margin:0 }}>{k.value}</p>
+      {(() => {
+        const hoje = new Date();
+        const mesAtual = hoje.getMonth();
+        const anoAtual = hoje.getFullYear();
+        const mesPassado = mesAtual === 0 ? 11 : mesAtual - 1;
+        const anoMesPassado = mesAtual === 0 ? anoAtual - 1 : anoAtual;
+
+        // Churn do mês atual e passado (buscando da tabela controle_clientes com status saiu)
+        // Tempo médio: média de dias entre data_entrada e hoje para clientes ativos com data_entrada
+        const comData = clientes.filter(c => c.data_entrada && c.data_entrada.trim());
+        const tempoMedioDias = comData.length > 0 ? comData.reduce((s, c) => {
+          try {
+            const entrada = new Date(c.data_entrada.includes("/") ? c.data_entrada.split("/").reverse().join("-") : c.data_entrada);
+            return s + (hoje.getTime() - entrada.getTime()) / (1000*60*60*24*30);
+          } catch { return s; }
+        }, 0) / comData.length : 0;
+
+        const kpis = [
+          { label:"Clientes Ativos", value:clientes.length, cor:"#29ABE2" },
+          { label:"Ticket Médio", value:`R$ ${clientes.length > 0 ? Math.round(clientes.reduce((s,c)=>s+(Number(c.investimento_mensal)||0),0)/clientes.length).toLocaleString("pt-BR") : "0"}`, cor:"#f0f0f0" },
+          { label:"Tempo Médio (meses)", value:tempoMedioDias > 0 ? tempoMedioDias.toFixed(1) : "—", cor:"#f0f0f0" },
+          { label:"Sem Consultor", value:clientes.filter(c=>!c.consultor).length, cor:"#f59e0b" },
+        ];
+
+        return (
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"12px", marginBottom:"20px" }}>
+            {kpis.map(k=>(
+              <div key={k.label} className="card" style={{ padding:"12px 16px" }}>
+                <p style={{ fontSize:"11px", color:"#606060", margin:0 }}>{k.label}</p>
+                <p style={{ fontSize:"20px", fontWeight:"700", color:k.cor, margin:0 }}>{k.value}</p>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        );
+      })()}
 
       {/* Tabela */}
       <div style={{ overflowX:"auto", border:"1px solid #2e2e2e", borderRadius:"12px", marginRight:painelAberto?"390px":"0", transition:"margin 0.2s" }}>
@@ -339,7 +364,7 @@ export default function ControleClientesPage() {
               <th style={{ width:"30px", padding:"10px 6px" }}></th>
               <th style={{ padding:"10px 12px", textAlign:"left", fontSize:"11px", color:"#606060", fontWeight:"600", position:"sticky", left:0, background:"#1a1a1a", zIndex:2, width:"160px", whiteSpace:"nowrap" }}>NOME</th>
               {COLUNAS_DEF.map(col=>(
-                <th key={col.key} style={{ padding:"10px 8px", textAlign:"left", fontSize:"11px", color:"#606060", fontWeight:"600", width:colWidths[col.key], position:"relative", whiteSpace:"nowrap", overflow:"hidden" }}>
+                <th key={col.key} style={{ padding:"10px 8px", textAlign:"left", fontSize:"11px", color:"#606060", fontWeight:"600", width:colWidths[col.key], position:"relative", whiteSpace:"nowrap", overflow:"hidden", borderLeft:"1px solid #29ABE220", borderRight:"1px solid #29ABE220" }}>
                   {col.label}
                   <div className="resize-handle" onMouseDown={e=>startResize(col.key,e)}/>
                 </th>
@@ -354,7 +379,7 @@ export default function ControleClientesPage() {
               <tr><td colSpan={COLUNAS_DEF.length+3} style={{ textAlign:"center", color:"#606060", padding:"48px" }}>Nenhum cliente encontrado.</td></tr>
             ) : filtrados.map((c,idx)=>(
               <>
-              <tr key={c.id} style={{ borderBottom:"1px solid #1e1e1e", background:idx%2===0?"transparent":"#0a0a0a" }}>
+              <tr key={c.id} style={{ borderBottom:"1px solid #29ABE230", background:idx%2===0?"transparent":"#0a0a0a" }}>
                 <td style={{ padding:"4px 6px", textAlign:"center" }}>
                   <button onClick={()=>toggleExpandir(c.id)} style={{ background:"none", border:"none", cursor:"pointer", color:"#606060", padding:"2px" }}>
                     {expandidos.has(c.id)?<ChevronDown size={14}/>:<ChevronRight size={14}/>}
@@ -364,7 +389,7 @@ export default function ControleClientesPage() {
                   {c.nome}
                 </td>
                 {COLUNAS_DEF.map(col=>(
-                  <td key={col.key} style={{ padding:"2px 6px", overflow:"hidden", width:colWidths[col.key] }}>
+                  <td key={col.key} style={{ padding:"2px 6px", overflow:"hidden", width:colWidths[col.key], borderLeft:"1px solid #29ABE215", whiteSpace:"nowrap", maxWidth:colWidths[col.key], height:"36px" }}>
                     {col.key==="status" ? (
                       <StatusSelect valor={c.status} onSave={v=>atualizar(c.id,"status",v,c.nome)}/>
                     ) : col.key==="head_squad"||col.key==="consultor"||col.key==="gestor" ? (

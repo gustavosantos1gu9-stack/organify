@@ -101,12 +101,24 @@ export default function ChurnPage() {
       </div>
 
       {/* KPIs */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"16px", marginBottom:"20px" }}>
-        <KPICard label="Total Churn" value={clientes.length} change={0} icon={<UserMinus size={16}/>} iconBg="red"/>
-        <KPICard label="Filtrados" value={filtrados.length} change={0} icon={<Users size={16}/>} iconBg="red"/>
-        <KPICard label="Invest. Perdido" value={`R$ ${totalInvestimento.toLocaleString("pt-BR")}`} change={0} icon={<DollarSign size={16}/>} iconBg="red"/>
-        <KPICard label="Ticket Médio" value={`R$ ${Math.round(mediaInvestimento).toLocaleString("pt-BR")}`} change={0} icon={<TrendingDown size={16}/>} iconBg="red"/>
-      </div>
+      {(() => {
+        const hoje = new Date();
+        const meses = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+        const mesAtual = `${meses[hoje.getMonth()]}/${hoje.getFullYear()}`;
+        const mesPassadoIdx = hoje.getMonth() === 0 ? 11 : hoje.getMonth() - 1;
+        const anoMesPassado = hoje.getMonth() === 0 ? hoje.getFullYear() - 1 : hoje.getFullYear();
+        const mesPassado = `${meses[mesPassadoIdx]}/${anoMesPassado}`;
+        const churnMes = clientes.filter(c => c.data_churn === mesAtual).length;
+        const churnMesPassado = clientes.filter(c => c.data_churn === mesPassado).length;
+        return (
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"16px", marginBottom:"20px" }}>
+            <KPICard label="Total Churn" value={clientes.length} change={0} icon={<UserMinus size={16}/>} iconBg="red"/>
+            <KPICard label={`Churn ${mesAtual}`} value={churnMes} change={0} icon={<TrendingDown size={16}/>} iconBg="red"/>
+            <KPICard label={`Churn ${mesPassado}`} value={churnMesPassado} change={0} icon={<TrendingDown size={16}/>} iconBg="red"/>
+            <KPICard label="Ticket Médio Perdido" value={`R$ ${Math.round(mediaInvestimento).toLocaleString("pt-BR")}`} change={0} icon={<DollarSign size={16}/>} iconBg="red"/>
+          </div>
+        );
+      })()}
 
       {/* Filtro por Mês/Ano */}
       <div style={{ overflowX:"auto", paddingBottom:"8px", marginBottom:"16px" }}>
@@ -139,15 +151,15 @@ export default function ChurnPage() {
       <div className="table-wrapper">
         <table>
           <thead>
-            <tr>
-              <th>NOME</th>
-              <th>DATA ENTRADA</th>
-              <th>DATA CHURN</th>
-              <th>CONSULTOR</th>
-              <th>GESTOR</th>
-              <th>SQUAD</th>
-              <th>INVESTIMENTO</th>
-              <th>MOTIVO CHURN</th>
+            <tr style={{ borderBottom:"1px solid #29ABE230" }}>
+              <th style={{ borderRight:"1px solid #29ABE220" }}>NOME</th>
+              <th style={{ borderRight:"1px solid #29ABE220" }}>DATA ENTRADA</th>
+              <th style={{ borderRight:"1px solid #29ABE220" }}>DATA CHURN</th>
+              <th style={{ borderRight:"1px solid #29ABE220" }}>CONSULTOR</th>
+              <th style={{ borderRight:"1px solid #29ABE220" }}>GESTOR</th>
+              <th style={{ borderRight:"1px solid #29ABE220" }}>SQUAD</th>
+              <th style={{ borderRight:"1px solid #29ABE220" }}>INVESTIMENTO</th>
+              <th style={{ borderRight:"1px solid #29ABE220" }}>MOTIVO CHURN</th>
               <th>FEEDBACK</th>
             </tr>
           </thead>
@@ -156,16 +168,16 @@ export default function ChurnPage() {
               <tr><td colSpan={9} style={{ textAlign:"center", color:"#606060", padding:"48px" }}>Carregando...</td></tr>
             ):!filtrados.length?(
               <tr><td colSpan={9} style={{ textAlign:"center", color:"#606060", padding:"48px" }}>Nenhum registro encontrado.</td></tr>
-            ):filtrados.map(c=>(
-              <tr key={c.id}>
-                <td style={{ fontWeight:"600", color:"#f0f0f0" }}>{c.nome}</td>
-                <td style={{ color:"#a0a0a0", fontSize:"12px" }}>{formatarData(c.data_entrada)}</td>
-                <td><span style={{ fontSize:"12px", padding:"2px 8px", borderRadius:"10px", background:"rgba(239,68,68,0.1)", color:"#ef4444" }}>{c.data_churn||"—"}</span></td>
-                <td style={{ color:"#a0a0a0", fontSize:"12px" }}>{c.consultor||"—"}</td>
-                <td style={{ color:"#a0a0a0", fontSize:"12px" }}>{c.gestor||"—"}</td>
-                <td style={{ color:"#a0a0a0", fontSize:"12px" }}>{c.squad||"—"}</td>
-                <td style={{ color:"#f0f0f0", fontSize:"12px" }}>{c.investimento_mensal?`R$ ${Number(c.investimento_mensal).toLocaleString("pt-BR")}`:"—"}</td>
-                <td style={{ color:"#a0a0a0", fontSize:"12px", maxWidth:"180px", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.motivo_churn||"—"}</td>
+            ):filtrados.map((c,idx)=>(
+              <tr key={c.id} style={{ borderBottom:"1px solid #29ABE215", background:idx%2===0?"transparent":"#0a0a0a" }}>
+                <td style={{ fontWeight:"600", color:"#f0f0f0", borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>{c.nome}</td>
+                <td style={{ color:"#a0a0a0", fontSize:"12px", borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>{formatarData(c.data_entrada)}</td>
+                <td style={{ borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}><span style={{ fontSize:"12px", padding:"2px 8px", borderRadius:"10px", background:"rgba(239,68,68,0.1)", color:"#ef4444" }}>{c.data_churn||"—"}</span></td>
+                <td style={{ color:"#a0a0a0", fontSize:"12px", borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>{c.consultor||"—"}</td>
+                <td style={{ color:"#a0a0a0", fontSize:"12px", borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>{c.gestor||"—"}</td>
+                <td style={{ color:"#a0a0a0", fontSize:"12px", borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>{c.squad||"—"}</td>
+                <td style={{ color:"#f0f0f0", fontSize:"12px", borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>{c.investimento_mensal?`R$ ${Number(c.investimento_mensal).toLocaleString("pt-BR")}`:"—"}</td>
+                <td style={{ color:"#a0a0a0", fontSize:"12px", maxWidth:"180px", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", borderRight:"1px solid #29ABE215" }}>{c.motivo_churn||"—"}</td>
                 <td style={{ color:"#a0a0a0", fontSize:"12px", maxWidth:"180px", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.feedback||"—"}</td>
               </tr>
             ))}
