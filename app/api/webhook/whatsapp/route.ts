@@ -78,16 +78,30 @@ export async function POST(req: NextRequest) {
       else if (m?.stickerMessage) { tipo = "sticker"; conteudo = "😄 Sticker"; }
       else conteudo = "Mensagem";
 
-      // Mensagens fromMe — verificar termo-chave mas não criar conversa
+      // Mensagens fromMe — salvar no banco e verificar termo-chave
       if (fromMe) {
         const { data: ag } = await supabase.from("agencias")
           .select("id").eq("whatsapp_instancia", instanciaName).single();
-        if (ag && conteudo) {
+        if (ag) {
           const { data: conv } = await supabase.from("conversas")
             .select("id, fbclid, utm_campaign, utm_content")
             .eq("agencia_id", ag.id).eq("contato_numero", numero).single();
           if (conv) {
-            await verificarTermoChave(ag.id, conv.id, conteudo, numero, conv.fbclid, conv.utm_campaign, conv.utm_content);
+            // Salvar mensagem enviada no banco
+            if (msgId && conteudo) {
+              await supabase.from("mensagens").upsert({
+                conversa_id: conv.id, agencia_id: ag.id,
+                mensagem_id: msgId, de_mim: true, tipo, conteudo, created_at: timestamp,
+              }, { onConflict: "mensagem_id" });
+              // Atualizar última mensagem da conversa
+              await supabase.from("conversas").update({
+                ultima_mensagem: conteudo, ultima_mensagem_at: timestamp,
+              }).eq("id", conv.id);
+            }
+            // Verificar termo-chave
+            if (conteudo) {
+              await verificarTermoChave(ag.id, conv.id, conteudo, numero, conv.fbclid, conv.utm_campaign, conv.utm_content);
+            }
           }
         }
         return NextResponse.json({ ok: true });
