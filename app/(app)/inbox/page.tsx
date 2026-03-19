@@ -277,7 +277,8 @@ function DetalhesModal({ conversa, onClose, onEtapaChange }: { conversa: Convers
                 {conversa.utm_source && <div><p style={{ fontSize:"11px", color:"#606060" }}>Origem (utm_source)</p><p style={{ fontSize:"13px", color:"#f0f0f0" }}>{conversa.utm_source}</p></div>}
                 {conversa.utm_medium && <div><p style={{ fontSize:"11px", color:"#606060" }}>Meio (utm_medium)</p><p style={{ fontSize:"13px", color:"#f0f0f0" }}>{conversa.utm_medium}</p></div>}
                 {conversa.utm_campaign && <div><p style={{ fontSize:"11px", color:"#606060" }}>Campanha</p><p style={{ fontSize:"13px", color:"#f0f0f0" }}>{conversa.utm_campaign}</p></div>}
-                {conversa.utm_content && <div><p style={{ fontSize:"11px", color:"#606060" }}>Conteúdo</p><p style={{ fontSize:"13px", color:"#f0f0f0" }}>{conversa.utm_content}</p></div>}
+                {conversa.utm_content && <div><p style={{ fontSize:"11px", color:"#606060" }}>Conjunto de Anúncios</p><p style={{ fontSize:"13px", color:"#f0f0f0" }}>{conversa.utm_content}</p></div>}
+                {(conversa as any).nome_anuncio && <div><p style={{ fontSize:"11px", color:"#606060" }}>Nome do Anúncio</p><p style={{ fontSize:"13px", color:"#f0f0f0" }}>{(conversa as any).nome_anuncio}</p></div>}
                 {conversa.fbclid && <div><p style={{ fontSize:"11px", color:"#606060" }}>fbclid</p><p style={{ fontSize:"12px", color:"#606060", fontFamily:"monospace", wordBreak:"break-all" }}>{conversa.fbclid.slice(0,40)}...</p></div>}
               </div>
             </div>
