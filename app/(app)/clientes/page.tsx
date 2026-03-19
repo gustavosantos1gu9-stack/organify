@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, Plus, Edit2, Trash2, RefreshCw, Users, UserX, UserMinus, DollarSign, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import { Search, Plus, Edit2, Trash2, RefreshCw, Users, UserX, UserMinus, DollarSign, ChevronUp, ChevronDown, ChevronsUpDown, Eye } from "lucide-react";
 import KPICard from "@/components/ui/KPICard";
 import Filtros from "@/components/ui/Filtros";
 import CadastrarClienteModal from "@/components/clientes/CadastrarClienteModal";
@@ -45,8 +45,8 @@ type SortDir = "asc" | "desc";
 function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; sortDir: SortDir }) {
   if (sortKey !== col) return <ChevronsUpDown size={12} style={{ color:"#404040", marginLeft:"4px", verticalAlign:"middle" }}/>;
   return sortDir === "asc"
-    ? <ChevronUp size={12} style={{ color:"#22c55e", marginLeft:"4px", verticalAlign:"middle" }}/>
-    : <ChevronDown size={12} style={{ color:"#22c55e", marginLeft:"4px", verticalAlign:"middle" }}/>;
+    ? <ChevronUp size={12} style={{ color:"#29ABE2", marginLeft:"4px", verticalAlign:"middle" }}/>
+    : <ChevronDown size={12} style={{ color:"#29ABE2", marginLeft:"4px", verticalAlign:"middle" }}/>;
 }
 
 function StatusSelect({ cliente, onRefresh }: { cliente: Cliente; onRefresh: () => void }) {
@@ -57,7 +57,7 @@ function StatusSelect({ cliente, onRefresh }: { cliente: Cliente; onRefresh: () 
   );
 
   const opcoes = [
-    { value:"ativo", label:"Ativo", color:"#22c55e" },
+    { value:"ativo", label:"Ativo", color:"#29ABE2" },
     { value:"pendencia", label:"Pendência", color:"#f59e0b" },
     { value:"saiu", label:"Saiu", color:"#ef4444" },
   ];
@@ -231,6 +231,8 @@ export default function ClientesPage() {
         complemento: data.complemento as string || undefined,
         bairro: data.bairro as string || undefined,
         observacoes: data.observacoes as string || undefined,
+        origem_id: data.origem_id as string || undefined,
+        categoria_id: data.categoria_id as string || undefined,
         status: (data.status_recorrencia as string) === "saiu" ? "cancelado" :
                 (data.status_recorrencia as string) === "pendencia" ? "inadimplente" : "ativo",
         status_recorrencia: (data.status_recorrencia as string) || "ativo",
@@ -287,11 +289,11 @@ export default function ClientesPage() {
         </div>
 
         {Object.values(filtros).some(Boolean) && (
-          <div style={{ padding:"8px 16px", background:"rgba(34,197,94,0.05)", borderBottom:"1px solid #2e2e2e", display:"flex", gap:"8px", flexWrap:"wrap" }}>
+          <div style={{ padding:"8px 16px", background:"rgba(41,171,226,0.05)", borderBottom:"1px solid #2e2e2e", display:"flex", gap:"8px", flexWrap:"wrap" }}>
             {Object.entries(filtros).filter(([,v]) => v).map(([k, v]) => (
-              <span key={k} style={{ display:"flex", alignItems:"center", gap:"4px", background:"rgba(34,197,94,0.1)", color:"#22c55e", padding:"3px 10px", borderRadius:"20px", fontSize:"12px" }}>
+              <span key={k} style={{ display:"flex", alignItems:"center", gap:"4px", background:"rgba(41,171,226,0.1)", color:"#29ABE2", padding:"3px 10px", borderRadius:"20px", fontSize:"12px" }}>
                 {v}
-                <button onClick={() => setFiltros((f) => ({ ...f, [k]: "" }))} style={{ background:"none", border:"none", cursor:"pointer", color:"#22c55e", padding:"0", lineHeight:1 }}>×</button>
+                <button onClick={() => setFiltros((f) => ({ ...f, [k]: "" }))} style={{ background:"none", border:"none", cursor:"pointer", color:"#29ABE2", padding:"0", lineHeight:1 }}>×</button>
               </span>
             ))}
           </div>
@@ -340,7 +342,7 @@ export default function ClientesPage() {
                   <td><input type="checkbox" style={{ width:"14px",height:"14px" }}/></td>
                   <td><StatusSelect cliente={c} onRefresh={refresh}/></td>
                   <td>
-                    <div style={{ width:"32px",height:"32px",borderRadius:"50%",background:"#22c55e20",color:"#22c55e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"12px",fontWeight:"600" }}>
+                    <div style={{ width:"32px",height:"32px",borderRadius:"50%",background:"#29ABE220",color:"#29ABE2",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"12px",fontWeight:"600" }}>
                       {c.nome.charAt(0).toUpperCase()}
                     </div>
                   </td>
@@ -357,7 +359,7 @@ export default function ClientesPage() {
                       <span className="badge badge-gray" style={{ textTransform:"capitalize" }}>{c.frequencia}</span>
                     ) : <span style={{color:"#606060"}}>—</span>}
                   </td>
-                  <td style={{ color:"#22c55e", fontWeight:"600" }}>
+                  <td style={{ color:"#29ABE2", fontWeight:"600" }}>
                     {c.valor_oportunidade ? formatCurrency(c.valor_oportunidade) : "—"}
                   </td>
                   <td style={{ color:"#a0a0a0", fontSize:"12px" }}>{c.cidade || "—"}</td>
@@ -366,6 +368,9 @@ export default function ClientesPage() {
                   <td>
                     <div style={{ display:"flex",gap:"6px" }}>
                       <button className="btn-ghost" style={{ padding:"5px 8px" }} title="Sincronizar"><RefreshCw size={13}/></button>
+                      <a href={`/clientes/${c.id}`} className="btn-ghost" style={{ padding:"5px 8px", textDecoration:"none", display:"flex", alignItems:"center", gap:"4px", fontSize:"12px" }} title="Ver detalhes">
+                        <Eye size={12}/>
+                      </a>
                       <button className="btn-secondary" style={{ padding:"5px 10px",fontSize:"12px" }} onClick={() => handleEditar(c)}>
                         <Edit2 size={12}/> Editar
                       </button>
