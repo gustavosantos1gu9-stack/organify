@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Search, RefreshCw, ArrowUpDown } from "lucide-react";
-import KPICard from "@/components/ui/KPICard";
-import { UserMinus, DollarSign, TrendingDown, Users } from "lucide-react";
 import { supabase, getAgenciaId } from "@/lib/hooks";
 
 interface ClienteChurn {
@@ -40,6 +38,9 @@ function formatarData(d: string) {
 export default function ChurnPage() {
   const [clientes, setClientes] = useState<ClienteChurn[]>([]);
   const [snapshots, setSnapshots] = useState<any[]>([]);
+  const [metaChurn, setMetaChurn] = useState<string>("");
+  const [editandoMeta, setEditandoMeta] = useState(false);
+  const [agId, setAgId] = useState("");
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [filtroMes, setFiltroMes] = useState("Todos");
@@ -48,6 +49,7 @@ export default function ChurnPage() {
 
   const carregar = async () => {
     const agId = await getAgenciaId();
+    setAgId(agId || "");
     const { data } = await supabase.from("controle_clientes")
       .select("*").eq("agencia_id",agId!).eq("status","saiu").order("nome");
     setClientes(data||[]);
@@ -55,7 +57,16 @@ export default function ChurnPage() {
     const res = await fetch(`/api/snapshots?agencia_id=${agId}`);
     const json = await res.json();
     setSnapshots(json.data||[]);
+    // Carregar meta de churn
+    const { data: cfg } = await supabase.from("agencias").select("meta_churn").eq("id", agId!).single();
+    if (cfg?.meta_churn) setMetaChurn(String(cfg.meta_churn));
     setLoading(false);
+  };
+
+  const salvarMeta = async (valor: string) => {
+    setMetaChurn(valor);
+    setEditandoMeta(false);
+    await supabase.from("agencias").update({ meta_churn: Number(valor) || 0 }).eq("id", agId);
   };
 
   useEffect(() => { carregar(); }, []);
