@@ -16,7 +16,7 @@ const ETAPAS = [
   { key:"qualificado", label:"Qualificado", color:"#06b6d4" },
   { key:"reuniao_agendada", label:"Reunião agendada", color:"#f59e0b" },
   { key:"proposta_enviada", label:"Proposta enviada", color:"#8b5cf6" },
-  { key:"ganho", label:"Ganho", color:"#22c55e" },
+  { key:"ganho", label:"Ganho", color:"#29ABE2" },
   { key:"perdido", label:"Perdido", color:"#ef4444" },
 ];
 
@@ -91,7 +91,7 @@ function KanbanBoard({ leads, onEtapaChange, onRemover, onConverter, onEditar }:
                   <span style={{ fontSize:"11px", background:"#2a2a2a", color:"#606060", padding:"1px 7px", borderRadius:"10px" }}>{cards.length}</span>
                 </div>
               </div>
-              <p style={{ fontSize:"12px", color: total > 0 ? "#22c55e" : "#404040", fontWeight:"600", paddingLeft:"14px" }}>
+              <p style={{ fontSize:"12px", color: total > 0 ? "#29ABE2" : "#404040", fontWeight:"600", paddingLeft:"14px" }}>
                 {formatCurrency(total)}
               </p>
             </div>
@@ -142,7 +142,7 @@ function KanbanBoard({ leads, onEtapaChange, onRemover, onConverter, onEditar }:
 
                   {/* Valor */}
                   <div style={{ background:"#252525", borderRadius:"4px", padding:"4px 8px", marginBottom:"8px", textAlign:"center" }}>
-                    <span style={{ fontSize:"12px", color: lead.valor ? "#22c55e" : "#404040", fontWeight:"600" }}>
+                    <span style={{ fontSize:"12px", color: lead.valor ? "#29ABE2" : "#404040", fontWeight:"600" }}>
                       {lead.valor ? formatCurrency(lead.valor) : "R$ 0,00"}
                     </span>
                   </div>
@@ -162,8 +162,8 @@ function KanbanBoard({ leads, onEtapaChange, onRemover, onConverter, onEditar }:
                       style={{
                         flex:1, padding:"5px 0", borderRadius:"6px", cursor:"pointer", fontSize:"12px", fontWeight:"500",
                         border:"none",
-                        background: lead.convertido_cliente_id ? "rgba(34,197,94,0.2)" : "rgba(34,197,94,0.15)",
-                        color:"#22c55e",
+                        background: lead.convertido_cliente_id ? "rgba(41,171,226,0.2)" : "rgba(41,171,226,0.15)",
+                        color:"#29ABE2",
                         display:"flex", alignItems:"center", justifyContent:"center", gap:"4px",
                       }}
                     >
@@ -266,7 +266,7 @@ export default function CRMPage() {
           </span>
           <div style={{ marginLeft:"auto", display:"flex", gap:"8px" }}>
             <button className="btn-ghost" style={{ fontSize:"12px" }}>Campanhas</button>
-            <button className="btn-ghost" style={{ fontSize:"12px" }}>Dashboard</button>
+            <a href="/crm/dashboard" className="btn-ghost" style={{ fontSize:"12px", textDecoration:"none" }}>Dashboard</a>
           </div>
         </div>
 
