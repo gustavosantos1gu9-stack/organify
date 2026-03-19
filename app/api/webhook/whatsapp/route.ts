@@ -30,10 +30,44 @@ export async function POST(req: NextRequest) {
       // Ignorar grupos, @lid, e mensagens enviadas por mim
       if (!remoteJid || remoteJid.includes("@g.us")) return NextResponse.json({ ok: true });
       if (remoteJid.includes("@lid")) return NextResponse.json({ ok: true });
-      if (fromMe) return NextResponse.json({ ok: true });
-
       // Descobrir agência pela instância
       const instanciaName = instance || body.instanceName || "";
+
+      // Mensagens fromMe: só verificar termo-chave, não criar conversa
+      if (fromMe) {
+        if (conteudo) {
+          const { data: ag } = await supabase.from("agencias")
+            .select("id").eq("whatsapp_instancia", instanciaName).single();
+          if (ag) {
+            const { data: conv } = await supabase.from("conversas")
+              .select("id, fbclid, utm_campaign, utm_content")
+              .eq("agencia_id", ag.id).eq("contato_numero", numero).single();
+            if (conv) {
+              const { data: etapas } = await supabase.from("jornada_etapas")
+                .select("nome, termo_chave, evento_conversao")
+                .eq("agencia_id", ag.id).not("termo_chave", "is", null);
+              if (etapas) {
+                const etapaEncontrada = etapas.find((e: any) =>
+                  e.termo_chave && conteudo.toLowerCase().includes(e.termo_chave.toLowerCase())
+                );
+                if (etapaEncontrada) {
+                  await supabase.from("conversas").update({
+                    etapa_jornada: etapaEncontrada.nome,
+                    etapa_alterada_at: new Date().toISOString(),
+                  }).eq("id", conv.id);
+                  if (etapaEncontrada.evento_conversao) {
+                    fetch(`${process.env.NEXT_PUBLIC_APP_URL || "https://organify-blond.vercel.app"}/api/pixel`, {
+                      method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ agencia_id: ag.id, conversa_id: conv.id, etapa_nome: etapaEncontrada.nome, phone: numero, fbclid: conv.fbclid, utm_campaign: conv.utm_campaign, utm_content: conv.utm_content }),
+                    }).catch(() => {});
+                  }
+                }
+              }
+            }
+          }
+        }
+        return NextResponse.json({ ok: true });
+      }
       const agencia = await getAgenciaPorInstancia(instanciaName);
       if (!agencia) return NextResponse.json({ ok: true });
 
@@ -120,6 +154,45 @@ export async function POST(req: NextRequest) {
             primeira_mensagem_at: timestamp,
             origem: "Não Rastreada",
           }).eq("id", conversa.id).is("primeira_mensagem_at", null);
+        }
+
+        // Verificar termo-chave na jornada de compra
+        if (conteudo) { // Verificar termo-chave tanto em mensagens do lead quanto minhas
+          const { data: etapas } = await supabase.from("jornada_etapas")
+            .select("nome, termo_chave, evento_conversao, eh_primeiro_contato")
+            .eq("agencia_id", agencia.id)
+            .not("termo_chave", "is", null);
+          
+          if (etapas && etapas.length > 0) {
+            const conteudoLower = conteudo.toLowerCase();
+            const etapaEncontrada = etapas.find((e: any) => 
+              e.termo_chave && conteudoLower.includes(e.termo_chave.toLowerCase())
+            );
+            
+            if (etapaEncontrada) {
+              // Atualizar etapa da conversa
+              await supabase.from("conversas").update({
+                etapa_jornada: etapaEncontrada.nome,
+                etapa_alterada_at: new Date().toISOString(),
+                // Se for primeiro contato, marcar origem pelo termo
+                ...(etapaEncontrada.eh_primeiro_contato && !conversa ? { origem: "Campanha de Mensagem" } : {}),
+              }).eq("id", conversa?.id || "");
+
+              // Disparar pixel para a etapa encontrada
+              if (etapaEncontrada.evento_conversao) {
+                fetch(`${process.env.NEXT_PUBLIC_APP_URL || "https://organify-blond.vercel.app"}/api/pixel`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    agencia_id: agencia.id,
+                    conversa_id: conversa?.id,
+                    etapa_nome: etapaEncontrada.nome,
+                    phone: numero,
+                  }),
+                }).catch(() => {});
+              }
+            }
+          }
         }
 
         // Disparar pixel para etapa "Fez Contato" se for primeira mensagem
