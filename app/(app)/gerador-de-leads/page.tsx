@@ -39,6 +39,7 @@ function formatarData(d: string) {
 
 export default function ChurnPage() {
   const [clientes, setClientes] = useState<ClienteChurn[]>([]);
+  const [snapshots, setSnapshots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [filtroMes, setFiltroMes] = useState("Todos");
@@ -50,6 +51,10 @@ export default function ChurnPage() {
     const { data } = await supabase.from("controle_clientes")
       .select("*").eq("agencia_id",agId!).eq("status","saiu").order("nome");
     setClientes(data||[]);
+    // Buscar snapshots para churn rate preciso
+    const res = await fetch(`/api/snapshots?agencia_id=${agId}`);
+    const json = await res.json();
+    setSnapshots(json.data||[]);
     setLoading(false);
   };
 
@@ -131,9 +136,14 @@ export default function ChurnPage() {
         const churnMes = clientes.filter(c=>c.data_churn===mesAtual).length;
         const churnMesPassado = clientes.filter(c=>c.data_churn===mesPassado).length;
         const diffChurn = churnMes - churnMesPassado;
-        const totalAtivos = 49; // base estimada - idealmente viria de controle_clientes
-        const churnRate = totalAtivos > 0 ? ((churnMes / totalAtivos) * 100).toFixed(1) : "0";
-        const churnRatePass = totalAtivos > 0 ? ((churnMesPassado / totalAtivos) * 100).toFixed(1) : "0";
+        const totalAtivos = snapshots.find(s => s.mes_ano === mesAtual)?.clientes_ativos || 0;
+        // Usar snapshots para churn rate preciso
+        const snapMes = snapshots.find(s => s.mes_ano === mesAtual);
+        const snapMesPassado = snapshots.find(s => s.mes_ano === mesPassado);
+        const baseMes = snapMes?.clientes_ativos || totalAtivos;
+        const baseMesPassado = snapMesPassado?.clientes_ativos || totalAtivos;
+        const churnRate = baseMes > 0 ? ((churnMes / baseMes) * 100).toFixed(1) : "0";
+        const churnRatePass = baseMesPassado > 0 ? ((churnMesPassado / baseMesPassado) * 100).toFixed(1) : "0";
         
         return (
           <div className="card" style={{ marginBottom:"16px", padding:"16px 20px" }}>

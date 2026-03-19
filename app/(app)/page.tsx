@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Users, UserX, UserPlus, TrendingUp, RotateCcw,
   ArrowDownToLine, ArrowUpFromLine, DollarSign,
@@ -26,6 +26,29 @@ export default function DashboardPage() {
   const [to, setTo] = useState(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split("T")[0]);
 
   const { data: kpis, loading } = useKPIsDashboard(from, to);
+
+  // Snapshots mensais
+  const [snapshots, setSnapshots] = useState<any[]>([]);
+  const [loadingSnap, setLoadingSnap] = useState(false);
+
+  useEffect(() => {
+    async function carregarSnapshots() {
+      try {
+        // Coletar snapshot do mês atual automaticamente
+        const agId = "32cdce6e-4664-4ac6-979d-6d68a1a68745";
+        await fetch("/api/snapshots", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agencia_id: agId }),
+        });
+        // Buscar histórico
+        const res = await fetch(`/api/snapshots?agencia_id=${agId}`);
+        const json = await res.json();
+        setSnapshots(json.data || []);
+      } catch(e) { console.error(e); }
+    }
+    carregarSnapshots();
+  }, []);
   const { data: graficos } = useDadosGraficos(6);
   const { data: conversao } = useConversaoPorPublico();
   const { data: leads } = useLeads();
@@ -94,6 +117,38 @@ export default function DashboardPage() {
       <PeriodSelector onChange={(_, f, t) => { setFrom(f); setTo(t); }} />
 
       {loading && <p style={{ color: "#606060", fontSize: "13px", marginBottom: "16px" }}>Carregando dados...</p>}
+
+      {/* Tabela de Snapshots Mensais */}
+      {snapshots.length > 0 && (
+        <div className="card" style={{ marginBottom:"20px", padding:"16px 20px" }}>
+          <h3 style={{ fontSize:"13px", fontWeight:"600", color:"#f0f0f0", marginBottom:"14px", display:"flex", alignItems:"center", gap:"8px" }}>
+            📅 Base de Clientes por Mês
+            <span style={{ fontSize:"11px", color:"#606060", fontWeight:"400" }}>Salvo automaticamente no dia 1 de cada mês</span>
+          </h3>
+          <div style={{ overflowX:"auto" }}>
+            <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"12px" }}>
+              <thead>
+                <tr style={{ borderBottom:"1px solid #29ABE230" }}>
+                  {["Mês/Ano","Ativos","Pausados","Em Entrada","Total"].map(h=>(
+                    <th key={h} style={{ padding:"8px 12px", textAlign:"left", fontSize:"11px", color:"#606060", fontWeight:"600", borderRight:"1px solid #29ABE215" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {[...snapshots].reverse().map((s, idx) => (
+                  <tr key={s.id} style={{ borderBottom:"1px solid #1e1e1e", background:idx%2===0?"transparent":"#0a0a0a" }}>
+                    <td style={{ padding:"8px 12px", fontWeight:"600", color:"#29ABE2", borderRight:"1px solid #29ABE215" }}>{s.mes_ano}</td>
+                    <td style={{ padding:"8px 12px", color:"#22c55e", borderRight:"1px solid #29ABE215" }}>{s.clientes_ativos}</td>
+                    <td style={{ padding:"8px 12px", color:"#f59e0b", borderRight:"1px solid #29ABE215" }}>{s.clientes_pausados}</td>
+                    <td style={{ padding:"8px 12px", color:"#eab308", borderRight:"1px solid #29ABE215" }}>{s.clientes_entrada}</td>
+                    <td style={{ padding:"8px 12px", color:"#f0f0f0" }}>{s.clientes_total}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: "16px", marginBottom: "16px" }}>
         <KPICard label="Clientes novos" value={novosClientes ?? 0} change={0} icon={<UserPlus size={16}/>} iconBg="green"/>
