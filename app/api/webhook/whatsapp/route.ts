@@ -6,13 +6,41 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-async function getAgenciaPorInstancia(instancia: string) {
-  const { data } = await supabase
-    .from("agencias")
-    .select("id, evolution_url, evolution_key, whatsapp_numero, meta_pixel_id, meta_token, meta_ativo")
-    .eq("whatsapp_instancia", instancia)
-    .single();
-  return data;
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://organify-blond.vercel.app";
+
+async function verificarTermoChave(agenciaId: string, conversaId: string, conteudo: string, numero: string, fbclid?: string, utmCampaign?: string, utmContent?: string) {
+  const { data: etapas } = await supabase.from("jornada_etapas")
+    .select("nome, termo_chave, evento_conversao")
+    .eq("agencia_id", agenciaId)
+    .not("termo_chave", "is", null);
+
+  if (!etapas?.length) return;
+
+  const conteudoLower = conteudo.toLowerCase();
+  const etapaEncontrada = etapas.find((e: any) =>
+    e.termo_chave && conteudoLower.includes(e.termo_chave.toLowerCase())
+  );
+
+  if (!etapaEncontrada) return;
+
+  await supabase.from("conversas").update({
+    etapa_jornada: etapaEncontrada.nome,
+    etapa_alterada_at: new Date().toISOString(),
+  }).eq("id", conversaId);
+
+  if (etapaEncontrada.evento_conversao) {
+    fetch(`${APP_URL}/api/pixel`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        agencia_id: agenciaId,
+        conversa_id: conversaId,
+        etapa_nome: etapaEncontrada.nome,
+        phone: numero,
+        fbclid, utm_campaign: utmCampaign, utm_content: utmContent,
+      }),
+    }).catch(() => {});
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -27,52 +55,12 @@ export async function POST(req: NextRequest) {
       const fromMe = msg.key?.fromMe || false;
       const remoteJid = msg.key?.remoteJid || "";
 
-      // Ignorar grupos, @lid, e mensagens enviadas por mim
-      if (!remoteJid || remoteJid.includes("@g.us")) return NextResponse.json({ ok: true });
-      if (remoteJid.includes("@lid")) return NextResponse.json({ ok: true });
-      // Descobrir agência pela instância
-      const instanciaName = instance || body.instanceName || "";
-
-      // Mensagens fromMe: só verificar termo-chave, não criar conversa
-      if (fromMe) {
-        if (conteudo) {
-          const { data: ag } = await supabase.from("agencias")
-            .select("id").eq("whatsapp_instancia", instanciaName).single();
-          if (ag) {
-            const { data: conv } = await supabase.from("conversas")
-              .select("id, fbclid, utm_campaign, utm_content")
-              .eq("agencia_id", ag.id).eq("contato_numero", numero).single();
-            if (conv) {
-              const { data: etapas } = await supabase.from("jornada_etapas")
-                .select("nome, termo_chave, evento_conversao")
-                .eq("agencia_id", ag.id).not("termo_chave", "is", null);
-              if (etapas) {
-                const etapaEncontrada = etapas.find((e: any) =>
-                  e.termo_chave && conteudo.toLowerCase().includes(e.termo_chave.toLowerCase())
-                );
-                if (etapaEncontrada) {
-                  await supabase.from("conversas").update({
-                    etapa_jornada: etapaEncontrada.nome,
-                    etapa_alterada_at: new Date().toISOString(),
-                  }).eq("id", conv.id);
-                  if (etapaEncontrada.evento_conversao) {
-                    fetch(`${process.env.NEXT_PUBLIC_APP_URL || "https://organify-blond.vercel.app"}/api/pixel`, {
-                      method: "POST", headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ agencia_id: ag.id, conversa_id: conv.id, etapa_nome: etapaEncontrada.nome, phone: numero, fbclid: conv.fbclid, utm_campaign: conv.utm_campaign, utm_content: conv.utm_content }),
-                    }).catch(() => {});
-                  }
-                }
-              }
-            }
-          }
-        }
+      if (!remoteJid || remoteJid.includes("@g.us") || remoteJid.includes("@lid")) {
         return NextResponse.json({ ok: true });
       }
-      const agencia = await getAgenciaPorInstancia(instanciaName);
-      if (!agencia) return NextResponse.json({ ok: true });
 
+      const instanciaName = instance || body.instanceName || "";
       const numero = remoteJid.replace("@s.whatsapp.net", "");
-      const nome = msg.pushName || numero;
       const msgId = msg.key?.id;
       const timestamp = msg.messageTimestamp
         ? new Date(Number(msg.messageTimestamp) * 1000).toISOString()
@@ -89,6 +77,29 @@ export async function POST(req: NextRequest) {
       else if (m?.documentMessage) { tipo = "document"; conteudo = m.documentMessage.fileName || "📄 Documento"; }
       else if (m?.stickerMessage) { tipo = "sticker"; conteudo = "😄 Sticker"; }
       else conteudo = "Mensagem";
+
+      // Mensagens fromMe — verificar termo-chave mas não criar conversa
+      if (fromMe) {
+        const { data: ag } = await supabase.from("agencias")
+          .select("id").eq("whatsapp_instancia", instanciaName).single();
+        if (ag && conteudo) {
+          const { data: conv } = await supabase.from("conversas")
+            .select("id, fbclid, utm_campaign, utm_content")
+            .eq("agencia_id", ag.id).eq("contato_numero", numero).single();
+          if (conv) {
+            await verificarTermoChave(ag.id, conv.id, conteudo, numero, conv.fbclid, conv.utm_campaign, conv.utm_content);
+          }
+        }
+        return NextResponse.json({ ok: true });
+      }
+
+      // Mensagens do lead — processar normalmente
+      const { data: agencia } = await supabase.from("agencias")
+        .select("id, evolution_url, evolution_key, whatsapp_numero, meta_pixel_id, meta_token, meta_ativo")
+        .eq("whatsapp_instancia", instanciaName).single();
+      if (!agencia) return NextResponse.json({ ok: true });
+
+      const nome = msg.pushName || numero;
 
       // Buscar foto
       let foto = null;
@@ -110,7 +121,8 @@ export async function POST(req: NextRequest) {
         const { data: nova } = await supabase.from("conversas").insert({
           agencia_id: agencia.id, instancia: instanciaName,
           contato_numero: numero, contato_nome: nome, contato_foto: foto,
-          ultima_mensagem: conteudo, ultima_mensagem_at: timestamp, nao_lidas: 1,
+          ultima_mensagem: conteudo, ultima_mensagem_at: timestamp,
+          primeira_mensagem_at: timestamp, nao_lidas: 1, origem: "Não Rastreada",
         }).select().single();
         conversa = nova;
       } else {
@@ -121,6 +133,7 @@ export async function POST(req: NextRequest) {
         }).eq("id", conversa.id);
       }
 
+      // Salvar mensagem
       if (conversa && msgId) {
         await supabase.from("mensagens").upsert({
           conversa_id: conversa.id, agencia_id: agencia.id,
@@ -130,6 +143,7 @@ export async function POST(req: NextRequest) {
         // Cruzar com rastreamento pendente (UTMs do link rastreável)
         const { data: tracking } = await supabase.from("rastreamentos_pendentes")
           .select("*").eq("wa_numero", numero).single();
+
         if (tracking) {
           await supabase.from("conversas").update({
             origem: tracking.origem || "Não Rastreada",
@@ -142,67 +156,26 @@ export async function POST(req: NextRequest) {
             link_id: tracking.link_id,
             primeira_mensagem_at: timestamp,
           }).eq("id", conversa.id);
-          // Remover rastreamento usado
           await supabase.from("rastreamentos_pendentes").delete().eq("wa_numero", numero);
-          // Incrementar cliques no link
           if (tracking.link_id) {
             await supabase.rpc("incrementar_cliques", { link_uuid: tracking.link_id });
           }
         } else {
-          // Marcar como não rastreada se for primeira mensagem
           await supabase.from("conversas").update({
             primeira_mensagem_at: timestamp,
-            origem: "Não Rastreada",
+            origem: conversa.origem || "Não Rastreada",
           }).eq("id", conversa.id).is("primeira_mensagem_at", null);
         }
 
-        // Verificar termo-chave na jornada de compra
-        if (conteudo) { // Verificar termo-chave tanto em mensagens do lead quanto minhas
-          const { data: etapas } = await supabase.from("jornada_etapas")
-            .select("nome, termo_chave, evento_conversao, eh_primeiro_contato")
-            .eq("agencia_id", agencia.id)
-            .not("termo_chave", "is", null);
-          
-          if (etapas && etapas.length > 0) {
-            const conteudoLower = conteudo.toLowerCase();
-            const etapaEncontrada = etapas.find((e: any) => 
-              e.termo_chave && conteudoLower.includes(e.termo_chave.toLowerCase())
-            );
-            
-            if (etapaEncontrada) {
-              // Atualizar etapa da conversa
-              await supabase.from("conversas").update({
-                etapa_jornada: etapaEncontrada.nome,
-                etapa_alterada_at: new Date().toISOString(),
-                // Se for primeiro contato, marcar origem pelo termo
-                ...(etapaEncontrada.eh_primeiro_contato && !conversa ? { origem: "Campanha de Mensagem" } : {}),
-              }).eq("id", conversa?.id || "");
+        // Verificar termo-chave na mensagem do lead
+        await verificarTermoChave(
+          agencia.id, conversa.id, conteudo, numero,
+          conversa.fbclid, conversa.utm_campaign, conversa.utm_content
+        );
 
-              // Disparar pixel para a etapa encontrada
-              if (etapaEncontrada.evento_conversao) {
-                fetch(`${process.env.NEXT_PUBLIC_APP_URL || "https://organify-blond.vercel.app"}/api/pixel`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    agencia_id: agencia.id,
-                    conversa_id: conversa?.id,
-                    etapa_nome: etapaEncontrada.nome,
-                    phone: numero,
-                  }),
-                }).catch(() => {});
-              }
-            }
-          }
-        }
-
-        // Disparar pixel para etapa "Fez Contato" se for primeira mensagem
-        const { data: conversaAtual } = await supabase.from("conversas")
-          .select("primeira_mensagem_at, etapa_jornada, fbclid, utm_campaign, utm_content")
-          .eq("id", conversa.id).single();
-        
-        if (!conversaAtual?.primeira_mensagem_at || conversaAtual.primeira_mensagem_at === timestamp) {
-          // É primeira mensagem — disparar pixel
-          fetch(`${process.env.NEXT_PUBLIC_APP_URL || "https://organify-blond.vercel.app"}/api/pixel`, {
+        // Disparar pixel para "Fez Contato" se for primeira mensagem
+        if (!conversa.primeira_mensagem_at) {
+          fetch(`${APP_URL}/api/pixel`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -210,21 +183,12 @@ export async function POST(req: NextRequest) {
               conversa_id: conversa.id,
               etapa_nome: "Fez Contato",
               phone: numero,
-              fbclid: conversaAtual?.fbclid,
-              utm_campaign: conversaAtual?.utm_campaign,
-              utm_content: conversaAtual?.utm_content,
+              fbclid: tracking?.fbclid,
+              utm_campaign: tracking?.utm_campaign,
+              utm_content: tracking?.utm_content,
             }),
           }).catch(() => {});
         }
-      }
-
-      // Disparar evento Meta se configurado
-      if (agencia.meta_ativo && agencia.meta_pixel_id && agencia.meta_token && !conversa?.id) {
-        fetch(`https://graph.facebook.com/v18.0/${agencia.meta_pixel_id}/events?access_token=${agencia.meta_token}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ data: [{ event_name: "Lead", event_time: Math.floor(Date.now()/1000), action_source: "website" }] }),
-        }).catch(() => {});
       }
     }
 
