@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import {
-  Users, UserX, TrendingUp, RotateCcw,
+  Users, UserX, UserPlus, TrendingUp, RotateCcw,
   ArrowDownToLine, ArrowUpFromLine, DollarSign,
   UserCheck, ShoppingBag, Percent, Clock,
   MinusCircle, AlertCircle, PlusCircle
@@ -95,7 +95,8 @@ export default function DashboardPage() {
 
       {loading && <p style={{ color: "#606060", fontSize: "13px", marginBottom: "16px" }}>Carregando dados...</p>}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "16px", marginBottom: "16px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: "16px", marginBottom: "16px" }}>
+        <KPICard label="Clientes novos" value={novosClientes ?? 0} change={0} icon={<UserPlus size={16}/>} iconBg="green"/>
         <KPICard label="Clientes recorrentes" value={kpis?.clientes_recorrentes ?? 0} change={0} icon={<Users size={16}/>} iconBg="green"/>
         <KPICard label="Clientes inadimplentes" value={kpis?.clientes_inadimplentes ?? 0} change={0} icon={<UserX size={16}/>} iconBg="red"/>
         <KPICard label="Lucro" value={fmt(kpis?.lucro ?? 0)} change={0} icon={<TrendingUp size={16}/>} iconBg="green"/>
@@ -127,7 +128,7 @@ export default function DashboardPage() {
               <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "#606060" }} axisLine={false} tickLine={false}/>
               <YAxis tick={{ fontSize: 11, fill: "#606060" }} axisLine={false} tickLine={false} tickFormatter={(v) => `R$${v}`}/>
               <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => fmt(v)}/>
-              <Line type="monotone" dataKey="entrada" stroke="#22c55e" strokeWidth={2} dot={false} name="Entrada"/>
+              <Line type="monotone" dataKey="entrada" stroke="#29ABE2" strokeWidth={2} dot={false} name="Entrada"/>
               <Line type="monotone" dataKey="saida" stroke="#ef4444" strokeWidth={2} dot={false} name="Saída"/>
               <Legend wrapperStyle={{ fontSize: "11px" }}/>
             </LineChart>
@@ -138,7 +139,7 @@ export default function DashboardPage() {
           <ResponsiveContainer width="100%" height={180}>
             <PieChart>
               <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value">
-                <Cell fill="#22c55e"/><Cell fill="#ef4444"/>
+                <Cell fill="#29ABE2"/><Cell fill="#ef4444"/>
               </Pie>
               <Legend wrapperStyle={{ fontSize: "11px" }}/>
               <Tooltip contentStyle={tooltipStyle}/>
@@ -155,7 +156,7 @@ export default function DashboardPage() {
               <XAxis dataKey="etapa" tick={{ fontSize: 10, fill: "#606060" }} axisLine={false} tickLine={false}/>
               <YAxis tick={{ fontSize: 11, fill: "#606060" }} axisLine={false} tickLine={false}/>
               <Tooltip contentStyle={tooltipStyle}/>
-              <Bar dataKey="valor" fill="#22c55e" radius={[4,4,0,0]} name="Leads"/>
+              <Bar dataKey="valor" fill="#29ABE2" radius={[4,4,0,0]} name="Leads"/>
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -166,7 +167,7 @@ export default function DashboardPage() {
               <XAxis dataKey="origem" tick={{ fontSize: 11, fill: "#606060" }} axisLine={false} tickLine={false}/>
               <YAxis tick={{ fontSize: 11, fill: "#606060" }} axisLine={false} tickLine={false}/>
               <Tooltip contentStyle={tooltipStyle}/>
-              <Bar dataKey="valor" fill="#22c55e" radius={[4,4,0,0]} name="Leads"/>
+              <Bar dataKey="valor" fill="#29ABE2" radius={[4,4,0,0]} name="Leads"/>
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -186,9 +187,9 @@ export default function DashboardPage() {
                   <p style={{ fontSize: "11px", color: "#606060" }}>{c.campanha}</p>
                 </div>
                 <div style={{ flex: 1, height: "6px", background: "#2a2a2a", borderRadius: "3px" }}>
-                  <div style={{ width: `${c.taxa}%`, height: "100%", background: "#22c55e", borderRadius: "3px", transition: "width 0.5s" }}/>
+                  <div style={{ width: `${c.taxa}%`, height: "100%", background: "#29ABE2", borderRadius: "3px", transition: "width 0.5s" }}/>
                 </div>
-                <span style={{ fontSize: "12px", color: "#22c55e", minWidth: "48px", textAlign: "right", fontWeight: "600" }}>{c.taxa}%</span>
+                <span style={{ fontSize: "12px", color: "#29ABE2", minWidth: "48px", textAlign: "right", fontWeight: "600" }}>{c.taxa}%</span>
                 <span style={{ fontSize: "11px", color: "#606060", minWidth: "80px" }}>{c.total_convertidos}/{c.total_leads} leads</span>
               </div>
             ))}
