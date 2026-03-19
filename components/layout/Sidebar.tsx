@@ -52,6 +52,7 @@ const navItems: NavItem[] = [
   { href: "/clientes", label: "Clientes", icon: <Users size={16} /> },
   { href: "/inbox", label: "Inbox WhatsApp", icon: <MessageCircle size={16} /> },
   { href: "/crm", label: "CRM", icon: <CreditCard size={16} /> },
+  { href: "/controle-clientes", label: "Controle de Clientes", icon: <Users2 size={16} /> },
   { href: "/gerador-de-leads", label: "Churn", icon: <UserMinus size={16} /> },
   { href: "/ferramentas/gerador-links", label: "Links & Campanhas", icon: <Link2 size={16} /> },
   { href: "/ferramentas/campanhas", label: "Configurar Campanha", icon: <Target size={16} /> },
