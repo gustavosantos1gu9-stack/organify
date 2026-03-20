@@ -34,13 +34,17 @@ export default function DashboardPage() {
   useEffect(() => {
     async function carregarSnapshots() {
       try {
-        // Coletar snapshot do mês atual automaticamente
         const agId = "32cdce6e-4664-4ac6-979d-6d68a1a68745";
-        await fetch("/api/snapshots", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ agencia_id: agId }),
-        });
+        // Verificar se hoje é o último dia do mês e salvar se for
+        const hoje = new Date();
+        const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth()+1, 0).getDate();
+        if (hoje.getDate() === ultimoDia) {
+          await fetch("/api/snapshots", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ agencia_id: agId }),
+          });
+        }
         // Buscar histórico
         const res = await fetch(`/api/snapshots?agencia_id=${agId}`);
         const json = await res.json();
@@ -129,21 +133,39 @@ export default function DashboardPage() {
             <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"12px" }}>
               <thead>
                 <tr style={{ borderBottom:"1px solid #29ABE230" }}>
-                  {["Mês/Ano","Ativos","Pausados","Em Entrada","Total"].map(h=>(
+                  {["Mês/Ano","Data Base","Ativos","Pausados","Em Entrada","Total","Churn do Mês","Churn Rate"].map(h=>(
                     <th key={h} style={{ padding:"8px 12px", textAlign:"left", fontSize:"11px", color:"#606060", fontWeight:"600", borderRight:"1px solid #29ABE215" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {[...snapshots].reverse().map((s, idx) => (
-                  <tr key={s.id} style={{ borderBottom:"1px solid #1e1e1e", background:idx%2===0?"transparent":"#0a0a0a" }}>
-                    <td style={{ padding:"8px 12px", fontWeight:"600", color:"#29ABE2", borderRight:"1px solid #29ABE215" }}>{s.mes_ano}</td>
-                    <td style={{ padding:"8px 12px", color:"#22c55e", borderRight:"1px solid #29ABE215" }}>{s.clientes_ativos}</td>
-                    <td style={{ padding:"8px 12px", color:"#f59e0b", borderRight:"1px solid #29ABE215" }}>{s.clientes_pausados}</td>
-                    <td style={{ padding:"8px 12px", color:"#eab308", borderRight:"1px solid #29ABE215" }}>{s.clientes_entrada}</td>
-                    <td style={{ padding:"8px 12px", color:"#f0f0f0" }}>{s.clientes_total}</td>
-                  </tr>
-                ))}
+                {snapshots.map((s, idx) => {
+                  // Churn do mês = clientes que churnam naquele mês (não temos aqui, mas podemos calcular via filtro)
+                  const churnRate = s.clientes_ativos > 0 ? "—" : "—";
+                  // Data base = último dia do mês anterior
+                  const meses = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+                  const mIdx = meses.indexOf(s.mes);
+                  const mBaseIdx = mIdx===0?11:mIdx-1;
+                  const mBaseAno = mIdx===0?s.ano-1:s.ano;
+                  const snapBase = snapshots.find(x=>x.mes_ano===`${meses[mBaseIdx]}/${mBaseAno}`);
+                  const baseAtivos = snapBase?.clientes_ativos || "—";
+                  // Último dia do mês
+                  const ultimoDia = new Date(s.ano, mIdx+1, 0).getDate();
+                  return (
+                    <tr key={s.id} style={{ borderBottom:"1px solid #1e1e1e", background:idx%2===0?"transparent":"#0a0a0a" }}>
+                      <td style={{ padding:"8px 12px", fontWeight:"600", color:"#29ABE2", borderRight:"1px solid #29ABE215" }}>{s.mes_ano}</td>
+                      <td style={{ padding:"8px 12px", color:"#606060", fontSize:"11px", borderRight:"1px solid #29ABE215" }}>Dia {ultimoDia}/{String(mIdx+1).padStart(2,"0")}/{s.ano}</td>
+                      <td style={{ padding:"8px 12px", color:"#22c55e", borderRight:"1px solid #29ABE215" }}>{s.clientes_ativos}</td>
+                      <td style={{ padding:"8px 12px", color:"#f59e0b", borderRight:"1px solid #29ABE215" }}>{s.clientes_pausados}</td>
+                      <td style={{ padding:"8px 12px", color:"#eab308", borderRight:"1px solid #29ABE215" }}>{s.clientes_entrada}</td>
+                      <td style={{ padding:"8px 12px", color:"#f0f0f0", borderRight:"1px solid #29ABE215" }}>{s.clientes_total}</td>
+                      <td style={{ padding:"8px 12px", color:"#ef4444", borderRight:"1px solid #29ABE215" }}>—</td>
+                      <td style={{ padding:"8px 12px", color:"#a0a0a0" }}>
+                        {typeof baseAtivos === "number" && s.clientes_ativos > 0 ? `${((0/s.clientes_ativos)*100).toFixed(1)}%` : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

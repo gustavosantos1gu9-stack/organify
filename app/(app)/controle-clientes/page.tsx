@@ -150,12 +150,12 @@ function PainelLateral({ cliente, onClose, agId }: { cliente: ControleCliente; o
   const [texto, setTexto] = useState("");
   const [salvando, setSalvando] = useState(false);
 
-  const carregar = async () => {
-    const { data } = await supabase.from("anotacoes").select("*")
+  const carregar = useCallback(async () => {
+    const { data, error } = await supabase.from("anotacoes").select("*")
       .eq("agencia_id", agId).eq("cliente_id", cliente.id)
       .order("created_at", { ascending: false });
-    setAnotacoes(data||[]);
-  };
+    if (!error) setAnotacoes(data||[]);
+  }, [agId, cliente.id]);
 
   const salvar = async () => {
     if (!texto.trim()||salvando) return;
@@ -163,19 +163,19 @@ function PainelLateral({ cliente, onClose, agId }: { cliente: ControleCliente; o
     try {
       const { data: user } = await supabase.auth.getUser();
       const nomeUser = user?.user?.user_metadata?.nome||user?.user?.email?.split("@")[0]||"Usuário";
-      await supabase.from("anotacoes").insert({
+      // Salvar atualização
+      const { error: e1 } = await supabase.from("anotacoes").insert({
         agencia_id: agId, cliente_id: cliente.id, cliente_nome: cliente.nome,
         usuario: nomeUser, conteudo: texto.trim(), tipo: "atualizacoes", created_at: new Date().toISOString(),
       });
-      await supabase.from("anotacoes").insert({
-        agencia_id: agId, cliente_id: cliente.id, cliente_nome: cliente.nome,
-        usuario: nomeUser, conteudo: `Adicionou atualização`, tipo: "log", created_at: new Date().toISOString(),
-      });
-      setTexto(""); await carregar();
-    } finally { setSalvando(false); }
+      if (e1) { console.error("Erro ao salvar anotação:", e1); return; }
+      setTexto("");
+      await carregar();
+    } catch(e) { console.error(e); }
+    finally { setSalvando(false); }
   };
 
-  useEffect(() => { carregar(); }, [cliente.id]);
+  useEffect(() => { carregar(); }, [carregar]);
   const filtradas = anotacoes.filter(a => a.tipo === aba);
 
   return (
@@ -233,6 +233,7 @@ export default function ControleClientesPage() {
   const [agId, setAgId] = useState("");
   const [usuarios, setUsuarios] = useState<string[]>([]);
   const [times, setTimes] = useState<string[]>([]);
+  const [snapsMensais, setSnapsMensais] = useState<any[]>([]);
   const [colWidths, setColWidths] = useState<Record<string,number>>(() => Object.fromEntries(COLUNAS_DEF.map(c=>[c.key,c.w])));
   const resizing = useRef<{key:string;startX:number;startW:number}|null>(null);
 
@@ -241,6 +242,10 @@ export default function ControleClientesPage() {
     setAgId(id||"");
     const { data } = await supabase.from("controle_clientes").select("*").eq("agencia_id",id!).neq("status","saiu");
     setClientes(data||[]);
+    // Carregar snapshots para KPI base mês passado
+    const resSnap = await fetch(`/api/snapshots?agencia_id=${id}`);
+    const jsonSnap = await resSnap.json();
+    setSnapsMensais(jsonSnap.data||[]);
     const { data: users } = await supabase.from("configuracoes_usuarios").select("nome").eq("agencia_id",id!);
     const { data: tms } = await supabase.from("times").select("nome").eq("agencia_id",id!);
     setUsuarios(users?.map((u:any)=>u.nome)||[]);
@@ -251,12 +256,18 @@ export default function ControleClientesPage() {
   const atualizar = async (id: string, campo: string, valor: any, nomeCliente: string) => {
     await supabase.from("controle_clientes").update({[campo]:valor}).eq("id",id);
     setClientes(prev=>prev.map(c=>c.id===id?{...c,[campo]:valor}:c));
-    const { data: user } = await supabase.auth.getUser();
-    const nomeUser = user?.user?.user_metadata?.nome||user?.user?.email?.split("@")[0]||"Usuário";
-    await supabase.from("anotacoes").insert({
-      agencia_id: agId, cliente_id: id, cliente_nome: nomeCliente,
-      usuario: nomeUser, conteudo: `Alterou "${campo}" → "${valor}"`, tipo:"log", created_at: new Date().toISOString(),
-    });
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      const nomeUser = user?.user?.user_metadata?.nome||user?.user?.email?.split("@")[0]||"Usuário";
+      const agIdAtual = agId || (await getAgenciaId()) || "";
+      if (agIdAtual) {
+        await supabase.from("anotacoes").insert({
+          agencia_id: agIdAtual, cliente_id: id, cliente_nome: nomeCliente,
+          usuario: nomeUser, conteudo: `Alterou "${campo}" → "${valor}"`, tipo:"log",
+          created_at: new Date().toISOString(),
+        });
+      }
+    } catch(e) { console.error("Log erro:", e); }
   };
 
   const toggleExpandir = async (id: string) => {
@@ -363,20 +374,18 @@ export default function ControleClientesPage() {
 
         // Clientes último mês: clientes ativos + pausados com data_entrada até último dia do mês passado
         const primeiroDiaMesAtual = new Date(anoAtual, mesAtual, 1);
-        const ultimoMes = clientes.filter(c => {
-          if (!c.data_entrada) return false;
-          try {
-            const d = c.data_entrada.includes("/") ? new Date(c.data_entrada.split("/").reverse().join("-")) : new Date(c.data_entrada);
-            return d < primeiroDiaMesAtual;
-          } catch { return false; }
-        });
-
+        // Base mês passado via snapshot
+        const meses = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+        const mesPassadoIdx = hoje.getMonth()===0?11:hoje.getMonth()-1;
+        const anoMesPassado = hoje.getMonth()===0?hoje.getFullYear()-1:hoje.getFullYear();
+        const mesPassadoStr = `${meses[mesPassadoIdx]}/${anoMesPassado}`;
+        // Buscar snapshot do mês passado
         const kpis = [
           { label:"Clientes Totais", value:clientes.length, cor:"#f0f0f0" },
           { label:"Clientes Ativos", value:ativos.length, cor:"#22c55e" },
           { label:"Pausados", value:pausados.length, cor:"#f59e0b" },
           { label:"Em Entrada", value:entrada.length, cor:"#eab308" },
-          { label:"Base Mês Passado", value:ultimoMes.length, cor:"#29ABE2" },
+          { label:`Base ${mesPassadoStr}`, value:snapsMensais.find((s:any)=>s.mes_ano===mesPassadoStr)?.clientes_ativos ?? "—", cor:"#29ABE2" },
           { label:"Tempo Médio (meses)", value:tempoMedioDias > 0 ? tempoMedioDias.toFixed(1) : "—", cor:"#f0f0f0" },
         ];
 
