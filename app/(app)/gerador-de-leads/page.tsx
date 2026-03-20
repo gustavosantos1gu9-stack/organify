@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, RefreshCw, ArrowUpDown } from "lucide-react";
+import { Search, RefreshCw } from "lucide-react";
 import { supabase, getAgenciaId } from "@/lib/hooks";
 
 interface ClienteChurn {
@@ -12,7 +12,8 @@ interface ClienteChurn {
   feedback: string; grupo: string;
 }
 
-// Todos os meses possíveis até dez/2026
+const MESES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+
 const MESES_FIXOS = [
   "Jan/2025","Fev/2025","Mar/2025","Abr/2025","Mai/2025","Jun/2025",
   "Jul/2025","Ago/2025","Set/2025","Out/2025","Nov/2025","Dez/2025",
@@ -38,41 +39,36 @@ function formatarData(d: string) {
 export default function ChurnPage() {
   const [clientes, setClientes] = useState<ClienteChurn[]>([]);
   const [snapshots, setSnapshots] = useState<any[]>([]);
-  const [metaChurn, setMetaChurn] = useState<string>("");
-  const [editandoMeta, setEditandoMeta] = useState(false);
-  const [agId, setAgId] = useState("");
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [filtroMes, setFiltroMes] = useState("Todos");
   const [sort, setSort] = useState("data_churn");
   const [sortDir, setSortDir] = useState<"asc"|"desc">("desc");
+  const [metaChurn, setMetaChurn] = useState<string>("");
+  const [editandoMeta, setEditandoMeta] = useState(false);
+  const [agId, setAgId] = useState("");
 
   const carregar = async () => {
-    const agId = await getAgenciaId();
-    setAgId(agId || "");
+    const id = await getAgenciaId();
+    setAgId(id||"");
     const { data } = await supabase.from("controle_clientes")
-      .select("*").eq("agencia_id",agId!).eq("status","saiu").order("nome");
+      .select("*").eq("agencia_id",id!).eq("status","saiu").order("nome");
     setClientes(data||[]);
-    // Buscar snapshots para churn rate preciso
-    const res = await fetch(`/api/snapshots?agencia_id=${agId}`);
+    const res = await fetch(`/api/snapshots?agencia_id=${id}`);
     const json = await res.json();
     setSnapshots(json.data||[]);
-    // Carregar meta de churn
-    const { data: cfg } = await supabase.from("agencias").select("meta_churn").eq("id", agId!).single();
-    if (cfg?.meta_churn) setMetaChurn(String(cfg.meta_churn));
+    const { data: ag } = await supabase.from("agencias").select("meta_churn").eq("id",id!).single();
+    if (ag?.meta_churn) setMetaChurn(String(ag.meta_churn));
     setLoading(false);
   };
 
   const salvarMeta = async (valor: string) => {
     setMetaChurn(valor);
     setEditandoMeta(false);
-    await supabase.from("agencias").update({ meta_churn: Number(valor) || 0 }).eq("id", agId);
+    await supabase.from("agencias").update({ meta_churn: Number(valor)||0 }).eq("id",agId);
   };
 
   useEffect(() => { carregar(); }, []);
-
-  // Meses que têm dados
-  const mesesComDados = Array.from(new Set(clientes.map(c=>c.data_churn).filter(Boolean)));
 
   const filtrados = clientes
     .filter(c => {
@@ -87,8 +83,20 @@ export default function ChurnPage() {
       return va<vb?1:-1;
     });
 
-  const totalInvestimento = filtrados.reduce((s,c)=>s+(Number(c.investimento_mensal)||0),0);
-  const mediaInvestimento = filtrados.length>0?totalInvestimento/filtrados.length:0;
+  // KPI calculations baseados no filtro selecionado
+  const hoje = new Date();
+  const mesAtual = `${MESES[hoje.getMonth()]}/${hoje.getFullYear()}`;
+  const mesFiltroKPI = filtroMes !== "Todos" ? filtroMes : mesAtual;
+  const [mesFiltroNome, anoFiltroStr] = mesFiltroKPI.split("/");
+  const mesFiltroIdx = MESES.indexOf(mesFiltroNome);
+  const anoFiltro = parseInt(anoFiltroStr);
+  const mesBaseIdx = mesFiltroIdx===0?11:mesFiltroIdx-1;
+  const anoBase = mesFiltroIdx===0?anoFiltro-1:anoFiltro;
+  const mesBaseAno = `${MESES[mesBaseIdx]}/${anoBase}`;
+  const snapBase = snapshots.find(s => s.mes_ano === mesBaseAno);
+  const baseMes = snapBase?.clientes_ativos || 40;
+  const churnTotal = filtrados.length;
+  const churnRate = baseMes>0 ? ((churnTotal/baseMes)*100).toFixed(1) : "0";
 
   return (
     <div className="animate-in">
@@ -116,83 +124,66 @@ export default function ChurnPage() {
         </div>
       </div>
 
-      {/* KPIs */}
-      {(() => {
-        const hoje = new Date();
-        const meses = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
-        const mesAtual = `${meses[hoje.getMonth()]}/${hoje.getFullYear()}`;
-        const mesPassadoIdx = hoje.getMonth() === 0 ? 11 : hoje.getMonth() - 1;
-        const anoMesPassado = hoje.getMonth() === 0 ? hoje.getFullYear() - 1 : hoje.getFullYear();
-        const mesPassado = `${meses[mesPassadoIdx]}/${anoMesPassado}`;
-        const churnMes = clientes.filter(c => c.data_churn === mesAtual).length;
-        const churnMesPassado = clientes.filter(c => c.data_churn === mesPassado).length;
-        return (
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"16px", marginBottom:"20px" }}>
-            <KPICard label="Total Churn" value={clientes.length} change={0} icon={<UserMinus size={16}/>} iconBg="red"/>
-            <KPICard label={`Churn ${mesAtual}`} value={churnMes} change={0} icon={<TrendingDown size={16}/>} iconBg="red"/>
-            <KPICard label={`Churn ${mesPassado}`} value={churnMesPassado} change={0} icon={<TrendingDown size={16}/>} iconBg="red"/>
-            <KPICard label="Ticket Médio Perdido" value={`R$ ${Math.round(mediaInvestimento).toLocaleString("pt-BR")}`} change={0} icon={<DollarSign size={16}/>} iconBg="red"/>
-          </div>
-        );
-      })()}
+      {/* KPIs — 3 cards */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"16px", marginBottom:"20px" }}>
+        {/* Churn Total */}
+        <div className="card" style={{ padding:"16px 20px" }}>
+          <p style={{ fontSize:"11px", color:"#606060", margin:"0 0 4px" }}>
+            Churn Total{filtroMes!=="Todos"?` — ${filtroMes}`:""}
+          </p>
+          <p style={{ fontSize:"28px", fontWeight:"700", color:"#ef4444", margin:0 }}>{churnTotal}</p>
+          <p style={{ fontSize:"11px", color:"#606060", margin:"4px 0 0" }}>Base {mesBaseAno}: {baseMes} clientes</p>
+        </div>
 
-      {/* Tabela resultado do mês */}
-      {(() => {
-        const hoje = new Date();
-        const meses = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
-        const mesAtual = `${meses[hoje.getMonth()]}/${hoje.getFullYear()}`;
-        const mesPassadoIdx = hoje.getMonth()===0?11:hoje.getMonth()-1;
-        const anoMesPassado = hoje.getMonth()===0?hoje.getFullYear()-1:hoje.getFullYear();
-        const mesPassado = `${meses[mesPassadoIdx]}/${anoMesPassado}`;
-        const churnMes = clientes.filter(c=>c.data_churn===mesAtual).length;
-        const churnMesPassado = clientes.filter(c=>c.data_churn===mesPassado).length;
-        const diffChurn = churnMes - churnMesPassado;
-        const totalAtivos = snapshots.find(s => s.mes_ano === mesAtual)?.clientes_ativos || 0;
-        // Usar snapshots para churn rate preciso
-        const snapMes = snapshots.find(s => s.mes_ano === mesAtual);
-        const snapMesPassado = snapshots.find(s => s.mes_ano === mesPassado);
-        const baseMes = snapMes?.clientes_ativos || totalAtivos;
-        const baseMesPassado = snapMesPassado?.clientes_ativos || totalAtivos;
-        const churnRate = baseMes > 0 ? ((churnMes / baseMes) * 100).toFixed(1) : "0";
-        const churnRatePass = baseMesPassado > 0 ? ((churnMesPassado / baseMesPassado) * 100).toFixed(1) : "0";
-        
-        return (
-          <div className="card" style={{ marginBottom:"16px", padding:"16px 20px" }}>
-            <h3 style={{ fontSize:"13px", fontWeight:"600", color:"#f0f0f0", marginBottom:"12px" }}>
-              📊 Resultado — {mesAtual}
-            </h3>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"16px" }}>
-              <div>
-                <p style={{ fontSize:"11px", color:"#606060", margin:"0 0 4px" }}>Churn este mês vs mês passado</p>
-                <p style={{ fontSize:"16px", fontWeight:"700", color:diffChurn>0?"#ef4444":diffChurn<0?"#22c55e":"#f0f0f0", margin:0 }}>
-                  {diffChurn>0?`+${diffChurn}`:diffChurn} ({diffChurn>0?"▲":"▼"} {Math.abs(churnMes - churnMesPassado)} clientes)
-                </p>
-              </div>
-              <div>
-                <p style={{ fontSize:"11px", color:"#606060", margin:"0 0 4px" }}>Churn Rate este mês</p>
-                <p style={{ fontSize:"16px", fontWeight:"700", color:"#ef4444", margin:0 }}>{churnRate}%</p>
-              </div>
-              <div>
-                <p style={{ fontSize:"11px", color:"#606060", margin:"0 0 4px" }}>Churn Rate mês passado</p>
-                <p style={{ fontSize:"16px", fontWeight:"700", color:"#a0a0a0", margin:0 }}>{churnRatePass}%</p>
-              </div>
+        {/* Churn Rate */}
+        <div className="card" style={{ padding:"16px 20px" }}>
+          <p style={{ fontSize:"11px", color:"#606060", margin:"0 0 4px" }}>Churn Rate</p>
+          <p style={{ fontSize:"28px", fontWeight:"700", color:"#ef4444", margin:0 }}>{churnRate}%</p>
+          <p style={{ fontSize:"11px", color:"#606060", margin:"4px 0 0" }}>{churnTotal} churns ÷ {baseMes} base</p>
+        </div>
+
+        {/* Meta de Churn */}
+        <div className="card" style={{ padding:"16px 20px", cursor:"pointer" }} onClick={()=>!editandoMeta&&setEditandoMeta(true)}>
+          <p style={{ fontSize:"11px", color:"#606060", margin:"0 0 4px" }}>Meta de Churn Mensal</p>
+          {editandoMeta ? (
+            <div style={{ display:"flex", gap:"8px", alignItems:"center" }}>
+              <input autoFocus type="number" defaultValue={metaChurn}
+                onBlur={e=>salvarMeta(e.target.value)}
+                onKeyDown={e=>{if(e.key==="Enter")salvarMeta((e.target as HTMLInputElement).value);}}
+                style={{ background:"#1a1a1a", border:"1px solid #29ABE2", borderRadius:"6px", padding:"4px 10px", color:"#f0f0f0", fontSize:"22px", fontWeight:"700", width:"80px" }}/>
+              <span style={{ fontSize:"12px", color:"#606060" }}>clientes</span>
             </div>
-          </div>
-        );
-      })()}
+          ) : (
+            <>
+              <p style={{ fontSize:"28px", fontWeight:"700", color:metaChurn&&churnTotal<=Number(metaChurn)?"#22c55e":"#f59e0b", margin:0 }}>
+                {metaChurn||"—"}
+              </p>
+              <p style={{ fontSize:"11px", color:"#606060", margin:"4px 0 0" }}>
+                {metaChurn?(churnTotal<=Number(metaChurn)?"✅ Dentro da meta":`⚠️ ${churnTotal-Number(metaChurn)} acima da meta`):"Clique para definir a meta"}
+              </p>
+            </>
+          )}
+        </div>
+      </div>
 
       {/* Filtro por Mês/Ano */}
       <div style={{ overflowX:"auto", paddingBottom:"8px", marginBottom:"16px" }}>
         <div style={{ display:"flex", gap:"6px", minWidth:"max-content" }}>
           <button onClick={()=>setFiltroMes("Todos")} style={{
-            padding:"4px 12px", borderRadius:"20px", border:"1px solid", cursor:"pointer", fontSize:"12px", whiteSpace:"nowrap",
+            padding:"4px 12px", borderRadius:"20px", border:"1px solid", cursor:"pointer", fontSize:"12px",
             borderColor:filtroMes==="Todos"?"#ef4444":"#2e2e2e",
             background:filtroMes==="Todos"?"rgba(239,68,68,0.1)":"transparent",
             color:filtroMes==="Todos"?"#ef4444":"#606060",
           }}>Todos ({clientes.length})</button>
           {MESES_FIXOS.map(m => {
             const count = clientes.filter(c=>c.data_churn===m).length;
-            const temDados = count > 0;
+            const temDados = count>0;
+            // Data base = último dia do mês anterior
+            const [mNome, mAno] = m.split("/");
+            const mIdx = MESES.indexOf(mNome);
+            const mBaseIdx = mIdx===0?11:mIdx-1;
+            const mBaseAno = mIdx===0?parseInt(mAno)-1:parseInt(mAno);
+            const snap = snapshots.find(s=>s.mes_ano===`${MESES[mBaseIdx]}/${mBaseAno}`);
             return (
               <button key={m} onClick={()=>setFiltroMes(m)} style={{
                 padding:"4px 12px", borderRadius:"20px", border:"1px solid", cursor:"pointer", fontSize:"12px", whiteSpace:"nowrap",
@@ -202,6 +193,7 @@ export default function ChurnPage() {
                 opacity:temDados?1:0.4,
               }}>
                 {m}{temDados?` (${count})`:""}
+                {snap&&temDados?<span style={{ fontSize:"10px", color:"#606060", marginLeft:"4px" }}>/{snap.clientes_ativos}</span>:null}
               </button>
             );
           })}
@@ -213,15 +205,9 @@ export default function ChurnPage() {
         <table>
           <thead>
             <tr style={{ borderBottom:"1px solid #29ABE230" }}>
-              <th style={{ borderRight:"1px solid #29ABE220" }}>NOME</th>
-              <th style={{ borderRight:"1px solid #29ABE220" }}>DATA ENTRADA</th>
-              <th style={{ borderRight:"1px solid #29ABE220" }}>DATA CHURN</th>
-              <th style={{ borderRight:"1px solid #29ABE220" }}>CONSULTOR</th>
-              <th style={{ borderRight:"1px solid #29ABE220" }}>GESTOR</th>
-              <th style={{ borderRight:"1px solid #29ABE220" }}>SQUAD</th>
-              <th style={{ borderRight:"1px solid #29ABE220" }}>INVESTIMENTO</th>
-              <th style={{ borderRight:"1px solid #29ABE220" }}>MOTIVO CHURN</th>
-              <th>FEEDBACK</th>
+              {["NOME","DATA ENTRADA","DATA CHURN","CONSULTOR","GESTOR","SQUAD","INVESTIMENTO","MOTIVO CHURN","FEEDBACK"].map((h,i,arr)=>(
+                <th key={h} style={{ borderRight:i<arr.length-1?"1px solid #29ABE220":"none" }}>{h}</th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -233,7 +219,9 @@ export default function ChurnPage() {
               <tr key={c.id} style={{ borderBottom:"1px solid #29ABE215", background:idx%2===0?"transparent":"#0a0a0a" }}>
                 <td style={{ fontWeight:"600", color:"#f0f0f0", borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>{c.nome}</td>
                 <td style={{ color:"#a0a0a0", fontSize:"12px", borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>{formatarData(c.data_entrada)}</td>
-                <td style={{ borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}><span style={{ fontSize:"12px", padding:"2px 8px", borderRadius:"10px", background:"rgba(239,68,68,0.1)", color:"#ef4444" }}>{c.data_churn||"—"}</span></td>
+                <td style={{ borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>
+                  <span style={{ fontSize:"12px", padding:"2px 8px", borderRadius:"10px", background:"rgba(239,68,68,0.1)", color:"#ef4444" }}>{c.data_churn||"—"}</span>
+                </td>
                 <td style={{ color:"#a0a0a0", fontSize:"12px", borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>{c.consultor||"—"}</td>
                 <td style={{ color:"#a0a0a0", fontSize:"12px", borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>{c.gestor||"—"}</td>
                 <td style={{ color:"#a0a0a0", fontSize:"12px", borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>{c.squad||"—"}</td>

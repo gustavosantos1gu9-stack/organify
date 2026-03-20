@@ -104,17 +104,37 @@ function CelulaEditavel({ valor, onSave, tipo="text" }: { valor: string; onSave:
 
 function StatusSelect({ valor, onSave }: { valor: string; onSave: (v: string) => void }) {
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
   const opt = STATUS_OPTS.find(s=>s.value===valor)||STATUS_OPTS[0];
+
+  const handleOpen = () => {
+    if (btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setPos({ top: rect.bottom + 4, left: rect.left });
+    }
+    setOpen(!open);
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+
   return (
     <div style={{ position:"relative" }}>
-      <button onClick={()=>setOpen(!open)} style={{ display:"flex", alignItems:"center", gap:"5px", background:"none", border:"none", cursor:"pointer", padding:"3px 6px", borderRadius:"6px" }}>
+      <button ref={btnRef} onClick={handleOpen} style={{ display:"flex", alignItems:"center", gap:"5px", background:"none", border:"none", cursor:"pointer", padding:"3px 6px", borderRadius:"6px" }}>
         <span style={{ width:"8px", height:"8px", borderRadius:"50%", background:opt.cor, flexShrink:0 }}/>
         <span style={{ fontSize:"12px", color:opt.cor }}>{opt.label}</span>
       </button>
       {open && (
-        <div style={{ position:"fixed", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", zIndex:9999, minWidth:"130px", overflow:"hidden", boxShadow:"0 4px 20px rgba(0,0,0,0.5)" }}>
+        <div onMouseDown={e=>e.stopPropagation()} style={{ position:"fixed", top:pos.top, left:pos.left, background:"#1e1e1e", border:"1px solid #2e2e2e", borderRadius:"8px", zIndex:9999, minWidth:"130px", overflow:"hidden", boxShadow:"0 4px 20px rgba(0,0,0,0.6)" }}>
           {STATUS_OPTS.map(s => (
-            <button key={s.value} onClick={()=>{onSave(s.value);setOpen(false);}} style={{ display:"flex", alignItems:"center", gap:"8px", padding:"8px 12px", width:"100%", background:"none", border:"none", cursor:"pointer", color:s.cor, fontSize:"12px" }}>
+            <button key={s.value} onClick={()=>{onSave(s.value);setOpen(false);}} style={{ display:"flex", alignItems:"center", gap:"8px", padding:"8px 12px", width:"100%", background:"none", border:"none", cursor:"pointer", color:s.cor, fontSize:"12px" }}
+              onMouseEnter={e=>(e.currentTarget.style.background="#2a2a2a")}
+              onMouseLeave={e=>(e.currentTarget.style.background="none")}>
               <span style={{ width:"8px", height:"8px", borderRadius:"50%", background:s.cor }}/>{s.label}
             </button>
           ))}
@@ -385,7 +405,7 @@ export default function ControleClientesPage() {
                   <div className="resize-handle" onMouseDown={e=>startResize(col.key,e)}/>
                 </th>
               ))}
-              <th style={{ width:"40px", padding:"10px 6px" }}></th>
+
             </tr>
           </thead>
           <tbody>
@@ -401,8 +421,15 @@ export default function ControleClientesPage() {
                     {expandidos.has(c.id)?<ChevronDown size={14}/>:<ChevronRight size={14}/>}
                   </button>
                 </td>
-                <td style={{ padding:"4px 12px", position:"sticky", left:0, background:idx%2===0?"#141414":"#111", zIndex:1, fontWeight:"600", color:"#f0f0f0", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", width:"160px" }}>
-                  {c.nome}
+                <td style={{ padding:"4px 8px 4px 12px", position:"sticky", left:0, background:idx%2===0?"#141414":"#111", zIndex:1, whiteSpace:"nowrap", width:"200px" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:"6px" }}>
+                    <span style={{ fontWeight:"600", color:"#f0f0f0", overflow:"hidden", textOverflow:"ellipsis", flex:1 }}>{c.nome}</span>
+                    <button onClick={()=>setPainelAberto(painelAberto?.id===c.id?null:c)}
+                      style={{ background:"none", border:"none", cursor:"pointer", color:painelAberto?.id===c.id?"#29ABE2":"#404040", padding:"2px", flexShrink:0 }}
+                      title="Atualizações">
+                      <MessageSquare size={13}/>
+                    </button>
+                  </div>
                 </td>
                 {COLUNAS_DEF.map(col=>(
                   <td key={col.key} style={{ padding:"2px 6px", overflow:"hidden", width:colWidths[col.key], borderLeft:"1px solid #29ABE215", whiteSpace:"nowrap", maxWidth:colWidths[col.key], height:"36px" }}>
@@ -429,12 +456,7 @@ export default function ControleClientesPage() {
                     )}
                   </td>
                 ))}
-                <td style={{ padding:"4px 6px", textAlign:"center" }}>
-                  <button onClick={()=>setPainelAberto(painelAberto?.id===c.id?null:c)}
-                    style={{ background:"none", border:"none", cursor:"pointer", color:painelAberto?.id===c.id?"#29ABE2":"#606060", padding:"2px" }}>
-                    <MessageSquare size={14}/>
-                  </button>
-                </td>
+
               </tr>
               {expandidos.has(c.id) && (
                 <tr key={`sub-${c.id}`} style={{ background:"#080808", borderBottom:"1px solid #1e1e1e" }}>
