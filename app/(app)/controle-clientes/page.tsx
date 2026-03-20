@@ -372,13 +372,11 @@ export default function ControleClientesPage() {
         const pausados = clientes.filter(c=>c.status==="pausado");
         const entrada = clientes.filter(c=>c.status==="entrada");
 
-        // Clientes último mês: clientes ativos + pausados com data_entrada até último dia do mês passado
-        const primeiroDiaMesAtual = new Date(anoAtual, mesAtual, 1);
         // Base mês passado via snapshot
-        const meses = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
-        const mesPassadoIdx = hoje.getMonth()===0?11:hoje.getMonth()-1;
-        const anoMesPassado = hoje.getMonth()===0?hoje.getFullYear()-1:hoje.getFullYear();
-        const mesPassadoStr = `${meses[mesPassadoIdx]}/${anoMesPassado}`;
+        const meses2 = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+        const mesPassadoIdx2 = mesAtual===0?11:mesAtual-1;
+        const anoMesPassado2 = mesAtual===0?anoAtual-1:anoAtual;
+        const mesPassadoStr = `${meses2[mesPassadoIdx2]}/${anoMesPassado2}`;
         // Buscar snapshot do mês passado
         const kpis = [
           { label:"Clientes Totais", value:clientes.length, cor:"#f0f0f0" },
