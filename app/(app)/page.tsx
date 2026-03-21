@@ -44,7 +44,7 @@ export default function DashboardPage() {
         const agId = "32cdce6e-4664-4ac6-979d-6d68a1a68745";
 
         // Buscar clientes do controle
-        const { data: cc } = await sb.from("controle_clientes").select("status").eq("agencia_id", agId);
+        const { data: cc } = await sb.from("controle_clientes").select("status, data_churn").eq("agencia_id", agId);
         setControleClientes(cc || []);
 
         // Salvar snapshot no último dia do mês
@@ -122,6 +122,20 @@ export default function DashboardPage() {
   const clientesAtivos = clientes?.filter(c => c.status === "ativo" || c.status_recorrencia === "ativo").length ?? 0;
   const baseChurn = clientesAtivos + clientesSaiu;
   const churnRate = baseChurn > 0 ? ((clientesSaiu / baseChurn) * 100).toFixed(1) : "0.0";
+
+  // Churn rate correto: churns do mês atual ÷ base do mês passado (snapshot)
+  const hoje2 = new Date();
+  const mesesNomes2 = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+  const mesAtualNome2 = mesesNomes2[hoje2.getMonth()];
+  const mesPassadoIdx2 = hoje2.getMonth() === 0 ? 11 : hoje2.getMonth() - 1;
+  const anoMesPassado2 = hoje2.getMonth() === 0 ? hoje2.getFullYear() - 1 : hoje2.getFullYear();
+  const mesPassadoStr2 = `${mesesNomes2[mesPassadoIdx2]}/${anoMesPassado2}`;
+  const mesAtualStr2 = `${mesAtualNome2}/${hoje2.getFullYear()}`;
+  const snapMesPassado2 = snapshots.find((s: any) => s.mes_ano === mesPassadoStr2);
+  const baseMesPassado2 = snapMesPassado2?.clientes_ativos || 0;
+  // Churns do mês atual = registros com data_churn = mês atual
+  const churnsDoMes2 = controleClientes.filter((c: any) => c.data_churn === mesAtualStr2).length;
+  const churnRateCorreto = baseMesPassado2 > 0 ? ((churnsDoMes2 / baseMesPassado2) * 100).toFixed(1) : "0.0";
   const pieData = [
     { name: "Recorrentes", value: recorrentes },
     { name: "Cancelados", value: cancelados },
@@ -215,7 +229,7 @@ export default function DashboardPage() {
         <KPICard label="Clientes recorrentes" value={kpis?.clientes_recorrentes ?? 0} change={0} icon={<Users size={16}/>} iconBg="green"/>
         <KPICard label="Clientes inadimplentes" value={kpis?.clientes_inadimplentes ?? 0} change={0} icon={<UserX size={16}/>} iconBg="red"/>
         <KPICard label="Lucro" value={fmt(kpis?.lucro ?? 0)} change={0} icon={<TrendingUp size={16}/>} iconBg="green"/>
-        <KPICard label="Churn rate" value={`${churnRate}%`} change={0} icon={<RotateCcw size={16}/>} iconBg="red"/>
+        <KPICard label="Churn rate" value={`${churnRateCorreto}%`} change={0} icon={<RotateCcw size={16}/>} iconBg="red"/>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "16px", marginBottom: "16px" }}>
         <KPICard label="Entradas previstas" value={fmt(entradasPrev)} change={0} icon={<ArrowDownToLine size={16}/>} iconBg="green"/>

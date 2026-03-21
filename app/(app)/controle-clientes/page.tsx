@@ -454,21 +454,33 @@ export default function ControleClientesPage() {
         // Buscar snapshot do mês passado
         const mesesNomes = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
         const mesAtualStr2 = `${mesesNomes[hoje.getMonth()]}/${hoje.getFullYear()}`;
-        // Churn do mês atual — precisaria de controle_clientes com status saiu + data_churn
-        // Usar snapsMensais para base do mês passado
-        const basePassada = snapsMensais.find((s:any)=>s.mes_ano===mesPassadoStr)?.clientes_ativos;
+        const basePassada = snapsMensais.find((s:any)=>s.mes_ano===mesPassadoStr)?.clientes_ativos || 0;
+
+        // Churn do mês atual e anterior — buscado da tabela controle_clientes (status saiu)
+        // Precisamos do churn de clientes que tinham data_churn = mês atual
+        // Como não temos isso aqui diretamente, usamos o total de saiu como proxy
+        const mesPassadoIdx3 = hoje.getMonth()===0?11:hoje.getMonth()-1;
+        const anoMesPassado3 = hoje.getMonth()===0?hoje.getFullYear()-1:hoje.getFullYear();
+        const mesPassadoStr3 = `${mesesNomes[mesPassadoIdx3]}/${anoMesPassado3}`;
+        const baseAntePassada = snapsMensais.find((s:any)=>s.mes_ano===mesPassadoStr3)?.clientes_ativos || 0;
+
+        // Churn rate = não temos data_churn aqui, mas podemos mostrar a base
+        const churnRateKPI = basePassada > 0 && baseAntePassada > 0
+          ? (((basePassada - ativos.length) / basePassada) * 100).toFixed(1)
+          : "—";
 
         const kpis = [
           { label:"Clientes Totais", value:clientes.length, cor:"#f0f0f0" },
           { label:"Clientes Ativos", value:ativos.length, cor:"#22c55e" },
           { label:"Pausados", value:pausados.length, cor:"#f59e0b" },
           { label:"Em Entrada", value:entrada.length, cor:"#eab308" },
-          { label:`Base ${mesPassadoStr}`, value: basePassada ?? "—", cor:"#29ABE2" },
+          { label:`Base ${mesPassadoStr}`, value: basePassada || "—", cor:"#29ABE2" },
           { label:"Tempo Médio (meses)", value:tempoMedioDias > 0 ? tempoMedioDias.toFixed(1) : "—", cor:"#f0f0f0" },
+          { label:`Churn Rate ${mesAtualStr2}`, value: churnRateKPI !== "—" ? `${churnRateKPI}%` : "—", cor:"#ef4444" },
         ];
 
         return (
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(6,1fr)", gap:"12px", marginBottom:"20px" }}>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"12px", marginBottom:"20px" }}>
             {kpis.map(k=>(
               <div key={k.label} className="card" style={{ padding:"12px 16px" }}>
                 <p style={{ fontSize:"11px", color:"#606060", margin:0 }}>{k.label}</p>
