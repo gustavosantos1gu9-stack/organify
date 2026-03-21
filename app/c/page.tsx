@@ -22,9 +22,11 @@ function CaptureContent() {
   const fbclid = params.get("fbclid") || "";
   const link_id = params.get("link_id") || "";
 
-  const waUrl = tipo === "web"
-    ? `https://web.whatsapp.com/send?phone=${wa}&text=${encodeURIComponent(msg)}`
-    : `https://wa.me/${wa}?text=${encodeURIComponent(msg)}`;
+  // Detectar se é mobile — sempre usar wa.me no celular para abrir o app
+  const isMobile = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  const waUrl = isMobile || tipo !== "web"
+    ? `https://wa.me/${wa}?text=${encodeURIComponent(msg)}`
+    : `https://web.whatsapp.com/send?phone=${wa}&text=${encodeURIComponent(msg)}`;
 
   useEffect(() => {
     if (!wa) return;
