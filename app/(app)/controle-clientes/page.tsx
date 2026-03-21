@@ -332,12 +332,16 @@ export default function ControleClientesPage() {
         acao:"Ação", acao_feita:"Ação Feita", otimizacoes:"Otimizações", tarefas:"Tarefas",
       };
       const label = campoLabel[campo] || campo;
-      await supabase.from("anotacoes").insert({
-        agencia_id: agIdAtual, cliente_id: id, cliente_nome: nomeCliente,
-        usuario: nomeUser, conteudo: `${nomeUser} alterou ${label} → "${valor}"`,
-        tipo: "log", created_at: new Date().toISOString(),
+      const { error: logErr } = await supabase.from("anotacoes").insert({
+        agencia_id: agIdAtual,
+        cliente_id: id,
+        usuario: nomeUser,
+        conteudo: `${nomeUser} alterou ${label} → "${valor}"`,
+        tipo: "log",
+        created_at: new Date().toISOString(),
       });
-    } catch(e) { console.error("Log erro:", e); }
+      if (logErr) console.error("Log erro detalhado:", JSON.stringify(logErr));
+    } catch(e) { console.error("Log exceção:", e); }
   };
 
   const toggleExpandir = async (id: string) => {
