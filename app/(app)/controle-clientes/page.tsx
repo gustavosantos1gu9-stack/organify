@@ -144,38 +144,58 @@ function StatusSelect({ valor, onSave }: { valor: string; onSave: (v: string) =>
   );
 }
 
-function PainelLateral({ cliente, onClose, agId }: { cliente: ControleCliente; onClose:()=>void; agId: string }) {
+function PainelLateral({ cliente, onClose }: { cliente: ControleCliente; onClose:()=>void }) {
   const [aba, setAba] = useState<"atualizacoes"|"log">("atualizacoes");
   const [anotacoes, setAnotacoes] = useState<Anotacao[]>([]);
   const [texto, setTexto] = useState("");
   const [salvando, setSalvando] = useState(false);
+  const [agIdLocal, setAgIdLocal] = useState("");
+  const [nomeUsuario, setNomeUsuario] = useState("Usuário");
+  const bottomRef = useRef<HTMLDivElement>(null);
 
-  const carregar = useCallback(async () => {
-    const { data, error } = await supabase.from("anotacoes").select("*")
-      .eq("agencia_id", agId).eq("cliente_id", cliente.id)
-      .order("created_at", { ascending: false });
-    if (!error) setAnotacoes(data||[]);
-  }, [agId, cliente.id]);
+  useEffect(() => {
+    async function init() {
+      const id = await getAgenciaId();
+      setAgIdLocal(id || "");
+      const { data: user } = await supabase.auth.getUser();
+      const nome = user?.user?.user_metadata?.nome || user?.user?.email?.split("@")[0] || "Usuário";
+      setNomeUsuario(nome);
+      // Carregar anotações
+      const { data } = await supabase.from("anotacoes").select("*")
+        .eq("agencia_id", id!).eq("cliente_id", cliente.id)
+        .order("created_at", { ascending: true });
+      setAnotacoes(data || []);
+    }
+    init();
+  }, [cliente.id]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [anotacoes, aba]);
 
   const salvar = async () => {
-    if (!texto.trim()||salvando) return;
+    if (!texto.trim() || salvando || !agIdLocal) return;
     setSalvando(true);
+    const novaAnotacao = {
+      agencia_id: agIdLocal, cliente_id: cliente.id, cliente_nome: cliente.nome,
+      usuario: nomeUsuario, conteudo: texto.trim(), tipo: "atualizacoes",
+      created_at: new Date().toISOString(),
+    };
+    // Otimista — adiciona na tela imediatamente
+    setAnotacoes(prev => [...prev, { ...novaAnotacao, id: `temp-${Date.now()}` }]);
+    setTexto("");
     try {
-      const { data: user } = await supabase.auth.getUser();
-      const nomeUser = user?.user?.user_metadata?.nome||user?.user?.email?.split("@")[0]||"Usuário";
-      // Salvar atualização
-      const { error: e1 } = await supabase.from("anotacoes").insert({
-        agencia_id: agId, cliente_id: cliente.id, cliente_nome: cliente.nome,
-        usuario: nomeUser, conteudo: texto.trim(), tipo: "atualizacoes", created_at: new Date().toISOString(),
-      });
-      if (e1) { console.error("Erro ao salvar anotação:", e1); return; }
-      setTexto("");
-      await carregar();
-    } catch(e) { console.error(e); }
-    finally { setSalvando(false); }
+      const { data, error } = await supabase.from("anotacoes").insert(novaAnotacao).select().single();
+      if (error) {
+        console.error("Erro:", error);
+        setAnotacoes(prev => prev.filter(a => !a.id.startsWith("temp-")));
+        return;
+      }
+      // Substituir temp pelo real
+      setAnotacoes(prev => prev.map(a => a.id.startsWith("temp-") ? data : a));
+    } finally { setSalvando(false); }
   };
 
-  useEffect(() => { carregar(); }, [carregar]);
   const filtradas = anotacoes.filter(a => a.tipo === aba);
 
   return (
@@ -196,23 +216,38 @@ function PainelLateral({ cliente, onClose, agId }: { cliente: ControleCliente; o
         {!filtradas.length ? (
           <p style={{ color:"#606060", fontSize:"13px", textAlign:"center", marginTop:"40px" }}>{aba==="atualizacoes"?"Nenhuma atualização ainda.":"Nenhuma atividade registrada."}</p>
         ) : filtradas.map(a => (
-          <div key={a.id} style={{ background:"#1a1a1a", borderRadius:"8px", padding:"10px 12px", marginBottom:"8px", border:"1px solid #2e2e2e" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"4px" }}>
-              <span style={{ fontSize:"12px", fontWeight:"600", color:"#29ABE2" }}>{a.usuario}</span>
-              <span style={{ fontSize:"10px", color:"#606060" }}>{new Date(a.created_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>
-            </div>
-            <p style={{ fontSize:"13px", color:"#f0f0f0", margin:0, whiteSpace:"pre-wrap" }}>{a.conteudo}</p>
+          <div key={a.id} style={{ marginBottom:"10px", display:"flex", flexDirection:"column", alignItems: a.tipo==="log" ? "flex-start" : "flex-end" }}>
+            {a.tipo === "log" ? (
+              // Log: estilo linha do tempo
+              <div style={{ display:"flex", alignItems:"center", gap:"6px", width:"100%" }}>
+                <div style={{ width:"6px", height:"6px", borderRadius:"50%", background:"#3a3a3a", flexShrink:0 }}/>
+                <p style={{ fontSize:"11px", color:"#606060", margin:0, flex:1 }}>{a.conteudo}</p>
+                <span style={{ fontSize:"10px", color:"#3a3a3a", whiteSpace:"nowrap" }}>{new Date(a.created_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>
+              </div>
+            ) : (
+              // Atualizações: estilo chat
+              <div style={{ maxWidth:"85%" }}>
+                <span style={{ fontSize:"10px", color:"#606060", marginBottom:"3px", display:"block" }}>
+                  {a.usuario} · {new Date(a.created_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}
+                </span>
+                <div style={{ background:"#29ABE2", borderRadius:"12px 12px 2px 12px", padding:"8px 12px" }}>
+                  <p style={{ fontSize:"13px", color:"#000", margin:0, whiteSpace:"pre-wrap" }}>{a.conteudo}</p>
+                </div>
+              </div>
+            )}
           </div>
         ))}
+        <div ref={bottomRef}/>
       </div>
       {aba==="atualizacoes" && (
-        <div style={{ padding:"12px", borderTop:"1px solid #2e2e2e", background:"#1a1a1a" }}>
-          <textarea className="form-input" placeholder="Escrever atualização..." value={texto}
+        <div style={{ padding:"10px 12px", borderTop:"1px solid #2e2e2e", background:"#1a1a1a", display:"flex", gap:"8px", alignItems:"flex-end" }}>
+          <textarea className="form-input" placeholder="Escreva uma atualização... (Enter para enviar)" value={texto}
             onChange={e=>setTexto(e.target.value)}
             onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();salvar();}}}
-            style={{ resize:"none", minHeight:"60px", marginBottom:"8px" }}/>
-          <button onClick={salvar} disabled={salvando||!texto.trim()} className="btn-primary" style={{ cursor:"pointer", width:"100%", fontSize:"12px" }}>
-            <Send size={12}/> {salvando?"Enviando...":"Enviar"}
+            style={{ resize:"none", minHeight:"40px", maxHeight:"120px", flex:1, margin:0, fontSize:"13px" }}/>
+          <button onClick={salvar} disabled={salvando||!texto.trim()}
+            style={{ background: texto.trim()?"#29ABE2":"#2e2e2e", border:"none", borderRadius:"8px", padding:"8px 12px", cursor:texto.trim()?"pointer":"default", color:texto.trim()?"#000":"#606060", flexShrink:0, display:"flex", alignItems:"center" }}>
+            <Send size={14}/>
           </button>
         </div>
       )}
@@ -257,16 +292,22 @@ export default function ControleClientesPage() {
     await supabase.from("controle_clientes").update({[campo]:valor}).eq("id",id);
     setClientes(prev=>prev.map(c=>c.id===id?{...c,[campo]:valor}:c));
     try {
+      const agIdAtual = agId || (await getAgenciaId()) || "";
+      if (!agIdAtual) return;
       const { data: user } = await supabase.auth.getUser();
       const nomeUser = user?.user?.user_metadata?.nome||user?.user?.email?.split("@")[0]||"Usuário";
-      const agIdAtual = agId || (await getAgenciaId()) || "";
-      if (agIdAtual) {
-        await supabase.from("anotacoes").insert({
-          agencia_id: agIdAtual, cliente_id: id, cliente_nome: nomeCliente,
-          usuario: nomeUser, conteudo: `Alterou "${campo}" → "${valor}"`, tipo:"log",
-          created_at: new Date().toISOString(),
-        });
-      }
+      const campoLabel: Record<string,string> = {
+        status:"Status", consultor:"Consultor", gestor:"Gestor", squad:"Squad",
+        investimento_mensal:"Investimento", data_entrada:"Data de Entrada",
+        data_inicio_campanha:"Início Campanha", feed:"Feed", feedback:"Feedback",
+        acao:"Ação", acao_feita:"Ação Feita", otimizacoes:"Otimizações", tarefas:"Tarefas",
+      };
+      const label = campoLabel[campo] || campo;
+      await supabase.from("anotacoes").insert({
+        agencia_id: agIdAtual, cliente_id: id, cliente_nome: nomeCliente,
+        usuario: nomeUser, conteudo: `${nomeUser} alterou ${label} → "${valor}"`,
+        tipo: "log", created_at: new Date().toISOString(),
+      });
     } catch(e) { console.error("Log erro:", e); }
   };
 
@@ -501,7 +542,7 @@ export default function ControleClientesPage() {
         </table>
       </div>
 
-      {painelAberto && <PainelLateral cliente={painelAberto} onClose={()=>setPainelAberto(null)} agId={agId}/>}
+      {painelAberto && <PainelLateral cliente={painelAberto} onClose={()=>setPainelAberto(null)}/>}
     </div>
   );
 }
