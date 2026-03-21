@@ -298,6 +298,7 @@ export default function ControleClientesPage() {
   const [usuarios, setUsuarios] = useState<string[]>([]);
   const [times, setTimes] = useState<string[]>([]);
   const [snapsMensais, setSnapsMensais] = useState<any[]>([]);
+  const [churnsMes, setChurnsMes] = useState<any[]>([]);
   const [colWidths, setColWidths] = useState<Record<string,number>>(() => Object.fromEntries(COLUNAS_DEF.map(c=>[c.key,c.w])));
   const resizing = useRef<{key:string;startX:number;startW:number}|null>(null);
 
@@ -306,6 +307,10 @@ export default function ControleClientesPage() {
     setAgId(id||"");
     const { data } = await supabase.from("controle_clientes").select("*").eq("agencia_id",id!).neq("status","saiu");
     setClientes(data||[]);
+    // Buscar churns separado
+    const { data: churns } = await supabase.from("controle_clientes")
+      .select("data_churn").eq("agencia_id",id!).eq("status","saiu");
+    setChurnsMes(churns||[]);
     // Carregar snapshots para KPI base mês passado
     const resSnap = await fetch(`/api/snapshots?agencia_id=${id}`);
     const jsonSnap = await resSnap.json();
@@ -476,7 +481,7 @@ export default function ControleClientesPage() {
           { label:"Em Entrada", value:entrada.length, cor:"#eab308" },
           { label:`Base ${mesPassadoStr}`, value: basePassada || "—", cor:"#29ABE2" },
           { label:"Tempo Médio (meses)", value:tempoMedioDias > 0 ? tempoMedioDias.toFixed(1) : "—", cor:"#f0f0f0" },
-          { label:`Churn Rate ${mesAtualStr2}`, value: churnRateKPI !== "—" ? `${churnRateKPI}%` : "—", cor:"#ef4444" },
+          { label:`Churn ${mesAtualStr2}`, value: churnsMes.filter((c:any) => c.data_churn === mesAtualStr2).length, cor:"#ef4444" },
         ];
 
         return (

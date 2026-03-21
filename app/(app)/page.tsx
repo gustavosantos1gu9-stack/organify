@@ -32,6 +32,7 @@ export default function DashboardPage() {
   const [loadingSnap, setLoadingSnap] = useState(false);
 
   const [controleClientes, setControleClientes] = useState<any[]>([]);
+  const [todosChurns, setTodosChurns] = useState<any[]>([]);
 
   useEffect(() => {
     async function carregarSnapshots() {
@@ -43,9 +44,14 @@ export default function DashboardPage() {
         );
         const agId = "32cdce6e-4664-4ac6-979d-6d68a1a68745";
 
-        // Buscar clientes do controle
-        const { data: cc } = await sb.from("controle_clientes").select("status, data_churn").eq("agencia_id", agId);
+        // Buscar clientes ativos do controle
+        const { data: cc } = await sb.from("controle_clientes")
+          .select("status, data_churn").eq("agencia_id", agId);
         setControleClientes(cc || []);
+        // Buscar churns (status saiu) com data_churn
+        const { data: churnsData } = await sb.from("controle_clientes")
+          .select("data_churn").eq("agencia_id", agId).eq("status", "saiu");
+        setTodosChurns(churnsData || []);
 
         // Salvar snapshot no último dia do mês
         const hoje = new Date();
@@ -133,8 +139,8 @@ export default function DashboardPage() {
   const mesAtualStr2 = `${mesAtualNome2}/${hoje2.getFullYear()}`;
   const snapMesPassado2 = snapshots.find((s: any) => s.mes_ano === mesPassadoStr2);
   const baseMesPassado2 = snapMesPassado2?.clientes_ativos || 0;
-  // Churns do mês atual = registros com data_churn = mês atual
-  const churnsDoMes2 = controleClientes.filter((c: any) => c.data_churn === mesAtualStr2).length;
+  // Churns do mês atual = registros de clientes que saíram com data_churn = mês atual
+  const churnsDoMes2 = todosChurns.filter((c: any) => c.data_churn === mesAtualStr2).length;
   const churnRateCorreto = baseMesPassado2 > 0 ? ((churnsDoMes2 / baseMesPassado2) * 100).toFixed(1) : "0.0";
   const pieData = [
     { name: "Recorrentes", value: recorrentes },
@@ -196,9 +202,11 @@ export default function DashboardPage() {
                     const snapBase = snapshots.find((x:any)=>x.mes_ano===`${mesesNomes[mBaseIdx]}/${mBaseAno}`);
                     const baseAtivos = snapBase?.clientes_ativos;
                     const ultimoDia = s.isAtual ? ultimoDiaMesAtual : new Date(s.ano, mIdx+1, 0).getDate();
-                    // Churn do mês — precisaria de dados de churn, por ora mostra —
-                    const churnDoMes = "—";
-                    const churnRate = baseAtivos > 0 ? "—" : "—";
+                    // Churn do mês = churns com data_churn igual ao mês
+                    const churnDoMes = todosChurns.filter((c:any) => c.data_churn === s.mes_ano).length;
+                    const churnRate = baseAtivos > 0
+                      ? `${((churnDoMes / (baseAtivos as number)) * 100).toFixed(1)}%`
+                      : "—";
                     return (
                       <tr key={s.id} style={{ borderBottom:"1px solid #1e1e1e", background: s.isAtual ? "rgba(41,171,226,0.05)" : idx%2===0?"transparent":"#0a0a0a" }}>
                         <td style={{ padding:"8px 12px", fontWeight:"600", borderRight:"1px solid #29ABE215" }}>
