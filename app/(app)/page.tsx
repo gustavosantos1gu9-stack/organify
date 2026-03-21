@@ -31,11 +31,23 @@ export default function DashboardPage() {
   const [snapshots, setSnapshots] = useState<any[]>([]);
   const [loadingSnap, setLoadingSnap] = useState(false);
 
+  const [controleClientes, setControleClientes] = useState<any[]>([]);
+
   useEffect(() => {
     async function carregarSnapshots() {
       try {
+        const { createClient } = await import("@supabase/supabase-js");
+        const sb = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
         const agId = "32cdce6e-4664-4ac6-979d-6d68a1a68745";
-        // Verificar se hoje é o último dia do mês e salvar se for
+
+        // Buscar clientes do controle
+        const { data: cc } = await sb.from("controle_clientes").select("status").eq("agencia_id", agId);
+        setControleClientes(cc || []);
+
+        // Salvar snapshot no último dia do mês
         const hoje = new Date();
         const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth()+1, 0).getDate();
         if (hoje.getDate() === ultimoDia) {
@@ -123,54 +135,80 @@ export default function DashboardPage() {
       {loading && <p style={{ color: "#606060", fontSize: "13px", marginBottom: "16px" }}>Carregando dados...</p>}
 
       {/* Tabela de Snapshots Mensais */}
-      {snapshots.length > 0 && (
-        <div className="card" style={{ marginBottom:"20px", padding:"16px 20px" }}>
-          <h3 style={{ fontSize:"13px", fontWeight:"600", color:"#f0f0f0", marginBottom:"14px", display:"flex", alignItems:"center", gap:"8px" }}>
-            📅 Base de Clientes por Mês
-            <span style={{ fontSize:"11px", color:"#606060", fontWeight:"400" }}>Salvo automaticamente no dia 1 de cada mês</span>
-          </h3>
-          <div style={{ overflowX:"auto" }}>
-            <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"12px" }}>
-              <thead>
-                <tr style={{ borderBottom:"1px solid #29ABE230" }}>
-                  {["Mês/Ano","Data Base","Ativos","Pausados","Em Entrada","Total","Churn do Mês","Churn Rate"].map(h=>(
-                    <th key={h} style={{ padding:"8px 12px", textAlign:"left", fontSize:"11px", color:"#606060", fontWeight:"600", borderRight:"1px solid #29ABE215" }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {snapshots.map((s, idx) => {
-                  // Churn do mês = clientes que churnam naquele mês (não temos aqui, mas podemos calcular via filtro)
-                  const churnRate = s.clientes_ativos > 0 ? "—" : "—";
-                  // Data base = último dia do mês anterior
-                  const meses = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
-                  const mIdx = meses.indexOf(s.mes);
-                  const mBaseIdx = mIdx===0?11:mIdx-1;
-                  const mBaseAno = mIdx===0?s.ano-1:s.ano;
-                  const snapBase = snapshots.find(x=>x.mes_ano===`${meses[mBaseIdx]}/${mBaseAno}`);
-                  const baseAtivos = snapBase?.clientes_ativos || "—";
-                  // Último dia do mês
-                  const ultimoDia = new Date(s.ano, mIdx+1, 0).getDate();
-                  return (
-                    <tr key={s.id} style={{ borderBottom:"1px solid #1e1e1e", background:idx%2===0?"transparent":"#0a0a0a" }}>
-                      <td style={{ padding:"8px 12px", fontWeight:"600", color:"#29ABE2", borderRight:"1px solid #29ABE215" }}>{s.mes_ano}</td>
-                      <td style={{ padding:"8px 12px", color:"#606060", fontSize:"11px", borderRight:"1px solid #29ABE215" }}>Dia {ultimoDia}/{String(mIdx+1).padStart(2,"0")}/{s.ano}</td>
-                      <td style={{ padding:"8px 12px", color:"#22c55e", borderRight:"1px solid #29ABE215" }}>{s.clientes_ativos}</td>
-                      <td style={{ padding:"8px 12px", color:"#f59e0b", borderRight:"1px solid #29ABE215" }}>{s.clientes_pausados}</td>
-                      <td style={{ padding:"8px 12px", color:"#eab308", borderRight:"1px solid #29ABE215" }}>{s.clientes_entrada}</td>
-                      <td style={{ padding:"8px 12px", color:"#f0f0f0", borderRight:"1px solid #29ABE215" }}>{s.clientes_total}</td>
-                      <td style={{ padding:"8px 12px", color:"#ef4444", borderRight:"1px solid #29ABE215" }}>—</td>
-                      <td style={{ padding:"8px 12px", color:"#a0a0a0" }}>
-                        {typeof baseAtivos === "number" && s.clientes_ativos > 0 ? `${((0/s.clientes_ativos)*100).toFixed(1)}%` : "—"}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+      {(() => {
+        const hoje = new Date();
+        const mesesNomes = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+        const mesAtualNome = mesesNomes[hoje.getMonth()];
+        const anoAtualNum = hoje.getFullYear();
+        const mesAtualStr = `${mesAtualNome}/${anoAtualNum}`;
+        const ultimoDiaMesAtual = new Date(anoAtualNum, hoje.getMonth()+1, 0).getDate();
+
+        // Linha do mês atual em tempo real (não salva ainda)
+        const linhaAtual = {
+          id: "atual",
+          mes: mesAtualNome,
+          ano: anoAtualNum,
+          mes_ano: mesAtualStr,
+          clientes_ativos: controleClientes.filter((c:any) => c.status === "ativo").length,
+          clientes_pausados: controleClientes.filter((c:any) => c.status === "pausado").length,
+          clientes_entrada: controleClientes.filter((c:any) => c.status === "entrada").length,
+          clientes_total: controleClientes.filter((c:any) => c.status !== "saiu").length,
+          isAtual: true,
+        };
+
+        // Combinar snapshots salvos + mês atual
+        const todasLinhas = [linhaAtual, ...snapshots.filter(s => s.mes_ano !== mesAtualStr)];
+
+        return (
+          <div className="card" style={{ marginBottom:"20px", padding:"16px 20px" }}>
+            <h3 style={{ fontSize:"13px", fontWeight:"600", color:"#f0f0f0", marginBottom:"14px", display:"flex", alignItems:"center", gap:"8px" }}>
+              📅 Base de Clientes por Mês
+              <span style={{ fontSize:"11px", color:"#606060", fontWeight:"400" }}>Atualiza em tempo real até o último dia de cada mês</span>
+            </h3>
+            <div style={{ overflowX:"auto" }}>
+              <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"12px" }}>
+                <thead>
+                  <tr style={{ borderBottom:"1px solid #29ABE230" }}>
+                    {["Mês/Ano","Data Base","Ativos","Pausados","Em Entrada","Total","Churn do Mês","Churn Rate"].map(h=>(
+                      <th key={h} style={{ padding:"8px 12px", textAlign:"left", fontSize:"11px", color:"#606060", fontWeight:"600", borderRight:"1px solid #29ABE215" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {todasLinhas.map((s:any, idx:number) => {
+                    const mIdx = mesesNomes.indexOf(s.mes);
+                    const mBaseIdx = mIdx===0?11:mIdx-1;
+                    const mBaseAno = mIdx===0?s.ano-1:s.ano;
+                    const snapBase = snapshots.find((x:any)=>x.mes_ano===`${mesesNomes[mBaseIdx]}/${mBaseAno}`);
+                    const baseAtivos = snapBase?.clientes_ativos;
+                    const ultimoDia = s.isAtual ? ultimoDiaMesAtual : new Date(s.ano, mIdx+1, 0).getDate();
+                    // Churn do mês — precisaria de dados de churn, por ora mostra —
+                    const churnDoMes = "—";
+                    const churnRate = baseAtivos > 0 ? "—" : "—";
+                    return (
+                      <tr key={s.id} style={{ borderBottom:"1px solid #1e1e1e", background: s.isAtual ? "rgba(41,171,226,0.05)" : idx%2===0?"transparent":"#0a0a0a" }}>
+                        <td style={{ padding:"8px 12px", fontWeight:"600", borderRight:"1px solid #29ABE215" }}>
+                          <span style={{ color: s.isAtual ? "#29ABE2" : "#f0f0f0" }}>{s.mes_ano}</span>
+                          {s.isAtual && <span style={{ fontSize:"10px", color:"#29ABE2", marginLeft:"6px", background:"rgba(41,171,226,0.15)", padding:"1px 6px", borderRadius:"10px" }}>ao vivo</span>}
+                        </td>
+                        <td style={{ padding:"8px 12px", color:"#606060", fontSize:"11px", borderRight:"1px solid #29ABE215" }}>
+                          {s.isAtual ? `Até dia ${hoje.getDate()}/${String(hoje.getMonth()+1).padStart(2,"0")}/${s.ano}` : `Dia ${ultimoDia}/${String(mIdx+1).padStart(2,"0")}/${s.ano}`}
+                        </td>
+                        <td style={{ padding:"8px 12px", color:"#22c55e", fontWeight: s.isAtual?"600":"400", borderRight:"1px solid #29ABE215" }}>{s.clientes_ativos}</td>
+                        <td style={{ padding:"8px 12px", color:"#f59e0b", borderRight:"1px solid #29ABE215" }}>{s.clientes_pausados}</td>
+                        <td style={{ padding:"8px 12px", color:"#eab308", borderRight:"1px solid #29ABE215" }}>{s.clientes_entrada}</td>
+                        <td style={{ padding:"8px 12px", color:"#f0f0f0", borderRight:"1px solid #29ABE215" }}>{s.clientes_total}</td>
+                        <td style={{ padding:"8px 12px", color:"#ef4444", borderRight:"1px solid #29ABE215" }}>{churnDoMes}</td>
+                        <td style={{ padding:"8px 12px", color:"#a0a0a0" }}>{churnRate}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: "16px", marginBottom: "16px" }}>
         <KPICard label="Clientes novos" value={novosClientes ?? 0} change={0} icon={<UserPlus size={16}/>} iconBg="green"/>
