@@ -155,6 +155,7 @@ function PainelLateral({ cliente, onClose }: { cliente: ControleCliente; onClose
   const [salvando, setSalvando] = useState(false);
   const [agIdLocal, setAgIdLocal] = useState("");
   const [nomeUsuario, setNomeUsuario] = useState("Usuário");
+  const [erroAnotacao, setErroAnotacao] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -190,16 +191,25 @@ function PainelLateral({ cliente, onClose }: { cliente: ControleCliente; onClose
     };
     setAnotacoes(prev => [...prev, tempItem]);
     try {
-      const { data, error } = await supabase.from("anotacoes").insert({
-        agencia_id: agIdLocal, cliente_id: cliente.id, cliente_nome: cliente.nome,
-        usuario: nomeUsuario, conteudo: textoEnvio, tipo: "atualizacoes",
+      const payload: any = {
+        agencia_id: agIdLocal,
+        cliente_id: cliente.id,
+        usuario: nomeUsuario,
+        conteudo: textoEnvio,
         created_at: new Date().toISOString(),
-      }).select().single();
+      };
+      // Adicionar campos opcionais se existirem
+      try { payload.cliente_nome = cliente.nome; } catch {}
+      try { payload.tipo = "atualizacoes"; } catch {}
+
+      const { data, error } = await supabase.from("anotacoes").insert(payload).select().single();
       if (error) {
-        console.error("Erro anotação:", error);
+        console.error("Erro anotação:", JSON.stringify(error));
+        setErroAnotacao(`Erro: ${error.message}`);
         setAnotacoes(prev => prev.filter(a => a.id !== tempId));
         setTexto(textoEnvio);
       } else {
+        setErroAnotacao("");
         setAnotacoes(prev => prev.map(a => a.id === tempId ? data : a));
       }
     } finally { setSalvando(false); }
@@ -265,8 +275,9 @@ function PainelLateral({ cliente, onClose }: { cliente: ControleCliente; onClose
             style={{ resize:"none", minHeight:"40px", maxHeight:"120px", flex:1, margin:0, fontSize:"13px" }}/>
           <button onClick={salvar} disabled={salvando||!texto.trim()}
             style={{ background: texto.trim()?"#29ABE2":"#2e2e2e", border:"none", borderRadius:"8px", padding:"8px 12px", cursor:texto.trim()?"pointer":"default", color:texto.trim()?"#000":"#606060", flexShrink:0, display:"flex", alignItems:"center" }}>
-            <Send size={14}/>
+            {salvando ? <span style={{fontSize:"10px"}}>...</span> : <Send size={14}/>}
           </button>
+          {erroAnotacao && <p style={{color:"#ef4444",fontSize:"11px",margin:"4px 0 0",width:"100%"}}>{erroAnotacao}</p>}
         </div>
       )}
     </div>
