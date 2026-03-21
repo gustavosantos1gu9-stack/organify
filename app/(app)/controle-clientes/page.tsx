@@ -108,39 +108,43 @@ function StatusSelect({ valor, onSave }: { valor: string; onSave: (v: string) =>
   const btnRef = useRef<HTMLButtonElement>(null);
   const opt = STATUS_OPTS.find(s=>s.value===valor)||STATUS_OPTS[0];
 
-  const handleOpen = () => {
+  const handleOpen = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (btnRef.current) {
       const rect = btnRef.current.getBoundingClientRect();
       setPos({ top: rect.bottom + 4, left: rect.left });
     }
-    setOpen(!open);
+    setOpen(v => !v);
   };
 
-  useEffect(() => {
-    if (!open) return;
-    const close = () => setOpen(false);
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
-  }, [open]);
+  const handleSelect = (e: React.MouseEvent, val: string) => {
+    e.stopPropagation();
+    onSave(val);
+    setOpen(false);
+  };
 
   return (
-    <div style={{ position:"relative" }}>
+    <>
       <button ref={btnRef} onClick={handleOpen} style={{ display:"flex", alignItems:"center", gap:"5px", background:"none", border:"none", cursor:"pointer", padding:"3px 6px", borderRadius:"6px" }}>
         <span style={{ width:"8px", height:"8px", borderRadius:"50%", background:opt.cor, flexShrink:0 }}/>
         <span style={{ fontSize:"12px", color:opt.cor }}>{opt.label}</span>
       </button>
       {open && (
-        <div onMouseDown={e=>e.stopPropagation()} style={{ position:"fixed", top:pos.top, left:pos.left, background:"#1e1e1e", border:"1px solid #2e2e2e", borderRadius:"8px", zIndex:9999, minWidth:"130px", overflow:"hidden", boxShadow:"0 4px 20px rgba(0,0,0,0.6)" }}>
-          {STATUS_OPTS.map(s => (
-            <button key={s.value} onClick={()=>{onSave(s.value);setOpen(false);}} style={{ display:"flex", alignItems:"center", gap:"8px", padding:"8px 12px", width:"100%", background:"none", border:"none", cursor:"pointer", color:s.cor, fontSize:"12px" }}
-              onMouseEnter={e=>(e.currentTarget.style.background="#2a2a2a")}
-              onMouseLeave={e=>(e.currentTarget.style.background="none")}>
-              <span style={{ width:"8px", height:"8px", borderRadius:"50%", background:s.cor }}/>{s.label}
-            </button>
-          ))}
-        </div>
+        <>
+          <div onClick={()=>setOpen(false)} style={{ position:"fixed", inset:0, zIndex:9998 }}/>
+          <div style={{ position:"fixed", top:pos.top, left:pos.left, background:"#1e1e1e", border:"1px solid #3a3a3a", borderRadius:"8px", zIndex:9999, minWidth:"140px", overflow:"hidden", boxShadow:"0 8px 24px rgba(0,0,0,0.7)" }}>
+            {STATUS_OPTS.map(s => (
+              <button key={s.value} onClick={e=>handleSelect(e,s.value)}
+                style={{ display:"flex", alignItems:"center", gap:"8px", padding:"9px 14px", width:"100%", background: s.value===valor?"#2a2a2a":"none", border:"none", cursor:"pointer", color:s.cor, fontSize:"12px" }}
+                onMouseEnter={e=>(e.currentTarget.style.background="#2a2a2a")}
+                onMouseLeave={e=>(e.currentTarget.style.background=s.value===valor?"#2a2a2a":"none")}>
+                <span style={{ width:"8px", height:"8px", borderRadius:"50%", background:s.cor }}/>{s.label}
+              </button>
+            ))}
+          </div>
+        </>
       )}
-    </div>
+    </>
   );
 }
 
@@ -156,13 +160,13 @@ function PainelLateral({ cliente, onClose }: { cliente: ControleCliente; onClose
   useEffect(() => {
     async function init() {
       const id = await getAgenciaId();
-      setAgIdLocal(id || "");
+      if (!id) return;
+      setAgIdLocal(id);
       const { data: user } = await supabase.auth.getUser();
       const nome = user?.user?.user_metadata?.nome || user?.user?.email?.split("@")[0] || "Usuário";
       setNomeUsuario(nome);
-      // Carregar anotações
-      const { data } = await supabase.from("anotacoes").select("*")
-        .eq("agencia_id", id!).eq("cliente_id", cliente.id)
+      const { data } = await supabase.from("anotacoes")
+        .select("*").eq("agencia_id", id).eq("cliente_id", cliente.id)
         .order("created_at", { ascending: true });
       setAnotacoes(data || []);
     }
@@ -170,29 +174,34 @@ function PainelLateral({ cliente, onClose }: { cliente: ControleCliente; onClose
   }, [cliente.id]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [anotacoes, aba]);
+    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior:"smooth" }), 50);
+  }, [anotacoes.length, aba]);
 
   const salvar = async () => {
-    if (!texto.trim() || salvando || !agIdLocal) return;
+    if (!texto.trim() || salvando) return;
+    if (!agIdLocal) { alert("Aguarde carregar..."); return; }
+    const textoEnvio = texto.trim();
     setSalvando(true);
-    const novaAnotacao = {
-      agencia_id: agIdLocal, cliente_id: cliente.id, cliente_nome: cliente.nome,
-      usuario: nomeUsuario, conteudo: texto.trim(), tipo: "atualizacoes",
-      created_at: new Date().toISOString(),
-    };
-    // Otimista — adiciona na tela imediatamente
-    setAnotacoes(prev => [...prev, { ...novaAnotacao, id: `temp-${Date.now()}` }]);
     setTexto("");
+    const tempId = `temp-${Date.now()}`;
+    const tempItem: Anotacao = {
+      id: tempId, cliente_id: cliente.id, usuario: nomeUsuario,
+      conteudo: textoEnvio, created_at: new Date().toISOString(), tipo: "atualizacoes",
+    };
+    setAnotacoes(prev => [...prev, tempItem]);
     try {
-      const { data, error } = await supabase.from("anotacoes").insert(novaAnotacao).select().single();
+      const { data, error } = await supabase.from("anotacoes").insert({
+        agencia_id: agIdLocal, cliente_id: cliente.id, cliente_nome: cliente.nome,
+        usuario: nomeUsuario, conteudo: textoEnvio, tipo: "atualizacoes",
+        created_at: new Date().toISOString(),
+      }).select().single();
       if (error) {
-        console.error("Erro:", error);
-        setAnotacoes(prev => prev.filter(a => !a.id.startsWith("temp-")));
-        return;
+        console.error("Erro anotação:", error);
+        setAnotacoes(prev => prev.filter(a => a.id !== tempId));
+        setTexto(textoEnvio);
+      } else {
+        setAnotacoes(prev => prev.map(a => a.id === tempId ? data : a));
       }
-      // Substituir temp pelo real
-      setAnotacoes(prev => prev.map(a => a.id.startsWith("temp-") ? data : a));
     } finally { setSalvando(false); }
   };
 
@@ -216,22 +225,31 @@ function PainelLateral({ cliente, onClose }: { cliente: ControleCliente; onClose
         {!filtradas.length ? (
           <p style={{ color:"#606060", fontSize:"13px", textAlign:"center", marginTop:"40px" }}>{aba==="atualizacoes"?"Nenhuma atualização ainda.":"Nenhuma atividade registrada."}</p>
         ) : filtradas.map(a => (
-          <div key={a.id} style={{ marginBottom:"10px", display:"flex", flexDirection:"column", alignItems: a.tipo==="log" ? "flex-start" : "flex-end" }}>
+          <div key={a.id} style={{ marginBottom:"14px" }}>
             {a.tipo === "log" ? (
-              // Log: estilo linha do tempo
-              <div style={{ display:"flex", alignItems:"center", gap:"6px", width:"100%" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:"6px" }}>
                 <div style={{ width:"6px", height:"6px", borderRadius:"50%", background:"#3a3a3a", flexShrink:0 }}/>
-                <p style={{ fontSize:"11px", color:"#606060", margin:0, flex:1 }}>{a.conteudo}</p>
-                <span style={{ fontSize:"10px", color:"#3a3a3a", whiteSpace:"nowrap" }}>{new Date(a.created_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>
+                <p style={{ fontSize:"11px", color:"#505050", margin:0, flex:1 }}>{a.conteudo}</p>
+                <span style={{ fontSize:"10px", color:"#3a3a3a", whiteSpace:"nowrap" }}>
+                  {new Date(a.created_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}
+                </span>
               </div>
             ) : (
-              // Atualizações: estilo chat
-              <div style={{ maxWidth:"85%" }}>
-                <span style={{ fontSize:"10px", color:"#606060", marginBottom:"3px", display:"block" }}>
-                  {a.usuario} · {new Date(a.created_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}
-                </span>
-                <div style={{ background:"#29ABE2", borderRadius:"12px 12px 2px 12px", padding:"8px 12px" }}>
-                  <p style={{ fontSize:"13px", color:"#000", margin:0, whiteSpace:"pre-wrap" }}>{a.conteudo}</p>
+              <div style={{ display:"flex", gap:"8px", alignItems:"flex-start" }}>
+                {/* Avatar */}
+                <div style={{ width:"30px", height:"30px", borderRadius:"50%", background:"#29ABE2", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:"12px", fontWeight:"700", color:"#000" }}>
+                  {a.usuario.charAt(0).toUpperCase()}
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"4px" }}>
+                    <span style={{ fontSize:"12px", fontWeight:"600", color:"#f0f0f0" }}>{a.usuario}</span>
+                    <span style={{ fontSize:"10px", color:"#606060" }}>
+                      {new Date(a.created_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"})}
+                    </span>
+                  </div>
+                  <div style={{ background:"#1e1e1e", borderRadius:"4px 12px 12px 12px", padding:"8px 12px", border:"1px solid #2e2e2e" }}>
+                    <p style={{ fontSize:"13px", color:"#f0f0f0", margin:0, whiteSpace:"pre-wrap", lineHeight:"1.5" }}>{a.conteudo}</p>
+                  </div>
                 </div>
               </div>
             )}
@@ -419,12 +437,18 @@ export default function ControleClientesPage() {
         const anoMesPassado2 = mesAtual===0?anoAtual-1:anoAtual;
         const mesPassadoStr = `${meses2[mesPassadoIdx2]}/${anoMesPassado2}`;
         // Buscar snapshot do mês passado
+        const mesesNomes = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+        const mesAtualStr2 = `${mesesNomes[hoje.getMonth()]}/${hoje.getFullYear()}`;
+        // Churn do mês atual — precisaria de controle_clientes com status saiu + data_churn
+        // Usar snapsMensais para base do mês passado
+        const basePassada = snapsMensais.find((s:any)=>s.mes_ano===mesPassadoStr)?.clientes_ativos;
+
         const kpis = [
           { label:"Clientes Totais", value:clientes.length, cor:"#f0f0f0" },
           { label:"Clientes Ativos", value:ativos.length, cor:"#22c55e" },
           { label:"Pausados", value:pausados.length, cor:"#f59e0b" },
           { label:"Em Entrada", value:entrada.length, cor:"#eab308" },
-          { label:`Base ${mesPassadoStr}`, value:snapsMensais.find((s:any)=>s.mes_ano===mesPassadoStr)?.clientes_ativos ?? "—", cor:"#29ABE2" },
+          { label:`Base ${mesPassadoStr}`, value: basePassada ?? "—", cor:"#29ABE2" },
           { label:"Tempo Médio (meses)", value:tempoMedioDias > 0 ? tempoMedioDias.toFixed(1) : "—", cor:"#f0f0f0" },
         ];
 
