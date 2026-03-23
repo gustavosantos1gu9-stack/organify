@@ -60,12 +60,15 @@ function DetalhesLink({ link, onVoltar, waNumero, conversasPorLink }: { link: Li
 
       {/* KPIs — busca conversas reais do banco */}
       {(() => {
+        // Normalizar nome para comparar com utm_campaign
+        const nomeNorm = link.nome.toLowerCase().replace(/\s+/g, "-");
         const convsPorId = conversasPorLink[link.id] || [];
         const convsPorNome = conversasPorLink[link.nome] || [];
         const convsPorCampanha = conversasPorLink[link.utm_campaign || ""] || [];
+        const convsPorNomeNorm = conversasPorLink[nomeNorm] || [];
         // Unir sem duplicatas
         const ids = new Set<string>();
-        const todas = [...convsPorId, ...convsPorNome, ...convsPorCampanha].filter(c => {
+        const todas = [...convsPorId, ...convsPorNome, ...convsPorCampanha, ...convsPorNomeNorm].filter(c => {
           if (ids.has(c.id)) return false;
           ids.add(c.id); return true;
         });
@@ -231,6 +234,9 @@ function FormLink({ onSave, onCancel, waNumero }: { onSave: (link: LinkCampanha)
     try {
       const agId = await getAgenciaId();
       const baseUrl = typeof window !== "undefined" ? `${window.location.origin}/c` : "";
+      const utmCampaign = form.nome.toLowerCase().replace(/\s+/g, "-");
+      // Gerar UUID antecipado para incluir no link
+      const linkId = crypto.randomUUID();
       const params = new URLSearchParams({
         wa: waNumero,
         msg: form.wa_mensagem,
@@ -239,13 +245,17 @@ function FormLink({ onSave, onCancel, waNumero }: { onSave: (link: LinkCampanha)
         desc: form.msg_redirect,
         utm_source: "facebook",
         utm_medium: "cpc",
-        utm_campaign: form.nome.toLowerCase().replace(/\s+/g, "-"),
+        utm_campaign: utmCampaign,
+        link_id: linkId,
+        link_nome: form.nome,
       });
       const link_gerado = `${baseUrl}?${params.toString()}`;
       const { data } = await supabase.from("links_campanha").insert({
+        id: linkId,
         agencia_id: agId, nome: form.nome, wa_mensagem: form.wa_mensagem,
         redirect_tipo: form.redirect_tipo, titulo_redirect: form.titulo_redirect,
         msg_redirect: form.msg_redirect, link_gerado, cliques: 0,
+        utm_campaign: utmCampaign,
       }).select().single();
       if (data) onSave(data as LinkCampanha);
     } catch(e) { console.error(e); alert("Erro ao salvar"); }
@@ -350,13 +360,16 @@ export default function GeradorLinksPage() {
       ]);
       setWaNumero(ag?.whatsapp_numero || "");
       setLinks(ls || []);
-      // Agrupar conversas por link_id e link_nome
+      // Agrupar conversas por link_id, link_nome e utm_campaign
       const porLink: Record<string,any[]> = {};
       for (const c of (convs||[])) {
-        const chave = c.link_id || c.link_nome || c.utm_campaign;
-        if (chave) {
+        const chaves = [c.link_id, c.link_nome, c.utm_campaign].filter(Boolean);
+        for (const chave of chaves) {
           if (!porLink[chave]) porLink[chave] = [];
-          porLink[chave].push(c);
+          // Evitar duplicatas
+          if (!porLink[chave].find((x:any) => x.id === c.id)) {
+            porLink[chave].push(c);
+          }
         }
       }
       setConversasPorLink(porLink);
