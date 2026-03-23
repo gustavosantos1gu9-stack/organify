@@ -27,6 +27,7 @@ export default function EditarClienteModal({ cliente, onClose, onSave }: EditarC
     telefone: cliente.telefone || "",
     whatsapp: cliente.whatsapp || false,
     instagram: cliente.instagram || "",
+    created_at: cliente.created_at ? new Date(cliente.created_at).toISOString().split("T")[0] : "",
     valor_oportunidade: cliente.valor_oportunidade ? new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(cliente.valor_oportunidade) : "",
     faturamento: cliente.faturamento ? new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(cliente.faturamento) : "",
     empresa: cliente.empresa || "",
@@ -59,6 +60,11 @@ export default function EditarClienteModal({ cliente, onClose, onSave }: EditarC
       const valorOportunidade = parsearValor(form.valor_oportunidade);
       const servicoAntes = cliente.servico;
       const frequenciaAntes = cliente.frequencia;
+
+      // Atualizar created_at se mudou
+      if (form.created_at) {
+        await supabase.from("clientes").update({ created_at: new Date(form.created_at).toISOString() }).eq("id", cliente.id);
+      }
 
       await atualizarCliente(cliente.id, {
         tipo,
@@ -207,6 +213,10 @@ export default function EditarClienteModal({ cliente, onClose, onSave }: EditarC
               <div className="form-group">
                 <label className="form-label">Instagram</label>
                 <input className="form-input" placeholder="@exemplo" value={form.instagram} onChange={(e)=>set("instagram",e.target.value)}/>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Data de Entrada</label>
+                <input className="form-input" type="date" value={form.created_at} onChange={(e)=>set("created_at",e.target.value)}/>
               </div>
               <div className="form-group">
                 <label className="form-label">Faturamento</label>
