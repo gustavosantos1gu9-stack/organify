@@ -162,25 +162,23 @@ export async function POST(req: NextRequest) {
           .select("*").eq("wa_numero", numero).single();
         if (t1) tracking = t1;
 
-        // 1b. Buscar rastreamento mais recente dos últimos 30 min pelo fbclid mais recente
-        // (o session_id é único por clique, mas o fbclid é o mesmo para o mesmo lead)
+        // 2. Buscar rastreamento recente (até 60 min) — lead passou pelo link e mandou mensagem
         if (!tracking) {
-          const trintaMinAtras = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+          const umHoraAtras = new Date(Date.now() - 60 * 60 * 1000).toISOString();
           const { data: recentes } = await supabase.from("rastreamentos_pendentes")
             .select("*")
-            .gt("created_at", trintaMinAtras)
+            .gt("created_at", umHoraAtras)
+            .not("wa_numero", "like", "55%") // excluir números de telefone já associados
             .order("created_at", { ascending: false })
-            .limit(20);
+            .limit(10);
 
           if (recentes && recentes.length > 0) {
-            // Pegar o mais recente que não seja o número de destino (seu número)
             const candidato = recentes.find((r: any) =>
-              r.wa_numero !== numero && // não é o número do lead
-              r.utm_campaign // tem dados de campanha
+              r.utm_campaign || r.link_id || r.fbclid
             );
             if (candidato) {
               tracking = candidato;
-              // Atualizar o rastreamento com o número real do lead
+              // Atualizar com o número real do lead para não associar a outro
               await supabase.from("rastreamentos_pendentes")
                 .update({ wa_numero: numero })
                 .eq("wa_numero", candidato.wa_numero);
