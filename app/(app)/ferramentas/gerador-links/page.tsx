@@ -383,7 +383,7 @@ export default function GeradorLinksPage() {
   }
 
   if (view === "detalhes" && linkSelecionado) {
-    return <DetalhesLink link={linkSelecionado} waNumero={waNumero} onVoltar={() => { setView("lista"); carregar(); }}/>;
+    return <DetalhesLink link={linkSelecionado} waNumero={waNumero} conversasPorLink={conversasPorLink} onVoltar={() => { setView("lista"); carregar(); }}/>;
   }
 
   return (
