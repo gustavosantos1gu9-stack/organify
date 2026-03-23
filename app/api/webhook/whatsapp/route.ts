@@ -157,10 +157,36 @@ export async function POST(req: NextRequest) {
         // Cruzar com rastreamento pendente
         let tracking = null;
 
-        // 1. Tentar por número do lead (caso já tenha sido registrado)
+        // 1. Tentar por número do lead
         const { data: t1 } = await supabase.from("rastreamentos_pendentes")
           .select("*").eq("wa_numero", numero).single();
         if (t1) tracking = t1;
+
+        // 1b. Buscar rastreamento mais recente dos últimos 30 min pelo fbclid mais recente
+        // (o session_id é único por clique, mas o fbclid é o mesmo para o mesmo lead)
+        if (!tracking) {
+          const trintaMinAtras = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+          const { data: recentes } = await supabase.from("rastreamentos_pendentes")
+            .select("*")
+            .gt("created_at", trintaMinAtras)
+            .order("created_at", { ascending: false })
+            .limit(20);
+
+          if (recentes && recentes.length > 0) {
+            // Pegar o mais recente que não seja o número de destino (seu número)
+            const candidato = recentes.find((r: any) =>
+              r.wa_numero !== numero && // não é o número do lead
+              r.utm_campaign // tem dados de campanha
+            );
+            if (candidato) {
+              tracking = candidato;
+              // Atualizar o rastreamento com o número real do lead
+              await supabase.from("rastreamentos_pendentes")
+                .update({ wa_numero: numero })
+                .eq("wa_numero", candidato.wa_numero);
+            }
+          }
+        }
 
         // 2. Tentar pelo fbclid/ctwaClid que vem embutido na mensagem do WhatsApp
         if (!tracking) {
