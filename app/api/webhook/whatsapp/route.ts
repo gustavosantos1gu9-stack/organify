@@ -281,7 +281,7 @@ export async function POST(req: NextRequest) {
               await supabase.from("conversas").update({ link_nome: linkData.nome }).eq("id", conversa.id);
             }
             // Incrementar cliques
-            await supabase.rpc("incrementar_cliques", { link_uuid: linkIdFromTerm }).catch(() => {});
+            try { await supabase.rpc("incrementar_cliques", { link_uuid: linkIdFromTerm }); } catch {}
           }
           // Limpar rastreamento por número e fbclid
           await supabase.from("rastreamentos_pendentes").delete().eq("wa_numero", numero);
