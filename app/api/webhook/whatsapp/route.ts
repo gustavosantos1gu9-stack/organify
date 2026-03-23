@@ -154,13 +154,59 @@ export async function POST(req: NextRequest) {
           mensagem_id: msgId, de_mim: false, tipo, conteudo, created_at: timestamp,
         }, { onConflict: "mensagem_id" });
 
-        // Cruzar com rastreamento pendente (UTMs do link rastreável)
-        const { data: tracking } = await supabase.from("rastreamentos_pendentes")
+        // Cruzar com rastreamento pendente
+        // Tentar por número primeiro, depois por fbclid da mensagem
+        let tracking = null;
+
+        // 1. Tentar por número do lead
+        const { data: t1 } = await supabase.from("rastreamentos_pendentes")
           .select("*").eq("wa_numero", numero).single();
+        if (t1) tracking = t1;
+
+        // 2. Se não achou, tentar pelo fbclid que vem na mensagem (ctwaClid ou referralInfo)
+        if (!tracking) {
+          const ctwaClid = msg.message?.extendedTextMessage?.contextInfo?.externalAdReply?.ctwaClid
+            || msg.contextInfo?.externalAdReply?.ctwaClid
+            || (body.data as any)?.contextInfo?.externalAdReply?.ctwaClid;
+
+          const fbclidMsg = msg.message?.extendedTextMessage?.contextInfo?.externalAdReply?.sourceId
+            || null;
+
+          // Buscar por fbclid salvo
+          if (ctwaClid || fbclidMsg) {
+            const chave = ctwaClid || fbclidMsg;
+            const { data: t2 } = await supabase.from("rastreamentos_pendentes")
+              .select("*").eq("fbclid", chave).single();
+            if (t2) tracking = t2;
+
+            // Se não achou por fbclid exato, tentar por chave parcial
+            if (!t2) {
+              const { data: t3 } = await supabase.from("rastreamentos_pendentes")
+                .select("*").ilike("fbclid", `%${chave.substring(0,20)}%`).single();
+              if (t3) tracking = t3;
+            }
+          }
+        }
+
+        // 3. Tentar pelos UTMs via referralInfo do WhatsApp
+        if (!tracking) {
+          const refInfo = msg.message?.extendedTextMessage?.contextInfo?.externalAdReply;
+          if (refInfo?.sourceUrl) {
+            try {
+              const refUrl = new URL(refInfo.sourceUrl);
+              const refCampaign = refUrl.searchParams.get("utm_campaign");
+              if (refCampaign) {
+                const { data: t4 } = await supabase.from("rastreamentos_pendentes")
+                  .select("*").eq("utm_campaign", refCampaign).order("created_at", { ascending: false }).limit(1).single();
+                if (t4) tracking = t4;
+              }
+            } catch {}
+          }
+        }
 
         if (tracking) {
           await supabase.from("conversas").update({
-            origem: tracking.origem || "Não Rastreada",
+            origem: tracking.origem || "Meta Ads",
             utm_source: tracking.utm_source,
             utm_medium: tracking.utm_medium,
             utm_campaign: tracking.utm_campaign,
@@ -170,7 +216,11 @@ export async function POST(req: NextRequest) {
             link_id: tracking.link_id,
             primeira_mensagem_at: timestamp,
           }).eq("id", conversa.id);
+          // Limpar rastreamento por número e fbclid
           await supabase.from("rastreamentos_pendentes").delete().eq("wa_numero", numero);
+          if (tracking.fbclid) {
+            await supabase.from("rastreamentos_pendentes").delete().eq("fbclid", tracking.fbclid);
+          }
           if (tracking.link_id) {
             await supabase.rpc("incrementar_cliques", { link_uuid: tracking.link_id });
           }
