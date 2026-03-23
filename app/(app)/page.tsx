@@ -46,7 +46,7 @@ export default function DashboardPage() {
 
         // Buscar clientes ativos do controle
         const { data: cc } = await sb.from("controle_clientes")
-          .select("status, data_churn").eq("agencia_id", agId);
+          .select("status, data_churn, data_entrada").eq("agencia_id", agId);
         setControleClientes(cc || []);
         // Buscar churns (status saiu) com data_churn
         const { data: churnsData } = await sb.from("controle_clientes")
