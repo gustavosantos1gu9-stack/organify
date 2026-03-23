@@ -162,13 +162,15 @@ export async function POST(req: NextRequest) {
           .select("*").eq("wa_numero", numero).single();
         if (t1) tracking = t1;
 
-        // 2. Buscar rastreamento recente (até 60 min) — lead passou pelo link e mandou mensagem
-        if (!tracking) {
+        // 2. Buscar rastreamento recente (até 60 min) — SOMENTE se for primeira mensagem
+        // Evita associar rastreamento a clientes antigos que mandaram mensagem por acaso
+        const isPrimeiraMsg = !conversa.primeira_mensagem_at;
+        if (!tracking && isPrimeiraMsg) {
           const umHoraAtras = new Date(Date.now() - 60 * 60 * 1000).toISOString();
           const { data: recentes } = await supabase.from("rastreamentos_pendentes")
             .select("*")
             .gt("created_at", umHoraAtras)
-            .not("wa_numero", "like", "55%") // excluir números de telefone já associados
+            .not("wa_numero", "like", "55%")
             .order("created_at", { ascending: false })
             .limit(10);
 
@@ -178,7 +180,6 @@ export async function POST(req: NextRequest) {
             );
             if (candidato) {
               tracking = candidato;
-              // Atualizar com o número real do lead para não associar a outro
               await supabase.from("rastreamentos_pendentes")
                 .update({ wa_numero: numero })
                 .eq("wa_numero", candidato.wa_numero);
