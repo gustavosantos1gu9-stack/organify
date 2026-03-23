@@ -257,6 +257,10 @@ export async function POST(req: NextRequest) {
         }
 
         if (tracking) {
+          // Se utm_term contém um UUID, é o link_id
+          const linkIdFromTerm = tracking.utm_term && tracking.utm_term.match(/^[0-9a-f-]{36}$/)
+            ? tracking.utm_term : tracking.link_id;
+
           await supabase.from("conversas").update({
             origem: tracking.origem || "Meta Ads",
             utm_source: tracking.utm_source,
@@ -265,9 +269,20 @@ export async function POST(req: NextRequest) {
             utm_content: tracking.utm_content,
             utm_term: tracking.utm_term,
             fbclid: tracking.fbclid,
-            link_id: tracking.link_id,
+            link_id: linkIdFromTerm,
             primeira_mensagem_at: timestamp,
           }).eq("id", conversa.id);
+
+          // Buscar nome do link se tiver link_id
+          if (linkIdFromTerm) {
+            const { data: linkData } = await supabase.from("links_campanha")
+              .select("nome").eq("id", linkIdFromTerm).single();
+            if (linkData?.nome) {
+              await supabase.from("conversas").update({ link_nome: linkData.nome }).eq("id", conversa.id);
+            }
+            // Incrementar cliques
+            await supabase.rpc("incrementar_cliques", { link_uuid: linkIdFromTerm }).catch(() => {});
+          }
           // Limpar rastreamento por número e fbclid
           await supabase.from("rastreamentos_pendentes").delete().eq("wa_numero", numero);
           if (tracking.fbclid) {

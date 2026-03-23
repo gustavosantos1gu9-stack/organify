@@ -36,13 +36,27 @@ function DetalhesLink({ link, onVoltar, waNumero, conversasPorLink }: { link: Li
   useEffect(() => {
     async function buscarConversas() {
       const agId = await getAgenciaId();
-      // Buscar todas as conversas deste link — por link_id, link_nome ou utm_campaign
       const utmNorm = link.nome.toLowerCase().replace(/\s+/g, "-");
-      const { data } = await supabase.from("conversas")
+
+      // Buscar por link_id
+      const { data: d1 } = await supabase.from("conversas")
         .select("id, contato_nome, etapa_jornada, link_id, link_nome, utm_campaign")
-        .eq("agencia_id", agId!)
-        .or(`link_id.eq.${link.id},link_nome.ilike.%${link.nome}%,utm_campaign.ilike.%${utmNorm}%`);
-      setConversasLink(data || []);
+        .eq("agencia_id", agId!).eq("link_id", link.id);
+
+      // Buscar por link_nome
+      const { data: d2 } = await supabase.from("conversas")
+        .select("id, contato_nome, etapa_jornada, link_id, link_nome, utm_campaign")
+        .eq("agencia_id", agId!).ilike("link_nome", `%${link.nome}%`);
+
+      // Buscar por utm_campaign normalizado
+      const { data: d3 } = await supabase.from("conversas")
+        .select("id, contato_nome, etapa_jornada, link_id, link_nome, utm_campaign")
+        .eq("agencia_id", agId!).ilike("utm_campaign", `%${utmNorm}%`);
+
+      // Unir sem duplicatas
+      const todas = [...(d1||[]), ...(d2||[]), ...(d3||[])];
+      const unicas = todas.filter((c, i, arr) => arr.findIndex(x => x.id === c.id) === i);
+      setConversasLink(unicas);
     }
     buscarConversas();
   }, [link.id]);
@@ -249,6 +263,7 @@ function FormLink({ onSave, onCancel, waNumero }: { onSave: (link: LinkCampanha)
         utm_source: "facebook",
         utm_medium: "cpc",
         utm_campaign: utmCampaign,
+        utm_term: linkId, // ID do link — não é sobrescrito pelo Meta
         link_id: linkId,
         link_nome: form.nome,
       });
