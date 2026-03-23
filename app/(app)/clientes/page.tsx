@@ -123,7 +123,7 @@ export default function ClientesPage() {
   const [busca, setBusca] = useState("");
   const [filtros, setFiltros] = useState<Record<string, string>>({});
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
 
   const { data: clientes, loading, refresh } = useClientes(busca, filtros.status || "");
   const { data: movs } = useMovimentacoes();
@@ -141,7 +141,7 @@ export default function ClientesPage() {
   const ativos = clientes?.filter((c) => c.status === "ativo") ?? [];
   const inadimplentes = clientes?.filter((c) => c.status === "inadimplente") ?? [];
   const cancelados = clientes?.filter((c) => c.status === "cancelado") ?? [];
-  const receitaTotal = movs?.filter((m) => m.tipo === "entrada").reduce((a, b) => a + b.valor, 0) ?? 0;
+  const receitaTotal = ativos.reduce((s, c) => s + (c.valor_oportunidade || 0), 0);
   const receitaMedia = ativos.length > 0 ? receitaTotal / ativos.length : 0;
   const churnRate = clientes?.length ? Math.round((cancelados.length / clientes.length) * 100) : 0;
 
