@@ -30,7 +30,7 @@ function CopiarBotao({ texto, label = "Copiar" }: { texto: string; label?: strin
   );
 }
 
-function DetalhesLink({ link, onVoltar, waNumero }: { link: LinkCampanha; onVoltar: () => void; waNumero: string }) {
+function DetalhesLink({ link, onVoltar, waNumero, conversasPorLink }: { link: LinkCampanha; onVoltar: () => void; waNumero: string; conversasPorLink: Record<string,any[]> }) {
   const linkMeta = link.link_gerado; // com countdown (para Meta Ads)
   const linkSite = link.link_gerado.replace("/c?", "/c/direto?"); // direto
   
