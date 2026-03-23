@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useEffect } from "react";
 import { Check, Copy, Trash2, ExternalLink, Plus, ArrowLeft, Link2, BarChart2, Eye } from "lucide-react";
 import { supabase, getAgenciaId } from "@/lib/hooks";
 
@@ -31,6 +31,21 @@ function CopiarBotao({ texto, label = "Copiar" }: { texto: string; label?: strin
 }
 
 function DetalhesLink({ link, onVoltar, waNumero, conversasPorLink }: { link: LinkCampanha; onVoltar: () => void; waNumero: string; conversasPorLink: Record<string,any[]> }) {
+  const [conversasLink, setConversasLink] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function buscarConversas() {
+      const agId = await getAgenciaId();
+      // Buscar todas as conversas deste link — por link_id, link_nome ou utm_campaign
+      const utmNorm = link.nome.toLowerCase().replace(/\s+/g, "-");
+      const { data } = await supabase.from("conversas")
+        .select("id, contato_nome, etapa_jornada, link_id, link_nome, utm_campaign")
+        .eq("agencia_id", agId!)
+        .or(`link_id.eq.${link.id},link_nome.ilike.%${link.nome}%,utm_campaign.ilike.%${utmNorm}%`);
+      setConversasLink(data || []);
+    }
+    buscarConversas();
+  }, [link.id]);
   const linkMeta = link.link_gerado; // com countdown (para Meta Ads)
   const linkSite = link.link_gerado.replace("/c?", "/c/direto?"); // direto
   
@@ -58,36 +73,24 @@ function DetalhesLink({ link, onVoltar, waNumero, conversasPorLink }: { link: Li
         </span>
       </div>
 
-      {/* KPIs — busca conversas reais do banco */}
+      {/* KPIs — busca direta do banco */}
       {(() => {
-        // Normalizar nome para comparar com utm_campaign
-        const nomeNorm = link.nome.toLowerCase().replace(/\s+/g, "-");
-        const convsPorId = conversasPorLink[link.id] || [];
-        const convsPorNome = conversasPorLink[link.nome] || [];
-        const convsPorCampanha = conversasPorLink[link.utm_campaign || ""] || [];
-        const convsPorNomeNorm = conversasPorLink[nomeNorm] || [];
-        // Unir sem duplicatas
-        const ids = new Set<string>();
-        const todas = [...convsPorId, ...convsPorNome, ...convsPorCampanha, ...convsPorNomeNorm].filter(c => {
-          if (ids.has(c.id)) return false;
-          ids.add(c.id); return true;
-        });
-        const agendamentos = todas.filter(c => ["Agendou","Compareceu"].includes(c.etapa_jornada)).length;
-        const vendas = todas.filter(c => ["Comprou","Fechou"].includes(c.etapa_jornada)).length;
-        const total = Math.max(todas.length, link.cliques);
+        const agendamentos = conversasLink.filter(c => ["Agendou","Compareceu"].includes(c.etapa_jornada)).length;
+        const vendas = conversasLink.filter(c => ["Comprou","Fechou"].includes(c.etapa_jornada)).length;
+        const total = Math.max(conversasLink.length, link.cliques);
         return (
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"12px", marginBottom:"24px" }}>
             <div className="card" style={{ padding:"16px" }}>
-              <p style={{ fontSize:"12px", color:"#606060", marginBottom:"4px" }}>Conversas vindas do Link</p>
+              <p style={{ fontSize:"12px", color:"#606060", marginBottom:"4px" }}>Conversas</p>
               <p style={{ fontSize:"28px", fontWeight:"700", color:"#f0f0f0" }}>{total}</p>
-              {todas.length !== link.cliques && <p style={{ fontSize:"11px", color:"#606060", margin:0 }}>{link.cliques} cliques registrados</p>}
+              <p style={{ fontSize:"11px", color:"#606060", margin:0 }}>{link.cliques} cliques · {conversasLink.length} no inbox</p>
             </div>
             <div className="card" style={{ padding:"16px" }}>
-              <p style={{ fontSize:"12px", color:"#606060", marginBottom:"4px" }}>Agendamentos vindos do Link</p>
+              <p style={{ fontSize:"12px", color:"#606060", marginBottom:"4px" }}>Agendamentos</p>
               <p style={{ fontSize:"28px", fontWeight:"700", color:"#f59e0b" }}>{agendamentos}</p>
             </div>
             <div className="card" style={{ padding:"16px" }}>
-              <p style={{ fontSize:"12px", color:"#606060", marginBottom:"4px" }}>Vendas vindas do Link</p>
+              <p style={{ fontSize:"12px", color:"#606060", marginBottom:"4px" }}>Vendas</p>
               <p style={{ fontSize:"28px", fontWeight:"700", color:"#22c55e" }}>{vendas}</p>
             </div>
           </div>
