@@ -155,52 +155,80 @@ export async function POST(req: NextRequest) {
         }, { onConflict: "mensagem_id" });
 
         // Cruzar com rastreamento pendente
-        // Tentar por número primeiro, depois por fbclid da mensagem
         let tracking = null;
 
-        // 1. Tentar por número do lead
+        // 1. Tentar por número do lead (caso já tenha sido registrado)
         const { data: t1 } = await supabase.from("rastreamentos_pendentes")
           .select("*").eq("wa_numero", numero).single();
         if (t1) tracking = t1;
 
-        // 2. Se não achou, tentar pelo fbclid que vem na mensagem (ctwaClid ou referralInfo)
+        // 2. Tentar pelo fbclid/ctwaClid que vem embutido na mensagem do WhatsApp
         if (!tracking) {
-          const ctwaClid = msg.message?.extendedTextMessage?.contextInfo?.externalAdReply?.ctwaClid
-            || msg.contextInfo?.externalAdReply?.ctwaClid
-            || (body.data as any)?.contextInfo?.externalAdReply?.ctwaClid;
+          const externalAdReply = msg.message?.extendedTextMessage?.contextInfo?.externalAdReply
+            || msg.message?.imageMessage?.contextInfo?.externalAdReply
+            || msg.message?.videoMessage?.contextInfo?.externalAdReply;
 
-          const fbclidMsg = msg.message?.extendedTextMessage?.contextInfo?.externalAdReply?.sourceId
-            || null;
+          const ctwaClid = externalAdReply?.ctwaClid || null;
+          const sourceId = externalAdReply?.sourceId || null;
+          const sourceUrl = externalAdReply?.sourceUrl || null;
 
-          // Buscar por fbclid salvo
-          if (ctwaClid || fbclidMsg) {
-            const chave = ctwaClid || fbclidMsg;
+          // Tentar por fbclid exato
+          if (ctwaClid) {
             const { data: t2 } = await supabase.from("rastreamentos_pendentes")
-              .select("*").eq("fbclid", chave).single();
-            if (t2) tracking = t2;
-
-            // Se não achou por fbclid exato, tentar por chave parcial
-            if (!t2) {
-              const { data: t3 } = await supabase.from("rastreamentos_pendentes")
-                .select("*").ilike("fbclid", `%${chave.substring(0,20)}%`).single();
-              if (t3) tracking = t3;
+              .select("*").eq("fbclid", ctwaClid).single();
+            if (t2) { tracking = t2; }
+            else {
+              // Tentar por wa_numero = ctwaClid (salvo pela API captura)
+              const { data: t2b } = await supabase.from("rastreamentos_pendentes")
+                .select("*").eq("wa_numero", ctwaClid).single();
+              if (t2b) tracking = t2b;
             }
           }
-        }
 
-        // 3. Tentar pelos UTMs via referralInfo do WhatsApp
-        if (!tracking) {
-          const refInfo = msg.message?.extendedTextMessage?.contextInfo?.externalAdReply;
-          if (refInfo?.sourceUrl) {
+          // 3. Tentar por utm_campaign via sourceUrl
+          if (!tracking && sourceUrl) {
             try {
-              const refUrl = new URL(refInfo.sourceUrl);
+              const refUrl = new URL(sourceUrl);
               const refCampaign = refUrl.searchParams.get("utm_campaign");
-              if (refCampaign) {
+              const refSource = refUrl.searchParams.get("utm_source");
+              const refFbclid = refUrl.searchParams.get("fbclid");
+              if (refFbclid) {
+                const { data: t3 } = await supabase.from("rastreamentos_pendentes")
+                  .select("*").eq("fbclid", refFbclid).single();
+                if (t3) tracking = t3;
+              }
+              if (!tracking && refCampaign) {
                 const { data: t4 } = await supabase.from("rastreamentos_pendentes")
-                  .select("*").eq("utm_campaign", refCampaign).order("created_at", { ascending: false }).limit(1).single();
+                  .select("*").eq("utm_campaign", refCampaign)
+                  .order("created_at", { ascending: false }).limit(1).single();
                 if (t4) tracking = t4;
               }
+              // Se achou sourceUrl mas não rastreamento, criar inline
+              if (!tracking && (refSource || refCampaign)) {
+                tracking = {
+                  utm_source: refSource || externalAdReply?.mediaType || "ig",
+                  utm_campaign: refCampaign || "",
+                  utm_content: refUrl.searchParams.get("utm_content") || sourceId || "",
+                  utm_medium: refUrl.searchParams.get("utm_medium") || "",
+                  fbclid: refFbclid || ctwaClid || "",
+                  origem: "Meta Ads",
+                  link_id: null,
+                };
+              }
             } catch {}
+          }
+
+          // 4. Se tem externalAdReply mas não achou rastreamento — criar inline com dados disponíveis
+          if (!tracking && externalAdReply && (externalAdReply.title || externalAdReply.body)) {
+            tracking = {
+              utm_source: "ig",
+              utm_campaign: externalAdReply.title || externalAdReply.body || "",
+              utm_content: sourceId || "",
+              utm_medium: "Instagram_Feed",
+              fbclid: ctwaClid || "",
+              origem: "Meta Ads",
+              link_id: null,
+            };
           }
         }
 
