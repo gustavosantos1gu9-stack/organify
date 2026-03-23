@@ -24,6 +24,7 @@ function RecModal({ rec, onClose, onSave }: { rec?: Recorrencia; onClose:()=>voi
     periodicidade: rec?.periodicidade || "mensal",
     dia_vencimento: rec?.dia_vencimento?.toString() || "1",
     ativo: rec?.ativo ?? true,
+    considerar_cac: (rec as any)?.considerar_cac ?? false,
   });
   const [loading, setLoading] = useState(false);
   const set = (k: string, v: string | boolean) => setForm(f => ({ ...f, [k]: v }));
@@ -45,6 +46,7 @@ function RecModal({ rec, onClose, onSave }: { rec?: Recorrencia; onClose:()=>voi
           periodicidade: form.periodicidade,
           dia_vencimento: dia,
           ativo: form.ativo,
+          considerar_cac: form.tipo === "saida" ? form.considerar_cac : false,
         }).eq("id", rec!.id);
       } else {
         // Criar nova recorrência
@@ -56,6 +58,7 @@ function RecModal({ rec, onClose, onSave }: { rec?: Recorrencia; onClose:()=>voi
           periodicidade: form.periodicidade,
           dia_vencimento: dia,
           ativo: true,
+          considerar_cac: form.tipo === "saida" ? form.considerar_cac : false,
         });
 
         // Gerar lançamentos futuros
@@ -118,9 +121,9 @@ function RecModal({ rec, onClose, onSave }: { rec?: Recorrencia; onClose:()=>voi
               {(["entrada","saida"] as const).map(t => (
                 <button key={t} onClick={() => set("tipo", t)} style={{
                   flex:1, padding:"10px", borderRadius:"8px", cursor:"pointer",
-                  border:`1px solid ${form.tipo===t?(t==="entrada"?"#22c55e":"#ef4444"):"#2e2e2e"}`,
-                  background:form.tipo===t?(t==="entrada"?"rgba(34,197,94,0.1)":"rgba(239,68,68,0.1)"):"#222",
-                  color:form.tipo===t?(t==="entrada"?"#22c55e":"#ef4444"):"#a0a0a0",
+                  border:`1px solid ${form.tipo===t?(t==="entrada"?"#29ABE2":"#ef4444"):"#2e2e2e"}`,
+                  background:form.tipo===t?(t==="entrada"?"rgba(41,171,226,0.1)":"rgba(239,68,68,0.1)"):"#222",
+                  color:form.tipo===t?(t==="entrada"?"#29ABE2":"#ef4444"):"#a0a0a0",
                   fontSize:"13px", fontWeight:"500",
                 }}>
                   {t === "entrada" ? "Entrada" : "Saída"}
@@ -156,12 +159,27 @@ function RecModal({ rec, onClose, onSave }: { rec?: Recorrencia; onClose:()=>voi
             </select>
           </div>
 
+          {/* Considerar no CAC — só para saídas */}
+          {form.tipo === "saida" && (
+            <div style={{ display:"flex", alignItems:"center", gap:"10px", padding:"10px 12px", background:"rgba(41,171,226,0.05)", border:"1px solid rgba(41,171,226,0.15)", borderRadius:"8px" }}>
+              <input type="checkbox" id="cac" checked={form.considerar_cac as boolean}
+                onChange={e => set("considerar_cac", e.target.checked)}
+                style={{ width:"16px", height:"16px", cursor:"pointer", accentColor:"#29ABE2" }}/>
+              <label htmlFor="cac" style={{ fontSize:"13px", color:"#f0f0f0", cursor:"pointer" }}>
+                Considerar no CAC
+                <span style={{ fontSize:"11px", color:"#606060", marginLeft:"6px" }}>
+                  (inclui esse gasto no cálculo do Custo de Aquisição de Cliente)
+                </span>
+              </label>
+            </div>
+          )}
+
           {/* Preview de lançamentos */}
           {!isEdit && form.valor && (
-            <div style={{ background:"rgba(34,197,94,0.06)", border:"1px solid rgba(34,197,94,0.15)", borderRadius:"8px", padding:"10px 14px", fontSize:"12px", color:"#a0a0a0" }}>
+            <div style={{ background:"rgba(41,171,226,0.06)", border:"1px solid rgba(41,171,226,0.15)", borderRadius:"8px", padding:"10px 14px", fontSize:"12px", color:"#a0a0a0" }}>
               {form.periodicidade === "quinzenal"
-                ? <>💰 Serão gerados <strong style={{color:"#22c55e"}}>24 lançamentos</strong> a cada 15 dias de <strong style={{color:"#22c55e"}}>{form.valor}</strong></>
-                : <>💰 Serão gerados <strong style={{color:"#22c55e"}}>{QTDE[form.periodicidade] || 12} lançamentos</strong> ({form.periodicidade}) de <strong style={{color:"#22c55e"}}>{form.valor}</strong></>
+                ? <>💰 Serão gerados <strong style={{color:"#29ABE2"}}>24 lançamentos</strong> a cada 15 dias de <strong style={{color:"#29ABE2"}}>{form.valor}</strong></>
+                : <>💰 Serão gerados <strong style={{color:"#29ABE2"}}>{QTDE[form.periodicidade] || 12} lançamentos</strong> ({form.periodicidade}) de <strong style={{color:"#29ABE2"}}>{form.valor}</strong></>
               }
             </div>
           )}
@@ -254,12 +272,12 @@ export default function RecorrenciasPage() {
                 <td style={{ fontWeight:"500" }}>{r.descricao}</td>
                 <td><span className="badge badge-gray" style={{ textTransform:"capitalize" }}>{r.periodicidade}</span></td>
                 <td style={{ color:"#a0a0a0" }}>Dia {r.dia_vencimento}</td>
-                <td style={{ color:r.tipo==="entrada"?"#22c55e":"#ef4444", fontWeight:"600" }}>{formatCurrency(r.valor)}</td>
+                <td style={{ color:r.tipo==="entrada"?"#29ABE2":"#ef4444", fontWeight:"600" }}>{formatCurrency(r.valor)}</td>
                 <td>
                   <button onClick={() => toggleAtivo(r.id, r.ativo)} style={{
                     padding:"4px 10px", borderRadius:"20px", border:"none", cursor:"pointer", fontSize:"12px", fontWeight:"500",
-                    background:r.ativo?"rgba(34,197,94,0.15)":"rgba(96,96,96,0.15)",
-                    color:r.ativo?"#22c55e":"#606060",
+                    background:r.ativo?"rgba(41,171,226,0.15)":"rgba(96,96,96,0.15)",
+                    color:r.ativo?"#29ABE2":"#606060",
                   }}>
                     {r.ativo ? "Ativo" : "Inativo"}
                   </button>
