@@ -237,12 +237,15 @@ export async function POST(req: NextRequest) {
           conversa.fbclid, conversa.utm_campaign, conversa.utm_content
         );
 
-        // Disparar pixel para etapa de primeiro contato se for primeira mensagem
-        if (!conversa.primeira_mensagem_at) {
-          // Buscar etapa marcada como primeiro contato na jornada
+        // Disparar pixel SOMENTE se veio de anúncio
+        // Dispara para novo contato E para quem voltou por anúncio (tem tracking novo)
+        const veioDeAnuncio = tracking?.fbclid || tracking?.utm_source ||
+          tracking?.origem === "Meta Ads" || tracking?.origem === "Google Ads";
+
+        if (veioDeAnuncio) {
           const { data: etapaPrimeiro } = await supabase.from("jornada_etapas")
             .select("nome").eq("agencia_id", agencia.id).eq("eh_primeiro_contato", true).single();
-          const nomeEtapa = etapaPrimeiro?.nome || "Fez Contato";
+          const nomeEtapa = etapaPrimeiro?.nome || "Entrou em contato";
           fetch(`${APP_URL}/api/pixel`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
