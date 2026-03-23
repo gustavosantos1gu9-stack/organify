@@ -240,12 +240,13 @@ function FiltrosAvancados({ conversas, filtros, onChange, onClose }: { conversas
   const set = (k: string, v: string) => setLocal((f: any) => ({ ...f, [k]: v }));
 
   // Valores únicos do banco
-  const campanhas = [...new Set(conversas.map(c=>c.utm_campaign).filter(Boolean))].sort();
-  const conjuntos = [...new Set(conversas.map(c=>c.utm_content).filter(Boolean))].sort();
-  const links = [...new Set(conversas.map(c=>c.link_nome).filter(Boolean))].sort();
-  const anuncios = [...new Set(conversas.map(c=>(c as any).nome_anuncio).filter(Boolean))].sort();
-  const sources = [...new Set(conversas.map(c=>c.utm_source).filter(Boolean))].sort();
-  const mediums = [...new Set(conversas.map(c=>c.utm_medium).filter(Boolean))].sort();
+  const uniq = (arr: (string|undefined)[]) => Array.from(new Set(arr.filter(Boolean) as string[])).sort();
+  const campanhas = uniq(conversas.map(c=>c.utm_campaign));
+  const conjuntos = uniq(conversas.map(c=>c.utm_content));
+  const links = uniq(conversas.map(c=>c.link_nome));
+  const anuncios = uniq(conversas.map(c=>(c as any).nome_anuncio));
+  const sources = uniq(conversas.map(c=>c.utm_source));
+  const mediums = uniq(conversas.map(c=>c.utm_medium));
 
   return (
     <>
