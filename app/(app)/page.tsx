@@ -79,9 +79,17 @@ export default function DashboardPage() {
   const { data: clientes } = useClientes();
   const { data: movs } = useMovimentacoes("", from, to);
 
-  // KPIs dos lançamentos futuros
-  const entradasPrev = lancamentos?.filter(l=>l.tipo==="entrada"&&!l.pago).reduce((a,b)=>a+b.valor,0) ?? 0;
-  const saidasPrev = lancamentos?.filter(l=>l.tipo==="saida"&&!l.pago).reduce((a,b)=>a+b.valor,0) ?? 0;
+  // KPIs dos lançamentos futuros — filtrar pelo mês atual
+  const entradasPrev = lancamentos?.filter(l => {
+    if (l.tipo !== "entrada" || l.pago) return false;
+    const d = l.data_vencimento?.split("T")[0];
+    return d >= from && d <= to;
+  }).reduce((a,b)=>a+b.valor,0) ?? 0;
+  const saidasPrev = lancamentos?.filter(l => {
+    if (l.tipo !== "saida" || l.pago) return false;
+    const d = l.data_vencimento?.split("T")[0];
+    return d >= from && d <= to;
+  }).reduce((a,b)=>a+b.valor,0) ?? 0;
 
   // Receita recorrente = recorrências ativas de entrada
   const receitaRecorrente = recorrencias?.filter(r=>r.ativo&&r.tipo==="entrada").reduce((a,b)=>a+b.valor,0) ?? 0;
