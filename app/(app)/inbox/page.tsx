@@ -398,12 +398,14 @@ export default function InboxPage() {
     return matchBusca;
   });
 
+  // KPIs baseados nas conversas filtradas
+  const base = Object.keys(filtros).some(k => filtros[k]) ? filtradas : conversas;
   const kpis = {
-    total: conversas.length,
-    meta: conversas.filter(c=>c.origem==="Meta Ads").length,
-    google: conversas.filter(c=>c.origem==="Google Ads").length,
-    outras: conversas.filter(c=>c.origem&&c.origem!=="Meta Ads"&&c.origem!=="Google Ads"&&c.origem!=="Não Rastreada").length,
-    naoRastreada: conversas.filter(c=>!c.origem||c.origem==="Não Rastreada").length,
+    total: base.length,
+    meta: base.filter(c=>c.origem==="Meta Ads").length,
+    google: base.filter(c=>c.origem==="Google Ads").length,
+    outras: base.filter(c=>c.origem&&c.origem!=="Meta Ads"&&c.origem!=="Google Ads"&&c.origem!=="Não Rastreada").length,
+    naoRastreada: base.filter(c=>!c.origem||c.origem==="Não Rastreada").length,
   };
 
   const filtrosAtivos = Object.values(filtros).filter(Boolean).length;

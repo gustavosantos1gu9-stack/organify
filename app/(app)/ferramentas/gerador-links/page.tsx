@@ -32,30 +32,23 @@ function CopiarBotao({ texto, label = "Copiar" }: { texto: string; label?: strin
 
 function DetalhesLink({ link, onVoltar, waNumero, conversasPorLink }: { link: LinkCampanha; onVoltar: () => void; waNumero: string; conversasPorLink: Record<string,any[]> }) {
   const [conversasLink, setConversasLink] = useState<any[]>([]);
+  const [mostrarContatos, setMostrarContatos] = useState(false);
 
   useEffect(() => {
     async function buscarConversas() {
       const agId = await getAgenciaId();
       const utmNorm = link.nome.toLowerCase().replace(/\s+/g, "-");
-
-      // Buscar por link_id
       const { data: d1 } = await supabase.from("conversas")
-        .select("id, contato_nome, etapa_jornada, link_id, link_nome, utm_campaign")
+        .select("id, contato_nome, contato_numero, etapa_jornada, link_id, link_nome, utm_campaign, primeira_mensagem_at")
         .eq("agencia_id", agId!).eq("link_id", link.id);
-
-      // Buscar por link_nome
       const { data: d2 } = await supabase.from("conversas")
-        .select("id, contato_nome, etapa_jornada, link_id, link_nome, utm_campaign")
+        .select("id, contato_nome, contato_numero, etapa_jornada, link_id, link_nome, utm_campaign, primeira_mensagem_at")
         .eq("agencia_id", agId!).ilike("link_nome", `%${link.nome}%`);
-
-      // Buscar por utm_campaign normalizado
       const { data: d3 } = await supabase.from("conversas")
-        .select("id, contato_nome, etapa_jornada, link_id, link_nome, utm_campaign")
+        .select("id, contato_nome, contato_numero, etapa_jornada, link_id, link_nome, utm_campaign, primeira_mensagem_at")
         .eq("agencia_id", agId!).ilike("utm_campaign", `%${utmNorm}%`);
-
-      // Unir sem duplicatas
       const todas = [...(d1||[]), ...(d2||[]), ...(d3||[])];
-      const unicas = todas.filter((c, i, arr) => arr.findIndex(x => x.id === c.id) === i);
+      const unicas = todas.filter((c, i, arr) => arr.findIndex((x:any) => x.id === c.id) === i);
       setConversasLink(unicas);
     }
     buscarConversas();
@@ -110,6 +103,51 @@ function DetalhesLink({ link, onVoltar, waNumero, conversasPorLink }: { link: Li
           </div>
         );
       })()}
+
+      {/* Botão ver contatos */}
+      <div style={{ marginBottom:"16px" }}>
+        <button onClick={()=>setMostrarContatos(!mostrarContatos)} className="btn-secondary" style={{ cursor:"pointer", fontSize:"12px" }}>
+          👥 {mostrarContatos ? "Ocultar" : "Ver"} contatos ({conversasLink.length})
+        </button>
+      </div>
+
+      {/* Lista de contatos */}
+      {mostrarContatos && (
+        <div className="card" style={{ marginBottom:"20px" }}>
+          <h3 style={{ fontSize:"13px", fontWeight:"600", color:"#f0f0f0", marginBottom:"12px" }}>
+            Contatos que vieram por este link
+          </h3>
+          {!conversasLink.length ? (
+            <p style={{ color:"#606060", fontSize:"13px" }}>Nenhum contato identificado ainda.</p>
+          ) : (
+            <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"12px" }}>
+              <thead>
+                <tr style={{ borderBottom:"1px solid #2e2e2e" }}>
+                  {["Nome","Número","Etapa","Primeira Mensagem"].map(h=>(
+                    <th key={h} style={{ padding:"8px 12px", textAlign:"left", fontSize:"11px", color:"#606060", fontWeight:"600" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {conversasLink.map((c:any) => (
+                  <tr key={c.id} style={{ borderBottom:"1px solid #1e1e1e" }}>
+                    <td style={{ padding:"8px 12px", color:"#f0f0f0", fontWeight:"600" }}>{c.contato_nome||"—"}</td>
+                    <td style={{ padding:"8px 12px", color:"#a0a0a0" }}>{c.contato_numero}</td>
+                    <td style={{ padding:"8px 12px" }}>
+                      <span style={{ fontSize:"11px", padding:"2px 8px", borderRadius:"20px", background:"rgba(41,171,226,0.1)", color:"#29ABE2" }}>
+                        {c.etapa_jornada||"Fez Contato"}
+                      </span>
+                    </td>
+                    <td style={{ padding:"8px 12px", color:"#606060", fontSize:"11px" }}>
+                      {c.primeira_mensagem_at ? new Date(c.primeira_mensagem_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"}) : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
 
       {/* Info do link */}
       <div className="card" style={{ marginBottom:"20px" }}>
