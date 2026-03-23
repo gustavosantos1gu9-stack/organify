@@ -58,21 +58,38 @@ function DetalhesLink({ link, onVoltar, waNumero }: { link: LinkCampanha; onVolt
         </span>
       </div>
 
-      {/* KPIs */}
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"12px", marginBottom:"24px" }}>
-        <div className="card" style={{ padding:"16px" }}>
-          <p style={{ fontSize:"12px", color:"#606060", marginBottom:"4px" }}>Conversas vindas do Link</p>
-          <p style={{ fontSize:"28px", fontWeight:"700", color:"#f0f0f0" }}>{link.cliques}</p>
-        </div>
-        <div className="card" style={{ padding:"16px" }}>
-          <p style={{ fontSize:"12px", color:"#606060", marginBottom:"4px" }}>Agendamentos vindos do Link</p>
-          <p style={{ fontSize:"28px", fontWeight:"700", color:"#f0f0f0" }}>0</p>
-        </div>
-        <div className="card" style={{ padding:"16px" }}>
-          <p style={{ fontSize:"12px", color:"#606060", marginBottom:"4px" }}>Vendas vindas do Link</p>
-          <p style={{ fontSize:"28px", fontWeight:"700", color:"#f0f0f0" }}>0</p>
-        </div>
-      </div>
+      {/* KPIs — busca conversas reais do banco */}
+      {(() => {
+        const convsPorId = conversasPorLink[link.id] || [];
+        const convsPorNome = conversasPorLink[link.nome] || [];
+        const convsPorCampanha = conversasPorLink[link.utm_campaign || ""] || [];
+        // Unir sem duplicatas
+        const ids = new Set<string>();
+        const todas = [...convsPorId, ...convsPorNome, ...convsPorCampanha].filter(c => {
+          if (ids.has(c.id)) return false;
+          ids.add(c.id); return true;
+        });
+        const agendamentos = todas.filter(c => ["Agendou","Compareceu"].includes(c.etapa_jornada)).length;
+        const vendas = todas.filter(c => ["Comprou","Fechou"].includes(c.etapa_jornada)).length;
+        const total = Math.max(todas.length, link.cliques);
+        return (
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"12px", marginBottom:"24px" }}>
+            <div className="card" style={{ padding:"16px" }}>
+              <p style={{ fontSize:"12px", color:"#606060", marginBottom:"4px" }}>Conversas vindas do Link</p>
+              <p style={{ fontSize:"28px", fontWeight:"700", color:"#f0f0f0" }}>{total}</p>
+              {todas.length !== link.cliques && <p style={{ fontSize:"11px", color:"#606060", margin:0 }}>{link.cliques} cliques registrados</p>}
+            </div>
+            <div className="card" style={{ padding:"16px" }}>
+              <p style={{ fontSize:"12px", color:"#606060", marginBottom:"4px" }}>Agendamentos vindos do Link</p>
+              <p style={{ fontSize:"28px", fontWeight:"700", color:"#f59e0b" }}>{agendamentos}</p>
+            </div>
+            <div className="card" style={{ padding:"16px" }}>
+              <p style={{ fontSize:"12px", color:"#606060", marginBottom:"4px" }}>Vendas vindas do Link</p>
+              <p style={{ fontSize:"28px", fontWeight:"700", color:"#22c55e" }}>{vendas}</p>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Info do link */}
       <div className="card" style={{ marginBottom:"20px" }}>
@@ -320,16 +337,29 @@ export default function GeradorLinksPage() {
   const [copiado, setCopiado] = useState<string|null>(null);
   const [waNumero, setWaNumero] = useState("");
 
+  const [conversasPorLink, setConversasPorLink] = useState<Record<string,any[]>>({});
+
   const carregar = async () => {
     setLoading(true);
     try {
       const agId = await getAgenciaId();
-      const [{ data: ag }, { data: ls }] = await Promise.all([
+      const [{ data: ag }, { data: ls }, { data: convs }] = await Promise.all([
         supabase.from("agencias").select("whatsapp_numero").eq("id", agId!).single(),
         supabase.from("links_campanha").select("*").eq("agencia_id", agId!).order("created_at", { ascending: false }),
+        supabase.from("conversas").select("id,link_id,link_nome,etapa_jornada,utm_campaign").eq("agencia_id", agId!),
       ]);
       setWaNumero(ag?.whatsapp_numero || "");
       setLinks(ls || []);
+      // Agrupar conversas por link_id e link_nome
+      const porLink: Record<string,any[]> = {};
+      for (const c of (convs||[])) {
+        const chave = c.link_id || c.link_nome || c.utm_campaign;
+        if (chave) {
+          if (!porLink[chave]) porLink[chave] = [];
+          porLink[chave].push(c);
+        }
+      }
+      setConversasPorLink(porLink);
     } finally { setLoading(false); }
   };
 
@@ -401,7 +431,9 @@ export default function GeradorLinksPage() {
                     {l.nome}
                   </div>
                 </td>
-                <td><span style={{ fontWeight:"600", color:l.cliques>0?"#f0f0f0":"#606060" }}>{l.cliques}</span></td>
+                <td><span style={{ fontWeight:"600", color:l.cliques>0?"#f0f0f0":"#606060" }}>
+                  {Math.max(l.cliques, (conversasPorLink[l.id]||[]).length, (conversasPorLink[l.nome]||[]).length)}
+                </span></td>
                 <td style={{ color:"#a0a0a0", fontSize:"12px" }}>{new Date(l.created_at).toLocaleDateString("pt-BR")}</td>
                 <td>
                   <div style={{ display:"flex", gap:"6px" }}>
