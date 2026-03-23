@@ -288,19 +288,21 @@ export async function POST(req: NextRequest) {
           } else {
             // Não é primeira mensagem — salvar como rastreamento adicional (histórico)
             // Não sobrescreve os dados originais da conversa
-            await supabase.from("rastreamentos_historico").insert({
-              conversa_id: conversa.id,
-              agencia_id: agencia.id,
-              contato_numero: numero,
-              origem: tracking.origem || "Meta Ads",
-              utm_source: tracking.utm_source,
-              utm_medium: tracking.utm_medium,
-              utm_campaign: tracking.utm_campaign,
-              utm_content: tracking.utm_content,
-              fbclid: tracking.fbclid,
-              link_id: linkIdFromTerm,
-              created_at: timestamp,
-            }).catch(() => {}); // ignora se tabela não existir ainda
+            try {
+              await supabase.from("rastreamentos_historico").insert({
+                conversa_id: conversa.id,
+                agencia_id: agencia.id,
+                contato_numero: numero,
+                origem: tracking.origem || "Meta Ads",
+                utm_source: tracking.utm_source,
+                utm_medium: tracking.utm_medium,
+                utm_campaign: tracking.utm_campaign,
+                utm_content: tracking.utm_content,
+                fbclid: tracking.fbclid,
+                link_id: linkIdFromTerm,
+                created_at: timestamp,
+              });
+            } catch {}
 
             if (linkIdFromTerm) {
               try { await supabase.rpc("incrementar_cliques", { link_uuid: linkIdFromTerm }); } catch {}
