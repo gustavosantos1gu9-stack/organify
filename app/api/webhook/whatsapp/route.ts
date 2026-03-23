@@ -258,31 +258,53 @@ export async function POST(req: NextRequest) {
         }
 
         if (tracking) {
-          // Se utm_term contém um UUID, é o link_id
           const linkIdFromTerm = tracking.utm_term && tracking.utm_term.match(/^[0-9a-f-]{36}$/)
             ? tracking.utm_term : tracking.link_id;
 
-          await supabase.from("conversas").update({
-            origem: tracking.origem || "Meta Ads",
-            utm_source: tracking.utm_source,
-            utm_medium: tracking.utm_medium,
-            utm_campaign: tracking.utm_campaign,
-            utm_content: tracking.utm_content,
-            utm_term: tracking.utm_term,
-            fbclid: tracking.fbclid,
-            link_id: linkIdFromTerm,
-            primeira_mensagem_at: timestamp,
-          }).eq("id", conversa.id);
+          const isPrimeiro = !conversa.primeira_mensagem_at;
 
-          // Buscar nome do link se tiver link_id
-          if (linkIdFromTerm) {
-            const { data: linkData } = await supabase.from("links_campanha")
-              .select("nome").eq("id", linkIdFromTerm).single();
-            if (linkData?.nome) {
-              await supabase.from("conversas").update({ link_nome: linkData.nome }).eq("id", conversa.id);
+          if (isPrimeiro) {
+            // Primeira mensagem — salvar rastreamento principal na conversa
+            await supabase.from("conversas").update({
+              origem: tracking.origem || "Meta Ads",
+              utm_source: tracking.utm_source,
+              utm_medium: tracking.utm_medium,
+              utm_campaign: tracking.utm_campaign,
+              utm_content: tracking.utm_content,
+              utm_term: tracking.utm_term,
+              fbclid: tracking.fbclid,
+              link_id: linkIdFromTerm,
+              primeira_mensagem_at: timestamp,
+            }).eq("id", conversa.id);
+
+            if (linkIdFromTerm) {
+              const { data: linkData } = await supabase.from("links_campanha")
+                .select("nome").eq("id", linkIdFromTerm).single();
+              if (linkData?.nome) {
+                await supabase.from("conversas").update({ link_nome: linkData.nome }).eq("id", conversa.id);
+              }
+              try { await supabase.rpc("incrementar_cliques", { link_uuid: linkIdFromTerm }); } catch {}
             }
-            // Incrementar cliques
-            try { await supabase.rpc("incrementar_cliques", { link_uuid: linkIdFromTerm }); } catch {}
+          } else {
+            // Não é primeira mensagem — salvar como rastreamento adicional (histórico)
+            // Não sobrescreve os dados originais da conversa
+            await supabase.from("rastreamentos_historico").insert({
+              conversa_id: conversa.id,
+              agencia_id: agencia.id,
+              contato_numero: numero,
+              origem: tracking.origem || "Meta Ads",
+              utm_source: tracking.utm_source,
+              utm_medium: tracking.utm_medium,
+              utm_campaign: tracking.utm_campaign,
+              utm_content: tracking.utm_content,
+              fbclid: tracking.fbclid,
+              link_id: linkIdFromTerm,
+              created_at: timestamp,
+            }).catch(() => {}); // ignora se tabela não existir ainda
+
+            if (linkIdFromTerm) {
+              try { await supabase.rpc("incrementar_cliques", { link_uuid: linkIdFromTerm }); } catch {}
+            }
           }
           // Limpar rastreamento por número e fbclid
           await supabase.from("rastreamentos_pendentes").delete().eq("wa_numero", numero);
