@@ -39,6 +39,7 @@ function formatarData(d: string) {
 export default function ChurnPage() {
   const [clientes, setClientes] = useState<ClienteChurn[]>([]);
   const [snapshots, setSnapshots] = useState<any[]>([]);
+  const [historico, setHistorico] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [filtroMes, setFiltroMes] = useState("Todos");
@@ -57,6 +58,13 @@ export default function ChurnPage() {
     const res = await fetch(`/api/snapshots?agencia_id=${id}`);
     const json = await res.json();
     setSnapshots(json.data||[]);
+    // Calcular automaticamente (API atualiza períodos ao vivo e fechados)
+    fetch(`/api/churn/calcular?agencia_id=${id}`).catch(()=>{});
+    
+    // Buscar histórico de churn rate
+    const { data: hist } = await supabase.from("historico_churn_rate")
+      .select("*").eq("agencia_id", id!).order("data_calculo", { ascending: true });
+    setHistorico(hist||[]);
     const { data: ag } = await supabase.from("agencias").select("meta_churn").eq("id",id!).single();
     if (ag?.meta_churn) setMetaChurn(String(ag.meta_churn));
     setLoading(false);
@@ -124,8 +132,8 @@ export default function ChurnPage() {
         </div>
       </div>
 
-      {/* KPIs — 3 cards */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"16px", marginBottom:"20px" }}>
+      {/* KPIs — 4 cards */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"16px", marginBottom:"20px" }}>
         {/* Churn Total */}
         <div className="card" style={{ padding:"16px 20px" }}>
           <p style={{ fontSize:"11px", color:"#606060", margin:"0 0 4px" }}>
@@ -133,6 +141,14 @@ export default function ChurnPage() {
           </p>
           <p style={{ fontSize:"28px", fontWeight:"700", color:"#ef4444", margin:0 }}>{churnTotal}</p>
           <p style={{ fontSize:"11px", color:"#606060", margin:"4px 0 0" }}>Base {mesBaseAno}: {baseMes} clientes</p>
+        </div>
+        {/* Tempo Médio */}
+        <div className="card" style={{ padding:"16px 20px" }}>
+          <p style={{ fontSize:"11px", color:"#606060", margin:"0 0 4px" }}>Tempo Médio do Cliente</p>
+          <p style={{ fontSize:"28px", fontWeight:"700", color:"#29ABE2", margin:0 }}>
+            {historico.length > 0 ? `${historico[historico.length-1]?.tempo_medio_meses || "—"}m` : "—"}
+          </p>
+          <p style={{ fontSize:"11px", color:"#606060", margin:"4px 0 0" }}>meses antes do churn</p>
         </div>
 
         {/* Churn Rate */}
@@ -165,6 +181,82 @@ export default function ChurnPage() {
           )}
         </div>
       </div>
+
+      {/* Histórico de Cálculos */}
+      {historico.length > 0 && (
+        <div className="card" style={{ marginBottom:"20px", padding:"16px 20px" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"14px" }}>
+            <h3 style={{ fontSize:"13px", fontWeight:"600", color:"#f0f0f0", margin:0 }}>
+              📊 Histórico de Cálculos (a cada 4 meses)
+            </h3>
+            <button onClick={async () => {
+              const id = await getAgenciaId();
+              await fetch(`/api/churn/calcular`, {
+                method:"POST", headers:{"Content-Type":"application/json"},
+                body: JSON.stringify({ agencia_id: id, forcar: true })
+              });
+              carregar();
+            }} className="btn-ghost" style={{ fontSize:"11px", cursor:"pointer", padding:"4px 10px" }}>
+              🔄 Recalcular
+            </button>
+          </div>
+          <div style={{ overflowX:"auto" }}>
+            <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"12px" }}>
+              <thead>
+                <tr style={{ borderBottom:"1px solid #29ABE230" }}>
+                  {["Período","Data Cálculo","Base","Total Churn","Churn Rate","Tempo Médio"].map(h=>(
+                    <th key={h} style={{ padding:"8px 12px", textAlign:"left", fontSize:"11px", color:"#606060", fontWeight:"600", borderRight:"1px solid #29ABE215" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {historico.map((h:any, idx:number) => (
+                  <tr key={h.id} style={{ borderBottom:"1px solid #1e1e1e", background:idx%2===0?"transparent":"#0a0a0a" }}>
+                    <td style={{ padding:"8px 12px", fontWeight:"600", color:"#29ABE2", borderRight:"1px solid #29ABE215" }}>{h.periodo}</td>
+                    <td style={{ padding:"8px 12px", color:"#a0a0a0", borderRight:"1px solid #29ABE215" }}>
+                      {h.data_calculo ? new Date(h.data_calculo).toLocaleDateString("pt-BR") : "—"}
+                    </td>
+                    <td style={{ padding:"8px 12px", color:"#f0f0f0", borderRight:"1px solid #29ABE215" }}>{h.base_clientes||"—"}</td>
+                    <td style={{ padding:"8px 12px", color:"#ef4444", borderRight:"1px solid #29ABE215" }}>{h.total_churn||"—"}</td>
+                    <td style={{ padding:"8px 12px", borderRight:"1px solid #29ABE215" }}>
+                      {h.churn_rate ? <span style={{ color:"#ef4444", fontWeight:"600" }}>{h.churn_rate}%</span> : "—"}
+                    </td>
+                    <td style={{ padding:"8px 12px", color:"#29ABE2" }}>
+                      {h.tempo_medio_meses ? `${h.tempo_medio_meses} meses` : "—"}
+                    </td>
+                  </tr>
+                ))}
+                {/* Linha ao vivo — Jan-Abr/2026 */}
+                {(() => {
+                  const meses = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+                  const churnJan = clientes.filter(c=>c.data_churn==="Jan/2026").length;
+                  const churnFev = clientes.filter(c=>c.data_churn==="Fev/2026").length;
+                  const churnMar = clientes.filter(c=>c.data_churn==="Mar/2026").length;
+                  const totalAoVivo = churnJan + churnFev + churnMar;
+                  const snapFev = snapshots.find((s:any)=>s.mes_ano==="Fev/2026");
+                  const base = snapFev?.clientes_ativos || 40;
+                  const rateAoVivo = base > 0 ? ((totalAoVivo/base)*100).toFixed(1) : "—";
+                  return (
+                    <tr style={{ borderBottom:"1px solid #1e1e1e", background:"rgba(41,171,226,0.05)" }}>
+                      <td style={{ padding:"8px 12px", fontWeight:"600", color:"#29ABE2", borderRight:"1px solid #29ABE215" }}>
+                        Jan/2026 - Abr/2026
+                        <span style={{ fontSize:"10px", background:"rgba(41,171,226,0.2)", padding:"1px 6px", borderRadius:"10px", marginLeft:"6px" }}>ao vivo</span>
+                      </td>
+                      <td style={{ padding:"8px 12px", color:"#606060", borderRight:"1px solid #29ABE215" }}>30/04/2026</td>
+                      <td style={{ padding:"8px 12px", color:"#f0f0f0", borderRight:"1px solid #29ABE215" }}>{base}</td>
+                      <td style={{ padding:"8px 12px", color:"#ef4444", borderRight:"1px solid #29ABE215" }}>{totalAoVivo} (parcial)</td>
+                      <td style={{ padding:"8px 12px", borderRight:"1px solid #29ABE215" }}>
+                        <span style={{ color:"#f59e0b", fontWeight:"600" }}>{rateAoVivo}% (parcial)</span>
+                      </td>
+                      <td style={{ padding:"8px 12px", color:"#606060" }}>calculado em Abr</td>
+                    </tr>
+                  );
+                })()}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Filtro por Mês/Ano */}
       <div style={{ overflowX:"auto", paddingBottom:"8px", marginBottom:"16px" }}>
