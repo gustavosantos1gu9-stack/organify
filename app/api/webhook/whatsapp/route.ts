@@ -167,18 +167,20 @@ export async function POST(req: NextRequest) {
         const isPrimeiraMsg = !conversa.primeira_mensagem_at;
         if (!tracking && isPrimeiraMsg) {
           const umHoraAtras = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+          // Buscar rastreamentos recentes destinados ao número do agente (wa_destino)
+          // e que ainda não foram associados a um lead (wa_numero não é telefone real)
           const { data: recentes } = await supabase.from("rastreamentos_pendentes")
             .select("*")
             .gt("created_at", umHoraAtras)
+            .or(`wa_destino.eq.${agencia.whatsapp_numero},wa_destino.is.null`)
             .order("created_at", { ascending: false })
             .limit(20);
 
           if (recentes && recentes.length > 0) {
-            // Buscar rastreamento mais próximo do momento da mensagem
-            // Excluir rastreamentos que já têm número de telefone real associado
             const candidato = recentes.find((r: any) => {
               if (!r.utm_campaign && !r.link_id && !r.fbclid) return false;
-              // wa_numero não deve ser um número de telefone real (já associado)
+              // wa_numero não deve ser número de telefone real (já associado)
               const isNumeroReal = /^\d{10,15}$/.test(r.wa_numero || "");
               return !isNumeroReal;
             });

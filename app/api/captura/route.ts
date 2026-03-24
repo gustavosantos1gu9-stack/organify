@@ -10,27 +10,46 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { session_id, wa_destino, utm_source, utm_medium, utm_campaign,
-            utm_content, utm_term, fbclid, link_id, origem, url_completa } = body;
+            utm_content, utm_term, fbclid, link_id, link_nome, origem, url_completa } = body;
 
-    // Salvar rastreamento pendente com fbclid como chave de cruzamento
-    // O webhook vai buscar por fbclid quando o lead mandar mensagem
-    if (fbclid) {
+    const origemFinal = origem || (
+      utm_source ? (
+        ["facebook","ig","fb"].some(s => (utm_source||"").toLowerCase().includes(s)) ? "Meta Ads" :
+        utm_source.toLowerCase().includes("google") ? "Google Ads" : "Outras Origens"
+      ) : "Não Rastreada"
+    );
+
+    const base = {
+      utm_source, utm_medium, utm_campaign, utm_content, utm_term,
+      fbclid, link_id, origem: origemFinal, url_completa,
+      wa_destino: wa_destino || null,
+      created_at: new Date().toISOString(),
+    };
+
+    // Salvar com link_id como chave principal (mais confiável)
+    if (link_id) {
       await supabase.from("rastreamentos_pendentes").upsert({
-        wa_numero: fbclid, // usa fbclid como chave temporária
-        utm_source, utm_medium, utm_campaign, utm_content, utm_term,
-        fbclid, link_id, origem, url_completa,
-        created_at: new Date().toISOString(),
+        ...base, wa_numero: link_id,
       }, { onConflict: "wa_numero" });
     }
 
-    // Também salvar com session_id
+    // Salvar com fbclid como chave
+    if (fbclid) {
+      await supabase.from("rastreamentos_pendentes").upsert({
+        ...base, wa_numero: fbclid,
+      }, { onConflict: "wa_numero" });
+    }
+
+    // Salvar com session_id como chave
     if (session_id) {
       await supabase.from("rastreamentos_pendentes").upsert({
-        wa_numero: session_id,
-        utm_source, utm_medium, utm_campaign, utm_content, utm_term,
-        fbclid, link_id, origem, url_completa,
-        created_at: new Date().toISOString(),
+        ...base, wa_numero: session_id,
       }, { onConflict: "wa_numero" });
+    }
+
+    // Incrementar cliques no link se tiver link_id
+    if (link_id) {
+      await supabase.rpc("incrementar_cliques", { link_uuid: link_id }).catch(() => {});
     }
 
     return NextResponse.json({ ok: true });
