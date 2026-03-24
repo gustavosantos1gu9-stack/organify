@@ -85,7 +85,7 @@ export interface Cliente {
   numero?: string; complemento?: string; bairro?: string;
   utm_source?: string; utm_medium?: string; utm_campaign?: string;
   utm_content?: string; utm_term?: string;
-  servico?: string; frequencia?: string; status_recorrencia?: string;
+  servico?: string; frequencia?: string; status_recorrencia?: string; cadastro_id?: string;
   created_at: string;
   origens?: { nome: string };
   categorias_clientes?: { nome: string };
