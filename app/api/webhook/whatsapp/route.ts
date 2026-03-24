@@ -128,10 +128,13 @@ export async function POST(req: NextRequest) {
       } catch {}
 
       // Buscar ou criar conversa
+      // Flag capturada ANTES do insert — conversa nova = primeira mensagem
+      let eraNovaConversa = false;
       let { data: conversa } = await supabase.from("conversas")
         .select("*").eq("agencia_id", agencia.id).eq("contato_numero", numero).single();
 
       if (!conversa) {
+        eraNovaConversa = true;
         const { data: nova } = await supabase.from("conversas").insert({
           agencia_id: agencia.id, instancia: instanciaName,
           contato_numero: numero, contato_nome: nome, contato_foto: foto,
@@ -164,7 +167,7 @@ export async function POST(req: NextRequest) {
 
         // 2. Buscar rastreamento recente (até 60 min) — SOMENTE se for primeira mensagem
         // Evita associar rastreamento a clientes antigos que mandaram mensagem por acaso
-        const isPrimeiraMsg = !conversa.primeira_mensagem_at;
+        const isPrimeiraMsg = eraNovaConversa || !conversa.primeira_mensagem_at;
         if (!tracking && isPrimeiraMsg) {
           const umHoraAtras = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
