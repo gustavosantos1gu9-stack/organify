@@ -42,7 +42,7 @@ export default function ChurnPage() {
   const [historico, setHistorico] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
-  const [filtroMes, setFiltroMes] = useState("Todos");
+  const hoje = new Date(); const [filtroMes, setFiltroMes] = useState(`${["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"][hoje.getMonth()]}//${hoje.getFullYear()}`);
   const [sort, setSort] = useState("data_churn");
   const [sortDir, setSortDir] = useState<"asc"|"desc">("desc");
   const [metaChurn, setMetaChurn] = useState<string>("");
