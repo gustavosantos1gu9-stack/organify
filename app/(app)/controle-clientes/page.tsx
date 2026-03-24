@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Search, RefreshCw, ChevronDown, ChevronRight, Plus, MessageSquare, X, Send, ArrowUpDown, Check } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Search, RefreshCw, ChevronDown, ChevronRight, MessageSquare, X, Send, Check, UserCircle2, Pencil, Trash2 } from "lucide-react";
 import { supabase, getAgenciaId } from "@/lib/hooks";
 
 interface ControleCliente {
@@ -12,10 +12,16 @@ interface ControleCliente {
   consultor: string; gestor: string; squad: string; investimento_mensal: number;
   ultimo_aumento: string; acao: string; acao_feita: string; otimizacoes: string;
   tarefas: string; datas_otimizacoes: string; motivo: string; razao_nome: string;
-  grupo: string; created_at: string;
+  grupo: string; created_at: string; cadastro_id?: string;
 }
 interface Subitem { id: string; cliente_id: string; texto: string; feito: boolean; created_at: string; }
 interface Anotacao { id: string; cliente_id: string; usuario: string; conteudo: string; created_at: string; tipo: string; }
+interface Cadastro {
+  id: string; nome: string; cnpj: string; cpf: string; rg: string;
+  endereco_empresa: string; endereco_pessoal: string; email: string;
+  investimento_anuncios: string; ticket_micro_laser: string;
+  regiao_anunciar: string; faturamento_medio: string; login_facebook: string; criado_em: string;
+}
 
 const STATUS_OPTS = [
   { value:"ativo", label:"Ativo", cor:"#22c55e" },
@@ -26,7 +32,14 @@ const STATUS_OPTS = [
   { value:"renovar", label:"Renovar", cor:"#29ABE2" },
 ];
 
-const COLUNAS_DEF = [
+const MESES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+
+function mesAtualStr() {
+  const d = new Date();
+  return `${MESES[d.getMonth()]}/${d.getFullYear()}`;
+}
+
+const COLUNAS_PADRAO = [
   { key:"status", label:"Status", w:110 },
   { key:"data_entrada", label:"Data Entrada", w:120 },
   { key:"data_inicio_campanha", label:"Início Camp.", w:120 },
@@ -61,39 +74,34 @@ const SORT_OPTS = [
 
 function formatarData(d: string) {
   if (!d) return "";
-  const limpo = d.trim();
-  // Remove horas se existir
-  const semHoras = limpo.split(" ")[0].split("T")[0];
-  if (semHoras.includes("/")) {
-    const partes = semHoras.split("/");
-    if (partes.length === 3) return `${partes[0].padStart(2,"0")}/${partes[1].padStart(2,"0")}/${partes[2]}`;
-    return semHoras;
+  const limpo = d.trim().split(" ")[0].split("T")[0];
+  if (limpo.includes("/")) {
+    const p = limpo.split("/");
+    if (p.length === 3) return `${p[0].padStart(2,"0")}/${p[1].padStart(2,"0")}/${p[2]}`;
+    return limpo;
   }
-  if (semHoras.match(/^\d{4}-\d{2}-\d{2}$/)) {
-    const [y,m,dia] = semHoras.split("-");
+  if (limpo.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    const [y,m,dia] = limpo.split("-");
     return `${dia}/${m}/${y}`;
   }
-  return semHoras;
+  return limpo;
 }
 
 function CelulaEditavel({ valor, onSave, tipo="text" }: { valor: string; onSave: (v: string) => void; tipo?: string }) {
   const [editando, setEditando] = useState(false);
   const [v, setV] = useState(valor||"");
-
   if (editando && tipo === "date") return (
     <input type="date" autoFocus defaultValue={v}
       onBlur={e => { setEditando(false); onSave(e.target.value); }}
       onChange={e => setV(e.target.value)}
       style={{ background:"#1a1a1a", border:"1px solid #29ABE2", borderRadius:"4px", padding:"3px 6px", color:"#f0f0f0", fontSize:"12px", width:"130px" }}/>
   );
-
   if (editando) return (
     <input autoFocus value={v} onChange={e => setV(e.target.value)}
       onBlur={() => { setEditando(false); onSave(v); }}
       onKeyDown={e => { if(e.key==="Enter"){setEditando(false);onSave(v);} if(e.key==="Escape"){setEditando(false);setV(valor||"");} }}
       style={{ background:"#1a1a1a", border:"1px solid #29ABE2", borderRadius:"4px", padding:"3px 6px", color:"#f0f0f0", fontSize:"12px", width:"100%", minWidth:"60px" }}/>
   );
-
   return (
     <span onClick={()=>setEditando(true)} title="Clique para editar"
       style={{ cursor:"pointer", padding:"3px 4px", borderRadius:"4px", display:"block", minHeight:"22px", fontSize:"12px", color:v?"#f0f0f0":"#2a2a2a" }}>
@@ -107,7 +115,6 @@ function StatusSelect({ valor, onSave }: { valor: string; onSave: (v: string) =>
   const [pos, setPos] = useState({ top: 0, left: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
   const opt = STATUS_OPTS.find(s=>s.value===valor)||STATUS_OPTS[0];
-
   const handleOpen = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (btnRef.current) {
@@ -116,13 +123,11 @@ function StatusSelect({ valor, onSave }: { valor: string; onSave: (v: string) =>
     }
     setOpen(v => !v);
   };
-
   const handleSelect = (e: React.MouseEvent, val: string) => {
     e.stopPropagation();
     onSave(val);
     setOpen(false);
   };
-
   return (
     <>
       <button ref={btnRef} onClick={handleOpen} style={{ display:"flex", alignItems:"center", gap:"5px", background:"none", border:"none", cursor:"pointer", padding:"3px 6px", borderRadius:"6px" }}>
@@ -145,6 +150,111 @@ function StatusSelect({ valor, onSave }: { valor: string; onSave: (v: string) =>
         </>
       )}
     </>
+  );
+}
+
+function PainelPerfil({ cliente, cadastro, todos_cadastros, onClose, onVincular }: {
+  cliente: ControleCliente;
+  cadastro: Cadastro | null;
+  todos_cadastros: Cadastro[];
+  onClose: () => void;
+  onVincular: (cadastroId: string) => void;
+}) {
+  const [buscaCadastro, setBuscaCadastro] = useState("");
+  const [mostraBusca, setMostraBusca] = useState(false);
+  const filtrados = todos_cadastros.filter(c =>
+    c.nome.toLowerCase().includes(buscaCadastro.toLowerCase())
+  );
+  const campos = [
+    { label: "Email", key: "email" },
+    { label: "CNPJ", key: "cnpj" },
+    { label: "CPF", key: "cpf" },
+    { label: "RG", key: "rg" },
+    { label: "Endereço Empresa", key: "endereco_empresa" },
+    { label: "Endereço Pessoal", key: "endereco_pessoal" },
+    { label: "Investimento Anúncios", key: "investimento_anuncios" },
+    { label: "Ticket Micro/Laser", key: "ticket_micro_laser" },
+    { label: "Região", key: "regiao_anunciar" },
+    { label: "Faturamento Médio", key: "faturamento_medio" },
+    { label: "Login Facebook", key: "login_facebook" },
+  ];
+  return (
+    <div style={{ position:"fixed", right:0, top:0, bottom:0, width:"400px", background:"#141414", borderLeft:"1px solid #2e2e2e", zIndex:200, display:"flex", flexDirection:"column", boxShadow:"-4px 0 20px rgba(0,0,0,0.3)" }}>
+      <div style={{ padding:"14px 16px", borderBottom:"1px solid #2e2e2e", display:"flex", alignItems:"center", gap:"10px", background:"#1a1a1a" }}>
+        <UserCircle2 size={20} color="#29ABE2"/>
+        <div style={{ flex:1 }}>
+          <p style={{ fontSize:"14px", fontWeight:"600", color:"#f0f0f0", margin:0 }}>{cliente.nome}</p>
+          <p style={{ fontSize:"11px", color:"#606060", margin:0 }}>Perfil do Cliente</p>
+        </div>
+        <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", color:"#606060" }}><X size={16}/></button>
+      </div>
+
+      <div style={{ flex:1, overflowY:"auto", padding:"16px" }}>
+        {cadastro ? (
+          <>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"16px" }}>
+              <span style={{ fontSize:"11px", color:"#22c55e", background:"#052e16", padding:"3px 8px", borderRadius:"10px" }}>✓ Cadastro vinculado</span>
+              <button onClick={()=>setMostraBusca(v=>!v)}
+                style={{ background:"none", border:"1px solid #2e2e2e", borderRadius:"6px", padding:"4px 10px", cursor:"pointer", color:"#606060", fontSize:"11px" }}>
+                Trocar
+              </button>
+            </div>
+            {mostraBusca && (
+              <div style={{ marginBottom:"16px" }}>
+                <input value={buscaCadastro} onChange={e=>setBuscaCadastro(e.target.value)}
+                  placeholder="Buscar cadastro..."
+                  style={{ width:"100%", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"6px", padding:"8px 10px", color:"#f0f0f0", fontSize:"13px", boxSizing:"border-box" as const }}/>
+                <div style={{ maxHeight:"160px", overflowY:"auto", marginTop:"4px", border:"1px solid #2e2e2e", borderRadius:"6px", background:"#1a1a1a" }}>
+                  {filtrados.map(c=>(
+                    <button key={c.id} onClick={()=>{onVincular(c.id);setMostraBusca(false);}}
+                      style={{ display:"block", width:"100%", padding:"8px 12px", background:"none", border:"none", cursor:"pointer", color:"#f0f0f0", fontSize:"12px", textAlign:"left" }}
+                      onMouseEnter={e=>e.currentTarget.style.background="#2a2a2a"}
+                      onMouseLeave={e=>e.currentTarget.style.background="none"}>
+                      {c.nome}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {campos.map(campo=>(
+              <div key={campo.key} style={{ marginBottom:"12px" }}>
+                <p style={{ fontSize:"10px", color:"#606060", margin:"0 0 2px", textTransform:"uppercase" }}>{campo.label}</p>
+                <p style={{ fontSize:"13px", color:"#f0f0f0", margin:0, wordBreak:"break-word" }}>
+                  {(cadastro as any)[campo.key] || "—"}
+                </p>
+              </div>
+            ))}
+          </>
+        ) : (
+          <div style={{ textAlign:"center", padding:"32px 0" }}>
+            <UserCircle2 size={48} color="#2e2e2e" style={{ marginBottom:"12px" }}/>
+            <p style={{ color:"#606060", fontSize:"13px", marginBottom:"16px" }}>Nenhum cadastro vinculado</p>
+            <button onClick={()=>setMostraBusca(v=>!v)}
+              style={{ background:"#29ABE2", border:"none", borderRadius:"8px", padding:"10px 20px", cursor:"pointer", color:"#000", fontWeight:"600", fontSize:"13px" }}>
+              Vincular cadastro
+            </button>
+            {mostraBusca && (
+              <div style={{ marginTop:"16px", textAlign:"left" }}>
+                <input value={buscaCadastro} onChange={e=>setBuscaCadastro(e.target.value)}
+                  placeholder="Buscar por nome..."
+                  style={{ width:"100%", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"6px", padding:"8px 10px", color:"#f0f0f0", fontSize:"13px", boxSizing:"border-box" as const }}/>
+                <div style={{ maxHeight:"200px", overflowY:"auto", marginTop:"4px", border:"1px solid #2e2e2e", borderRadius:"6px", background:"#1a1a1a" }}>
+                  {filtrados.map(c=>(
+                    <button key={c.id} onClick={()=>{onVincular(c.id);setMostraBusca(false);}}
+                      style={{ display:"block", width:"100%", padding:"8px 12px", background:"none", border:"none", cursor:"pointer", color:"#f0f0f0", fontSize:"12px", textAlign:"left" }}
+                      onMouseEnter={e=>e.currentTarget.style.background="#2a2a2a"}
+                      onMouseLeave={e=>e.currentTarget.style.background="none"}>
+                      {c.nome}
+                    </button>
+                  ))}
+                  {!filtrados.length && <p style={{ color:"#606060", fontSize:"12px", padding:"12px", margin:0 }}>Nenhum resultado.</p>}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -180,43 +290,24 @@ function PainelLateral({ cliente, onClose }: { cliente: ControleCliente; onClose
 
   const salvar = async () => {
     if (!texto.trim() || salvando) return;
-    if (!agIdLocal) { alert("Aguarde carregar..."); return; }
+    if (!agIdLocal) return;
     const textoEnvio = texto.trim();
     setSalvando(true);
     setTexto("");
     const tempId = `temp-${Date.now()}`;
-    const tempItem: Anotacao = {
-      id: tempId, cliente_id: cliente.id, usuario: nomeUsuario,
-      conteudo: textoEnvio, created_at: new Date().toISOString(), tipo: "atualizacoes",
-    };
+    const tempItem: Anotacao = { id: tempId, cliente_id: cliente.id, usuario: nomeUsuario, conteudo: textoEnvio, created_at: new Date().toISOString(), tipo: "atualizacoes" };
     setAnotacoes(prev => [...prev, tempItem]);
     try {
-      const payload: any = {
-        agencia_id: agIdLocal,
-        cliente_id: cliente.id,
-        usuario: nomeUsuario,
-        conteudo: textoEnvio,
-        created_at: new Date().toISOString(),
-      };
-      // Adicionar campos opcionais se existirem
-      try { payload.cliente_nome = cliente.nome; } catch {}
-      try { payload.tipo = "atualizacoes"; } catch {}
-
-      const { data, error } = await supabase.from("anotacoes").insert(payload).select().single();
-      if (error) {
-        console.error("Erro anotação:", JSON.stringify(error));
-        setErroAnotacao(`Erro: ${error.message}`);
-        setAnotacoes(prev => prev.filter(a => a.id !== tempId));
-        setTexto(textoEnvio);
-      } else {
-        setErroAnotacao("");
-        setAnotacoes(prev => prev.map(a => a.id === tempId ? data : a));
-      }
+      const { data, error } = await supabase.from("anotacoes").insert({
+        agencia_id: agIdLocal, cliente_id: cliente.id, usuario: nomeUsuario,
+        conteudo: textoEnvio, created_at: new Date().toISOString(), tipo: "atualizacoes",
+      }).select().single();
+      if (error) { setErroAnotacao(`Erro: ${error.message}`); setAnotacoes(prev=>prev.filter(a=>a.id!==tempId)); setTexto(textoEnvio); }
+      else { setErroAnotacao(""); setAnotacoes(prev=>prev.map(a=>a.id===tempId?data:a)); }
     } finally { setSalvando(false); }
   };
 
   const filtradas = anotacoes.filter(a => a.tipo === aba);
-
   return (
     <div style={{ position:"fixed", right:0, top:0, bottom:0, width:"380px", background:"#141414", borderLeft:"1px solid #2e2e2e", zIndex:200, display:"flex", flexDirection:"column", boxShadow:"-4px 0 20px rgba(0,0,0,0.3)" }}>
       <div style={{ padding:"14px 16px", borderBottom:"1px solid #2e2e2e", display:"flex", alignItems:"center", gap:"10px", background:"#1a1a1a" }}>
@@ -240,22 +331,15 @@ function PainelLateral({ cliente, onClose }: { cliente: ControleCliente; onClose
               <div style={{ display:"flex", alignItems:"center", gap:"6px" }}>
                 <div style={{ width:"6px", height:"6px", borderRadius:"50%", background:"#3a3a3a", flexShrink:0 }}/>
                 <p style={{ fontSize:"11px", color:"#505050", margin:0, flex:1 }}>{a.conteudo}</p>
-                <span style={{ fontSize:"10px", color:"#3a3a3a", whiteSpace:"nowrap" }}>
-                  {new Date(a.created_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}
-                </span>
+                <span style={{ fontSize:"10px", color:"#3a3a3a", whiteSpace:"nowrap" }}>{new Date(a.created_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>
               </div>
             ) : (
               <div style={{ display:"flex", gap:"8px", alignItems:"flex-start" }}>
-                {/* Avatar */}
-                <div style={{ width:"30px", height:"30px", borderRadius:"50%", background:"#29ABE2", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:"12px", fontWeight:"700", color:"#000" }}>
-                  {a.usuario.charAt(0).toUpperCase()}
-                </div>
+                <div style={{ width:"30px", height:"30px", borderRadius:"50%", background:"#29ABE2", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:"12px", fontWeight:"700", color:"#000" }}>{a.usuario.charAt(0).toUpperCase()}</div>
                 <div style={{ flex:1 }}>
                   <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"4px" }}>
                     <span style={{ fontSize:"12px", fontWeight:"600", color:"#f0f0f0" }}>{a.usuario}</span>
-                    <span style={{ fontSize:"10px", color:"#606060" }}>
-                      {new Date(a.created_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"})}
-                    </span>
+                    <span style={{ fontSize:"10px", color:"#606060" }}>{new Date(a.created_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>
                   </div>
                   <div style={{ background:"#1e1e1e", borderRadius:"4px 12px 12px 12px", padding:"8px 12px", border:"1px solid #2e2e2e" }}>
                     <p style={{ fontSize:"13px", color:"#f0f0f0", margin:0, whiteSpace:"pre-wrap", lineHeight:"1.5" }}>{a.conteudo}</p>
@@ -274,7 +358,7 @@ function PainelLateral({ cliente, onClose }: { cliente: ControleCliente; onClose
             onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();salvar();}}}
             style={{ resize:"none", minHeight:"40px", maxHeight:"120px", flex:1, margin:0, fontSize:"13px" }}/>
           <button onClick={salvar} disabled={salvando||!texto.trim()}
-            style={{ background: texto.trim()?"#29ABE2":"#2e2e2e", border:"none", borderRadius:"8px", padding:"8px 12px", cursor:texto.trim()?"pointer":"default", color:texto.trim()?"#000":"#606060", flexShrink:0, display:"flex", alignItems:"center" }}>
+            style={{ background:texto.trim()?"#29ABE2":"#2e2e2e", border:"none", borderRadius:"8px", padding:"8px 12px", cursor:texto.trim()?"pointer":"default", color:texto.trim()?"#000":"#606060", flexShrink:0, display:"flex", alignItems:"center" }}>
             {salvando ? <span style={{fontSize:"10px"}}>...</span> : <Send size={14}/>}
           </button>
           {erroAnotacao && <p style={{color:"#ef4444",fontSize:"11px",margin:"4px 0 0",width:"100%"}}>{erroAnotacao}</p>}
@@ -294,24 +378,45 @@ export default function ControleClientesPage() {
   const [subitens, setSubitens] = useState<Record<string,Subitem[]>>({});
   const [novoSubitem, setNovoSubitem] = useState<Record<string,string>>({});
   const [painelAberto, setPainelAberto] = useState<ControleCliente|null>(null);
+  const [perfilAberto, setPerfilAberto] = useState<ControleCliente|null>(null);
   const [agId, setAgId] = useState("");
   const [usuarios, setUsuarios] = useState<string[]>([]);
   const [times, setTimes] = useState<string[]>([]);
   const [snapsMensais, setSnapsMensais] = useState<any[]>([]);
   const [churnsMes, setChurnsMes] = useState<any[]>([]);
-  const [colWidths, setColWidths] = useState<Record<string,number>>(() => Object.fromEntries(COLUNAS_DEF.map(c=>[c.key,c.w])));
+  const [colWidths, setColWidths] = useState<Record<string,number>>(() => Object.fromEntries(COLUNAS_PADRAO.map(c=>[c.key,c.w])));
+  const [colunas, setColunas] = useState(() => {
+    try {
+      const salvo = localStorage.getItem("controle_colunas");
+      return salvo ? JSON.parse(salvo) : COLUNAS_PADRAO;
+    } catch { return COLUNAS_PADRAO; }
+  });
+  const [editandoHeader, setEditandoHeader] = useState<string|null>(null);
+  const [cadastros, setCadastros] = useState<Cadastro[]>([]);
+  const [cadastrosMap, setCadastrosMap] = useState<Record<string,Cadastro>>({});
   const resizing = useRef<{key:string;startX:number;startW:number}|null>(null);
+
+  const salvarColunas = (novas: typeof COLUNAS_PADRAO) => {
+    setColunas(novas);
+    try { localStorage.setItem("controle_colunas", JSON.stringify(novas)); } catch {}
+  };
+
+  const renomearColuna = (key: string, novoLabel: string) => {
+    salvarColunas(colunas.map((c: any) => c.key === key ? { ...c, label: novoLabel } : c));
+    setEditandoHeader(null);
+  };
+
+  const excluirColuna = (key: string) => {
+    salvarColunas(colunas.filter((c: any) => c.key !== key));
+  };
 
   const carregar = async () => {
     const id = await getAgenciaId();
     setAgId(id||"");
     const { data } = await supabase.from("controle_clientes").select("*").eq("agencia_id",id!).neq("status","saiu");
     setClientes(data||[]);
-    // Buscar churns separado
-    const { data: churns } = await supabase.from("controle_clientes")
-      .select("data_churn").eq("agencia_id",id!).eq("status","saiu");
+    const { data: churns } = await supabase.from("controle_clientes").select("data_churn").eq("agencia_id",id!).eq("status","saiu");
     setChurnsMes(churns||[]);
-    // Carregar snapshots para KPI base mês passado
     const resSnap = await fetch(`/api/snapshots?agencia_id=${id}`);
     const jsonSnap = await resSnap.json();
     setSnapsMensais(jsonSnap.data||[]);
@@ -319,12 +424,50 @@ export default function ControleClientesPage() {
     const { data: tms } = await supabase.from("times").select("nome").eq("agencia_id",id!);
     setUsuarios(users?.map((u:any)=>u.nome)||[]);
     setTimes(tms?.map((t:any)=>t.nome)||[]);
+
+    // Carregar cadastros para associação
+    const { data: cads } = await supabase.from("cadastros_clientes").select("*").eq("agencia_id", id!);
+    const lista = cads || [];
+    setCadastros(lista);
+    const mapa: Record<string,Cadastro> = {};
+    lista.forEach((c: Cadastro) => { mapa[c.id] = c; });
+    setCadastrosMap(mapa);
+
     setLoading(false);
   };
 
+  // Auto-associar por nome ao carregar
+  useEffect(() => {
+    if (clientes.length && cadastros.length) {
+      clientes.forEach(async (cliente) => {
+        if (cliente.cadastro_id) return; // já vinculado
+        const match = cadastros.find(c =>
+          c.nome.toLowerCase().trim() === cliente.nome.toLowerCase().trim()
+        );
+        if (match) {
+          await supabase.from("controle_clientes").update({ cadastro_id: match.id }).eq("id", cliente.id);
+          setClientes(prev => prev.map(c => c.id === cliente.id ? { ...c, cadastro_id: match.id } : c));
+        }
+      });
+    }
+  }, [clientes.length, cadastros.length]);
+
   const atualizar = async (id: string, campo: string, valor: any, nomeCliente: string) => {
-    await supabase.from("controle_clientes").update({[campo]:valor}).eq("id",id);
-    setClientes(prev=>prev.map(c=>c.id===id?{...c,[campo]:valor}:c));
+    const updates: any = { [campo]: valor };
+
+    // Churn automático: grava data_churn = mês atual
+    if (campo === "status" && valor === "saiu") {
+      updates.data_churn = mesAtualStr();
+    }
+
+    await supabase.from("controle_clientes").update(updates).eq("id", id);
+    setClientes(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+
+    // Se virou churn, remove da lista visível após um tick
+    if (campo === "status" && valor === "saiu") {
+      setTimeout(() => setClientes(prev => prev.filter(c => c.id !== id)), 800);
+    }
+
     try {
       const agIdAtual = agId || (await getAgenciaId()) || "";
       if (!agIdAtual) return;
@@ -337,16 +480,20 @@ export default function ControleClientesPage() {
         acao:"Ação", acao_feita:"Ação Feita", otimizacoes:"Otimizações", tarefas:"Tarefas",
       };
       const label = campoLabel[campo] || campo;
-      const { error: logErr } = await supabase.from("anotacoes").insert({
-        agencia_id: agIdAtual,
-        cliente_id: id,
-        usuario: nomeUser,
+      await supabase.from("anotacoes").insert({
+        agencia_id: agIdAtual, cliente_id: id, usuario: nomeUser,
         conteudo: `${nomeUser} alterou ${label} → "${valor}"`,
-        tipo: "log",
-        created_at: new Date().toISOString(),
+        tipo: "log", created_at: new Date().toISOString(),
       });
-      if (logErr) console.error("Log erro detalhado:", JSON.stringify(logErr));
     } catch(e) { console.error("Log exceção:", e); }
+  };
+
+  const vincularCadastro = async (clienteId: string, cadastroId: string) => {
+    await supabase.from("controle_clientes").update({ cadastro_id: cadastroId }).eq("id", clienteId);
+    setClientes(prev => prev.map(c => c.id === clienteId ? { ...c, cadastro_id: cadastroId } : c));
+    if (perfilAberto?.id === clienteId) {
+      setPerfilAberto(prev => prev ? { ...prev, cadastro_id: cadastroId } : prev);
+    }
   };
 
   const toggleExpandir = async (id: string) => {
@@ -379,10 +526,9 @@ export default function ControleClientesPage() {
     setSubitens(prev=>({...prev,[clienteId]:prev[clienteId].map(s=>s.id===subId?{...s,feito:!feito}:s)}));
   };
 
-  // Resize colunas
   const startResize = (key: string, e: React.MouseEvent) => {
     e.preventDefault();
-    resizing.current = { key, startX: e.clientX, startW: colWidths[key] };
+    resizing.current = { key, startX: e.clientX, startW: colWidths[key] || 120 };
     const onMove = (ev: MouseEvent) => {
       if (!resizing.current) return;
       const newW = Math.max(60, resizing.current.startW + ev.clientX - resizing.current.startX);
@@ -404,9 +550,16 @@ export default function ControleClientesPage() {
       return va<vb?1:-1;
     });
 
+  const painelLateralAberto = painelAberto || perfilAberto;
+
   return (
     <div className="animate-in">
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}} .resize-handle{width:4px;cursor:col-resize;position:absolute;right:0;top:0;bottom:0;background:transparent;} .resize-handle:hover{background:#29ABE2;}`}</style>
+      <style>{`
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .resize-handle{width:4px;cursor:col-resize;position:absolute;right:0;top:0;bottom:0;background:transparent;}
+        .resize-handle:hover{background:#29ABE2;}
+        .th-group:hover .th-actions{opacity:1!important;}
+      `}</style>
 
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"20px" }}>
         <div>
@@ -432,13 +585,11 @@ export default function ControleClientesPage() {
       {/* KPIs */}
       {(() => {
         const hoje = new Date();
-        const mesAtual = hoje.getMonth();
-        const anoAtual = hoje.getFullYear();
-        const mesPassado = mesAtual === 0 ? 11 : mesAtual - 1;
-        const anoMesPassado = mesAtual === 0 ? anoAtual - 1 : anoAtual;
-
-        // Churn do mês atual e passado (buscando da tabela controle_clientes com status saiu)
-        // Tempo médio: média de dias entre data_entrada e hoje para clientes ativos com data_entrada
+        const mesesNomes = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+        const mesAtualStr2 = `${mesesNomes[hoje.getMonth()]}/${hoje.getFullYear()}`;
+        const mesPassadoIdx = hoje.getMonth()===0?11:hoje.getMonth()-1;
+        const anoMesPassado = hoje.getMonth()===0?hoje.getFullYear()-1:hoje.getFullYear();
+        const mesPassadoStr = `${mesesNomes[mesPassadoIdx]}/${anoMesPassado}`;
         const comData = clientes.filter(c => c.data_entrada && c.data_entrada.trim());
         const tempoMedioDias = comData.length > 0 ? comData.reduce((s, c) => {
           try {
@@ -446,34 +597,10 @@ export default function ControleClientesPage() {
             return s + (hoje.getTime() - entrada.getTime()) / (1000*60*60*24*30);
           } catch { return s; }
         }, 0) / comData.length : 0;
-
         const ativos = clientes.filter(c=>c.status==="ativo");
         const pausados = clientes.filter(c=>c.status==="pausado");
         const entrada = clientes.filter(c=>c.status==="entrada");
-
-        // Base mês passado via snapshot
-        const meses2 = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
-        const mesPassadoIdx2 = mesAtual===0?11:mesAtual-1;
-        const anoMesPassado2 = mesAtual===0?anoAtual-1:anoAtual;
-        const mesPassadoStr = `${meses2[mesPassadoIdx2]}/${anoMesPassado2}`;
-        // Buscar snapshot do mês passado
-        const mesesNomes = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
-        const mesAtualStr2 = `${mesesNomes[hoje.getMonth()]}/${hoje.getFullYear()}`;
         const basePassada = snapsMensais.find((s:any)=>s.mes_ano===mesPassadoStr)?.clientes_ativos || 0;
-
-        // Churn do mês atual e anterior — buscado da tabela controle_clientes (status saiu)
-        // Precisamos do churn de clientes que tinham data_churn = mês atual
-        // Como não temos isso aqui diretamente, usamos o total de saiu como proxy
-        const mesPassadoIdx3 = hoje.getMonth()===0?11:hoje.getMonth()-1;
-        const anoMesPassado3 = hoje.getMonth()===0?hoje.getFullYear()-1:hoje.getFullYear();
-        const mesPassadoStr3 = `${mesesNomes[mesPassadoIdx3]}/${anoMesPassado3}`;
-        const baseAntePassada = snapsMensais.find((s:any)=>s.mes_ano===mesPassadoStr3)?.clientes_ativos || 0;
-
-        // Churn rate = não temos data_churn aqui, mas podemos mostrar a base
-        const churnRateKPI = basePassada > 0 && baseAntePassada > 0
-          ? (((basePassada - ativos.length) / basePassada) * 100).toFixed(1)
-          : "—";
-
         const kpis = [
           { label:"Clientes Totais", value:clientes.length, cor:"#f0f0f0" },
           { label:"Clientes Ativos", value:ativos.length, cor:"#22c55e" },
@@ -483,7 +610,6 @@ export default function ControleClientesPage() {
           { label:"Tempo Médio (meses)", value:tempoMedioDias > 0 ? tempoMedioDias.toFixed(1) : "—", cor:"#f0f0f0" },
           { label:`Churn ${mesAtualStr2}`, value: churnsMes.filter((c:any) => c.data_churn === mesAtualStr2).length, cor:"#ef4444" },
         ];
-
         return (
           <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"12px", marginBottom:"20px" }}>
             {kpis.map(k=>(
@@ -497,26 +623,44 @@ export default function ControleClientesPage() {
       })()}
 
       {/* Tabela */}
-      <div style={{ overflowX:"auto", border:"1px solid #2e2e2e", borderRadius:"12px", marginRight:painelAberto?"390px":"0", transition:"margin 0.2s" }}>
+      <div style={{ overflowX:"auto", border:"1px solid #2e2e2e", borderRadius:"12px", marginRight:painelLateralAberto?"400px":"0", transition:"margin 0.2s" }}>
         <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"12px", tableLayout:"fixed" }}>
           <thead>
             <tr style={{ background:"#1a1a1a", borderBottom:"1px solid #2e2e2e" }}>
               <th style={{ width:"30px", padding:"10px 6px" }}></th>
               <th style={{ padding:"10px 12px", textAlign:"left", fontSize:"11px", color:"#606060", fontWeight:"600", position:"sticky", left:0, background:"#1a1a1a", zIndex:2, width:"160px", whiteSpace:"nowrap" }}>NOME</th>
-              {COLUNAS_DEF.map(col=>(
-                <th key={col.key} style={{ padding:"10px 8px", textAlign:"left", fontSize:"11px", color:"#606060", fontWeight:"600", width:colWidths[col.key], position:"relative", whiteSpace:"nowrap", overflow:"hidden", borderLeft:"1px solid #29ABE220", borderRight:"1px solid #29ABE220" }}>
-                  {col.label}
+              {/* Coluna Info. Cliente */}
+              <th style={{ padding:"10px 8px", textAlign:"center", fontSize:"11px", color:"#606060", fontWeight:"600", width:"60px", whiteSpace:"nowrap" }}>INFO.</th>
+              {colunas.map((col: any)=>(
+                <th key={col.key} className="th-group" style={{ padding:"10px 8px", textAlign:"left", fontSize:"11px", color:"#606060", fontWeight:"600", width:colWidths[col.key]||col.w, position:"relative", whiteSpace:"nowrap", overflow:"hidden", borderLeft:"1px solid #29ABE220" }}>
+                  {editandoHeader === col.key ? (
+                    <input autoFocus defaultValue={col.label}
+                      onBlur={e => renomearColuna(col.key, e.target.value)}
+                      onKeyDown={e => { if(e.key==="Enter") renomearColuna(col.key, (e.target as HTMLInputElement).value); if(e.key==="Escape") setEditandoHeader(null); }}
+                      style={{ background:"#0f0f0f", border:"1px solid #29ABE2", borderRadius:"4px", padding:"2px 6px", color:"#f0f0f0", fontSize:"11px", width:"80%", outline:"none" }}/>
+                  ) : (
+                    <div style={{ display:"flex", alignItems:"center", gap:"4px", paddingRight:"20px" }}>
+                      <span>{col.label}</span>
+                      <span className="th-actions" style={{ opacity:0, display:"flex", gap:"2px", transition:"opacity 0.15s" }}>
+                        <button onClick={()=>setEditandoHeader(col.key)} style={{ background:"none", border:"none", cursor:"pointer", color:"#404040", padding:"1px" }} title="Renomear">
+                          <Pencil size={10}/>
+                        </button>
+                        <button onClick={()=>excluirColuna(col.key)} style={{ background:"none", border:"none", cursor:"pointer", color:"#ef444480", padding:"1px" }} title="Excluir coluna">
+                          <Trash2 size={10}/>
+                        </button>
+                      </span>
+                    </div>
+                  )}
                   <div className="resize-handle" onMouseDown={e=>startResize(col.key,e)}/>
                 </th>
               ))}
-
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={COLUNAS_DEF.length+3} style={{ textAlign:"center", color:"#606060", padding:"48px" }}>Carregando...</td></tr>
+              <tr><td colSpan={colunas.length+4} style={{ textAlign:"center", color:"#606060", padding:"48px" }}>Carregando...</td></tr>
             ) : !filtrados.length ? (
-              <tr><td colSpan={COLUNAS_DEF.length+3} style={{ textAlign:"center", color:"#606060", padding:"48px" }}>Nenhum cliente encontrado.</td></tr>
+              <tr><td colSpan={colunas.length+4} style={{ textAlign:"center", color:"#606060", padding:"48px" }}>Nenhum cliente encontrado.</td></tr>
             ) : filtrados.map((c,idx)=>(
               <>
               <tr key={c.id} style={{ borderBottom:"1px solid #29ABE230", background:idx%2===0?"transparent":"#0a0a0a" }}>
@@ -528,15 +672,23 @@ export default function ControleClientesPage() {
                 <td style={{ padding:"4px 8px 4px 12px", position:"sticky", left:0, background:idx%2===0?"#141414":"#111", zIndex:1, whiteSpace:"nowrap", width:"200px" }}>
                   <div style={{ display:"flex", alignItems:"center", gap:"6px" }}>
                     <span style={{ fontWeight:"600", color:"#f0f0f0", overflow:"hidden", textOverflow:"ellipsis", flex:1 }}>{c.nome}</span>
-                    <button onClick={()=>setPainelAberto(painelAberto?.id===c.id?null:c)}
+                    <button onClick={()=>{ setPainelAberto(painelAberto?.id===c.id?null:c); setPerfilAberto(null); }}
                       style={{ background:"none", border:"none", cursor:"pointer", color:painelAberto?.id===c.id?"#29ABE2":"#404040", padding:"2px", flexShrink:0 }}
                       title="Atualizações">
                       <MessageSquare size={13}/>
                     </button>
                   </div>
                 </td>
-                {COLUNAS_DEF.map(col=>(
-                  <td key={col.key} style={{ padding:"2px 6px", overflow:"hidden", width:colWidths[col.key], borderLeft:"1px solid #29ABE215", whiteSpace:"nowrap", maxWidth:colWidths[col.key], height:"36px" }}>
+                {/* Célula Info. Cliente */}
+                <td style={{ padding:"2px 6px", textAlign:"center", width:"60px" }}>
+                  <button onClick={()=>{ setPerfilAberto(perfilAberto?.id===c.id?null:c); setPainelAberto(null); }}
+                    style={{ background:"none", border:"none", cursor:"pointer", padding:"2px" }}
+                    title="Ver perfil do cliente">
+                    <UserCircle2 size={18} color={c.cadastro_id ? "#29ABE2" : (perfilAberto?.id===c.id ? "#29ABE2" : "#3a3a3a")}/>
+                  </button>
+                </td>
+                {colunas.map((col: any)=>(
+                  <td key={col.key} style={{ padding:"2px 6px", overflow:"hidden", width:colWidths[col.key]||col.w, borderLeft:"1px solid #29ABE215", whiteSpace:"nowrap", maxWidth:colWidths[col.key]||col.w, height:"36px" }}>
                     {col.key==="status" ? (
                       <StatusSelect valor={c.status} onSave={v=>atualizar(c.id,"status",v,c.nome)}/>
                     ) : col.key==="head_squad"||col.key==="consultor"||col.key==="gestor" ? (
@@ -560,12 +712,11 @@ export default function ControleClientesPage() {
                     )}
                   </td>
                 ))}
-
               </tr>
               {expandidos.has(c.id) && (
                 <tr key={`sub-${c.id}`} style={{ background:"#080808", borderBottom:"1px solid #1e1e1e" }}>
                   <td></td>
-                  <td colSpan={COLUNAS_DEF.length+2} style={{ padding:"8px 16px 12px 40px" }}>
+                  <td colSpan={colunas.length+3} style={{ padding:"8px 16px 12px 40px" }}>
                     <div style={{ display:"flex", flexDirection:"column", gap:"6px" }}>
                       {(subitens[c.id]||[]).map(s=>(
                         <div key={s.id} style={{ display:"flex", alignItems:"center", gap:"8px" }}>
@@ -575,7 +726,6 @@ export default function ControleClientesPage() {
                           <span style={{ fontSize:"12px", color:s.feito?"#606060":"#f0f0f0", textDecoration:s.feito?"line-through":"none" }}>{s.texto}</span>
                         </div>
                       ))}
-                      {/* Input inline para novo subitem */}
                       <div style={{ display:"flex", alignItems:"center", gap:"6px", marginTop:"4px" }}>
                         <div style={{ width:"16px", height:"16px", borderRadius:"3px", border:"2px dashed #3a3a3a", flexShrink:0 }}/>
                         <input placeholder="+ Adicionar subitem..." value={novoSubitem[c.id]||""}
@@ -583,9 +733,7 @@ export default function ControleClientesPage() {
                           onKeyDown={e=>{if(e.key==="Enter")adicionarSubitem(c.id);}}
                           style={{ background:"transparent", border:"none", outline:"none", color:"#606060", fontSize:"12px", flex:1 }}/>
                         {novoSubitem[c.id]&&(
-                          <button onClick={()=>adicionarSubitem(c.id)} style={{ background:"#29ABE2", border:"none", borderRadius:"4px", padding:"2px 8px", cursor:"pointer", color:"#000", fontSize:"11px" }}>
-                            Adicionar
-                          </button>
+                          <button onClick={()=>adicionarSubitem(c.id)} style={{ background:"#29ABE2", border:"none", borderRadius:"4px", padding:"2px 8px", cursor:"pointer", color:"#000", fontSize:"11px" }}>Adicionar</button>
                         )}
                       </div>
                     </div>
@@ -599,6 +747,15 @@ export default function ControleClientesPage() {
       </div>
 
       {painelAberto && <PainelLateral cliente={painelAberto} onClose={()=>setPainelAberto(null)}/>}
+      {perfilAberto && (
+        <PainelPerfil
+          cliente={perfilAberto}
+          cadastro={perfilAberto.cadastro_id ? cadastrosMap[perfilAberto.cadastro_id] || null : null}
+          todos_cadastros={cadastros}
+          onClose={()=>setPerfilAberto(null)}
+          onVincular={(cadastroId)=>vincularCadastro(perfilAberto.id, cadastroId)}
+        />
+      )}
     </div>
   );
 }
