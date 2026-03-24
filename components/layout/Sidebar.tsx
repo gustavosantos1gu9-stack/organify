@@ -32,6 +32,7 @@ import {
   Users2,
   Link2,
   MessageCircle,
+  ClipboardList,
 } from "lucide-react";
 
 interface NavItem {
@@ -53,6 +54,7 @@ const navItems: NavItem[] = [
   { href: "/inbox", label: "Inbox WhatsApp", icon: <MessageCircle size={16} /> },
   { href: "/crm", label: "CRM", icon: <CreditCard size={16} /> },
   { href: "/controle-clientes", label: "Controle de Clientes", icon: <Users2 size={16} /> },
+  { href: "/cadastros", label: "Cadastros", icon: <ClipboardList size={16} /> },
   { href: "/gerador-de-leads", label: "Churn", icon: <UserMinus size={16} /> },
   { href: "/ferramentas/gerador-links", label: "Links & Campanhas", icon: <Link2 size={16} /> },
   { href: "/ferramentas/campanhas", label: "Configurar Campanha", icon: <Target size={16} /> },
@@ -217,7 +219,6 @@ export default function Sidebar() {
                 {!collapsed && isOpen && (
                   <div style={{ marginLeft: "26px", marginTop: "2px", display: "flex", flexDirection: "column", gap: "1px" }}>
                     {item.children.map((child) => {
-                      // Subgrupo com filhos (ex: Clientes, Financeiro dentro de Configurações)
                       if (child.children) {
                         const subOpen = openMenus.includes(`${item.label}:${child.label}`);
                         const hasActiveSub = child.children.some(sc => isActive(sc.href));
@@ -256,7 +257,6 @@ export default function Sidebar() {
                           </div>
                         );
                       }
-                      // Item simples
                       return (
                         <Link key={child.href} href={child.href!} style={{
                           display: "block", padding: "7px 12px", borderRadius: "6px",
