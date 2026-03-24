@@ -1,14 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import { X, User, Building2, ChevronRight, ChevronLeft, Check, MessageCircle } from "lucide-react";
-import { Cliente, atualizarCliente, gerarLancamentosRecorrencia, supabase, useOrigens, useCategoriasClientes } from "@/lib/hooks";
+import { useState, useEffect } from "react";
+import { X, User, Building2, ChevronRight, ChevronLeft, Check, MessageCircle, UserCircle2, Search } from "lucide-react";
+import { Cliente, atualizarCliente, gerarLancamentosRecorrencia, supabase, useOrigens, useCategoriasClientes, getAgenciaId } from "@/lib/hooks";
 import InputValor from "@/components/ui/InputValor";
 
 interface EditarClienteModalProps {
   cliente: Cliente;
   onClose: () => void;
   onSave: () => void;
+}
+
+interface Cadastro {
+  id: string; nome: string; email: string; cnpj: string; cpf: string;
+  investimento_anuncios: string; faturamento_medio: string; regiao_anunciar: string;
 }
 
 const ESTADOS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
@@ -20,6 +25,10 @@ export default function EditarClienteModal({ cliente, onClose, onSave }: EditarC
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [tipo, setTipo] = useState<"fisica"|"juridica">((cliente.tipo as "fisica"|"juridica") || "juridica");
+  const [cadastros, setCadastros] = useState<Cadastro[]>([]);
+  const [cadastroVinculado, setCadastroVinculado] = useState<Cadastro|null>(null);
+  const [buscaCadastro, setBuscaCadastro] = useState("");
+  const [mostraBusca, setMostraBusca] = useState(false);
   const [form, setForm] = useState({
     nome: cliente.nome || "",
     documento: cliente.documento || "",
@@ -48,10 +57,39 @@ export default function EditarClienteModal({ cliente, onClose, onSave }: EditarC
 
   const set = (k: string, v: string | boolean) => setForm((f) => ({ ...f, [k]: v }));
 
+  useEffect(() => {
+    async function carregarCadastros() {
+      const id = await getAgenciaId();
+      const { data } = await supabase
+        .from("cadastros_clientes")
+        .select("id,nome,email,cnpj,cpf,investimento_anuncios,faturamento_medio,regiao_anunciar")
+        .eq("agencia_id", id!);
+      const lista = data || [];
+      setCadastros(lista);
+      // Se cliente já tem cadastro_id vinculado
+      if ((cliente as any).cadastro_id) {
+        const vinculado = lista.find((c: Cadastro) => c.id === (cliente as any).cadastro_id);
+        if (vinculado) setCadastroVinculado(vinculado);
+      }
+    }
+    carregarCadastros();
+  }, []);
+
+  const vincularCadastro = (c: Cadastro) => {
+    setCadastroVinculado(c);
+    setMostraBusca(false);
+    setBuscaCadastro("");
+  };
+
+  const desvincular = () => setCadastroVinculado(null);
+
+  const cadastrosFiltrados = cadastros.filter(c =>
+    c.nome.toLowerCase().includes(buscaCadastro.toLowerCase())
+  );
+
   const handleSave = async () => {
     setLoading(true);
     try {
-      // Parsear valor que pode estar formatado como R$ 1.000,00
       const parsearValor = (v: string) => {
         const limpo = v.replace(/[R$\s.]/g, "").replace(",", ".");
         return parseFloat(limpo) || 0;
@@ -61,7 +99,6 @@ export default function EditarClienteModal({ cliente, onClose, onSave }: EditarC
       const servicoAntes = cliente.servico;
       const frequenciaAntes = cliente.frequencia;
 
-      // Atualizar created_at se mudou
       if (form.created_at) {
         await supabase.from("clientes").update({ created_at: new Date(form.created_at).toISOString() }).eq("id", cliente.id);
       }
@@ -92,9 +129,9 @@ export default function EditarClienteModal({ cliente, onClose, onSave }: EditarC
                 form.status_recorrencia === "pendencia" ? "inadimplente" : "ativo",
         origem_id: (form as any).origem_id || undefined,
         categoria_id: (form as any).categoria_id || undefined,
+        cadastro_id: cadastroVinculado?.id || null,
       });
 
-      // Gerar lançamentos se assessoria (sempre que valor ou frequencia mudou)
       if (form.servico === "assessoria" && valorOportunidade > 0) {
         const mudou = servicoAntes !== "assessoria" ||
                       frequenciaAntes !== form.frequencia ||
@@ -110,13 +147,8 @@ export default function EditarClienteModal({ cliente, onClose, onSave }: EditarC
         }
       }
 
-      // Se saiu: remover lançamentos futuros não pagos
       if (form.status_recorrencia === "saiu") {
-        await supabase
-          .from("lancamentos_futuros")
-          .delete()
-          .eq("cliente_id", cliente.id)
-          .eq("pago", false);
+        await supabase.from("lancamentos_futuros").delete().eq("cliente_id", cliente.id).eq("pago", false);
       }
 
       onSave();
@@ -135,6 +167,67 @@ export default function EditarClienteModal({ cliente, onClose, onSave }: EditarC
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"24px" }}>
           <h2 style={{ fontSize:"17px", fontWeight:"600" }}>Editar cliente</h2>
           <button onClick={onClose} className="btn-ghost" style={{ padding:"6px" }}><X size={16}/></button>
+        </div>
+
+        {/* Vincular cadastro */}
+        <div style={{ marginBottom:"20px", padding:"12px 14px", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"10px" }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom: mostraBusca || cadastroVinculado ? "10px" : "0" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
+              <UserCircle2 size={15} color={cadastroVinculado ? "#29ABE2" : "#606060"}/>
+              <span style={{ fontSize:"13px", color: cadastroVinculado ? "#f0f0f0" : "#606060", fontWeight: cadastroVinculado ? "600" : "400" }}>
+                {cadastroVinculado ? cadastroVinculado.nome : "Vincular formulário de cadastro"}
+              </span>
+              {cadastroVinculado && <span style={{ fontSize:"11px", color:"#22c55e", background:"#052e16", padding:"2px 6px", borderRadius:"8px" }}>vinculado</span>}
+            </div>
+            <div style={{ display:"flex", gap:"6px" }}>
+              {cadastroVinculado && (
+                <button onClick={desvincular} style={{ background:"none", border:"1px solid #2e2e2e", borderRadius:"6px", padding:"4px 8px", cursor:"pointer", color:"#606060", fontSize:"11px" }}>
+                  Remover
+                </button>
+              )}
+              <button onClick={() => setMostraBusca(v => !v)}
+                style={{ background: mostraBusca ? "#29ABE220" : "none", border:"1px solid #2e2e2e", borderRadius:"6px", padding:"4px 8px", cursor:"pointer", color:"#a0a0a0", fontSize:"11px", display:"flex", alignItems:"center", gap:"4px" }}>
+                <Search size={11}/> {cadastroVinculado ? "Trocar" : "Buscar"}
+              </button>
+            </div>
+          </div>
+
+          {cadastroVinculado && !mostraBusca && (
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"8px" }}>
+              {[
+                { label:"CNPJ/CPF", value: cadastroVinculado.cnpj || cadastroVinculado.cpf },
+                { label:"Investimento", value: cadastroVinculado.investimento_anuncios },
+                { label:"Faturamento", value: cadastroVinculado.faturamento_medio },
+              ].map(item => (
+                <div key={item.label}>
+                  <p style={{ fontSize:"10px", color:"#606060", margin:"0 0 2px" }}>{item.label}</p>
+                  <p style={{ fontSize:"12px", color:"#f0f0f0", margin:0 }}>{item.value || "—"}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {mostraBusca && (
+            <div>
+              <input value={buscaCadastro} onChange={e => setBuscaCadastro(e.target.value)}
+                placeholder="Buscar por nome..."
+                autoFocus
+                style={{ width:"100%", background:"#0f0f0f", border:"1px solid #3a3a3a", borderRadius:"6px", padding:"7px 10px", color:"#f0f0f0", fontSize:"13px", boxSizing:"border-box" as const, outline:"none" }}/>
+              <div style={{ maxHeight:"150px", overflowY:"auto", marginTop:"4px", border:"1px solid #2e2e2e", borderRadius:"6px", background:"#0f0f0f" }}>
+                {cadastrosFiltrados.length === 0 ? (
+                  <p style={{ color:"#606060", fontSize:"12px", padding:"10px 12px", margin:0 }}>Nenhum cadastro encontrado.</p>
+                ) : cadastrosFiltrados.map(c => (
+                  <button key={c.id} onClick={() => vincularCadastro(c)}
+                    style={{ display:"flex", alignItems:"center", justifyContent:"space-between", width:"100%", padding:"8px 12px", background:"none", border:"none", cursor:"pointer", color:"#f0f0f0", fontSize:"13px", textAlign:"left" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "#1a1a1a"}
+                    onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                    <span>{c.nome}</span>
+                    <span style={{ fontSize:"11px", color:"#606060" }}>{c.email}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Steps */}
@@ -276,8 +369,6 @@ export default function EditarClienteModal({ cliente, onClose, onSave }: EditarC
         {step === 3 && (
           <div style={{ display:"flex", flexDirection:"column", gap:"16px" }}>
             <h3 style={{ fontSize:"15px", fontWeight:"600" }}>Informações Adicionais</h3>
-
-            {/* Origem e Categoria */}
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px" }}>
               <div className="form-group">
                 <label className="form-label">Origem</label>
@@ -294,8 +385,6 @@ export default function EditarClienteModal({ cliente, onClose, onSave }: EditarC
                 </select>
               </div>
             </div>
-
-            {/* Status da recorrência */}
             <div className="form-group">
               <label className="form-label">Status</label>
               <div style={{ display:"flex", gap:"8px" }}>
@@ -314,15 +403,10 @@ export default function EditarClienteModal({ cliente, onClose, onSave }: EditarC
                 ))}
               </div>
             </div>
-
-            {/* Tipo de serviço */}
             <div className="form-group">
               <label className="form-label">Tipo de serviço</label>
               <div style={{ display:"flex", gap:"8px" }}>
-                {[
-                  { value:"mentoria", label:"Mentoria" },
-                  { value:"assessoria", label:"Assessoria" },
-                ].map((s) => (
+                {[{ value:"mentoria", label:"Mentoria" }, { value:"assessoria", label:"Assessoria" }].map((s) => (
                   <button key={s.value} onClick={()=>set("servico",s.value)} style={{
                     flex:1, padding:"10px", borderRadius:"8px", cursor:"pointer",
                     border:`1px solid ${form.servico===s.value?"#f0f0f0":"#2e2e2e"}`,
@@ -333,8 +417,6 @@ export default function EditarClienteModal({ cliente, onClose, onSave }: EditarC
                 ))}
               </div>
             </div>
-
-            {/* Frequência — só para assessoria */}
             {form.servico === "assessoria" && (
               <div className="form-group">
                 <label className="form-label">Frequência de cobrança</label>
@@ -357,22 +439,8 @@ export default function EditarClienteModal({ cliente, onClose, onSave }: EditarC
                     </button>
                   ))}
                 </div>
-                {form.valor_oportunidade && (
-                  <div style={{ marginTop:"10px", background:"rgba(41,171,226,0.06)", border:"1px solid rgba(41,171,226,0.15)", borderRadius:"8px", padding:"10px 14px", fontSize:"12px", color:"#a0a0a0" }}>
-                    {form.frequencia === "mensal" && (
-                      <span>💰 Será cobrado <strong style={{color:"#29ABE2"}}>R$ {parseFloat(form.valor_oportunidade||"0").toLocaleString("pt-BR",{minimumFractionDigits:2})}</strong> por mês</span>
-                    )}
-                    {form.frequencia === "quinzenal" && (
-                      <span>💰 Será cobrado <strong style={{color:"#29ABE2"}}>R$ {(parseFloat(form.valor_oportunidade||"0")/2).toLocaleString("pt-BR",{minimumFractionDigits:2})}</strong> a cada 15 dias (2x/mês)</span>
-                    )}
-                    {form.frequencia === "trimestral" && (
-                      <span>💰 Será cobrado <strong style={{color:"#29ABE2"}}>R$ {(parseFloat(form.valor_oportunidade||"0")*3).toLocaleString("pt-BR",{minimumFractionDigits:2})}</strong> a cada 3 meses</span>
-                    )}
-                  </div>
-                )}
               </div>
             )}
-
             <div className="form-group">
               <label className="form-label">Observações</label>
               <textarea className="form-input" placeholder="Digite suas observações aqui..."

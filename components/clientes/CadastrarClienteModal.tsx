@@ -1,13 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { X, User, Building2, ChevronRight, ChevronLeft, Check, MessageCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, User, Building2, ChevronRight, ChevronLeft, Check, MessageCircle, UserCircle2, Search } from "lucide-react";
 import InputValor from "@/components/ui/InputValor";
-import { useOrigens, useCategoriasClientes } from "@/lib/hooks";
+import { useOrigens, useCategoriasClientes, supabase, getAgenciaId } from "@/lib/hooks";
 
 interface CadastrarClienteModalProps {
   onClose: () => void;
   onSave: (data: Record<string, unknown>) => void;
+}
+
+interface Cadastro {
+  id: string; nome: string; email: string; cnpj: string; cpf: string;
+  investimento_anuncios: string; faturamento_medio: string; regiao_anunciar: string;
 }
 
 const STEP_LABELS = ["Informações Básicas", "Endereço", "Informações Adicionais"];
@@ -18,6 +23,10 @@ export default function CadastrarClienteModal({ onClose, onSave }: CadastrarClie
   const { data: categorias } = useCategoriasClientes();
   const [step, setStep] = useState(1);
   const [tipo, setTipo] = useState<"fisica"|"juridica">("juridica");
+  const [cadastros, setCadastros] = useState<Cadastro[]>([]);
+  const [cadastroVinculado, setCadastroVinculado] = useState<Cadastro|null>(null);
+  const [buscaCadastro, setBuscaCadastro] = useState("");
+  const [mostraBusca, setMostraBusca] = useState(false);
   const [form, setForm] = useState({
     nome:"", documento:"", email:"", telefone:"", whatsapp:false,
     instagram:"", valor_oportunidade:"", faturamento:"", empresa:"",
@@ -28,12 +37,101 @@ export default function CadastrarClienteModal({ onClose, onSave }: CadastrarClie
 
   const set = (k: string, v: string | boolean) => setForm((f) => ({ ...f, [k]: v }));
 
+  useEffect(() => {
+    async function carregarCadastros() {
+      const id = await getAgenciaId();
+      const { data } = await supabase.from("cadastros_clientes").select("id,nome,email,cnpj,cpf,investimento_anuncios,faturamento_medio,regiao_anunciar").eq("agencia_id", id!);
+      setCadastros(data || []);
+    }
+    carregarCadastros();
+  }, []);
+
+  const vincularCadastro = (c: Cadastro) => {
+    setCadastroVinculado(c);
+    setMostraBusca(false);
+    setBuscaCadastro("");
+    // Preencher campos automaticamente
+    set("nome", c.nome);
+    set("email", c.email || "");
+    set("documento", c.cnpj || c.cpf || "");
+  };
+
+  const desvincular = () => {
+    setCadastroVinculado(null);
+    setBuscaCadastro("");
+  };
+
+  const cadastrosFiltrados = cadastros.filter(c =>
+    c.nome.toLowerCase().includes(buscaCadastro.toLowerCase())
+  );
+
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal animate-in">
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"24px" }}>
           <h2 style={{ fontSize:"17px", fontWeight:"600" }}>Cadastrar cliente</h2>
           <button onClick={onClose} className="btn-ghost" style={{ padding:"6px", cursor:"pointer" }}><X size={16}/></button>
+        </div>
+
+        {/* Vincular cadastro — sempre visível no topo */}
+        <div style={{ marginBottom:"20px", padding:"12px 14px", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"10px" }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom: mostraBusca || cadastroVinculado ? "10px" : "0" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
+              <UserCircle2 size={15} color={cadastroVinculado ? "#29ABE2" : "#606060"}/>
+              <span style={{ fontSize:"13px", color: cadastroVinculado ? "#f0f0f0" : "#606060", fontWeight: cadastroVinculado ? "600" : "400" }}>
+                {cadastroVinculado ? cadastroVinculado.nome : "Vincular formulário de cadastro"}
+              </span>
+              {cadastroVinculado && <span style={{ fontSize:"11px", color:"#22c55e", background:"#052e16", padding:"2px 6px", borderRadius:"8px" }}>vinculado</span>}
+            </div>
+            <div style={{ display:"flex", gap:"6px" }}>
+              {cadastroVinculado && (
+                <button onClick={desvincular} style={{ background:"none", border:"1px solid #2e2e2e", borderRadius:"6px", padding:"4px 8px", cursor:"pointer", color:"#606060", fontSize:"11px" }}>
+                  Remover
+                </button>
+              )}
+              <button onClick={() => setMostraBusca(v => !v)}
+                style={{ background: mostraBusca ? "#29ABE220" : "none", border:"1px solid #2e2e2e", borderRadius:"6px", padding:"4px 8px", cursor:"pointer", color:"#a0a0a0", fontSize:"11px", display:"flex", alignItems:"center", gap:"4px" }}>
+                <Search size={11}/> {cadastroVinculado ? "Trocar" : "Buscar"}
+              </button>
+            </div>
+          </div>
+
+          {cadastroVinculado && !mostraBusca && (
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"8px" }}>
+              {[
+                { label:"CNPJ/CPF", value: cadastroVinculado.cnpj || cadastroVinculado.cpf },
+                { label:"Investimento", value: cadastroVinculado.investimento_anuncios },
+                { label:"Faturamento", value: cadastroVinculado.faturamento_medio },
+              ].map(item => (
+                <div key={item.label}>
+                  <p style={{ fontSize:"10px", color:"#606060", margin:"0 0 2px" }}>{item.label}</p>
+                  <p style={{ fontSize:"12px", color:"#f0f0f0", margin:0 }}>{item.value || "—"}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {mostraBusca && (
+            <div>
+              <input value={buscaCadastro} onChange={e => setBuscaCadastro(e.target.value)}
+                placeholder="Buscar por nome..."
+                autoFocus
+                style={{ width:"100%", background:"#0f0f0f", border:"1px solid #3a3a3a", borderRadius:"6px", padding:"7px 10px", color:"#f0f0f0", fontSize:"13px", boxSizing:"border-box" as const, outline:"none" }}/>
+              <div style={{ maxHeight:"150px", overflowY:"auto", marginTop:"4px", border:"1px solid #2e2e2e", borderRadius:"6px", background:"#0f0f0f" }}>
+                {cadastrosFiltrados.length === 0 ? (
+                  <p style={{ color:"#606060", fontSize:"12px", padding:"10px 12px", margin:0 }}>Nenhum cadastro encontrado.</p>
+                ) : cadastrosFiltrados.map(c => (
+                  <button key={c.id} onClick={() => vincularCadastro(c)}
+                    style={{ display:"flex", alignItems:"center", justifyContent:"space-between", width:"100%", padding:"8px 12px", background:"none", border:"none", cursor:"pointer", color:"#f0f0f0", fontSize:"13px", textAlign:"left" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "#1a1a1a"}
+                    onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                    <span>{c.nome}</span>
+                    <span style={{ fontSize:"11px", color:"#606060" }}>{c.email}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Steps */}
@@ -171,7 +269,6 @@ export default function CadastrarClienteModal({ onClose, onSave }: CadastrarClie
         {step === 3 && (
           <div style={{ display:"flex", flexDirection:"column", gap:"16px" }}>
             <h3 style={{ fontSize:"15px", fontWeight:"600" }}>Informações Adicionais</h3>
-
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px" }}>
               <div className="form-group">
                 <label className="form-label">Responsável</label>
@@ -188,7 +285,6 @@ export default function CadastrarClienteModal({ onClose, onSave }: CadastrarClie
                 </select>
               </div>
             </div>
-
             <div className="form-group">
               <label className="form-label">Categoria</label>
               <select className="form-input" value={form.categoria_id} onChange={(e)=>set("categoria_id",e.target.value)}>
@@ -196,8 +292,6 @@ export default function CadastrarClienteModal({ onClose, onSave }: CadastrarClie
                 {(categorias||[]).map((c)=><option key={c.id} value={c.id}>{c.nome}</option>)}
               </select>
             </div>
-
-            {/* Status */}
             <div className="form-group">
               <label className="form-label">Status</label>
               <div style={{ display:"flex", gap:"8px" }}>
@@ -216,15 +310,10 @@ export default function CadastrarClienteModal({ onClose, onSave }: CadastrarClie
                 ))}
               </div>
             </div>
-
-            {/* Tipo de serviço */}
             <div className="form-group">
               <label className="form-label">Tipo de serviço</label>
               <div style={{ display:"flex", gap:"8px" }}>
-                {[
-                  { value:"mentoria", label:"Mentoria" },
-                  { value:"assessoria", label:"Assessoria" },
-                ].map((s) => (
+                {[{ value:"mentoria", label:"Mentoria" }, { value:"assessoria", label:"Assessoria" }].map((s) => (
                   <button key={s.value} onClick={()=>set("servico",s.value)} style={{
                     flex:1, padding:"10px", borderRadius:"8px", cursor:"pointer",
                     border:`1px solid ${form.servico===s.value?"#f0f0f0":"#2e2e2e"}`,
@@ -235,8 +324,6 @@ export default function CadastrarClienteModal({ onClose, onSave }: CadastrarClie
                 ))}
               </div>
             </div>
-
-            {/* Frequência — só assessoria */}
             {form.servico === "assessoria" && (
               <div className="form-group">
                 <label className="form-label">Frequência de cobrança</label>
@@ -271,7 +358,6 @@ export default function CadastrarClienteModal({ onClose, onSave }: CadastrarClie
                 )}
               </div>
             )}
-
             <div className="form-group">
               <label className="form-label">Observações</label>
               <textarea className="form-input" placeholder="Digite suas observações aqui..."
@@ -293,7 +379,15 @@ export default function CadastrarClienteModal({ onClose, onSave }: CadastrarClie
               Próximo <ChevronRight size={14}/>
             </button>
           ) : (
-            <button className="btn-primary" onClick={()=>{ onSave({tipo,...form, origem_id: form.origem_id||undefined, categoria_id: form.categoria_id||undefined}); onClose(); }} style={{ cursor:"pointer" }}>
+            <button className="btn-primary" onClick={()=>{
+              onSave({
+                tipo, ...form,
+                origem_id: form.origem_id||undefined,
+                categoria_id: form.categoria_id||undefined,
+                cadastro_id: cadastroVinculado?.id || undefined,
+              });
+              onClose();
+            }} style={{ cursor:"pointer" }}>
               Cadastrar cliente
             </button>
           )}
