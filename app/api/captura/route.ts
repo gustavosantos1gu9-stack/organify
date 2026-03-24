@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
 
     // Incrementar cliques no link se tiver link_id
     if (link_id) {
-      await supabase.rpc("incrementar_cliques", { link_uuid: link_id }).catch(() => {});
+      try { await supabase.rpc("incrementar_cliques", { link_uuid: link_id }); } catch {}
     }
 
     return NextResponse.json({ ok: true });
