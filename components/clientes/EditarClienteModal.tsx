@@ -129,7 +129,7 @@ export default function EditarClienteModal({ cliente, onClose, onSave }: EditarC
                 form.status_recorrencia === "pendencia" ? "inadimplente" : "ativo",
         origem_id: (form as any).origem_id || undefined,
         categoria_id: (form as any).categoria_id || undefined,
-        cadastro_id: cadastroVinculado?.id || null,
+        cadastro_id: cadastroVinculado?.id || undefined,
       });
 
       if (form.servico === "assessoria" && valorOportunidade > 0) {
