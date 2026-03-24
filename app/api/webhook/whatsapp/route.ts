@@ -170,14 +170,18 @@ export async function POST(req: NextRequest) {
           const { data: recentes } = await supabase.from("rastreamentos_pendentes")
             .select("*")
             .gt("created_at", umHoraAtras)
-            .not("wa_numero", "like", "55%")
             .order("created_at", { ascending: false })
-            .limit(10);
+            .limit(20);
 
           if (recentes && recentes.length > 0) {
-            const candidato = recentes.find((r: any) =>
-              r.utm_campaign || r.link_id || r.fbclid
-            );
+            // Buscar rastreamento mais próximo do momento da mensagem
+            // Excluir rastreamentos que já têm número de telefone real associado
+            const candidato = recentes.find((r: any) => {
+              if (!r.utm_campaign && !r.link_id && !r.fbclid) return false;
+              // wa_numero não deve ser um número de telefone real (já associado)
+              const isNumeroReal = /^\d{10,15}$/.test(r.wa_numero || "");
+              return !isNumeroReal;
+            });
             if (candidato) {
               tracking = candidato;
               await supabase.from("rastreamentos_pendentes")
