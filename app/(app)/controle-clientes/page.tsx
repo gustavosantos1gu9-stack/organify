@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, RefreshCw, ChevronDown, ChevronRight, MessageSquare, X, Send, Check, UserCircle2, Pencil, Trash2, Plus } from "lucide-react";
+import { Search, RefreshCw, ChevronDown, ChevronRight, MessageSquare, X, Send, Check, UserCircle2, Pencil, Trash2, Plus, FileText } from "lucide-react";
+import ModalContrato from "@/components/controle/ModalContrato";
 import ModalNovoCliente from "@/components/controle/ModalNovoCliente";
 import { supabase, getAgenciaId } from "@/lib/hooks";
 
@@ -163,6 +164,7 @@ function PainelPerfil({ cliente, cadastro, todos_cadastros, onClose, onVincular 
 }) {
   const [buscaCadastro, setBuscaCadastro] = useState("");
   const [mostraBusca, setMostraBusca] = useState(false);
+  const [modalContrato, setModalContrato] = useState(false);
   const filtrados = todos_cadastros.filter(c =>
     c.nome.toLowerCase().includes(buscaCadastro.toLowerCase())
   );
@@ -187,6 +189,7 @@ function PainelPerfil({ cliente, cadastro, todos_cadastros, onClose, onVincular 
           <p style={{ fontSize:"14px", fontWeight:"600", color:"#f0f0f0", margin:0 }}>{cliente.nome}</p>
           <p style={{ fontSize:"11px", color:"#606060", margin:0 }}>Perfil do Cliente</p>
         </div>
+        <button onClick={()=>setModalContrato(true)} style={{ background:"#29ABE215", border:"1px solid #29ABE240", borderRadius:"6px", padding:"5px 10px", cursor:"pointer", color:"#29ABE2", fontSize:"11px", display:"flex", alignItems:"center", gap:"4px" }}><FileText size={12}/> Contrato</button>
         <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", color:"#606060" }}><X size={16}/></button>
       </div>
 
@@ -254,14 +257,21 @@ function PainelPerfil({ cliente, cadastro, todos_cadastros, onClose, onVincular 
             )}
           </div>
         )}
-      </div>
+        {modalContrato && cadastro && (
+        <ModalContrato
+          clienteId={cliente.id}
+          nome={cadastro.nome || cliente.nome}
+          email={cadastro.email || ""}
+          cnpj={cadastro.cnpj || ""}
+          cpf={cadastro.cpf || ""}
+          rg={cadastro.rg || ""}
+          endereco_empresa={cadastro.endereco_empresa || ""}
+          endereco_pessoal={cadastro.endereco_pessoal || ""}
+          onClose={()=>setModalContrato(false)}
+        />
+      )}
     </div>
   );
-}
-
-function PainelLateral({ cliente, onClose }: { cliente: ControleCliente; onClose:()=>void }) {
-  const [aba, setAba] = useState<"atualizacoes"|"log">("atualizacoes");
-  const [anotacoes, setAnotacoes] = useState<Anotacao[]>([]);
   const [texto, setTexto] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [agIdLocal, setAgIdLocal] = useState("");
