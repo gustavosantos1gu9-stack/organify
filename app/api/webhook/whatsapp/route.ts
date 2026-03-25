@@ -330,9 +330,16 @@ export async function POST(req: NextRequest) {
             primeira_mensagem_at: timestamp,
             origem: conversa.origem || "Não Rastreada",
           }).eq("id", conversa.id).is("primeira_mensagem_at", null);
-        }
 
-        // Verificar termo-chave na mensagem do lead
+          // Retry assíncrono — tenta rastrear novamente após 8s caso rastreamento chegue atrasado
+          if (isPrimeiraMsg) {
+            fetch(`${APP_URL}/api/webhook/retentar-rastreamento`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ conversa_id: conversa.id, numero, agencia_id: agencia.id, timestamp }),
+            }).catch(() => {});
+        }
+        }        // Verificar termo-chave na mensagem do lead
         await verificarTermoChave(
           agencia.id, conversa.id, conteudo, numero,
           conversa.fbclid, conversa.utm_campaign, conversa.utm_content
