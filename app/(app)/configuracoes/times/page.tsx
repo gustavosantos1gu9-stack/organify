@@ -7,18 +7,24 @@ import { supabase, getAgenciaId } from "@/lib/hooks";
 interface Time { id: string; nome: string; permissoes: Record<string, string[]>; created_at: string; }
 
 const MODULOS = [
+  { key:"inicio", label:"Início", perms:["Visualizar"] },
   { key:"clientes", label:"Clientes", perms:["Criar","Remover","Editar","Listar","Visualizar"] },
+  { key:"inbox", label:"Inbox WhatsApp", perms:["Visualizar","Enviar"] },
   { key:"crm", label:"CRM", perms:["Criar","Remover","Editar","Listar","Visualizar"] },
-  { key:"dre", label:"DRE", perms:["Visualizar"] },
-  { key:"financeiro", label:"Financeiro", perms:["Visualizar"] },
-  { key:"lancamentos", label:"Lançamentos", perms:["Criar","Remover","Editar","Exportar","Listar","Visualizar"] },
-  { key:"recorrencias", label:"Recorrências", perms:["Criar","Remover","Editar","Exportar","Listar","Visualizar"] },
-  { key:"movimentacoes", label:"Movimentações", perms:["Criar","Remover","Editar","Exportar","Listar","Visualizar"] },
-  { key:"metas", label:"Metas", perms:["Criar","Remover","Editar","Listar","Visualizar"] },
+  { key:"controle_clientes", label:"Controle de Clientes", perms:["Criar","Remover","Editar","Listar","Visualizar"] },
+  { key:"cadastros", label:"Cadastros", perms:["Criar","Remover","Editar","Listar","Visualizar"] },
   { key:"churn", label:"Churn", perms:["Visualizar"] },
-  { key:"configuracoes", label:"Configurações", perms:["Visualizar"] },
-  { key:"universidade", label:"Universidade", perms:["Visualizar"] },
+  { key:"links_campanhas", label:"Links & Campanhas", perms:["Criar","Remover","Editar","Visualizar"] },
+  { key:"configurar_campanha", label:"Configurar Campanha", perms:["Criar","Remover","Editar","Visualizar"] },
+  { key:"jornada", label:"Jornada de Compra", perms:["Visualizar","Editar"] },
+  { key:"dre", label:"DRE", perms:["Visualizar"] },
+  { key:"metas", label:"Metas", perms:["Criar","Remover","Editar","Listar","Visualizar"] },
   { key:"vivian_ia", label:"Vivian IA", perms:["Visualizar"] },
+  { key:"lancamentos", label:"Lançamentos Futuros", perms:["Criar","Remover","Editar","Exportar","Listar","Visualizar"] },
+  { key:"movimentacoes", label:"Movimentações", perms:["Criar","Remover","Editar","Exportar","Listar","Visualizar"] },
+  { key:"recorrencias", label:"Recorrências", perms:["Criar","Remover","Editar","Exportar","Listar","Visualizar"] },
+  { key:"universidade", label:"Universidade", perms:["Visualizar"] },
+  { key:"configuracoes", label:"Configurações", perms:["Visualizar","Editar"] },
 ];
 
 function TimeModal({ item, onClose, onSave }: { item?: Time; onClose:()=>void; onSave:()=>void }) {
