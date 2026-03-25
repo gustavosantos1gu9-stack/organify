@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, RefreshCw, ChevronDown, ChevronRight, MessageSquare, X, Send, Check, UserCircle2, Pencil, Trash2 } from "lucide-react";
+import { Search, RefreshCw, ChevronDown, ChevronRight, MessageSquare, X, Send, Check, UserCircle2, Pencil, Trash2, Plus } from "lucide-react";
 import { supabase, getAgenciaId } from "@/lib/hooks";
 
 interface ControleCliente {
@@ -394,6 +394,8 @@ export default function ControleClientesPage() {
   const [editandoHeader, setEditandoHeader] = useState<string|null>(null);
   const [cadastros, setCadastros] = useState<Cadastro[]>([]);
   const [cadastrosMap, setCadastrosMap] = useState<Record<string,Cadastro>>({});
+  const [modalNovoCliente, setModalNovoCliente] = useState(false);
+  const [modalNovoCliente, setModalNovoCliente] = useState(false);
   const resizing = useRef<{key:string;startX:number;startW:number}|null>(null);
 
   const salvarColunas = (novas: typeof COLUNAS_PADRAO) => {
@@ -579,6 +581,8 @@ export default function ControleClientesPage() {
             {sortDir==="asc"?"↑ Crescente":"↓ Decrescente"}
           </button>
           <button onClick={carregar} className="btn-ghost" style={{ padding:"8px", cursor:"pointer" }}><RefreshCw size={14}/></button>
+          <button onClick={()=>setModalNovoCliente(true)} style={{ background:"#29ABE2", border:"none", borderRadius:"8px", padding:"8px 14px", cursor:"pointer", color:"#000", fontWeight:"600", fontSize:"13px", display:"flex", alignItems:"center", gap:"6px" }}><Plus size={14}/> Novo Cliente</button>
+          <button onClick={()=>setModalNovoCliente(true)} style={{ background:"#29ABE2", border:"none", borderRadius:"8px", padding:"8px 14px", cursor:"pointer", color:"#000", fontWeight:"600", fontSize:"13px", display:"flex", alignItems:"center", gap:"6px" }}><Plus size={14}/> Novo Cliente</button>
         </div>
       </div>
 
@@ -746,7 +750,9 @@ export default function ControleClientesPage() {
         </table>
       </div>
 
+      {modalNovoCliente && <ModalNovoCliente agId={agId} cadastros={cadastros} onClose={()=>setModalNovoCliente(false)} onSave={()=>{setModalNovoCliente(false);carregar();}}/>}
       {painelAberto && <PainelLateral cliente={painelAberto} onClose={()=>setPainelAberto(null)}/>}
+      {modalNovoCliente && <ModalNovoCliente agId={agId} cadastros={cadastros} onClose={()=>setModalNovoCliente(false)} onSave={()=>{setModalNovoCliente(false);carregar();}}/>}
       {perfilAberto && (
         <PainelPerfil
           cliente={perfilAberto}
