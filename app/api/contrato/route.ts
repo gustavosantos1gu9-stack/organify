@@ -398,7 +398,44 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: result.errors[0]?.message || "Erro no Autentique" }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, documento: result.data?.createDocument });
+    // Auto-assinar como CONTRATADA (dono da conta Autentique)
+    const documento = result.data?.createDocument;
+    if (documento?.signatures?.length) {
+      const minhaSig = documento.signatures.find((s: any) => s.email === "gustavosantos1gu9@gmail.com");
+      if (minhaSig?.public_id) {
+        try {
+          const signRes = await fetch(AUTENTIQUE_URL, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${AUTENTIQUE_TOKEN}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              query: `mutation SignDocumentMutation($id: UUID!) {
+                signDocument(id: $id) {
+                  id
+                  signatures {
+                    public_id
+                    name
+                    email
+                    signed { created_at }
+                  }
+                }
+              }`,
+              variables: { id: minhaSig.public_id },
+            }),
+          });
+          const signResult = await signRes.json();
+          if (signResult.errors) {
+            console.error("Erro ao auto-assinar:", signResult.errors);
+          }
+        } catch (e) {
+          console.error("Erro ao auto-assinar:", e);
+        }
+      }
+    }
+
+    return NextResponse.json({ success: true, documento });
   } catch (err: any) {
     console.error("Erro ao gerar contrato:", err);
     return NextResponse.json({ error: err.message || "Erro interno" }, { status: 500 });
