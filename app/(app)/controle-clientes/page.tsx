@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Search, RefreshCw, ChevronDown, ChevronRight, MessageSquare, X, Send, Check, UserCircle2, Pencil, Trash2, Plus } from "lucide-react";
+import ModalNovoCliente from "@/components/controle/ModalNovoCliente";
 import { supabase, getAgenciaId } from "@/lib/hooks";
 
 interface ControleCliente {
