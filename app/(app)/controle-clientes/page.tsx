@@ -257,21 +257,27 @@ function PainelPerfil({ cliente, cadastro, todos_cadastros, onClose, onVincular 
             )}
           </div>
         )}
-        {modalContrato && cadastro && (
+      </div>
+      {modalContrato && (
         <ModalContrato
           clienteId={cliente.id}
-          nome={cadastro.nome || cliente.nome}
-          email={cadastro.email || ""}
-          cnpj={cadastro.cnpj || ""}
-          cpf={cadastro.cpf || ""}
-          rg={cadastro.rg || ""}
-          endereco_empresa={cadastro.endereco_empresa || ""}
-          endereco_pessoal={cadastro.endereco_pessoal || ""}
+          nome={cadastro?.nome || cliente.nome}
+          email={cadastro?.email || ""}
+          cnpj={cadastro?.cnpj || ""}
+          cpf={cadastro?.cpf || ""}
+          rg={cadastro?.rg || ""}
+          endereco_empresa={cadastro?.endereco_empresa || ""}
+          endereco_pessoal={cadastro?.endereco_pessoal || ""}
           onClose={()=>setModalContrato(false)}
         />
       )}
     </div>
   );
+}
+
+function PainelLateral({ cliente, onClose }: { cliente: ControleCliente; onClose:()=>void }) {
+  const [aba, setAba] = useState<"atualizacoes"|"log">("atualizacoes");
+  const [anotacoes, setAnotacoes] = useState<Anotacao[]>([]);
   const [texto, setTexto] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [agIdLocal, setAgIdLocal] = useState("");
