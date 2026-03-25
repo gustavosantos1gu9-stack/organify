@@ -259,6 +259,16 @@ function quebrarTexto(text: string, font: any, size: number, maxWidth: number): 
   return lines;
 }
 
+function adicionarRubrica(page: any, font: any, margin: number, pageWidth: number) {
+  const y = 30;
+  const col1 = margin + 40;
+  const col2 = pageWidth - margin - 140;
+  page.drawLine({ start: { x: col1 - 30, y: y + 12 }, end: { x: col1 + 80, y: y + 12 }, thickness: 0.5, color: rgb(0, 0, 0) });
+  page.drawLine({ start: { x: col2 - 30, y: y + 12 }, end: { x: col2 + 80, y: y + 12 }, thickness: 0.5, color: rgb(0, 0, 0) });
+  page.drawText("CONTRATADA", { x: col1 - 10, y, size: 7, font, color: rgb(0.4, 0.4, 0.4) });
+  page.drawText("CONTRATANTE", { x: col2 - 10, y, size: 7, font, color: rgb(0.4, 0.4, 0.4) });
+}
+
 async function gerarPDF(texto: string): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   const font = await doc.embedFont(StandardFonts.Helvetica);
@@ -280,7 +290,8 @@ async function gerarPDF(texto: string): Promise<Uint8Array> {
     const trimmed = para.trim();
     if (!trimmed) {
       y -= lineHeight;
-      if (y < margin + 20) {
+      if (y < margin + 40) {
+        adicionarRubrica(page, font, margin, pageWidth);
         page = doc.addPage([pageWidth, pageHeight]);
         y = pageHeight - margin;
       }
@@ -293,7 +304,8 @@ async function gerarPDF(texto: string): Promise<Uint8Array> {
 
     const lines = quebrarTexto(trimmed, usedFont, usedSize, maxWidth);
     for (const line of lines) {
-      if (y < margin + 20) {
+      if (y < margin + 40) {
+        adicionarRubrica(page, font, margin, pageWidth);
         page = doc.addPage([pageWidth, pageHeight]);
         y = pageHeight - margin;
       }
@@ -302,6 +314,8 @@ async function gerarPDF(texto: string): Promise<Uint8Array> {
     }
     y -= 4;
   }
+
+  adicionarRubrica(page, font, margin, pageWidth);
 
   return doc.save();
 }
@@ -343,6 +357,11 @@ export async function POST(req: NextRequest) {
       variables: {
         document: { name: nomeDoc },
         signers: [
+          {
+            email: "gustavosantos1gu9@gmail.com",
+            action: "SIGN",
+            name: "Gustavo Guilherme Silva dos Santos",
+          },
           {
             email: body.email,
             action: "SIGN",
