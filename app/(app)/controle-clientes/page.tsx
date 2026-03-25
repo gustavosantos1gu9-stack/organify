@@ -394,8 +394,6 @@ export default function ControleClientesPage() {
   const [editandoHeader, setEditandoHeader] = useState<string|null>(null);
   const [cadastros, setCadastros] = useState<Cadastro[]>([]);
   const [cadastrosMap, setCadastrosMap] = useState<Record<string,Cadastro>>({});
-  const [modalNovoCliente, setModalNovoCliente] = useState(false);
-  const [modalNovoCliente, setModalNovoCliente] = useState(false);
   const resizing = useRef<{key:string;startX:number;startW:number}|null>(null);
 
   const salvarColunas = (novas: typeof COLUNAS_PADRAO) => {
@@ -752,7 +750,6 @@ export default function ControleClientesPage() {
 
       {modalNovoCliente && <ModalNovoCliente agId={agId} cadastros={cadastros} onClose={()=>setModalNovoCliente(false)} onSave={()=>{setModalNovoCliente(false);carregar();}}/>}
       {painelAberto && <PainelLateral cliente={painelAberto} onClose={()=>setPainelAberto(null)}/>}
-      {modalNovoCliente && <ModalNovoCliente agId={agId} cadastros={cadastros} onClose={()=>setModalNovoCliente(false)} onSave={()=>{setModalNovoCliente(false);carregar();}}/>}
       {perfilAberto && (
         <PainelPerfil
           cliente={perfilAberto}
