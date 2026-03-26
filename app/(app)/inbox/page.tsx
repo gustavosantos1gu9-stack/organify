@@ -276,12 +276,17 @@ function FiltrosAvancados({ conversas, filtros, onChange, onClose }: { conversas
           <div>
             <p style={{ fontSize:"11px",color:"#606060",fontWeight:"600",marginBottom:"8px" }}>ETAPA DA JORNADA</p>
             <div style={{ display:"flex",flexWrap:"wrap",gap:"6px" }}>
-              {["","Entrou em contato","Qualificado","Agendou","Compareceu","Comprou","Perdido"].map(e=>{
+              {["Entrou em contato","Qualificado","Agendou","Compareceu","Comprou","Perdido"].map(e=>{
                 const cor = getCorEtapa(e);
+                const etapas: string[] = local.etapas || [];
+                const ativo = etapas.includes(e);
                 return (
-                  <button key={e} onClick={()=>set("etapa",e)} style={{ padding:"4px 10px",borderRadius:"20px",border:"1px solid",fontSize:"12px",cursor:"pointer",
-                    borderColor:local.etapa===e?cor:"#2e2e2e",background:local.etapa===e?`${cor}18`:"transparent",color:local.etapa===e?cor:"#606060" }}>
-                    {e||"Todas"}
+                  <button key={e} onClick={()=>{
+                    const novas = ativo ? etapas.filter((x:string)=>x!==e) : [...etapas, e];
+                    setLocal((f:any)=>({...f, etapas: novas, etapa: undefined}));
+                  }} style={{ padding:"4px 10px",borderRadius:"20px",border:"1px solid",fontSize:"12px",cursor:"pointer",
+                    borderColor:ativo?cor:"#2e2e2e",background:ativo?`${cor}18`:"transparent",color:ativo?cor:"#606060" }}>
+                    {e}
                   </button>
                 );
               })}
@@ -382,6 +387,7 @@ export default function InboxPage() {
       if (f.origem === "Não Rastreada" && c.origem && c.origem !== "Não Rastreada") return false;
       if (f.origem !== "Não Rastreada" && c.origem !== f.origem) return false;
     }
+    if (f.etapas?.length && !f.etapas.includes(c.etapa_jornada)) return false;
     if (f.etapa && c.etapa_jornada !== f.etapa) return false;
     if (f.campanha && c.utm_campaign !== f.campanha) return false;
     if (f.conjunto && c.utm_content !== f.conjunto) return false;
