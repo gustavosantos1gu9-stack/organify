@@ -358,7 +358,7 @@ export default function InboxPage() {
     const mapa: Record<string, string> = {
       "Entrou em contato": "em_contato",
       "Fez Contato": "em_contato",
-      "Qualificado": "em_contato",
+      "Qualificado": "qualificado",
       "Agendou": "reuniao_agendada",
       "Compareceu": "proposta_enviada",
       "Comprou": "ganho",

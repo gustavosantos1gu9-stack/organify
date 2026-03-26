@@ -13,6 +13,7 @@ const ORIGENS = ["Facebook","Instagram","Google","LinkedIn","Indicação","Outro
 const ETAPAS = [
   { value:"novo", label:"Não respondeu" },
   { value:"em_contato", label:"Em contato" },
+  { value:"qualificado", label:"Qualificado" },
   { value:"reuniao_agendada", label:"Reunião agendada" },
   { value:"proposta_enviada", label:"Proposta enviada" },
   { value:"ganho", label:"Ganho" },

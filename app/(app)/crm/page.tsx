@@ -13,6 +13,7 @@ import { formatCurrency } from "@/lib/utils";
 const ETAPAS = [
   { key:"novo", label:"Não respondeu", color:"#a0a0a0" },
   { key:"em_contato", label:"Em contato", color:"#3b82f6" },
+  { key:"qualificado", label:"Qualificado", color:"#06b6d4" },
   { key:"reuniao_agendada", label:"Reunião agendada", color:"#f59e0b" },
   { key:"proposta_enviada", label:"Proposta enviada", color:"#8b5cf6" },
   { key:"ganho", label:"Ganho", color:"#29ABE2" },
@@ -23,7 +24,7 @@ function getQualificacao(etapa: string): { label: string; color: string; bg: str
   if (etapa === "novo" || etapa === "em_contato") {
     return { label: "Frio", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" };
   }
-  if (etapa === "reuniao_agendada") {
+  if (etapa === "qualificado" || etapa === "reuniao_agendada") {
     return { label: "Morno", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" };
   }
   if (etapa === "proposta_enviada" || etapa === "ganho") {
