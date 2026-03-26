@@ -132,33 +132,16 @@ export default function Sidebar() {
   useEffect(() => {
     async function loadPermissions() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return; // no user → show all (allowedModulos stays null)
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) return;
 
-        const { data: usuario } = await supabase
-          .from("usuarios")
-          .select("time_id")
-          .eq("auth_user_id", user.id)
-          .single();
-
-        if (!usuario?.time_id) return; // no team → show all
-
-        const { data: time } = await supabase
-          .from("times")
-          .select("permissoes")
-          .eq("id", usuario.time_id)
-          .single();
-
-        if (!time?.permissoes) return; // no permissions defined → show all
-
-        const permissoes = time.permissoes as Record<string, string[]>;
-        const keys = new Set<string>();
-        for (const [key, perms] of Object.entries(permissoes)) {
-          if (Array.isArray(perms) && perms.length > 0) {
-            keys.add(key);
-          }
+        const res = await fetch("/api/permissoes", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const { permissoes } = await res.json();
+        if (permissoes) {
+          setAllowedModulos(new Set<string>(permissoes));
         }
-        setAllowedModulos(keys);
       } catch {
         // on error, show all items
       }
