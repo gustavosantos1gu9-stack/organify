@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, RefreshCw, Eye, Send, X, Filter, MessageCircle, ChevronDown } from "lucide-react";
+import { Search, RefreshCw, Eye, Send, X, Filter, MessageCircle, ChevronDown, UserPlus } from "lucide-react";
 import { supabase, getAgenciaId } from "@/lib/hooks";
 
 interface Conversa {
@@ -351,6 +351,28 @@ export default function InboxPage() {
   const [detalhes, setDetalhes] = useState<Conversa|null>(null);
   const [chatDireto, setChatDireto] = useState<Conversa|null>(null);
   const [sincronizandoTudo, setSincronizandoTudo] = useState(false);
+  const [enviandoCrm, setEnviandoCrm] = useState<Set<string>>(new Set());
+  const [enviadosCrm, setEnviadosCrm] = useState<Set<string>>(new Set());
+
+  const enviarParaCrm = async (c: Conversa) => {
+    setEnviandoCrm(prev => new Set(prev).add(c.id));
+    try {
+      const agId = await getAgenciaId();
+      const { error } = await supabase.from("leads").insert({
+        agencia_id: agId,
+        nome: c.contato_nome || c.contato_numero,
+        telefone: c.contato_numero,
+        etapa: "novo",
+        utm_source: c.utm_source || undefined,
+        utm_medium: c.utm_medium || undefined,
+        utm_campaign: c.utm_campaign || undefined,
+        utm_content: c.utm_content || undefined,
+      });
+      if (error) { alert("Erro: " + error.message); return; }
+      setEnviadosCrm(prev => new Set(prev).add(c.id));
+    } catch (e: any) { alert("Erro ao enviar: " + e.message); }
+    finally { setEnviandoCrm(prev => { const s = new Set(prev); s.delete(c.id); return s; }); }
+  };
 
   const carregar = async () => {
     const agId = await getAgenciaId();
@@ -517,6 +539,11 @@ export default function InboxPage() {
                     </button>
                     <button onClick={()=>setChatDireto(c)} style={{ display:"flex",alignItems:"center",gap:"4px",padding:"5px 8px",borderRadius:"6px",border:"1px solid #2e2e2e",background:"#222",color:"#a0a0a0",cursor:"pointer",fontSize:"12px" }}>
                       <MessageCircle size={12}/>
+                    </button>
+                    <button onClick={()=>enviarParaCrm(c)} disabled={enviandoCrm.has(c.id)||enviadosCrm.has(c.id)}
+                      style={{ display:"flex",alignItems:"center",gap:"4px",padding:"5px 8px",borderRadius:"6px",border:"1px solid",fontSize:"12px",cursor:enviadosCrm.has(c.id)?"default":"pointer",
+                        borderColor:enviadosCrm.has(c.id)?"#22c55e40":"#2e2e2e",background:enviadosCrm.has(c.id)?"#052e1640":"#222",color:enviadosCrm.has(c.id)?"#22c55e":"#a0a0a0" }}>
+                      <UserPlus size={12}/> {enviandoCrm.has(c.id)?"...":enviadosCrm.has(c.id)?"CRM ✓":"CRM"}
                     </button>
                   </div>
                 </td>
