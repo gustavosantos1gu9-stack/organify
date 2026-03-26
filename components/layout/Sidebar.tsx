@@ -128,12 +128,13 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [openMenus, setOpenMenus] = useState<string[]>(["Financeiro", "Configurações"]);
   const [allowedModulos, setAllowedModulos] = useState<Set<string> | null>(null);
+  const [permLoaded, setPermLoaded] = useState(false);
 
   useEffect(() => {
     async function loadPermissions() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) return;
+        if (!session?.access_token) { setPermLoaded(true); return; }
 
         const res = await fetch("/api/permissoes", {
           headers: { Authorization: `Bearer ${session.access_token}` },
@@ -144,6 +145,8 @@ export default function Sidebar() {
         }
       } catch {
         // on error, show all items
+      } finally {
+        setPermLoaded(true);
       }
     }
     loadPermissions();
@@ -232,8 +235,8 @@ export default function Sidebar() {
           gap: "2px",
         }}
       >
-        {navItems.filter((item) => {
-          if (!allowedModulos) return true; // loading or admin → show all
+        {!permLoaded ? null : navItems.filter((item) => {
+          if (!allowedModulos) return true; // admin or no team → show all
 
           if (item.label === "Configurações") {
             return allowedModulos.has("configuracoes");
