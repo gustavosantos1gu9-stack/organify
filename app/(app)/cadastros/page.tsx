@@ -78,7 +78,7 @@ export default function CadastrosPage() {
       .from("cadastros_clientes")
       .select("*")
       .eq("status", filtro)
-      .order("criado_em", { ascending: false });
+      .order("criado_em", { ascending: true });
     setCadastros(data || []);
     setLoading(false);
   };
