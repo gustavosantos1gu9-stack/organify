@@ -260,10 +260,11 @@ export default function DashboardPage() {
         <KPICard label="Receita recorrente" value={fmt(receitaRecorrente)} change={0} icon={<DollarSign size={16}/>} iconBg="green"/>
         <KPICard label="Receita média por cliente" value={fmt(recorrentes > 0 ? (kpis?.total_entradas ?? 0) / recorrentes : 0)} change={0} icon={<UserCheck size={16}/>} iconBg="green"/>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "16px", marginBottom: "16px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: "16px", marginBottom: "16px" }}>
         <KPICard label="CAC" value={fmt(cac)} change={0} icon={<ShoppingBag size={16}/>} iconBg="green"/>
         <KPICard label="Projeção de vendas" value={fmt(projecaoVendas)} change={0} icon={<TrendingUp size={16}/>} iconBg="amber"/>
         <KPICard label="Taxa de conversão" value={`${(() => { const base = (leads||[]).filter(l=>l.etapa==="proposta_enviada"||l.etapa==="ganho").length; const g = (leads||[]).filter(l=>l.etapa==="ganho").length; return base > 0 ? Math.round(g/base*100) : 0; })()}%`} change={0} icon={<Percent size={16}/>} iconBg="amber"/>
+        <KPICard label="Taxa de no-show" value={`${(() => { const ag = (leads||[]).filter(l=>["reuniao_agendada","nao_compareceu","proposta_enviada","ganho"].includes(l.etapa)).length; const ns = (leads||[]).filter(l=>l.etapa==="nao_compareceu").length; return ag > 0 ? Math.round(ns/ag*100) : 0; })()}%`} change={0} icon={<Percent size={16}/>} iconBg="red"/>
         <KPICard label="Tempo médio do cliente (meses)" value={(() => {
           const ativos = controleClientes.filter((c:any) => c.status === "ativo" && c.data_entrada);
           if (!ativos.length) return "—";

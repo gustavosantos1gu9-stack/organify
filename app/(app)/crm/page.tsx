@@ -282,6 +282,9 @@ export default function CRMPage() {
   const ganhos = filtrados.filter((l)=>l.etapa==="ganho").length;
   const foramReuniao = filtrados.filter((l)=>l.etapa==="proposta_enviada"||l.etapa==="ganho").length;
   const taxaConversao = foramReuniao ? Math.round(ganhos/foramReuniao*100) : 0;
+  const noShows = filtrados.filter((l)=>l.etapa==="nao_compareceu").length;
+  const agendados = filtrados.filter((l)=>l.etapa==="reuniao_agendada"||l.etapa==="nao_compareceu"||l.etapa==="proposta_enviada"||l.etapa==="ganho").length;
+  const taxaNoShow = agendados ? Math.round(noShows/agendados*100) : 0;
 
   const handleSalvar = async (data: Record<string,unknown>) => {
     try {
@@ -307,8 +310,9 @@ export default function CRMPage() {
       <div className="breadcrumb"><a href="/">Início</a><span>›</span><span className="current">CRM</span></div>
       <h1 style={{ fontSize:"22px", fontWeight:"600", marginBottom:"24px" }}>CRM</h1>
 
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"16px", marginBottom:"28px" }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"16px", marginBottom:"28px" }}>
         <KPICard label="Taxa de conversão" value={`${taxaConversao}%`} change={0} icon={<Percent size={16}/>} iconBg="amber"/>
+        <KPICard label="Taxa de no-show" value={`${taxaNoShow}%`} change={0} icon={<Percent size={16}/>} iconBg="red"/>
         <KPICard label="Leads quentes" value={leadsQuentes} change={0} icon={<Flame size={16}/>} iconBg="red"/>
         <KPICard label="Pipeline total" value={formatCurrency(totalPipeline)} change={0} icon={<DollarSign size={16}/>} iconBg="green"/>
       </div>
