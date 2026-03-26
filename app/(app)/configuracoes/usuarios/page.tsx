@@ -111,13 +111,12 @@ export default function UsuariosPage() {
   const [busca, setBusca] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editando, setEditando] = useState<Usuario|null>(null);
-
   const carregar = async () => {
     setLoading(true);
     try {
       const agId = await getAgenciaId();
       const [{ data: usuarios }, { data: ts }] = await Promise.all([
-        supabase.from("usuarios").select("*, times(nome)").eq("agencia_id", agId!).order("nome"),
+        supabase.from("usuarios").select("*, times!usuarios_time_id_fkey(nome)").eq("agencia_id", agId!).order("nome"),
         supabase.from("times").select("id,nome").eq("agencia_id", agId!).order("nome"),
       ]);
       setItems(usuarios || []);
