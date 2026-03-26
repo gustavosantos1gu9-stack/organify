@@ -354,6 +354,20 @@ export default function InboxPage() {
   const [enviandoCrm, setEnviandoCrm] = useState<Set<string>>(new Set());
   const [enviadosCrm, setEnviadosCrm] = useState<Set<string>>(new Set());
 
+  const mapEtapaCrm = (etapaInbox?: string): string => {
+    const mapa: Record<string, string> = {
+      "Entrou em contato": "em_contato",
+      "Fez Contato": "em_contato",
+      "Qualificado": "qualificado",
+      "Agendou": "reuniao_agendada",
+      "Compareceu": "proposta_enviada",
+      "Comprou": "ganho",
+      "Fechou": "ganho",
+      "Perdido": "novo",
+    };
+    return mapa[etapaInbox || ""] || "novo";
+  };
+
   const enviarParaCrm = async (c: Conversa) => {
     setEnviandoCrm(prev => new Set(prev).add(c.id));
     try {
@@ -362,7 +376,7 @@ export default function InboxPage() {
         agencia_id: agId,
         nome: c.contato_nome || c.contato_numero,
         telefone: c.contato_numero,
-        etapa: "novo",
+        etapa: mapEtapaCrm(c.etapa_jornada),
         utm_source: c.utm_source || undefined,
         utm_medium: c.utm_medium || undefined,
         utm_campaign: c.utm_campaign || undefined,
