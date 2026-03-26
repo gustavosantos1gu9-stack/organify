@@ -123,8 +123,8 @@ export default function DashboardPage() {
   const leadsPropostas = leads?.filter(l => l.etapa === "proposta_enviada") ?? [];
   const projecaoVendas = leadsPropostas.reduce((a, b) => a + (b.valor || 0), 0);
 
-  const etapas = ["novo","em_contato","reuniao_agendada","proposta_enviada","ganho","perdido"];
-  const etapasLabels = ["Novo","Em contato","Reunião ag.","Proposta","Ganho","Perdido"];
+  const etapas = ["novo","em_contato","reuniao_agendada","nao_compareceu","proposta_enviada","ganho","perdido"];
+  const etapasLabels = ["Novo","Em contato","Reunião ag.","No-show","Proposta","Ganho","Perdido"];
   const barDataEtapas = etapas.map((e, i) => ({
     etapa: etapasLabels[i],
     valor: leads?.filter((l) => l.etapa === e).length ?? 0,

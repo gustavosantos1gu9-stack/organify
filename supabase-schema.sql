@@ -113,7 +113,7 @@ CREATE TABLE leads (
   email TEXT,
   telefone TEXT,
   whatsapp BOOLEAN DEFAULT FALSE,
-  etapa TEXT CHECK (etapa IN ('novo','em_contato','reuniao_agendada','proposta_enviada','ganho','perdido')) DEFAULT 'novo',
+  etapa TEXT CHECK (etapa IN ('novo','em_contato','qualificado','reuniao_agendada','nao_compareceu','proposta_enviada','ganho','perdido')) DEFAULT 'novo',
   valor NUMERIC(12,2) DEFAULT 0,
   responsavel_id UUID REFERENCES usuarios(id),
   origem_id UUID REFERENCES origens(id),

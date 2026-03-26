@@ -16,6 +16,7 @@ const ETAPAS = [
   { value: "em_contato", label: "Em contato" },
   { value: "qualificado", label: "Qualificado" },
   { value: "reuniao_agendada", label: "Reunião agendada" },
+  { value: "nao_compareceu", label: "Não compareceu" },
   { value: "proposta_enviada", label: "Proposta enviada" },
   { value: "ganho", label: "Ganho" },
   { value: "perdido", label: "Perdido" },

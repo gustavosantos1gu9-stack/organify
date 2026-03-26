@@ -10,8 +10,8 @@ import { Flame, Percent, DollarSign, Clock, Plus, Users, Star, TrendingUp } from
 
 const tooltipStyle = { background:"#1e1e1e", border:"1px solid #2e2e2e", borderRadius:"8px", fontSize:"12px", color:"#f0f0f0" };
 const ORIGENS = ["Facebook","Google","Instagram","LinkedIn","Outro"];
-const ETAPAS_KEYS = ["novo","em_contato","reuniao_agendada","proposta_enviada","ganho","perdido"];
-const ETAPAS_LABELS = ["Novo","Em contato","Reunião ag.","Proposta","Ganho","Perdido"];
+const ETAPAS_KEYS = ["novo","em_contato","reuniao_agendada","nao_compareceu","proposta_enviada","ganho","perdido"];
+const ETAPAS_LABELS = ["Novo","Em contato","Reunião ag.","No-show","Proposta","Ganho","Perdido"];
 
 export default function CRMDashboardPage() {
   const hoje = new Date();
@@ -74,7 +74,8 @@ export default function CRMDashboardPage() {
   }, [from, to, leads]);
 
   const total = lf.length;
-  const agendados = lf.filter((l) => ["reuniao_agendada","proposta_enviada","ganho"].includes(l.etapa)).length;
+  const agendados = lf.filter((l) => ["reuniao_agendada","nao_compareceu","proposta_enviada","ganho"].includes(l.etapa)).length;
+  const noShows = lf.filter((l) => l.etapa === "nao_compareceu").length;
   const realizados = lf.filter((l) => ["proposta_enviada","ganho"].includes(l.etapa)).length;
   const fechados = lf.filter((l) => l.etapa === "ganho").length;
 
@@ -175,9 +176,9 @@ export default function CRMDashboardPage() {
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"16px", marginBottom:"28px" }}>
         <KPICard label="Reuniões agendadas" value={reunioesAgendadas} change={0} icon={<Star size={16}/>} iconBg="green"/>
+        <KPICard label="No-shows" value={noShows} change={0} icon={<Users size={16}/>} iconBg="red"/>
         <KPICard label="Reuniões realizadas" value={realizados} change={0} icon={<Star size={16}/>} iconBg="amber"/>
-        <KPICard label="Vendas" value={formatCurrency(vendas)} change={0} icon={<DollarSign size={16}/>} iconBg="green"/>
-        <KPICard label="Projeção de vendas" value="R$ 0,00" change={0} icon={<TrendingUp size={16}/>} iconBg="amber"/>
+        <KPICard label="Taxa no-show" value={`${agendados > 0 ? ((noShows/agendados)*100).toFixed(1) : "0.0"}%`} change={0} icon={<Percent size={16}/>} iconBg="red"/>
       </div>
 
       {/* Sem dados */}

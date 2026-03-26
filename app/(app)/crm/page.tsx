@@ -15,6 +15,7 @@ const ETAPAS = [
   { key:"em_contato", label:"Em contato", color:"#3b82f6" },
   { key:"qualificado", label:"Qualificado", color:"#06b6d4" },
   { key:"reuniao_agendada", label:"Reunião agendada", color:"#f59e0b" },
+  { key:"nao_compareceu", label:"Não compareceu", color:"#f97316" },
   { key:"proposta_enviada", label:"Proposta enviada", color:"#8b5cf6" },
   { key:"ganho", label:"Ganho", color:"#29ABE2" },
   { key:"perdido", label:"Perdido", color:"#ef4444" },
