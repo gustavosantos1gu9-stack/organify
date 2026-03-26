@@ -389,12 +389,12 @@ export default function InboxPage() {
     if (f.anuncio && (c as any).nome_anuncio !== f.anuncio) return false;
     if (f.utmSource && c.utm_source !== f.utmSource) return false;
     if (f.utmMedium && c.utm_medium !== f.utmMedium) return false;
-    if (f.dataPrimeiraDe && c.primeira_mensagem_at && c.primeira_mensagem_at < f.dataPrimeiraDe) return false;
-    if (f.dataPrimeiraAte && c.primeira_mensagem_at && c.primeira_mensagem_at > f.dataPrimeiraAte+"T23:59:59") return false;
-    if (f.dataEtapaDe && c.etapa_alterada_at && c.etapa_alterada_at < f.dataEtapaDe) return false;
-    if (f.dataEtapaAte && c.etapa_alterada_at && c.etapa_alterada_at > f.dataEtapaAte+"T23:59:59") return false;
-    if (f.dataUltimaDe && c.ultima_mensagem_at < f.dataUltimaDe) return false;
-    if (f.dataUltimaAte && c.ultima_mensagem_at > f.dataUltimaAte+"T23:59:59") return false;
+    if (f.dataPrimeiraDe) { if (!c.primeira_mensagem_at) return false; if (c.primeira_mensagem_at.slice(0,10) < f.dataPrimeiraDe) return false; }
+    if (f.dataPrimeiraAte) { if (!c.primeira_mensagem_at) return false; if (c.primeira_mensagem_at.slice(0,10) > f.dataPrimeiraAte) return false; }
+    if (f.dataEtapaDe) { if (!c.etapa_alterada_at) return false; if (c.etapa_alterada_at.slice(0,10) < f.dataEtapaDe) return false; }
+    if (f.dataEtapaAte) { if (!c.etapa_alterada_at) return false; if (c.etapa_alterada_at.slice(0,10) > f.dataEtapaAte) return false; }
+    if (f.dataUltimaDe && c.ultima_mensagem_at.slice(0,10) < f.dataUltimaDe) return false;
+    if (f.dataUltimaAte && c.ultima_mensagem_at.slice(0,10) > f.dataUltimaAte) return false;
     return matchBusca;
   });
 
