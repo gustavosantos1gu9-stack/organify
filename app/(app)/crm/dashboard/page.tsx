@@ -83,7 +83,7 @@ export default function CRMDashboardPage() {
   const pctRealVenda = realizados > 0 ? ((fechados/realizados)*100).toFixed(1) : "0.0";
 
   const quentes = lf.filter((l) => ["proposta_enviada","ganho"].includes(l.etapa)).length;
-  const foramReuniao = lf.filter((l) => ["reuniao_agendada","proposta_enviada","ganho"].includes(l.etapa)).length;
+  const foramReuniao = lf.filter((l) => ["proposta_enviada","ganho"].includes(l.etapa)).length;
   const taxaConversao = foramReuniao > 0 ? ((fechados/foramReuniao)*100).toFixed(2) : "0.00";
   const pipeline = lf.reduce((a,b)=>a+(b.valor||0),0);
   const perdidos = lf.filter((l)=>l.etapa==="perdido").length;

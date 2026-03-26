@@ -222,7 +222,7 @@ export default function CRMPage() {
   const totalPipeline = filtrados.reduce((a,b)=>a+(b.valor||0),0);
   const leadsQuentes = filtrados.filter((l)=>l.etapa==="reuniao_agendada"||l.etapa==="proposta_enviada").length;
   const ganhos = filtrados.filter((l)=>l.etapa==="ganho").length;
-  const foramReuniao = filtrados.filter((l)=>l.etapa==="reuniao_agendada"||l.etapa==="proposta_enviada"||l.etapa==="ganho").length;
+  const foramReuniao = filtrados.filter((l)=>l.etapa==="proposta_enviada"||l.etapa==="ganho").length;
   const taxaConversao = foramReuniao ? Math.round(ganhos/foramReuniao*100) : 0;
 
   const handleSalvar = async (data: Record<string,unknown>) => {
