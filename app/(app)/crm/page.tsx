@@ -11,7 +11,7 @@ import { useLeads, criarLead, removerLead, atualizarEtapaLead, Lead } from "@/li
 import { formatCurrency } from "@/lib/utils";
 
 const ETAPAS = [
-  { key:"novo", label:"Novo", color:"#a0a0a0" },
+  { key:"nao_respondeu", label:"Não respondeu", color:"#a0a0a0" },
   { key:"em_contato", label:"Em contato", color:"#3b82f6" },
   { key:"qualificado", label:"Qualificado", color:"#06b6d4" },
   { key:"reuniao_agendada", label:"Reunião agendada", color:"#f59e0b" },
@@ -21,7 +21,7 @@ const ETAPAS = [
 ];
 
 function getQualificacao(etapa: string): { label: string; color: string; bg: string } {
-  if (etapa === "novo" || etapa === "em_contato") {
+  if (etapa === "nao_respondeu" || etapa === "novo" || etapa === "em_contato") {
     return { label: "Frio", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" };
   }
   if (etapa === "qualificado" || etapa === "reuniao_agendada") {
@@ -69,7 +69,7 @@ function KanbanBoard({ leads, onEtapaChange, onRemover, onConverter, onEditar }:
   return (
     <div style={{ display:"flex", gap:"0", overflowX:"auto", minHeight:"500px" }}>
       {ETAPAS.map((etapa, idx) => {
-        const cards = leads.filter((l)=>l.etapa===etapa.key);
+        const cards = leads.filter((l)=>etapa.key==="nao_respondeu" ? (l.etapa===etapa.key||l.etapa==="novo") : l.etapa===etapa.key);
         const isOver = dragOver===etapa.key;
         const total = cards.reduce((a,b)=>a+(b.valor||0),0);
         return (

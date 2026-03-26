@@ -50,7 +50,7 @@ export default function EditarLeadModal({ lead, onClose, onSave }: EditarLeadMod
     valor: lead.valor?.toString() || "",
     empresa: "",
     origem: lead.origens?.nome || "",
-    etapa: lead.etapa || "novo",
+    etapa: lead.etapa || "nao_respondeu",
     qualificacao: "Quente",
     responsavel: "Gustavo",
     categorias: "",

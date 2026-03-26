@@ -363,9 +363,9 @@ export default function InboxPage() {
       "Compareceu": "proposta_enviada",
       "Comprou": "ganho",
       "Fechou": "ganho",
-      "Perdido": "novo",
+      "Perdido": "nao_respondeu",
     };
-    return mapa[etapaInbox || ""] || "novo";
+    return mapa[etapaInbox || ""] || "nao_respondeu";
   };
 
   const enviarParaCrm = async (c: Conversa) => {

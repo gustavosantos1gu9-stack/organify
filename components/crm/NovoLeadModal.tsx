@@ -23,7 +23,7 @@ const ETAPAS = [
 export default function NovoLeadModal({ onClose, onSave }: NovoLeadModalProps) {
   const [form, setForm] = useState({
     nome:"", email:"", telefone:"", whatsapp:false,
-    etapa:"novo", valor:"", origem:"",
+    etapa:"nao_respondeu", valor:"", origem:"",
     utm_source:"", utm_medium:"", utm_campaign:"", utm_content:"", utm_term:"",
     observacoes:"",
   });
