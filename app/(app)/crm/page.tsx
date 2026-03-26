@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Search, Plus, Trash2, Flame, DollarSign, Percent, Edit2, Upload } from "lucide-react";
+import { Search, Plus, Trash2, Flame, DollarSign, Percent, Edit2, Upload, StickyNote, Check, X } from "lucide-react";
 import KPICard from "@/components/ui/KPICard";
 import Filtros from "@/components/ui/Filtros";
 import NovoLeadModal from "@/components/crm/NovoLeadModal";
 import ConverterLeadModal from "@/components/crm/ConverterLeadModal";
 import EditarLeadModal from "@/components/crm/EditarLeadModal";
-import { useLeads, criarLead, removerLead, atualizarEtapaLead, Lead } from "@/lib/hooks";
+import { useLeads, criarLead, removerLead, atualizarEtapaLead, Lead, supabase } from "@/lib/hooks";
 import { formatCurrency } from "@/lib/utils";
 
 const ETAPAS = [
@@ -55,16 +55,34 @@ function EtapaBadge({ etapa }: { etapa: string }) {
   );
 }
 
-function KanbanBoard({ leads, onEtapaChange, onRemover, onConverter, onEditar }: {
+function KanbanBoard({ leads, onEtapaChange, onRemover, onConverter, onEditar, onRefresh }: {
   leads: Lead[];
   onEtapaChange:(id:string, etapa:string)=>void;
   onRemover:(id:string)=>void;
   onConverter:(lead:Lead)=>void;
   onEditar:(lead:Lead)=>void;
+  onRefresh:()=>void;
 }) {
   const dragId = useRef<string|null>(null);
   const [dragOver, setDragOver] = useState<string|null>(null);
   const [menuAberto, setMenuAberto] = useState<string|null>(null);
+  const [notaAberta, setNotaAberta] = useState<string|null>(null);
+  const [notaTexto, setNotaTexto] = useState("");
+  const [salvandoNota, setSalvandoNota] = useState(false);
+
+  const abrirNota = (lead: Lead) => {
+    setNotaAberta(lead.id);
+    setNotaTexto(lead.observacoes || "");
+    setMenuAberto(null);
+  };
+
+  const salvarNota = async (id: string) => {
+    setSalvandoNota(true);
+    await supabase.from("leads").update({ observacoes: notaTexto || null, updated_at: new Date().toISOString() }).eq("id", id);
+    setSalvandoNota(false);
+    setNotaAberta(null);
+    onRefresh();
+  };
 
   return (
     <div style={{ display:"flex", gap:"0", overflowX:"auto", minHeight:"500px" }}>
@@ -130,6 +148,12 @@ function KanbanBoard({ leads, onEtapaChange, onRemover, onConverter, onEditar }:
                           onMouseLeave={(e)=>(e.currentTarget.style.background="none")}>
                           ✏️ Editar lead
                         </button>
+                        <button onClick={(e)=>{ e.stopPropagation(); abrirNota(lead); }}
+                          style={{ width:"100%", padding:"10px 14px", background:"none", border:"none", color:"#f0f0f0", cursor:"pointer", fontSize:"13px", textAlign:"left", display:"flex", alignItems:"center", gap:"8px" }}
+                          onMouseEnter={(e)=>(e.currentTarget.style.background="#2a2a2a")}
+                          onMouseLeave={(e)=>(e.currentTarget.style.background="none")}>
+                          📝 Anotar
+                        </button>
                         <button onClick={(e)=>{ e.stopPropagation(); setMenuAberto(null); onRemover(lead.id); }}
                           style={{ width:"100%", padding:"10px 14px", background:"none", border:"none", color:"#ef4444", cursor:"pointer", fontSize:"13px", textAlign:"left", display:"flex", alignItems:"center", gap:"8px" }}
                           onMouseEnter={(e)=>(e.currentTarget.style.background="#2a2a2a")}
@@ -182,6 +206,39 @@ function KanbanBoard({ leads, onEtapaChange, onRemover, onConverter, onEditar }:
                       ✕ Perda
                     </button>
                   </div>
+
+                  {/* Anotação inline */}
+                  {notaAberta===lead.id && (
+                    <div style={{ background:"#151515", border:"1px solid #3a3a3a", borderRadius:"6px", padding:"8px", marginBottom:"6px" }}
+                      onClick={(e)=>e.stopPropagation()}>
+                      <textarea
+                        autoFocus
+                        value={notaTexto}
+                        onChange={(e)=>setNotaTexto(e.target.value)}
+                        placeholder="Escreva sua anotação..."
+                        style={{ width:"100%", background:"transparent", border:"none", color:"#f0f0f0", fontSize:"12px", resize:"none", outline:"none", minHeight:"60px" }}
+                      />
+                      <div style={{ display:"flex", justifyContent:"flex-end", gap:"4px", marginTop:"4px" }}>
+                        <button onClick={()=>setNotaAberta(null)}
+                          style={{ background:"#2a2a2a", border:"none", borderRadius:"4px", padding:"4px 8px", cursor:"pointer", color:"#606060", fontSize:"11px", display:"flex", alignItems:"center", gap:"3px" }}>
+                          <X size={10}/> Cancelar
+                        </button>
+                        <button onClick={()=>salvarNota(lead.id)} disabled={salvandoNota}
+                          style={{ background:"#29ABE2", border:"none", borderRadius:"4px", padding:"4px 8px", cursor:"pointer", color:"#000", fontSize:"11px", fontWeight:"600", display:"flex", alignItems:"center", gap:"3px" }}>
+                          <Check size={10}/> {salvandoNota?"Salvando...":"Salvar"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Preview da anotação */}
+                  {lead.observacoes && notaAberta!==lead.id && (
+                    <div onClick={(e)=>{ e.stopPropagation(); abrirNota(lead); }}
+                      style={{ background:"#1a1a1a", borderRadius:"4px", padding:"5px 8px", marginBottom:"6px", cursor:"pointer", display:"flex", alignItems:"flex-start", gap:"5px" }}>
+                      <StickyNote size={10} style={{ color:"#f59e0b", flexShrink:0, marginTop:"2px" }}/>
+                      <p style={{ fontSize:"11px", color:"#a0a0a0", overflow:"hidden", textOverflow:"ellipsis", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical" as const }}>{lead.observacoes}</p>
+                    </div>
+                  )}
 
                   {/* Data */}
                   <p style={{ fontSize:"10px", color:"#404040", textAlign:"right" }}>
@@ -299,6 +356,7 @@ export default function CRMPage() {
             onRemover={async(id)=>{ if(confirm("Remover este lead?")){ await removerLead(id); refresh(); }}}
             onConverter={setConvertendo}
             onEditar={setEditando}
+            onRefresh={refresh}
           />
         ) : (
           <table>

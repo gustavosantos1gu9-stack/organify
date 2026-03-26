@@ -54,7 +54,7 @@ export default function EditarLeadModal({ lead, onClose, onSave }: EditarLeadMod
     qualificacao: "Quente",
     responsavel: "Gustavo",
     categorias: "",
-    observacoes: "",
+    observacoes: lead.observacoes || "",
     utm_campaign: lead.utm_campaign || "",
     utm_content: lead.utm_content || "",
   });
@@ -97,6 +97,7 @@ export default function EditarLeadModal({ lead, onClose, onSave }: EditarLeadMod
         valor: parseFloat(form.valor) || 0,
         utm_campaign: form.utm_campaign || null,
         utm_content: form.utm_content || null,
+        observacoes: form.observacoes || null,
         updated_at: new Date().toISOString(),
       }).eq("id", lead.id);
       onSave();
