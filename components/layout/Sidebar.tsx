@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 import {
   LayoutDashboard,
   Users,
@@ -99,10 +100,71 @@ const navItems: NavItem[] = [
   },
 ];
 
+// Map href → module key for permission filtering
+const hrefToModuloKey: Record<string, string> = {
+  "/": "inicio",
+  "/clientes": "clientes",
+  "/inbox": "inbox",
+  "/crm": "crm",
+  "/controle-clientes": "controle_clientes",
+  "/cadastros": "cadastros",
+  "/gerador-de-leads": "churn",
+  "/ferramentas/gerador-links": "links_campanhas",
+  "/ferramentas/campanhas": "configurar_campanha",
+  "/jornada": "jornada",
+  "/dre": "dre",
+  "/metas": "metas",
+  "/vivian-ia": "vivian_ia",
+  "/financeiro/lancamentos-futuros": "lancamentos",
+  "/financeiro/movimentacoes": "movimentacoes",
+  "/financeiro/recorrencias": "recorrencias",
+  "/universidade": "universidade",
+};
+
+const financeiroKeys = ["lancamentos", "movimentacoes", "recorrencias"];
+
 export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [openMenus, setOpenMenus] = useState<string[]>(["Financeiro", "Configurações"]);
+  const [allowedModulos, setAllowedModulos] = useState<Set<string> | null>(null);
+
+  useEffect(() => {
+    async function loadPermissions() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return; // no user → show all (allowedModulos stays null)
+
+        const { data: usuario } = await supabase
+          .from("usuarios")
+          .select("time_id")
+          .eq("auth_user_id", user.id)
+          .single();
+
+        if (!usuario?.time_id) return; // no team → show all
+
+        const { data: time } = await supabase
+          .from("times")
+          .select("permissoes")
+          .eq("id", usuario.time_id)
+          .single();
+
+        if (!time?.permissoes) return; // no permissions defined → show all
+
+        const permissoes = time.permissoes as Record<string, string[]>;
+        const keys = new Set<string>();
+        for (const [key, perms] of Object.entries(permissoes)) {
+          if (Array.isArray(perms) && perms.length > 0) {
+            keys.add(key);
+          }
+        }
+        setAllowedModulos(keys);
+      } catch {
+        // on error, show all items
+      }
+    }
+    loadPermissions();
+  }, []);
 
   const toggleMenu = (label: string) => {
     setOpenMenus((prev) =>
@@ -187,7 +249,23 @@ export default function Sidebar() {
           gap: "2px",
         }}
       >
-        {navItems.map((item) => {
+        {navItems.filter((item) => {
+          if (!allowedModulos) return true; // loading or admin → show all
+
+          if (item.label === "Configurações") {
+            return allowedModulos.has("configuracoes");
+          }
+
+          if (item.label === "Financeiro") {
+            return financeiroKeys.some((k) => allowedModulos.has(k));
+          }
+
+          const href = item.href;
+          if (!href) return true;
+          const moduloKey = hrefToModuloKey[href];
+          if (!moduloKey) return true;
+          return allowedModulos.has(moduloKey);
+        }).map((item) => {
           if (item.children) {
             const isOpen = openMenus.includes(item.label);
             const hasActiveChild = item.children.some((c) =>
@@ -218,7 +296,12 @@ export default function Sidebar() {
                 </button>
                 {!collapsed && isOpen && (
                   <div style={{ marginLeft: "26px", marginTop: "2px", display: "flex", flexDirection: "column", gap: "1px" }}>
-                    {item.children.map((child) => {
+                    {item.children.filter((child) => {
+                      if (!allowedModulos || !child.href) return true;
+                      const moduloKey = hrefToModuloKey[child.href];
+                      if (!moduloKey) return true;
+                      return allowedModulos.has(moduloKey);
+                    }).map((child) => {
                       if (child.children) {
                         const subOpen = openMenus.includes(`${item.label}:${child.label}`);
                         const hasActiveSub = child.children.some(sc => isActive(sc.href));

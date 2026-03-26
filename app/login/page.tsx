@@ -67,7 +67,8 @@ export default function LoginPage() {
                 </button>
               </div>
             </div>
-            <div style={{ textAlign: "right", marginTop: "-8px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "-8px" }}>
+              <Link href="/redefinir-senha" style={{ fontSize: "12px", color: "#606060", textDecoration: "none" }}>Alterar senha</Link>
               <Link href="/redefinir-senha" style={{ fontSize: "12px", color: "#29ABE2", textDecoration: "none" }}>Esqueceu a senha?</Link>
             </div>
             <button type="submit" className="btn-primary" style={{ justifyContent: "center", padding: "12px", opacity: loading ? 0.7 : 1 }} disabled={loading}>

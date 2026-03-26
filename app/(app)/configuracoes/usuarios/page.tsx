@@ -19,19 +19,28 @@ function UsuarioModal({ item, times, onClose, onSave }: { item?: Usuario; times:
   const [loading, setLoading] = useState(false);
   const set = (k: string, v: string|boolean) => setForm(f=>({...f,[k]:v}));
 
+  const [erro, setErro] = useState("");
+
   const handleSave = async () => {
-    if (!form.nome.trim()||!form.email.trim()) { alert("Preencha nome e e-mail"); return; }
+    if (!form.nome.trim()||!form.email.trim()) { setErro("Preencha nome e e-mail"); return; }
     setLoading(true);
+    setErro("");
     try {
       const agId = await getAgenciaId();
       const payload = { nome:form.nome, cpf:form.cpf||undefined, email:form.email, time_id:form.time_id||undefined, ativo:form.ativo };
       if (isEdit) {
         await supabase.from("usuarios").update(payload).eq("id", item!.id);
       } else {
-        await supabase.from("usuarios").insert({ agencia_id: agId, ...payload });
+        const res = await fetch("/api/usuarios", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...payload, agencia_id: agId }),
+        });
+        const data = await res.json();
+        if (!res.ok) { setErro(data.error || "Erro ao criar usuário"); setLoading(false); return; }
       }
       onSave(); onClose();
-    } catch(e) { console.error(e); alert("Erro ao salvar"); }
+    } catch(e: any) { console.error(e); setErro(e.message || "Erro ao salvar"); }
     finally { setLoading(false); }
   };
 
@@ -78,6 +87,12 @@ function UsuarioModal({ item, times, onClose, onSave }: { item?: Usuario; times:
             </div>
           </div>
         </div>
+        {erro && (
+          <div style={{ background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.25)", borderRadius:"8px", padding:"10px 14px", fontSize:"13px", color:"#ef4444", marginTop:"12px" }}>{erro}</div>
+        )}
+        {!isEdit && (
+          <p style={{ fontSize:"11px", color:"#606060", marginTop:"12px" }}>O usuário receberá um email de convite para definir sua senha e acessar a plataforma.</p>
+        )}
         <div style={{display:"flex",justifyContent:"flex-end",gap:"8px",marginTop:"24px"}}>
           <button className="btn-secondary" onClick={onClose} style={{cursor:"pointer"}}>Cancelar</button>
           <button className="btn-primary" onClick={handleSave} disabled={loading} style={{cursor:"pointer"}}>
