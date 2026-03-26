@@ -358,14 +358,14 @@ export default function InboxPage() {
     const mapa: Record<string, string> = {
       "Entrou em contato": "em_contato",
       "Fez Contato": "em_contato",
-      "Qualificado": "qualificado",
+      "Qualificado": "em_contato",
       "Agendou": "reuniao_agendada",
       "Compareceu": "proposta_enviada",
       "Comprou": "ganho",
       "Fechou": "ganho",
-      "Perdido": "nao_respondeu",
+      "Perdido": "novo",
     };
-    return mapa[etapaInbox || ""] || "nao_respondeu";
+    return mapa[etapaInbox || ""] || "novo";
   };
 
   const enviarParaCrm = async (c: Conversa) => {

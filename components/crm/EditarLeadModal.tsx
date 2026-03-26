@@ -12,9 +12,8 @@ interface EditarLeadModalProps {
 }
 
 const ETAPAS = [
-  { value: "novo", label: "Novo" },
+  { value: "novo", label: "Não respondeu" },
   { value: "em_contato", label: "Em contato" },
-  { value: "qualificado", label: "Qualificado" },
   { value: "reuniao_agendada", label: "Reunião agendada" },
   { value: "proposta_enviada", label: "Proposta enviada" },
   { value: "ganho", label: "Ganho" },
@@ -50,7 +49,7 @@ export default function EditarLeadModal({ lead, onClose, onSave }: EditarLeadMod
     valor: lead.valor?.toString() || "",
     empresa: "",
     origem: lead.origens?.nome || "",
-    etapa: lead.etapa || "nao_respondeu",
+    etapa: lead.etapa || "novo",
     qualificacao: "Quente",
     responsavel: "Gustavo",
     categorias: "",

@@ -11,9 +11,8 @@ interface NovoLeadModalProps {
 
 const ORIGENS = ["Facebook","Instagram","Google","LinkedIn","Indicação","Outro"];
 const ETAPAS = [
-  { value:"novo", label:"Novo" },
+  { value:"novo", label:"Não respondeu" },
   { value:"em_contato", label:"Em contato" },
-  { value:"qualificado", label:"Qualificado" },
   { value:"reuniao_agendada", label:"Reunião agendada" },
   { value:"proposta_enviada", label:"Proposta enviada" },
   { value:"ganho", label:"Ganho" },
@@ -23,7 +22,7 @@ const ETAPAS = [
 export default function NovoLeadModal({ onClose, onSave }: NovoLeadModalProps) {
   const [form, setForm] = useState({
     nome:"", email:"", telefone:"", whatsapp:false,
-    etapa:"nao_respondeu", valor:"", origem:"",
+    etapa:"novo", valor:"", origem:"",
     utm_source:"", utm_medium:"", utm_campaign:"", utm_content:"", utm_term:"",
     observacoes:"",
   });
