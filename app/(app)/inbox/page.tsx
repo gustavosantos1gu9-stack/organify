@@ -390,12 +390,24 @@ export default function InboxPage() {
 
   const carregar = async () => {
     const agId = await getAgenciaId();
-    const [{ data: convs }, { data: etps }] = await Promise.all([
+    const [{ data: convs }, { data: etps }, { data: leadsExistentes }] = await Promise.all([
       supabase.from("conversas").select("*").eq("agencia_id",agId!).order("ultima_mensagem_at",{ascending:false}),
       supabase.from("jornada_etapas").select("*").eq("agencia_id",agId!).order("ordem"),
+      supabase.from("leads").select("telefone").eq("agencia_id",agId!),
     ]);
     setConversas(convs||[]);
     setEtapas(etps||[]);
+    // Marcar conversas que já têm lead no CRM (pelo telefone)
+    if (convs && leadsExistentes) {
+      const telefonesNoCrm = new Set(leadsExistentes.map((l: any) => l.telefone).filter(Boolean));
+      const jaNoCrm = new Set<string>();
+      for (const c of convs) {
+        if (c.contato_numero && telefonesNoCrm.has(c.contato_numero)) {
+          jaNoCrm.add(c.id);
+        }
+      }
+      setEnviadosCrm(jaNoCrm);
+    }
     setLoading(false);
   };
 
