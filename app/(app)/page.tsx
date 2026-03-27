@@ -54,14 +54,15 @@ export default function DashboardPage() {
           .select("data_churn").eq("agencia_id", agId).eq("status", "saiu");
         setTodosChurns(churnsData || []);
         // Buscar último cálculo fechado do churn para tempo médio
+        // Mesma lógica do painel churn: último do array ordenado por data_calculo crescente
         const { data: historicoChurn } = await sb.from("historico_churn_rate")
           .select("tempo_medio_meses")
           .eq("agencia_id", agId)
-          .order("data_calculo", { ascending: false })
-          .limit(1)
-          .single();
-        if (historicoChurn?.tempo_medio_meses) {
-          setTempoMedioChurn(String(historicoChurn.tempo_medio_meses));
+          .order("data_calculo", { ascending: true })
+          .order("created_at", { ascending: true });
+        if (historicoChurn?.length) {
+          const ultimo = historicoChurn[historicoChurn.length - 1];
+          if (ultimo?.tempo_medio_meses) setTempoMedioChurn(String(ultimo.tempo_medio_meses));
         }
 
         // Salvar snapshot no último dia do mês
