@@ -310,9 +310,10 @@ export default function CRMPage() {
       <div className="breadcrumb"><a href="/">Início</a><span>›</span><span className="current">CRM</span></div>
       <h1 style={{ fontSize:"22px", fontWeight:"600", marginBottom:"24px" }}>CRM</h1>
 
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"16px", marginBottom:"28px" }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:"16px", marginBottom:"28px" }}>
         <KPICard label="Taxa de conversão" value={`${taxaConversao}%`} change={0} icon={<Percent size={16}/>} iconBg="amber"/>
         <KPICard label="Taxa de no-show" value={`${taxaNoShow}%`} change={0} icon={<Percent size={16}/>} iconBg="red"/>
+        <KPICard label="Reuniões realizadas" value={foramReuniao} change={0} icon={<Flame size={16}/>} iconBg="amber"/>
         <KPICard label="Leads quentes" value={leadsQuentes} change={0} icon={<Flame size={16}/>} iconBg="red"/>
         <KPICard label="Pipeline total" value={formatCurrency(totalPipeline)} change={0} icon={<DollarSign size={16}/>} iconBg="green"/>
       </div>
