@@ -13,6 +13,7 @@ import {
   Escala,
 } from "@/lib/hooks";
 import { formatCurrency } from "@/lib/utils";
+import InputValor, { formatarValorBR, parsearValorBR } from "@/components/ui/InputValor";
 import {
   Plus,
   Trash2,
@@ -57,14 +58,13 @@ export default function EscalaPage({ tipo, titulo, subtitulo }: EscalaPageProps)
   const [busca, setBusca] = useState("");
 
   const [form, setForm] = useState({
-    nome: "",
     cliente_id: "",
     planilha_preenchida: false,
     agendamentos: 0,
-    custo_por_agendamento: 0,
+    custo_por_agendamento: "",
     escala: false,
-    investimento_anterior: 0,
-    investimento_atual: 0,
+    investimento_anterior: "",
+    investimento_atual: "",
     link_planilha: "",
   });
 
@@ -110,21 +110,20 @@ export default function EscalaPage({ tipo, titulo, subtitulo }: EscalaPageProps)
 
   const openNew = () => {
     setEditando(null);
-    setForm({ nome: "", cliente_id: "", planilha_preenchida: false, agendamentos: 0, custo_por_agendamento: 0, escala: false, investimento_anterior: 0, investimento_atual: 0, link_planilha: "" });
+    setForm({ cliente_id: "", planilha_preenchida: false, agendamentos: 0, custo_por_agendamento: "", escala: false, investimento_anterior: "", investimento_atual: "", link_planilha: "" });
     setShowModal(true);
   };
 
   const openEdit = (e: Escala) => {
     setEditando(e);
     setForm({
-      nome: e.nome,
       cliente_id: e.cliente_id ?? "",
       planilha_preenchida: e.planilha_preenchida,
       agendamentos: e.agendamentos,
-      custo_por_agendamento: e.custo_por_agendamento,
+      custo_por_agendamento: e.custo_por_agendamento ? formatarValorBR(String(Math.round(e.custo_por_agendamento * 100))) : "",
       escala: e.escala,
-      investimento_anterior: e.investimento_anterior,
-      investimento_atual: e.investimento_atual,
+      investimento_anterior: e.investimento_anterior ? formatarValorBR(String(Math.round(e.investimento_anterior * 100))) : "",
+      investimento_atual: e.investimento_atual ? formatarValorBR(String(Math.round(e.investimento_atual * 100))) : "",
       link_planilha: e.link_planilha ?? "",
     });
     setShowModal(true);
@@ -139,8 +138,22 @@ export default function EscalaPage({ tipo, titulo, subtitulo }: EscalaPageProps)
   };
 
   const handleSave = async () => {
-    if (!form.nome.trim()) return;
-    const payload = { ...form, tipo, mes, ano, cliente_id: form.cliente_id || undefined };
+    if (!form.cliente_id) return;
+    const clienteNome = clientes?.find((c) => c.id === form.cliente_id)?.nome ?? "Sem nome";
+    const payload = {
+      tipo,
+      mes,
+      ano,
+      nome: clienteNome,
+      cliente_id: form.cliente_id || undefined,
+      planilha_preenchida: form.planilha_preenchida,
+      agendamentos: form.agendamentos,
+      custo_por_agendamento: parsearValorBR(form.custo_por_agendamento),
+      escala: form.escala,
+      investimento_anterior: parsearValorBR(form.investimento_anterior),
+      investimento_atual: parsearValorBR(form.investimento_atual),
+      link_planilha: form.link_planilha || undefined,
+    };
     if (editando) {
       await atualizarEscala(editando.id, payload);
     } else {
@@ -347,7 +360,7 @@ export default function EscalaPage({ tipo, titulo, subtitulo }: EscalaPageProps)
           <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "1000px" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid #2e2e2e" }}>
-                {["Nome", "Planilha", "Agend.", "Custo/Agend.", "Escala", "Invest. Anterior", "Invest. Atual", "Link", ""].map((h) => (
+                {["Cliente", "Planilha", "Agend.", "Custo/Agend.", "Escala", "Invest. Anterior", "Invest. Atual", "Link", ""].map((h) => (
                   <th key={h} style={{ padding: "12px 14px", textAlign: "left", fontSize: "11px", color: "#707070", fontWeight: "500", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
                     {h}
                   </th>
@@ -361,12 +374,9 @@ export default function EscalaPage({ tipo, titulo, subtitulo }: EscalaPageProps)
                   onMouseLeave={(ev) => (ev.currentTarget.style.background = "transparent")}
                 >
                   <td style={{ padding: "12px 14px" }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                      <span style={{ fontSize: "14px", color: "#f0f0f0", fontWeight: "500" }}>{e.nome}</span>
-                      {e.clientes?.nome && (
-                        <span style={{ fontSize: "11px", color: "#29ABE2" }}>{e.clientes.nome}</span>
-                      )}
-                    </div>
+                    <span style={{ fontSize: "14px", color: "#f0f0f0", fontWeight: "500" }}>
+                      {e.clientes?.nome ?? e.nome}
+                    </span>
                   </td>
                   <td style={{ padding: "12px 14px" }}>
                     <button onClick={() => handleToggle(e, "planilha_preenchida")} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
@@ -434,14 +444,9 @@ export default function EscalaPage({ tipo, titulo, subtitulo }: EscalaPageProps)
 
             <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
               <div className="form-group">
-                <label className="form-label">Nome</label>
-                <input className="form-input" value={form.nome} onChange={(ev) => setForm({ ...form, nome: ev.target.value })} placeholder="Nome do registro" />
-              </div>
-
-              <div className="form-group">
                 <label className="form-label">Cliente associado</label>
                 <select className="form-input" value={form.cliente_id} onChange={(ev) => setForm({ ...form, cliente_id: ev.target.value })}>
-                  <option value="">Nenhum</option>
+                  <option value="">Selecione um cliente</option>
                   {clientes?.map((c) => (
                     <option key={c.id} value={c.id}>{c.nome}</option>
                   ))}
@@ -472,18 +477,18 @@ export default function EscalaPage({ tipo, titulo, subtitulo }: EscalaPageProps)
                 </div>
                 <div className="form-group">
                   <label className="form-label">Custo por agendamento</label>
-                  <input className="form-input" type="number" min={0} step={0.01} value={form.custo_por_agendamento} onChange={(ev) => setForm({ ...form, custo_por_agendamento: Number(ev.target.value) })} />
+                  <InputValor value={form.custo_por_agendamento} onChange={(v) => setForm({ ...form, custo_por_agendamento: v })} />
                 </div>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                 <div className="form-group">
                   <label className="form-label">Investimento anterior</label>
-                  <input className="form-input" type="number" min={0} step={0.01} value={form.investimento_anterior} onChange={(ev) => setForm({ ...form, investimento_anterior: Number(ev.target.value) })} />
+                  <InputValor value={form.investimento_anterior} onChange={(v) => setForm({ ...form, investimento_anterior: v })} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Investimento atual</label>
-                  <input className="form-input" type="number" min={0} step={0.01} value={form.investimento_atual} onChange={(ev) => setForm({ ...form, investimento_atual: Number(ev.target.value) })} />
+                  <InputValor value={form.investimento_atual} onChange={(v) => setForm({ ...form, investimento_atual: v })} />
                 </div>
               </div>
 
