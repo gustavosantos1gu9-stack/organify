@@ -165,10 +165,25 @@ export async function POST(req: NextRequest) {
         // Cruzar com rastreamento pendente
         let tracking = null;
 
+        // 0. Se @lid, buscar rastreamento recente pelo número de destino (agente)
+        if (isLid && eraNovaConversa) {
+          const cincoMinAtras = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+          const { data: lidTrack } = await supabase.from("rastreamentos_pendentes")
+            .select("*")
+            .eq("wa_destino", agencia.whatsapp_numero)
+            .gt("created_at", cincoMinAtras)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .single();
+          if (lidTrack) tracking = lidTrack;
+        }
+
         // 1. Tentar por número do lead
-        const { data: t1 } = await supabase.from("rastreamentos_pendentes")
-          .select("*").eq("wa_numero", numero).single();
-        if (t1) tracking = t1;
+        if (!tracking) {
+          const { data: t1 } = await supabase.from("rastreamentos_pendentes")
+            .select("*").eq("wa_numero", numero).single();
+          if (t1) tracking = t1;
+        }
 
         // 2. Buscar rastreamento recente (até 60 min) — SOMENTE se for primeira mensagem
         // Evita associar rastreamento a clientes antigos que mandaram mensagem por acaso
