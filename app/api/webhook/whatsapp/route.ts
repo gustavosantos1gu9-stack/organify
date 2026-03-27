@@ -55,12 +55,15 @@ export async function POST(req: NextRequest) {
       const fromMe = msg.key?.fromMe || false;
       const remoteJid = msg.key?.remoteJid || "";
 
-      if (!remoteJid || remoteJid.includes("@g.us") || remoteJid.includes("@lid")) {
+      if (!remoteJid || remoteJid.includes("@g.us")) {
         return NextResponse.json({ ok: true });
       }
 
+      const isLid = remoteJid.includes("@lid");
       const instanciaName = instance || body.instanceName || "";
-      const numero = remoteJid.replace("@s.whatsapp.net", "");
+      const numero = isLid
+        ? remoteJid.replace("@lid", "")
+        : remoteJid.replace("@s.whatsapp.net", "");
       const msgId = msg.key?.id;
       const timestamp = msg.messageTimestamp
         ? new Date(Number(msg.messageTimestamp) * 1000).toISOString()
@@ -138,8 +141,10 @@ export async function POST(req: NextRequest) {
         const { data: nova } = await supabase.from("conversas").insert({
           agencia_id: agencia.id, instancia: instanciaName,
           contato_numero: numero, contato_nome: nome, contato_foto: foto,
+          contato_jid: remoteJid,
           ultima_mensagem: conteudo, ultima_mensagem_at: timestamp,
-          primeira_mensagem_at: timestamp, nao_lidas: 1, origem: "Não Rastreada",
+          primeira_mensagem_at: timestamp, nao_lidas: 1,
+          origem: isLid ? "Meta Ads" : "Não Rastreada",
         }).select().single();
         conversa = nova;
       } else {
@@ -259,6 +264,19 @@ export async function POST(req: NextRequest) {
               utm_campaign: externalAdReply.title || externalAdReply.body || "",
               utm_content: sourceId || "",
               utm_medium: "Instagram_Feed",
+              fbclid: ctwaClid || "",
+              origem: "Meta Ads",
+              link_id: null,
+            };
+          }
+
+          // 5. Se veio via @lid (Click-to-WhatsApp) mas não achou nenhum tracking
+          if (!tracking && isLid) {
+            tracking = {
+              utm_source: "meta",
+              utm_campaign: externalAdReply?.title || externalAdReply?.body || "",
+              utm_content: sourceId || "",
+              utm_medium: externalAdReply?.mediaType || "",
               fbclid: ctwaClid || "",
               origem: "Meta Ads",
               link_id: null,
