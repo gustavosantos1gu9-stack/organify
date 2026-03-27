@@ -226,32 +226,6 @@ export default function ChurnPage() {
                     </td>
                   </tr>
                 ))}
-                {/* Linha ao vivo — Jan-Abr/2026 */}
-                {(() => {
-                  const meses = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
-                  const churnJan = clientes.filter(c=>c.data_churn==="Jan/2026").length;
-                  const churnFev = clientes.filter(c=>c.data_churn==="Fev/2026").length;
-                  const churnMar = clientes.filter(c=>c.data_churn==="Mar/2026").length;
-                  const totalAoVivo = churnJan + churnFev + churnMar;
-                  const snapFev = snapshots.find((s:any)=>s.mes_ano==="Fev/2026");
-                  const base = snapFev?.clientes_ativos || 40;
-                  const rateAoVivo = base > 0 ? ((totalAoVivo/base)*100).toFixed(1) : "—";
-                  return (
-                    <tr style={{ borderBottom:"1px solid #1e1e1e", background:"rgba(41,171,226,0.05)" }}>
-                      <td style={{ padding:"8px 12px", fontWeight:"600", color:"#29ABE2", borderRight:"1px solid #29ABE215" }}>
-                        Jan/2026 - Abr/2026
-                        <span style={{ fontSize:"10px", background:"rgba(41,171,226,0.2)", padding:"1px 6px", borderRadius:"10px", marginLeft:"6px" }}>ao vivo</span>
-                      </td>
-                      <td style={{ padding:"8px 12px", color:"#606060", borderRight:"1px solid #29ABE215" }}>30/04/2026</td>
-                      <td style={{ padding:"8px 12px", color:"#f0f0f0", borderRight:"1px solid #29ABE215" }}>{base}</td>
-                      <td style={{ padding:"8px 12px", color:"#ef4444", borderRight:"1px solid #29ABE215" }}>{totalAoVivo} (parcial)</td>
-                      <td style={{ padding:"8px 12px", borderRight:"1px solid #29ABE215" }}>
-                        <span style={{ color:"#f59e0b", fontWeight:"600" }}>{rateAoVivo}% (parcial)</span>
-                      </td>
-                      <td style={{ padding:"8px 12px", color:"#606060" }}>calculado em Abr</td>
-                    </tr>
-                  );
-                })()}
               </tbody>
             </table>
           </div>
