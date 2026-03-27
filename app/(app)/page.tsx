@@ -277,7 +277,7 @@ export default function DashboardPage() {
         <KPICard label="Projeção de vendas" value={fmt(projecaoVendas)} change={0} icon={<TrendingUp size={16}/>} iconBg="amber"/>
         <KPICard label="Taxa de conversão" value={`${(() => { const base = (leads||[]).filter(l=>l.etapa==="proposta_enviada"||l.etapa==="ganho").length; const g = (leads||[]).filter(l=>l.etapa==="ganho").length; return base > 0 ? Math.round(g/base*100) : 0; })()}%`} change={0} icon={<Percent size={16}/>} iconBg="amber"/>
         <KPICard label="Taxa de no-show" value={`${(() => { const ag = (leads||[]).filter(l=>["reuniao_agendada","nao_compareceu","proposta_enviada","ganho"].includes(l.etapa)).length; const ns = (leads||[]).filter(l=>l.etapa==="nao_compareceu").length; return ag > 0 ? Math.round(ns/ag*100) : 0; })()}%`} change={0} icon={<Percent size={16}/>} iconBg="red"/>
-        <KPICard label="Tempo médio do cliente (meses)" value={tempoMedioChurn} change={0} icon={<Clock size={16}/>} iconBg="blue"/>
+        <KPICard label="Tempo médio antes de sair (meses)" value={`${tempoMedioChurn}m`} change={0} icon={<Clock size={16}/>} iconBg="blue"/>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "16px", marginBottom: "32px" }}>
         <KPICard label="Custo fixo" value={fmt(custoFixo)} change={0} icon={<MinusCircle size={16}/>} iconBg="red"/>
