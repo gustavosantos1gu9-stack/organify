@@ -883,3 +883,149 @@ export async function salvarMetaReuniao(meta: Partial<MetaReuniao> & { mes: numb
     return data;
   }
 }
+
+// ─── ESCALAS ─────────────────────────────────────────────────────────────────
+export interface Escala {
+  id: string;
+  agencia_id: string;
+  tipo: string;
+  cliente_id?: string;
+  nome: string;
+  planilha_preenchida: boolean;
+  agendamentos: number;
+  custo_por_agendamento: number;
+  escala: boolean;
+  investimento_anterior: number;
+  investimento_atual: number;
+  link_planilha?: string;
+  mes: number;
+  ano: number;
+  clientes?: { id: string; nome: string } | null;
+  created_at: string;
+}
+
+export interface MetaEscala {
+  id: string;
+  agencia_id: string;
+  tipo: string;
+  mes: number;
+  ano: number;
+  meta_planilhas: number;
+  meta_escala_pct: number;
+  created_at: string;
+}
+
+export function useEscalas(tipo: string, mes: number, ano: number) {
+  return useQuery<Escala[]>(async (agenciaId) => {
+    const { data, error } = await supabase
+      .from("escalas")
+      .select("*, clientes(id, nome)")
+      .eq("agencia_id", agenciaId)
+      .eq("tipo", tipo)
+      .eq("mes", mes)
+      .eq("ano", ano)
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    return data ?? [];
+  }, [tipo, mes, ano]);
+}
+
+export function useMetaEscala(tipo: string, mes: number, ano: number) {
+  return useQuery<MetaEscala | null>(async (agenciaId) => {
+    const { data, error } = await supabase
+      .from("metas_escalas")
+      .select("*")
+      .eq("agencia_id", agenciaId)
+      .eq("tipo", tipo)
+      .eq("mes", mes)
+      .eq("ano", ano)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }, [tipo, mes, ano]);
+}
+
+export async function criarEscala(payload: Partial<Escala>) {
+  const agenciaId = await getAgenciaId();
+  const { data, error } = await supabase
+    .from("escalas")
+    .insert({ ...payload, agencia_id: agenciaId })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function atualizarEscala(id: string, payload: Partial<Escala>) {
+  const { data, error } = await supabase
+    .from("escalas")
+    .update(payload)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function removerEscala(id: string) {
+  const { error } = await supabase.from("escalas").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function salvarMetaEscala(meta: Partial<MetaEscala> & { tipo: string; mes: number; ano: number }) {
+  const agenciaId = await getAgenciaId();
+  const { data: existing } = await supabase
+    .from("metas_escalas")
+    .select("id")
+    .eq("agencia_id", agenciaId!)
+    .eq("tipo", meta.tipo)
+    .eq("mes", meta.mes)
+    .eq("ano", meta.ano)
+    .maybeSingle();
+
+  if (existing) {
+    const { data, error } = await supabase
+      .from("metas_escalas")
+      .update({ meta_planilhas: meta.meta_planilhas, meta_escala_pct: meta.meta_escala_pct })
+      .eq("id", existing.id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  } else {
+    const { data, error } = await supabase
+      .from("metas_escalas")
+      .insert({ ...meta, agencia_id: agenciaId })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+}
+
+export async function enviarEscalaProximoMes(escala: Escala) {
+  const nextMes = escala.mes === 12 ? 1 : escala.mes + 1;
+  const nextAno = escala.mes === 12 ? escala.ano + 1 : escala.ano;
+  const agenciaId = await getAgenciaId();
+  const { data, error } = await supabase
+    .from("escalas")
+    .insert({
+      agencia_id: agenciaId,
+      tipo: escala.tipo,
+      cliente_id: escala.cliente_id,
+      nome: escala.nome,
+      planilha_preenchida: false,
+      agendamentos: 0,
+      custo_por_agendamento: 0,
+      escala: false,
+      investimento_anterior: escala.investimento_atual,
+      investimento_atual: 0,
+      link_planilha: null,
+      mes: nextMes,
+      ano: nextAno,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}

@@ -259,6 +259,39 @@ CREATE TABLE metas_reunioes (
 );
 
 -- =============================================
+-- ESCALAS (controle mensal Ester/Nicolas)
+-- =============================================
+CREATE TABLE escalas (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  agencia_id UUID REFERENCES agencias(id) ON DELETE CASCADE,
+  tipo TEXT CHECK (tipo IN ('ester','nicolas')) NOT NULL,
+  cliente_id UUID REFERENCES clientes(id),
+  nome TEXT NOT NULL,
+  planilha_preenchida BOOLEAN DEFAULT FALSE,
+  agendamentos INTEGER DEFAULT 0,
+  custo_por_agendamento NUMERIC(12,2) DEFAULT 0,
+  escala BOOLEAN DEFAULT FALSE,
+  investimento_anterior NUMERIC(12,2) DEFAULT 0,
+  investimento_atual NUMERIC(12,2) DEFAULT 0,
+  link_planilha TEXT,
+  mes INTEGER NOT NULL CHECK (mes BETWEEN 1 AND 12),
+  ano INTEGER NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE metas_escalas (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  agencia_id UUID REFERENCES agencias(id) ON DELETE CASCADE,
+  tipo TEXT CHECK (tipo IN ('ester','nicolas')) NOT NULL,
+  mes INTEGER NOT NULL CHECK (mes BETWEEN 1 AND 12),
+  ano INTEGER NOT NULL,
+  meta_planilhas INTEGER DEFAULT 0,
+  meta_escala_pct NUMERIC(5,2) DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(agencia_id, tipo, mes, ano)
+);
+
+-- =============================================
 -- METAS
 -- =============================================
 CREATE TABLE metas (
