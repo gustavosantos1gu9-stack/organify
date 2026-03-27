@@ -53,6 +53,9 @@ async function calcularPeriodos(agencia_id: string, forcar = false) {
       // Só calcular períodos que já começaram
       if (hoje < entrada_inicio) continue;
 
+      // Não calcular períodos que ainda não fecharam
+      if (isAoVivo && !forcar) continue;
+
       // Verificar se já existe calculado e fechado
       const { data: existente } = await supabase
         .from("historico_churn_rate")

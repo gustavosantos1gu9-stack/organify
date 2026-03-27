@@ -33,6 +33,7 @@ export default function DashboardPage() {
 
   const [controleClientes, setControleClientes] = useState<any[]>([]);
   const [todosChurns, setTodosChurns] = useState<any[]>([]);
+  const [tempoMedioChurn, setTempoMedioChurn] = useState<string>("—");
 
   useEffect(() => {
     async function carregarSnapshots() {
@@ -52,6 +53,16 @@ export default function DashboardPage() {
         const { data: churnsData } = await sb.from("controle_clientes")
           .select("data_churn").eq("agencia_id", agId).eq("status", "saiu");
         setTodosChurns(churnsData || []);
+        // Buscar último cálculo fechado do churn para tempo médio
+        const { data: historicoChurn } = await sb.from("historico_churn_rate")
+          .select("tempo_medio_meses")
+          .eq("agencia_id", agId)
+          .order("data_calculo", { ascending: false })
+          .limit(1)
+          .single();
+        if (historicoChurn?.tempo_medio_meses) {
+          setTempoMedioChurn(String(historicoChurn.tempo_medio_meses));
+        }
 
         // Salvar snapshot no último dia do mês
         const hoje = new Date();
@@ -265,18 +276,7 @@ export default function DashboardPage() {
         <KPICard label="Projeção de vendas" value={fmt(projecaoVendas)} change={0} icon={<TrendingUp size={16}/>} iconBg="amber"/>
         <KPICard label="Taxa de conversão" value={`${(() => { const base = (leads||[]).filter(l=>l.etapa==="proposta_enviada"||l.etapa==="ganho").length; const g = (leads||[]).filter(l=>l.etapa==="ganho").length; return base > 0 ? Math.round(g/base*100) : 0; })()}%`} change={0} icon={<Percent size={16}/>} iconBg="amber"/>
         <KPICard label="Taxa de no-show" value={`${(() => { const ag = (leads||[]).filter(l=>["reuniao_agendada","nao_compareceu","proposta_enviada","ganho"].includes(l.etapa)).length; const ns = (leads||[]).filter(l=>l.etapa==="nao_compareceu").length; return ag > 0 ? Math.round(ns/ag*100) : 0; })()}%`} change={0} icon={<Percent size={16}/>} iconBg="red"/>
-        <KPICard label="Tempo médio do cliente (meses)" value={(() => {
-          const ativos = controleClientes.filter((c:any) => c.status === "ativo" && c.data_entrada);
-          if (!ativos.length) return "—";
-          const hoje3 = new Date();
-          const media = ativos.reduce((s: number, c: any) => {
-            try {
-              const d = new Date(c.data_entrada);
-              return s + (hoje3.getTime() - d.getTime()) / (1000*60*60*24*30);
-            } catch { return s; }
-          }, 0) / ativos.length;
-          return media.toFixed(1);
-        })()} change={0} icon={<Clock size={16}/>} iconBg="blue"/>
+        <KPICard label="Tempo médio do cliente (meses)" value={tempoMedioChurn} change={0} icon={<Clock size={16}/>} iconBg="blue"/>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "16px", marginBottom: "32px" }}>
         <KPICard label="Custo fixo" value={fmt(custoFixo)} change={0} icon={<MinusCircle size={16}/>} iconBg="red"/>
