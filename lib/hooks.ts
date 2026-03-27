@@ -759,3 +759,125 @@ export function useDadosGraficos(meses = 6) {
     return Object.entries(mesesMap).map(([mes, v]) => ({ mes, ...v }));
   }, [meses]);
 }
+
+// ─── REUNIÕES ────────────────────────────────────────────────────────────────
+export interface Reuniao {
+  id: string;
+  agencia_id: string;
+  nome: string;
+  participantes?: string;
+  status: string;
+  data: string;
+  motivo?: string;
+  feedback?: string;
+  responsavel?: string;
+  created_at: string;
+}
+
+export interface MetaReuniao {
+  id: string;
+  agencia_id: string;
+  mes: number;
+  ano: number;
+  meta_total: number;
+  meta_realizadas: number;
+  meta_apresentacao: number;
+  meta_alinhamento: number;
+  created_at: string;
+}
+
+export function useReunioes(mes: number, ano: number) {
+  return useQuery<Reuniao[]>(async (agenciaId) => {
+    const startDate = `${ano}-${String(mes).padStart(2, "0")}-01`;
+    const endMonth = mes === 12 ? 1 : mes + 1;
+    const endYear = mes === 12 ? ano + 1 : ano;
+    const endDate = `${endYear}-${String(endMonth).padStart(2, "0")}-01`;
+
+    const { data, error } = await supabase
+      .from("reunioes")
+      .select("*")
+      .eq("agencia_id", agenciaId)
+      .gte("data", startDate)
+      .lt("data", endDate)
+      .order("data", { ascending: true });
+    if (error) throw error;
+    return data ?? [];
+  }, [mes, ano]);
+}
+
+export function useMetaReuniao(mes: number, ano: number) {
+  return useQuery<MetaReuniao | null>(async (agenciaId) => {
+    const { data, error } = await supabase
+      .from("metas_reunioes")
+      .select("*")
+      .eq("agencia_id", agenciaId)
+      .eq("mes", mes)
+      .eq("ano", ano)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }, [mes, ano]);
+}
+
+export async function criarReuniao(payload: Partial<Reuniao>) {
+  const agenciaId = await getAgenciaId();
+  const { data, error } = await supabase
+    .from("reunioes")
+    .insert({ ...payload, agencia_id: agenciaId })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function atualizarReuniao(id: string, payload: Partial<Reuniao>) {
+  const { data, error } = await supabase
+    .from("reunioes")
+    .update(payload)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function removerReuniao(id: string) {
+  const { error } = await supabase.from("reunioes").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function salvarMetaReuniao(meta: Partial<MetaReuniao> & { mes: number; ano: number }) {
+  const agenciaId = await getAgenciaId();
+  // upsert by agencia + mes + ano
+  const { data: existing } = await supabase
+    .from("metas_reunioes")
+    .select("id")
+    .eq("agencia_id", agenciaId!)
+    .eq("mes", meta.mes)
+    .eq("ano", meta.ano)
+    .maybeSingle();
+
+  if (existing) {
+    const { data, error } = await supabase
+      .from("metas_reunioes")
+      .update({
+        meta_total: meta.meta_total,
+        meta_realizadas: meta.meta_realizadas,
+        meta_apresentacao: meta.meta_apresentacao,
+        meta_alinhamento: meta.meta_alinhamento,
+      })
+      .eq("id", existing.id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  } else {
+    const { data, error } = await supabase
+      .from("metas_reunioes")
+      .insert({ ...meta, agencia_id: agenciaId })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+}

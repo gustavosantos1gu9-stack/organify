@@ -229,6 +229,36 @@ CREATE TABLE recorrencias (
 );
 
 -- =============================================
+-- REUNIÕES (controle de reuniões mensais)
+-- =============================================
+CREATE TABLE reunioes (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  agencia_id UUID REFERENCES agencias(id) ON DELETE CASCADE,
+  nome TEXT NOT NULL,
+  participantes TEXT,
+  status TEXT CHECK (status IN ('Agendado','Realizado','Cancelado','Não compareceu')) DEFAULT 'Agendado',
+  data DATE,
+  motivo TEXT,
+  feedback TEXT,
+  responsavel TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- METAS DE REUNIÕES (por mês/ano)
+CREATE TABLE metas_reunioes (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  agencia_id UUID REFERENCES agencias(id) ON DELETE CASCADE,
+  mes INTEGER NOT NULL CHECK (mes BETWEEN 1 AND 12),
+  ano INTEGER NOT NULL,
+  meta_total INTEGER DEFAULT 0,
+  meta_realizadas INTEGER DEFAULT 0,
+  meta_apresentacao INTEGER DEFAULT 0,
+  meta_alinhamento INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(agencia_id, mes, ano)
+);
+
+-- =============================================
 -- METAS
 -- =============================================
 CREATE TABLE metas (

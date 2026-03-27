@@ -34,6 +34,7 @@ import {
   Link2,
   MessageCircle,
   ClipboardList,
+  CalendarCheck,
 } from "lucide-react";
 
 interface NavItem {
@@ -56,6 +57,7 @@ const navItems: NavItem[] = [
   { href: "/crm", label: "CRM", icon: <CreditCard size={16} /> },
   { href: "/controle-clientes", label: "Controle de Clientes", icon: <Users2 size={16} /> },
   { href: "/cadastros", label: "Cadastros", icon: <ClipboardList size={16} /> },
+  { href: "/reunioes", label: "Reuniões", icon: <CalendarCheck size={16} /> },
   { href: "/gerador-de-leads", label: "Churn", icon: <UserMinus size={16} /> },
   { href: "/ferramentas/gerador-links", label: "Links & Campanhas", icon: <Link2 size={16} /> },
   { href: "/ferramentas/campanhas", label: "Configurar Campanha", icon: <Target size={16} /> },
@@ -108,6 +110,7 @@ const hrefToModuloKey: Record<string, string> = {
   "/crm": "crm",
   "/controle-clientes": "controle_clientes",
   "/cadastros": "cadastros",
+  "/reunioes": "reunioes",
   "/gerador-de-leads": "churn",
   "/ferramentas/gerador-links": "links_campanhas",
   "/ferramentas/campanhas": "configurar_campanha",
