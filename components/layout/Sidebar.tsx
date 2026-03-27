@@ -8,33 +8,24 @@ import {
   LayoutDashboard,
   Users,
   CreditCard,
-  UserPlus,
   UserMinus,
   BarChart3,
   Target,
-  Sparkles,
   DollarSign,
-  GraduationCap,
   Settings,
   LogOut,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  Wallet,
-  Calendar,
-  RefreshCw,
-  Building2,
   Plug,
-  Tag,
-  MapPin,
-  Landmark,
-  Truck,
-  UserCog,
   Users2,
   Link2,
   MessageCircle,
   ClipboardList,
   CalendarCheck,
+  Briefcase,
+  Headphones,
+  Radar,
 } from "lucide-react";
 
 interface NavItem {
@@ -52,31 +43,46 @@ interface NavChild {
 
 const navItems: NavItem[] = [
   { href: "/", label: "Início", icon: <LayoutDashboard size={16} /> },
-  { href: "/clientes", label: "Clientes", icon: <Users size={16} /> },
-  { href: "/inbox", label: "Inbox WhatsApp", icon: <MessageCircle size={16} /> },
-  { href: "/crm", label: "CRM", icon: <CreditCard size={16} /> },
-  { href: "/controle-clientes", label: "Controle de Clientes", icon: <Users2 size={16} /> },
-  { href: "/cadastros", label: "Cadastros", icon: <ClipboardList size={16} /> },
-  { href: "/reunioes", label: "Reuniões", icon: <CalendarCheck size={16} /> },
-  { href: "/escala-ester", label: "Escala E.", icon: <BarChart3 size={16} /> },
-  { href: "/escala-nicolas", label: "Escala N.", icon: <BarChart3 size={16} /> },
-  { href: "/gerador-de-leads", label: "Churn", icon: <UserMinus size={16} /> },
-  { href: "/ferramentas/gerador-links", label: "Links & Campanhas", icon: <Link2 size={16} /> },
-  { href: "/ferramentas/campanhas", label: "Configurar Campanha", icon: <Target size={16} /> },
-  { href: "/jornada", label: "Jornada de Compra", icon: <Target size={16} /> },
-  { href: "/dre", label: "DRE", icon: <BarChart3 size={16} /> },
-  { href: "/metas", label: "Metas", icon: <Target size={16} /> },
-  { href: "/vivian-ia", label: "Vivian IA", icon: <Sparkles size={16} /> },
   {
     label: "Financeiro",
     icon: <DollarSign size={16} />,
     children: [
+      { href: "/clientes", label: "Clientes" },
+      { href: "/dre", label: "DRE" },
       { href: "/financeiro/lancamentos-futuros", label: "Lançamentos futuros" },
       { href: "/financeiro/movimentacoes", label: "Movimentações" },
       { href: "/financeiro/recorrencias", label: "Recorrências" },
     ],
   },
-  { href: "/universidade", label: "Universidade", icon: <GraduationCap size={16} /> },
+  {
+    label: "SDR",
+    icon: <Headphones size={16} />,
+    children: [
+      { href: "/inbox", label: "Inbox WhatsApp" },
+      { href: "/crm", label: "CRM" },
+    ],
+  },
+  {
+    label: "Operacional",
+    icon: <Briefcase size={16} />,
+    children: [
+      { href: "/controle-clientes", label: "Controle de Clientes" },
+      { href: "/cadastros", label: "Cadastros" },
+      { href: "/reunioes", label: "Reuniões" },
+      { href: "/escala-ester", label: "Escala E." },
+      { href: "/escala-nicolas", label: "Escala N." },
+      { href: "/gerador-de-leads", label: "Churn" },
+    ],
+  },
+  {
+    label: "Rastreamento",
+    icon: <Radar size={16} />,
+    children: [
+      { href: "/ferramentas/gerador-links", label: "Links & Campanhas" },
+      { href: "/ferramentas/campanhas", label: "Configurar Campanha" },
+      { href: "/jornada", label: "Jornada de Compra" },
+    ],
+  },
   {
     label: "Configurações",
     icon: <Settings size={16} />,
@@ -120,20 +126,22 @@ const hrefToModuloKey: Record<string, string> = {
   "/ferramentas/campanhas": "configurar_campanha",
   "/jornada": "jornada",
   "/dre": "dre",
-  "/metas": "metas",
-  "/vivian-ia": "vivian_ia",
   "/financeiro/lancamentos-futuros": "lancamentos",
   "/financeiro/movimentacoes": "movimentacoes",
   "/financeiro/recorrencias": "recorrencias",
-  "/universidade": "universidade",
 };
 
-const financeiroKeys = ["lancamentos", "movimentacoes", "recorrencias"];
+const groupChildKeys: Record<string, string[]> = {
+  Financeiro: ["clientes", "dre", "lancamentos", "movimentacoes", "recorrencias"],
+  SDR: ["inbox", "crm"],
+  Operacional: ["controle_clientes", "cadastros", "reunioes", "escala_ester", "escala_nicolas", "churn"],
+  Rastreamento: ["links_campanhas", "configurar_campanha", "jornada"],
+};
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
-  const [openMenus, setOpenMenus] = useState<string[]>(["Financeiro", "Configurações"]);
+  const [openMenus, setOpenMenus] = useState<string[]>([]);
   const [allowedModulos, setAllowedModulos] = useState<Set<string> | null>(null);
   const [permLoaded, setPermLoaded] = useState(false);
 
@@ -249,8 +257,10 @@ export default function Sidebar() {
             return allowedModulos.has("configuracoes");
           }
 
-          if (item.label === "Financeiro") {
-            return financeiroKeys.some((k) => allowedModulos.has(k));
+          // Collapsible groups: show if any child module is allowed
+          const childKeys = groupChildKeys[item.label];
+          if (childKeys) {
+            return childKeys.some((k) => allowedModulos.has(k));
           }
 
           const href = item.href;
