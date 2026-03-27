@@ -1003,6 +1003,20 @@ export async function salvarMetaEscala(meta: Partial<MetaEscala> & { tipo: strin
   }
 }
 
+export function useEscalasHistorico(tipo: string) {
+  return useQuery<Escala[]>(async (agenciaId) => {
+    const { data, error } = await supabase
+      .from("escalas")
+      .select("*, clientes(id, nome)")
+      .eq("agencia_id", agenciaId)
+      .eq("tipo", tipo)
+      .order("ano", { ascending: true })
+      .order("mes", { ascending: true });
+    if (error) throw error;
+    return data ?? [];
+  }, [tipo]);
+}
+
 export async function enviarEscalaProximoMes(escala: Escala) {
   const nextMes = escala.mes === 12 ? 1 : escala.mes + 1;
   const nextAno = escala.mes === 12 ? escala.ano + 1 : escala.ano;

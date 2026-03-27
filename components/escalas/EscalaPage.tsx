@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import {
   useEscalas,
   useMetaEscala,
+  useEscalasHistorico,
   useClientes,
   criarEscala,
   atualizarEscala,
@@ -14,6 +15,18 @@ import {
 } from "@/lib/hooks";
 import { formatCurrency } from "@/lib/utils";
 import InputValor, { formatarValorBR, parsearValorBR } from "@/components/ui/InputValor";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  LineChart,
+  Line,
+  CartesianGrid,
+} from "recharts";
 import {
   Plus,
   Trash2,
@@ -31,6 +44,7 @@ import {
   ExternalLink,
   CheckCircle2,
   XCircle,
+  PieChart,
 } from "lucide-react";
 
 const MESES = [
@@ -52,8 +66,11 @@ export default function EscalaPage({ tipo, titulo, subtitulo }: EscalaPageProps)
   const { data: metaData, refresh: refreshMeta } = useMetaEscala(tipo, mes, ano);
   const { data: clientes } = useClientes();
 
+  const { data: historicoAll } = useEscalasHistorico(tipo);
+
   const [showModal, setShowModal] = useState(false);
   const [showMetaModal, setShowMetaModal] = useState(false);
+  const [showRelatorio, setShowRelatorio] = useState(false);
   const [editando, setEditando] = useState<Escala | null>(null);
   const [busca, setBusca] = useState("");
 
@@ -220,6 +237,9 @@ export default function EscalaPage({ tipo, titulo, subtitulo }: EscalaPageProps)
           <p style={{ fontSize: "13px", color: "#606060", marginTop: "4px" }}>{subtitulo}</p>
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
+          <button onClick={() => setShowRelatorio(true)} className="btn-secondary" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <PieChart size={14} /> Relatório
+          </button>
           <button onClick={openMeta} className="btn-secondary" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <Target size={14} /> Definir Metas
           </button>
@@ -506,6 +526,9 @@ export default function EscalaPage({ tipo, titulo, subtitulo }: EscalaPageProps)
         </div>
       )}
 
+      {/* Modal Relatório */}
+      {showRelatorio && <RelatorioModal historico={historicoAll ?? []} onClose={() => setShowRelatorio(false)} />}
+
       {/* Modal Metas */}
       {showMetaModal && (
         <div className="modal-overlay" onClick={() => setShowMetaModal(false)}>
@@ -553,6 +576,188 @@ export default function EscalaPage({ tipo, titulo, subtitulo }: EscalaPageProps)
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── RELATÓRIO ───────────────────────────────────────────────────────────────
+
+const MESES_SHORT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+
+interface RelatorioProps {
+  historico: Escala[];
+  onClose: () => void;
+}
+
+function RelatorioModal({ historico, onClose }: RelatorioProps) {
+  // Agrupar por mês/ano
+  const mesesData = useMemo(() => {
+    const map: Record<string, { escalas: Escala[]; label: string; sortKey: number }> = {};
+    for (const e of historico) {
+      const key = `${e.ano}-${String(e.mes).padStart(2, "0")}`;
+      if (!map[key]) {
+        map[key] = { escalas: [], label: `${MESES_SHORT[e.mes - 1]}/${String(e.ano).slice(2)}`, sortKey: e.ano * 100 + e.mes };
+      }
+      map[key].escalas.push(e);
+    }
+    return Object.values(map).sort((a, b) => a.sortKey - b.sortKey);
+  }, [historico]);
+
+  // Dados para gráfico de barras: agendamentos e investimento por mês
+  const chartBarras = useMemo(() => {
+    return mesesData.map((m) => {
+      const totalAgend = m.escalas.reduce((s, e) => s + (e.agendamentos || 0), 0);
+      const totalInvest = m.escalas.reduce((s, e) => s + (e.investimento_atual || 0), 0);
+      const escalados = m.escalas.filter((e) => e.escala).length;
+      const custoMedio = totalAgend > 0 ? totalInvest / totalAgend : 0;
+      return { mes: m.label, agendamentos: totalAgend, investimento: totalInvest, escalados, custoMedio: Math.round(custoMedio * 100) / 100 };
+    });
+  }, [mesesData]);
+
+  // Dados para gráfico de linha: % crescimento mês a mês
+  const chartCrescimento = useMemo(() => {
+    return chartBarras.map((curr, i) => {
+      if (i === 0) return { mes: curr.mes, crescAgend: 0, crescInvest: 0 };
+      const prev = chartBarras[i - 1];
+      const crescAgend = prev.agendamentos > 0 ? Math.round(((curr.agendamentos - prev.agendamentos) / prev.agendamentos) * 100) : 0;
+      const crescInvest = prev.investimento > 0 ? Math.round(((curr.investimento - prev.investimento) / prev.investimento) * 100) : 0;
+      return { mes: curr.mes, crescAgend, crescInvest };
+    });
+  }, [chartBarras]);
+
+  // Resumo por cliente
+  const clienteResumo = useMemo(() => {
+    const map: Record<string, { nome: string; meses: number; escalas: number; totalAgend: number; totalInvest: number; custoTotal: number }> = {};
+    for (const e of historico) {
+      const key = e.cliente_id ?? e.nome;
+      const nome = e.clientes?.nome ?? e.nome;
+      if (!map[key]) map[key] = { nome, meses: 0, escalas: 0, totalAgend: 0, totalInvest: 0, custoTotal: 0 };
+      map[key].meses++;
+      if (e.escala) map[key].escalas++;
+      map[key].totalAgend += e.agendamentos || 0;
+      map[key].totalInvest += e.investimento_atual || 0;
+      map[key].custoTotal += e.custo_por_agendamento || 0;
+    }
+    return Object.values(map).sort((a, b) => b.escalas - a.escalas);
+  }, [historico]);
+
+  const tooltipStyle = { contentStyle: { background: "#1e1e1e", border: "1px solid #3a3a3a", borderRadius: "8px", fontSize: "12px" }, labelStyle: { color: "#a0a0a0" } };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal animate-in" onClick={(ev) => ev.stopPropagation()} style={{ maxWidth: "900px", maxHeight: "90vh", overflow: "auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
+          <h2 style={{ fontSize: "18px", fontWeight: "600", color: "#f0f0f0" }}>
+            Relatório de Progresso
+          </h2>
+          <button onClick={onClose} className="btn-ghost" style={{ padding: "4px" }}>
+            <X size={18} />
+          </button>
+        </div>
+
+        {historico.length === 0 ? (
+          <p style={{ color: "#606060", textAlign: "center", padding: "40px" }}>Nenhum dado ainda.</p>
+        ) : (
+          <>
+            {/* Gráfico 1: Agendamentos e Escalas por mês */}
+            <div style={{ marginBottom: "32px" }}>
+              <h3 style={{ fontSize: "14px", fontWeight: "600", color: "#a0a0a0", marginBottom: "12px" }}>Agendamentos e Escalas por Mês</h3>
+              <div style={{ background: "#141414", borderRadius: "10px", padding: "16px", border: "1px solid #2e2e2e" }}>
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={chartBarras} barGap={4}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#2e2e2e" />
+                    <XAxis dataKey="mes" tick={{ fill: "#707070", fontSize: 12 }} />
+                    <YAxis tick={{ fill: "#707070", fontSize: 12 }} />
+                    <Tooltip {...tooltipStyle} />
+                    <Legend wrapperStyle={{ fontSize: "12px" }} />
+                    <Bar dataKey="agendamentos" name="Agendamentos" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="escalados" name="Escalaram" fill="#a855f7" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Gráfico 2: Investimento e Custo Médio por mês */}
+            <div style={{ marginBottom: "32px" }}>
+              <h3 style={{ fontSize: "14px", fontWeight: "600", color: "#a0a0a0", marginBottom: "12px" }}>Investimento e Custo Médio por Mês</h3>
+              <div style={{ background: "#141414", borderRadius: "10px", padding: "16px", border: "1px solid #2e2e2e" }}>
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={chartBarras} barGap={4}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#2e2e2e" />
+                    <XAxis dataKey="mes" tick={{ fill: "#707070", fontSize: 12 }} />
+                    <YAxis tick={{ fill: "#707070", fontSize: 12 }} tickFormatter={(v: number) => `R$${v}`} />
+                    <Tooltip {...tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
+                    <Legend wrapperStyle={{ fontSize: "12px" }} />
+                    <Bar dataKey="investimento" name="Investimento" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="custoMedio" name="Custo Médio/Agend." fill="#29ABE2" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Gráfico 3: Crescimento % mês a mês */}
+            {chartCrescimento.length > 1 && (
+              <div style={{ marginBottom: "32px" }}>
+                <h3 style={{ fontSize: "14px", fontWeight: "600", color: "#a0a0a0", marginBottom: "12px" }}>Crescimento % Mês a Mês</h3>
+                <div style={{ background: "#141414", borderRadius: "10px", padding: "16px", border: "1px solid #2e2e2e" }}>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <LineChart data={chartCrescimento}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#2e2e2e" />
+                      <XAxis dataKey="mes" tick={{ fill: "#707070", fontSize: 12 }} />
+                      <YAxis tick={{ fill: "#707070", fontSize: 12 }} tickFormatter={(v: number) => `${v}%`} />
+                      <Tooltip {...tooltipStyle} formatter={(value: number) => `${value}%`} />
+                      <Legend wrapperStyle={{ fontSize: "12px" }} />
+                      <Line type="monotone" dataKey="crescAgend" name="Agendamentos %" stroke="#3b82f6" strokeWidth={2} dot={{ fill: "#3b82f6", r: 4 }} />
+                      <Line type="monotone" dataKey="crescInvest" name="Investimento %" stroke="#f59e0b" strokeWidth={2} dot={{ fill: "#f59e0b", r: 4 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+
+            {/* Tabela resumo por cliente */}
+            <div>
+              <h3 style={{ fontSize: "14px", fontWeight: "600", color: "#a0a0a0", marginBottom: "12px" }}>Resumo por Cliente</h3>
+              <div style={{ background: "#141414", borderRadius: "10px", border: "1px solid #2e2e2e", overflow: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr style={{ borderBottom: "1px solid #2e2e2e" }}>
+                      {["Cliente", "Meses", "Vezes Escalou", "Taxa Escala", "Total Agend.", "Custo Médio/Agend.", "Total Investido"].map((h) => (
+                        <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: "11px", color: "#707070", fontWeight: "500", textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {clienteResumo.map((c) => {
+                      const taxaEsc = c.meses > 0 ? Math.round((c.escalas / c.meses) * 100) : 0;
+                      const custoMedio = c.totalAgend > 0 ? c.custoTotal / c.meses : 0;
+                      return (
+                        <tr key={c.nome} style={{ borderBottom: "1px solid #1e1e1e" }}>
+                          <td style={{ padding: "10px 14px", fontSize: "13px", color: "#f0f0f0", fontWeight: "500" }}>{c.nome}</td>
+                          <td style={{ padding: "10px 14px", fontSize: "13px", color: "#a0a0a0" }}>{c.meses}</td>
+                          <td style={{ padding: "10px 14px", fontSize: "13px", color: "#a855f7", fontWeight: "600" }}>{c.escalas}x</td>
+                          <td style={{ padding: "10px 14px" }}>
+                            <span style={{
+                              fontSize: "12px", fontWeight: "600", padding: "2px 8px", borderRadius: "6px",
+                              background: taxaEsc >= 60 ? "rgba(34,197,94,0.12)" : taxaEsc >= 30 ? "rgba(245,158,11,0.12)" : "rgba(239,68,68,0.12)",
+                              color: taxaEsc >= 60 ? "#22c55e" : taxaEsc >= 30 ? "#f59e0b" : "#ef4444",
+                            }}>
+                              {taxaEsc}%
+                            </span>
+                          </td>
+                          <td style={{ padding: "10px 14px", fontSize: "13px", color: "#a0a0a0" }}>{c.totalAgend}</td>
+                          <td style={{ padding: "10px 14px", fontSize: "13px", color: "#a0a0a0" }}>{formatCurrency(custoMedio)}</td>
+                          <td style={{ padding: "10px 14px", fontSize: "13px", color: "#f0f0f0" }}>{formatCurrency(c.totalInvest)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
