@@ -771,6 +771,8 @@ export interface Reuniao {
   motivo?: string;
   feedback?: string;
   responsavel?: string;
+  cliente_id?: string;
+  clientes?: { id: string; nome: string } | null;
   created_at: string;
 }
 
@@ -795,7 +797,7 @@ export function useReunioes(mes: number, ano: number) {
 
     const { data, error } = await supabase
       .from("reunioes")
-      .select("*")
+      .select("*, clientes(id, nome)")
       .eq("agencia_id", agenciaId)
       .gte("data", startDate)
       .lt("data", endDate)

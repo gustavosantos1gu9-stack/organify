@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import {
   useReunioes,
   useMetaReuniao,
+  useClientes,
   criarReuniao,
   atualizarReuniao,
   removerReuniao,
@@ -50,6 +51,7 @@ export default function ReunioesPage() {
   const [ano, setAno] = useState(hoje.getFullYear());
   const { data: reunioes, loading, refresh } = useReunioes(mes, ano);
   const { data: metaData, refresh: refreshMeta } = useMetaReuniao(mes, ano);
+  const { data: clientes } = useClientes();
 
   const [showModal, setShowModal] = useState(false);
   const [showMetaModal, setShowMetaModal] = useState(false);
@@ -65,6 +67,7 @@ export default function ReunioesPage() {
     motivo: "Alinhamento",
     feedback: "",
     responsavel: "",
+    cliente_id: "",
   });
 
   // Meta form state
@@ -82,8 +85,8 @@ export default function ReunioesPage() {
       total: reunioes.length,
       realizadas: reunioes.filter((r) => r.status === "Realizado").length,
       agendadas: reunioes.filter((r) => r.status === "Agendado").length,
-      apresentacao: reunioes.filter((r) => r.motivo === "Reunião de apresentação").length,
-      alinhamento: reunioes.filter((r) => r.motivo === "Alinhamento").length,
+      apresentacao: reunioes.filter((r) => r.motivo?.startsWith("Reunião de apresentação")).length,
+      alinhamento: reunioes.filter((r) => r.motivo?.startsWith("Alinhamento")).length,
       canceladas: reunioes.filter((r) => r.status === "Cancelado" || r.status === "Não compareceu").length,
     };
   }, [reunioes]);
@@ -123,7 +126,7 @@ export default function ReunioesPage() {
 
   const openNew = () => {
     setEditando(null);
-    setForm({ nome: "", participantes: "", status: "Agendado", data: "", motivo: "Alinhamento", feedback: "", responsavel: "" });
+    setForm({ nome: "", participantes: "", status: "Agendado", data: "", motivo: "Alinhamento", feedback: "", responsavel: "", cliente_id: "" });
     setShowModal(true);
   };
 
@@ -137,6 +140,7 @@ export default function ReunioesPage() {
       motivo: r.motivo ?? "Alinhamento",
       feedback: r.feedback ?? "",
       responsavel: r.responsavel ?? "",
+      cliente_id: r.cliente_id ?? "",
     });
     setShowModal(true);
   };
@@ -153,10 +157,11 @@ export default function ReunioesPage() {
 
   const handleSave = async () => {
     if (!form.nome.trim()) return;
+    const payload = { ...form, cliente_id: form.cliente_id || undefined };
     if (editando) {
-      await atualizarReuniao(editando.id, form);
+      await atualizarReuniao(editando.id, payload);
     } else {
-      await criarReuniao(form);
+      await criarReuniao(payload);
     }
     setShowModal(false);
     refresh();
@@ -392,7 +397,13 @@ export default function ReunioesPage() {
                       {r.nome}
                     </td>
                     <td style={{ padding: "12px 16px", fontSize: "13px", color: "#a0a0a0" }}>
-                      {r.participantes}
+                      <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                        {r.clientes?.nome && (
+                          <span style={{ color: "#29ABE2", fontSize: "12px", fontWeight: "500" }}>{r.clientes.nome}</span>
+                        )}
+                        {r.participantes && <span>{r.participantes}</span>}
+                        {!r.clientes?.nome && !r.participantes && "—"}
+                      </div>
                     </td>
                     <td style={{ padding: "12px 16px" }}>
                       <select
@@ -468,6 +479,16 @@ export default function ReunioesPage() {
                     ))}
                   </select>
                 </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Cliente associado</label>
+                <select className="form-input" value={form.cliente_id} onChange={(e) => setForm({ ...form, cliente_id: e.target.value })}>
+                  <option value="">Nenhum (sem vínculo)</option>
+                  {clientes?.map((c) => (
+                    <option key={c.id} value={c.id}>{c.nome}</option>
+                  ))}
+                </select>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
