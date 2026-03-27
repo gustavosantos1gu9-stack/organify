@@ -16,18 +16,6 @@ import {
 import { formatCurrency } from "@/lib/utils";
 import InputValor, { formatarValorBR, parsearValorBR } from "@/components/ui/InputValor";
 import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-  LineChart,
-  Line,
-  CartesianGrid,
-} from "recharts";
-import {
   Plus,
   Trash2,
   Edit3,
@@ -589,173 +577,190 @@ interface RelatorioProps {
   onClose: () => void;
 }
 
+function pctBadge(value: number) {
+  const color = value > 0 ? "#22c55e" : value < 0 ? "#ef4444" : "#606060";
+  const bg = value > 0 ? "rgba(34,197,94,0.12)" : value < 0 ? "rgba(239,68,68,0.12)" : "rgba(96,96,96,0.12)";
+  const label = value > 0 ? `+${value}%` : value === 0 ? "—" : `${value}%`;
+  return (
+    <span style={{ fontSize: "11px", fontWeight: "600", padding: "2px 6px", borderRadius: "4px", background: bg, color, whiteSpace: "nowrap" }}>
+      {label}
+    </span>
+  );
+}
+
+function escalaBadge(value: boolean) {
+  return (
+    <span style={{
+      fontSize: "11px", fontWeight: "600", padding: "2px 6px", borderRadius: "4px",
+      background: value ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)",
+      color: value ? "#22c55e" : "#ef4444",
+    }}>
+      {value ? "Sim" : "Não"}
+    </span>
+  );
+}
+
+interface MesEntry {
+  label: string;
+  agendamentos: number;
+  investimento: number;
+  custo_medio: number;
+  escala: boolean;
+  planilha: boolean;
+}
+
+interface ClienteHistorico {
+  nome: string;
+  meses: MesEntry[];
+  totalEscalas: number;
+  custoMedioGeral: number;
+}
+
 function RelatorioModal({ historico, onClose }: RelatorioProps) {
-  // Agrupar por mês/ano
-  const mesesData = useMemo(() => {
-    const map: Record<string, { escalas: Escala[]; label: string; sortKey: number }> = {};
-    for (const e of historico) {
-      const key = `${e.ano}-${String(e.mes).padStart(2, "0")}`;
-      if (!map[key]) {
-        map[key] = { escalas: [], label: `${MESES_SHORT[e.mes - 1]}/${String(e.ano).slice(2)}`, sortKey: e.ano * 100 + e.mes };
-      }
-      map[key].escalas.push(e);
-    }
-    return Object.values(map).sort((a, b) => a.sortKey - b.sortKey);
-  }, [historico]);
-
-  // Dados para gráfico de barras: agendamentos e investimento por mês
-  const chartBarras = useMemo(() => {
-    return mesesData.map((m) => {
-      const totalAgend = m.escalas.reduce((s, e) => s + (e.agendamentos || 0), 0);
-      const totalInvest = m.escalas.reduce((s, e) => s + (e.investimento_atual || 0), 0);
-      const escalados = m.escalas.filter((e) => e.escala).length;
-      const custoMedio = totalAgend > 0 ? totalInvest / totalAgend : 0;
-      return { mes: m.label, agendamentos: totalAgend, investimento: totalInvest, escalados, custoMedio: Math.round(custoMedio * 100) / 100 };
-    });
-  }, [mesesData]);
-
-  // Dados para gráfico de linha: % crescimento mês a mês
-  const chartCrescimento = useMemo(() => {
-    return chartBarras.map((curr, i) => {
-      if (i === 0) return { mes: curr.mes, crescAgend: 0, crescInvest: 0 };
-      const prev = chartBarras[i - 1];
-      const crescAgend = prev.agendamentos > 0 ? Math.round(((curr.agendamentos - prev.agendamentos) / prev.agendamentos) * 100) : 0;
-      const crescInvest = prev.investimento > 0 ? Math.round(((curr.investimento - prev.investimento) / prev.investimento) * 100) : 0;
-      return { mes: curr.mes, crescAgend, crescInvest };
-    });
-  }, [chartBarras]);
-
-  // Resumo por cliente
-  const clienteResumo = useMemo(() => {
-    const map: Record<string, { nome: string; meses: number; escalas: number; totalAgend: number; totalInvest: number; custoTotal: number }> = {};
+  const clientesData = useMemo<ClienteHistorico[]>(() => {
+    // Agrupar por cliente, depois ordenar meses
+    const map: Record<string, { nome: string; entries: Escala[] }> = {};
     for (const e of historico) {
       const key = e.cliente_id ?? e.nome;
-      const nome = e.clientes?.nome ?? e.nome;
-      if (!map[key]) map[key] = { nome, meses: 0, escalas: 0, totalAgend: 0, totalInvest: 0, custoTotal: 0 };
-      map[key].meses++;
-      if (e.escala) map[key].escalas++;
-      map[key].totalAgend += e.agendamentos || 0;
-      map[key].totalInvest += e.investimento_atual || 0;
-      map[key].custoTotal += e.custo_por_agendamento || 0;
+      if (!map[key]) map[key] = { nome: e.clientes?.nome ?? e.nome, entries: [] };
+      map[key].entries.push(e);
     }
-    return Object.values(map).sort((a, b) => b.escalas - a.escalas);
+
+    return Object.values(map).map((c) => {
+      const sorted = c.entries.sort((a, b) => (a.ano * 100 + a.mes) - (b.ano * 100 + b.mes));
+      const meses: MesEntry[] = sorted.map((e) => ({
+        label: `${MESES_SHORT[e.mes - 1]}/${String(e.ano).slice(2)}`,
+        agendamentos: e.agendamentos || 0,
+        investimento: e.investimento_atual || 0,
+        custo_medio: e.custo_por_agendamento || 0,
+        escala: e.escala,
+        planilha: e.planilha_preenchida,
+      }));
+      const totalEscalas = meses.filter((m) => m.escala).length;
+      const totalCusto = meses.reduce((s, m) => s + m.custo_medio, 0);
+      const custoMedioGeral = meses.length > 0 ? totalCusto / meses.length : 0;
+      return { nome: c.nome, meses, totalEscalas, custoMedioGeral };
+    }).sort((a, b) => b.totalEscalas - a.totalEscalas);
   }, [historico]);
 
-  const tooltipStyle = { contentStyle: { background: "#1e1e1e", border: "1px solid #3a3a3a", borderRadius: "8px", fontSize: "12px" }, labelStyle: { color: "#a0a0a0" } };
+  // Todos os meses únicos ordenados
+  const todosMeses = useMemo(() => {
+    const set = new Set<string>();
+    const list: { label: string; sortKey: number }[] = [];
+    for (const e of historico) {
+      const key = `${e.ano}-${String(e.mes).padStart(2, "0")}`;
+      if (!set.has(key)) {
+        set.add(key);
+        list.push({ label: `${MESES_SHORT[e.mes - 1]}/${String(e.ano).slice(2)}`, sortKey: e.ano * 100 + e.mes });
+      }
+    }
+    return list.sort((a, b) => a.sortKey - b.sortKey).map((m) => m.label);
+  }, [historico]);
+
+  function calcPct(curr: number, prev: number) {
+    if (prev === 0 && curr === 0) return 0;
+    if (prev === 0) return curr > 0 ? 100 : 0;
+    return Math.round(((curr - prev) / prev) * 100);
+  }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal animate-in" onClick={(ev) => ev.stopPropagation()} style={{ maxWidth: "900px", maxHeight: "90vh", overflow: "auto" }}>
+      <div className="modal animate-in" onClick={(ev) => ev.stopPropagation()} style={{ maxWidth: "95vw", width: "1200px", maxHeight: "90vh", overflow: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-          <h2 style={{ fontSize: "18px", fontWeight: "600", color: "#f0f0f0" }}>
-            Relatório de Progresso
-          </h2>
-          <button onClick={onClose} className="btn-ghost" style={{ padding: "4px" }}>
-            <X size={18} />
-          </button>
+          <h2 style={{ fontSize: "18px", fontWeight: "600", color: "#f0f0f0" }}>Relatório de Progresso</h2>
+          <button onClick={onClose} className="btn-ghost" style={{ padding: "4px" }}><X size={18} /></button>
         </div>
 
         {historico.length === 0 ? (
           <p style={{ color: "#606060", textAlign: "center", padding: "40px" }}>Nenhum dado ainda.</p>
         ) : (
-          <>
-            {/* Gráfico 1: Agendamentos e Escalas por mês */}
-            <div style={{ marginBottom: "32px" }}>
-              <h3 style={{ fontSize: "14px", fontWeight: "600", color: "#a0a0a0", marginBottom: "12px" }}>Agendamentos e Escalas por Mês</h3>
-              <div style={{ background: "#141414", borderRadius: "10px", padding: "16px", border: "1px solid #2e2e2e" }}>
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={chartBarras} barGap={4}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#2e2e2e" />
-                    <XAxis dataKey="mes" tick={{ fill: "#707070", fontSize: 12 }} />
-                    <YAxis tick={{ fill: "#707070", fontSize: 12 }} />
-                    <Tooltip {...tooltipStyle} />
-                    <Legend wrapperStyle={{ fontSize: "12px" }} />
-                    <Bar dataKey="agendamentos" name="Agendamentos" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="escalados" name="Escalaram" fill="#a855f7" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+            {clientesData.map((cliente) => {
+              const mesesMap: Record<string, MesEntry> = {};
+              for (const m of cliente.meses) mesesMap[m.label] = m;
 
-            {/* Gráfico 2: Investimento e Custo Médio por mês */}
-            <div style={{ marginBottom: "32px" }}>
-              <h3 style={{ fontSize: "14px", fontWeight: "600", color: "#a0a0a0", marginBottom: "12px" }}>Investimento e Custo Médio por Mês</h3>
-              <div style={{ background: "#141414", borderRadius: "10px", padding: "16px", border: "1px solid #2e2e2e" }}>
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={chartBarras} barGap={4}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#2e2e2e" />
-                    <XAxis dataKey="mes" tick={{ fill: "#707070", fontSize: 12 }} />
-                    <YAxis tick={{ fill: "#707070", fontSize: 12 }} tickFormatter={(v: number) => `R$${v}`} />
-                    <Tooltip {...tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
-                    <Legend wrapperStyle={{ fontSize: "12px" }} />
-                    <Bar dataKey="investimento" name="Investimento" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="custoMedio" name="Custo Médio/Agend." fill="#29ABE2" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+              return (
+                <div key={cliente.nome} style={{ background: "#141414", borderRadius: "10px", border: "1px solid #2e2e2e", overflow: "hidden" }}>
+                  {/* Header do cliente */}
+                  <div style={{ padding: "14px 18px", borderBottom: "1px solid #2e2e2e", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <span style={{ fontSize: "15px", fontWeight: "600", color: "#f0f0f0" }}>{cliente.nome}</span>
+                      <span style={{ fontSize: "12px", color: "#a855f7", fontWeight: "600", background: "rgba(168,85,247,0.12)", padding: "2px 8px", borderRadius: "4px" }}>
+                        {cliente.totalEscalas}x escalou
+                      </span>
+                    </div>
+                    <span style={{ fontSize: "12px", color: "#707070" }}>
+                      Custo médio geral: <span style={{ color: "#f0f0f0" }}>{formatCurrency(cliente.custoMedioGeral)}</span>
+                    </span>
+                  </div>
 
-            {/* Gráfico 3: Crescimento % mês a mês */}
-            {chartCrescimento.length > 1 && (
-              <div style={{ marginBottom: "32px" }}>
-                <h3 style={{ fontSize: "14px", fontWeight: "600", color: "#a0a0a0", marginBottom: "12px" }}>Crescimento % Mês a Mês</h3>
-                <div style={{ background: "#141414", borderRadius: "10px", padding: "16px", border: "1px solid #2e2e2e" }}>
-                  <ResponsiveContainer width="100%" height={250}>
-                    <LineChart data={chartCrescimento}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#2e2e2e" />
-                      <XAxis dataKey="mes" tick={{ fill: "#707070", fontSize: 12 }} />
-                      <YAxis tick={{ fill: "#707070", fontSize: 12 }} tickFormatter={(v: number) => `${v}%`} />
-                      <Tooltip {...tooltipStyle} formatter={(value: number) => `${value}%`} />
-                      <Legend wrapperStyle={{ fontSize: "12px" }} />
-                      <Line type="monotone" dataKey="crescAgend" name="Agendamentos %" stroke="#3b82f6" strokeWidth={2} dot={{ fill: "#3b82f6", r: 4 }} />
-                      <Line type="monotone" dataKey="crescInvest" name="Investimento %" stroke="#f59e0b" strokeWidth={2} dot={{ fill: "#f59e0b", r: 4 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            )}
-
-            {/* Tabela resumo por cliente */}
-            <div>
-              <h3 style={{ fontSize: "14px", fontWeight: "600", color: "#a0a0a0", marginBottom: "12px" }}>Resumo por Cliente</h3>
-              <div style={{ background: "#141414", borderRadius: "10px", border: "1px solid #2e2e2e", overflow: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr style={{ borderBottom: "1px solid #2e2e2e" }}>
-                      {["Cliente", "Meses", "Vezes Escalou", "Taxa Escala", "Total Agend.", "Custo Médio/Agend.", "Total Investido"].map((h) => (
-                        <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: "11px", color: "#707070", fontWeight: "500", textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {clienteResumo.map((c) => {
-                      const taxaEsc = c.meses > 0 ? Math.round((c.escalas / c.meses) * 100) : 0;
-                      const custoMedio = c.totalAgend > 0 ? c.custoTotal / c.meses : 0;
-                      return (
-                        <tr key={c.nome} style={{ borderBottom: "1px solid #1e1e1e" }}>
-                          <td style={{ padding: "10px 14px", fontSize: "13px", color: "#f0f0f0", fontWeight: "500" }}>{c.nome}</td>
-                          <td style={{ padding: "10px 14px", fontSize: "13px", color: "#a0a0a0" }}>{c.meses}</td>
-                          <td style={{ padding: "10px 14px", fontSize: "13px", color: "#a855f7", fontWeight: "600" }}>{c.escalas}x</td>
-                          <td style={{ padding: "10px 14px" }}>
-                            <span style={{
-                              fontSize: "12px", fontWeight: "600", padding: "2px 8px", borderRadius: "6px",
-                              background: taxaEsc >= 60 ? "rgba(34,197,94,0.12)" : taxaEsc >= 30 ? "rgba(245,158,11,0.12)" : "rgba(239,68,68,0.12)",
-                              color: taxaEsc >= 60 ? "#22c55e" : taxaEsc >= 30 ? "#f59e0b" : "#ef4444",
-                            }}>
-                              {taxaEsc}%
-                            </span>
-                          </td>
-                          <td style={{ padding: "10px 14px", fontSize: "13px", color: "#a0a0a0" }}>{c.totalAgend}</td>
-                          <td style={{ padding: "10px 14px", fontSize: "13px", color: "#a0a0a0" }}>{formatCurrency(custoMedio)}</td>
-                          <td style={{ padding: "10px 14px", fontSize: "13px", color: "#f0f0f0" }}>{formatCurrency(c.totalInvest)}</td>
+                  {/* Tabela de meses */}
+                  <div style={{ overflow: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "700px" }}>
+                      <thead>
+                        <tr style={{ borderBottom: "1px solid #2e2e2e" }}>
+                          <th style={{ padding: "10px 14px", textAlign: "left", fontSize: "11px", color: "#707070", fontWeight: "500", position: "sticky", left: 0, background: "#141414", zIndex: 1 }}>MÊS</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "#707070", fontWeight: "500" }}>AGEND.</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "#707070", fontWeight: "500" }}>% AGEND.</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "#707070", fontWeight: "500" }}>INVESTIMENTO</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "#707070", fontWeight: "500" }}>% INVEST.</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "#707070", fontWeight: "500" }}>CUSTO/AGEND.</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "#707070", fontWeight: "500" }}>% CUSTO</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "#707070", fontWeight: "500" }}>PLANILHA</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "#707070", fontWeight: "500" }}>ESCALA</th>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </>
+                      </thead>
+                      <tbody>
+                        {todosMeses.map((mesLabel, idx) => {
+                          const entry = mesesMap[mesLabel];
+                          if (!entry) {
+                            return (
+                              <tr key={mesLabel} style={{ borderBottom: "1px solid #1a1a1a" }}>
+                                <td style={{ padding: "8px 14px", fontSize: "12px", color: "#505050", position: "sticky", left: 0, background: "#141414" }}>{mesLabel}</td>
+                                {Array.from({ length: 8 }).map((_, i) => (
+                                  <td key={i} style={{ padding: "8px 14px", textAlign: "center", fontSize: "12px", color: "#333" }}>—</td>
+                                ))}
+                              </tr>
+                            );
+                          }
+
+                          // Achar mês anterior deste cliente
+                          const clienteMeses = cliente.meses;
+                          const myIdx = clienteMeses.findIndex((m) => m.label === mesLabel);
+                          const prev = myIdx > 0 ? clienteMeses[myIdx - 1] : null;
+
+                          const pctAgend = prev ? calcPct(entry.agendamentos, prev.agendamentos) : 0;
+                          const pctInvest = prev ? calcPct(entry.investimento, prev.investimento) : 0;
+                          const pctCusto = prev ? calcPct(entry.custo_medio, prev.custo_medio) : 0;
+
+                          return (
+                            <tr key={mesLabel} style={{ borderBottom: "1px solid #1a1a1a" }}>
+                              <td style={{ padding: "8px 14px", fontSize: "12px", color: "#a0a0a0", fontWeight: "500", position: "sticky", left: 0, background: "#141414" }}>{mesLabel}</td>
+                              <td style={{ padding: "8px 14px", textAlign: "center", fontSize: "13px", color: "#f0f0f0", fontWeight: "500" }}>{entry.agendamentos}</td>
+                              <td style={{ padding: "8px 14px", textAlign: "center" }}>{prev ? pctBadge(pctAgend) : <span style={{ color: "#505050", fontSize: "11px" }}>1o mês</span>}</td>
+                              <td style={{ padding: "8px 14px", textAlign: "center", fontSize: "12px", color: "#f0f0f0" }}>{formatCurrency(entry.investimento)}</td>
+                              <td style={{ padding: "8px 14px", textAlign: "center" }}>{prev ? pctBadge(pctInvest) : <span style={{ color: "#505050", fontSize: "11px" }}>1o mês</span>}</td>
+                              <td style={{ padding: "8px 14px", textAlign: "center", fontSize: "12px", color: "#a0a0a0" }}>{formatCurrency(entry.custo_medio)}</td>
+                              <td style={{ padding: "8px 14px", textAlign: "center" }}>{prev ? pctBadge(pctCusto) : <span style={{ color: "#505050", fontSize: "11px" }}>1o mês</span>}</td>
+                              <td style={{ padding: "8px 14px", textAlign: "center" }}>{escalaBadge(entry.planilha)}</td>
+                              <td style={{ padding: "8px 14px", textAlign: "center" }}>{escalaBadge(entry.escala)}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Resumo */}
+                  <div style={{ padding: "10px 18px", borderTop: "1px solid #2e2e2e", display: "flex", gap: "24px", fontSize: "11px", color: "#606060" }}>
+                    <span>Total agend.: <span style={{ color: "#f0f0f0" }}>{cliente.meses.reduce((s, m) => s + m.agendamentos, 0)}</span></span>
+                    <span>Total investido: <span style={{ color: "#f0f0f0" }}>{formatCurrency(cliente.meses.reduce((s, m) => s + m.investimento, 0))}</span></span>
+                    <span>Taxa escala: <span style={{ color: cliente.totalEscalas > 0 ? "#22c55e" : "#ef4444" }}>{cliente.meses.length > 0 ? Math.round((cliente.totalEscalas / cliente.meses.length) * 100) : 0}%</span></span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>
