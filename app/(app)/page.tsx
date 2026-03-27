@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
+import dynamic from "next/dynamic";
 import {
   Users, UserX, UserPlus, TrendingUp, RotateCcw,
   ArrowDownToLine, ArrowUpFromLine, DollarSign,
@@ -36,7 +37,7 @@ export default function DashboardPage() {
   const [tempoMedioChurn, setTempoMedioChurn] = useState<string>("—");
 
   useEffect(() => {
-    async function carregarSnapshots() {
+    async function carregarDados() {
       try {
         const { createClient } = await import("@supabase/supabase-js");
         const sb = createClient(
@@ -45,43 +46,36 @@ export default function DashboardPage() {
         );
         const agId = "32cdce6e-4664-4ac6-979d-6d68a1a68745";
 
-        // Buscar clientes ativos do controle
-        const { data: cc } = await sb.from("controle_clientes")
-          .select("status, data_churn, data_entrada").eq("agencia_id", agId);
-        setControleClientes(cc || []);
-        // Buscar churns (status saiu) com data_churn
-        const { data: churnsData } = await sb.from("controle_clientes")
-          .select("data_churn").eq("agencia_id", agId).eq("status", "saiu");
-        setTodosChurns(churnsData || []);
-        // Buscar último cálculo fechado do churn para tempo médio
-        // Mesma lógica do painel churn: último do array ordenado por data_calculo crescente
-        const { data: historicoChurn } = await sb.from("historico_churn_rate")
-          .select("tempo_medio_meses")
-          .eq("agencia_id", agId)
-          .order("data_calculo", { ascending: true })
-          .order("created_at", { ascending: true });
-        if (historicoChurn?.length) {
-          const ultimo = historicoChurn[historicoChurn.length - 1];
+        // Todas as queries em paralelo
+        const [ccRes, churnsRes, churnHistRes, snapRes] = await Promise.all([
+          sb.from("controle_clientes").select("status, data_churn, data_entrada").eq("agencia_id", agId),
+          sb.from("controle_clientes").select("data_churn").eq("agencia_id", agId).eq("status", "saiu"),
+          sb.from("historico_churn_rate").select("tempo_medio_meses").eq("agencia_id", agId)
+            .order("data_calculo", { ascending: true }).order("created_at", { ascending: true }),
+          fetch(`/api/snapshots?agencia_id=${agId}`).then(r => r.json()),
+        ]);
+
+        setControleClientes(ccRes.data || []);
+        setTodosChurns(churnsRes.data || []);
+        if (churnHistRes.data?.length) {
+          const ultimo = churnHistRes.data[churnHistRes.data.length - 1];
           if (ultimo?.tempo_medio_meses) setTempoMedioChurn(String(ultimo.tempo_medio_meses));
         }
+        setSnapshots(snapRes.data || []);
 
         // Salvar snapshot no último dia do mês
         const hoje = new Date();
         const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth()+1, 0).getDate();
         if (hoje.getDate() === ultimoDia) {
-          await fetch("/api/snapshots", {
+          fetch("/api/snapshots", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ agencia_id: agId }),
-          });
+          }).catch(() => {});
         }
-        // Buscar histórico
-        const res = await fetch(`/api/snapshots?agencia_id=${agId}`);
-        const json = await res.json();
-        setSnapshots(json.data || []);
       } catch(e) { console.error(e); }
     }
-    carregarSnapshots();
+    carregarDados();
   }, []);
   const { data: graficos } = useDadosGraficos(6);
   const { data: conversao } = useConversaoPorPublico();
