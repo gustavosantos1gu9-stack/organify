@@ -65,7 +65,7 @@ export default function EscalaPage({ tipo, titulo, subtitulo }: EscalaPageProps)
   const [form, setForm] = useState({
     cliente_id: "",
     planilha_preenchida: false,
-    agendamentos: 0,
+    agendamentos: "",
     custo_por_agendamento: "",
     escala: false,
     investimento_anterior: "",
@@ -115,7 +115,7 @@ export default function EscalaPage({ tipo, titulo, subtitulo }: EscalaPageProps)
 
   const openNew = () => {
     setEditando(null);
-    setForm({ cliente_id: "", planilha_preenchida: false, agendamentos: 0, custo_por_agendamento: "", escala: false, investimento_anterior: "", investimento_atual: "", link_planilha: "" });
+    setForm({ cliente_id: "", planilha_preenchida: false, agendamentos: "", custo_por_agendamento: "", escala: false, investimento_anterior: "", investimento_atual: "", link_planilha: "" });
     setShowModal(true);
   };
 
@@ -124,7 +124,7 @@ export default function EscalaPage({ tipo, titulo, subtitulo }: EscalaPageProps)
     setForm({
       cliente_id: e.cliente_id ?? "",
       planilha_preenchida: e.planilha_preenchida,
-      agendamentos: e.agendamentos,
+      agendamentos: e.agendamentos ? String(e.agendamentos) : "",
       custo_por_agendamento: e.custo_por_agendamento ? formatarValorBR(String(Math.round(e.custo_por_agendamento * 100))) : "",
       escala: e.escala,
       investimento_anterior: e.investimento_anterior ? formatarValorBR(String(Math.round(e.investimento_anterior * 100))) : "",
@@ -152,7 +152,7 @@ export default function EscalaPage({ tipo, titulo, subtitulo }: EscalaPageProps)
       nome: clienteNome,
       cliente_id: form.cliente_id || undefined,
       planilha_preenchida: form.planilha_preenchida,
-      agendamentos: form.agendamentos,
+      agendamentos: parseInt(form.agendamentos, 10) || 0,
       custo_por_agendamento: parsearValorBR(form.custo_por_agendamento),
       escala: form.escala,
       investimento_anterior: parsearValorBR(form.investimento_anterior),
@@ -481,7 +481,7 @@ export default function EscalaPage({ tipo, titulo, subtitulo }: EscalaPageProps)
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                 <div className="form-group">
                   <label className="form-label">Agendamentos</label>
-                  <input className="form-input" type="number" min={0} value={form.agendamentos} onChange={(ev) => setForm({ ...form, agendamentos: Number(ev.target.value) })} />
+                  <input className="form-input" type="number" min={0} value={form.agendamentos} onChange={(ev) => setForm({ ...form, agendamentos: ev.target.value })} placeholder="0" />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Custo por agendamento</label>
