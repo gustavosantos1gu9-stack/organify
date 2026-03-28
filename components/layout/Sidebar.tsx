@@ -26,6 +26,7 @@ import {
   Briefcase,
   Headphones,
   Radar,
+  FileBarChart,
 } from "lucide-react";
 
 interface NavItem {
@@ -60,6 +61,7 @@ const navItems: NavItem[] = [
     children: [
       { href: "/inbox", label: "Inbox WhatsApp" },
       { href: "/crm", label: "CRM" },
+      { href: "/relatorios", label: "Relatórios Meta" },
     ],
   },
   {
@@ -116,6 +118,7 @@ const hrefToModuloKey: Record<string, string> = {
   "/clientes": "clientes",
   "/inbox": "inbox",
   "/crm": "crm",
+  "/relatorios": "relatorios",
   "/controle-clientes": "controle_clientes",
   "/cadastros": "cadastros",
   "/reunioes": "reunioes",
@@ -133,7 +136,7 @@ const hrefToModuloKey: Record<string, string> = {
 
 const groupChildKeys: Record<string, string[]> = {
   Financeiro: ["clientes", "dre", "lancamentos", "movimentacoes", "recorrencias"],
-  SDR: ["inbox", "crm"],
+  SDR: ["inbox", "crm", "relatorios"],
   Operacional: ["controle_clientes", "cadastros", "reunioes", "escala_ester", "escala_nicolas", "churn"],
   Rastreamento: ["links_campanhas", "configurar_campanha", "jornada"],
 };
