@@ -150,14 +150,7 @@ export default function RelatoriosMetaPage() {
   async function carregarTudo() {
     const agId = await getAgenciaId();
 
-    // Puxar Evolution API da agência (fallback)
-    const { data: ag } = await supabase
-      .from("agencias")
-      .select("evolution_url, evolution_key, whatsapp_instancia")
-      .eq("id", agId!)
-      .single();
-
-    // Carregar conexão do módulo de relatórios
+    // Carregar conexão do módulo de relatórios (só usa as conexões próprias)
     const { data: con } = await supabase
       .from("relatorios_conexoes")
       .select("*")
@@ -170,16 +163,10 @@ export default function RelatoriosMetaPage() {
       setConexao(con);
       if (con.meta_token) carregarContas(con.meta_token);
 
-      // Pra grupos: usar evolution da conexão, senão da agência
-      const evoUrl = con.evolution_url || ag?.evolution_url;
-      const evoKey = con.evolution_key || ag?.evolution_key;
-      const waInst = con.whatsapp_instancia || ag?.whatsapp_instancia;
-      if (evoUrl && evoKey && waInst) {
-        carregarGrupos(evoUrl, evoKey, waInst);
+      // Grupos: só do WhatsApp conectado neste módulo
+      if (con.evolution_url && con.evolution_key && con.whatsapp_instancia) {
+        carregarGrupos(con.evolution_url, con.evolution_key, con.whatsapp_instancia);
       }
-    } else if (ag?.evolution_url && ag?.evolution_key && ag?.whatsapp_instancia) {
-      // Sem conexão de relatórios, usa agência diretamente pra grupos
-      carregarGrupos(ag.evolution_url, ag.evolution_key, ag.whatsapp_instancia);
     }
 
     // Carregar relatórios
@@ -399,6 +386,7 @@ export default function RelatoriosMetaPage() {
   };
 
   const semConexao = !conexao?.meta_token;
+  const semWhatsApp = !conexao?.evolution_url || !conexao?.whatsapp_instancia;
 
   return (
     <div className="animate-in">
@@ -601,8 +589,16 @@ export default function RelatoriosMetaPage() {
                   <p style={{ fontSize: "12px", color: "#606060" }}>Carregando grupos...</p>
                 ) : grupos.length === 0 ? (
                   <div>
-                    <input className="form-input" placeholder="ID do grupo" value={grupoId} onChange={e => setGrupoId(e.target.value)} />
-                    <p style={{ fontSize: "11px", color: "#606060", marginTop: "4px" }}>Nenhum grupo encontrado. Conecte o WhatsApp em <a href="/relatorios-meta/conexoes" style={{ color: "#29ABE2" }}>Conexões</a>.</p>
+                    {semWhatsApp ? (
+                      <p style={{ fontSize: "12px", color: "#f59e0b" }}>
+                        WhatsApp não conectado. Conecte em <a href="/relatorios-meta/conexoes" style={{ color: "#29ABE2", textDecoration: "underline" }}>Conexões</a> primeiro.
+                      </p>
+                    ) : (
+                      <>
+                        <input className="form-input" placeholder="ID do grupo" value={grupoId} onChange={e => setGrupoId(e.target.value)} />
+                        <p style={{ fontSize: "11px", color: "#606060", marginTop: "4px" }}>Nenhum grupo encontrado. Verifique a conexão em <a href="/relatorios-meta/conexoes" style={{ color: "#29ABE2" }}>Conexões</a>.</p>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: "4px", maxHeight: "180px", overflowY: "auto" }}>
