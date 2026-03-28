@@ -72,20 +72,36 @@ export default function AlertasPage() {
   const carregarContas = async () => {
     if (!token) return;
     try {
-      const res = await fetch(`https://graph.facebook.com/v21.0/me/adaccounts?fields=name,account_status&access_token=${token}&limit=50`);
+      const res = await fetch("/api/meta-ads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "listar_contas", token }),
+      });
       const data = await res.json();
-      setContas((data.data || []).map((c: any) => ({ id: c.id.replace("act_", ""), name: c.name })));
+      if (Array.isArray(data)) {
+        setContas(data.map((c: any) => ({ id: (c.id || c.account_id || "").replace("act_", ""), name: c.name })));
+      }
     } catch {}
   };
 
   const carregarGrupos = async () => {
     if (!conConfig?.evolution_url || !conConfig?.evolution_key || !conConfig?.whatsapp_instancia) return;
     try {
-      const res = await fetch(`${conConfig.evolution_url}/group/fetchAllGroups/${conConfig.whatsapp_instancia}?getParticipants=false`, {
-        headers: { apikey: conConfig.evolution_key },
+      const res = await fetch(`${conConfig.evolution_url}/chat/findChats/${conConfig.whatsapp_instancia}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: conConfig.evolution_key },
+        body: JSON.stringify({}),
       });
-      const data = await res.json();
-      setGrupos(Array.isArray(data) ? data.map((g: any) => ({ id: g.id || g.remoteJid, subject: g.subject })) : []);
+      const json = await res.json();
+      const allChats = Array.isArray(json) ? json : [];
+      const gruposFiltrados = allChats
+        .filter((c: any) => (c.remoteJid || c.id || "").includes("@g.us"))
+        .map((c: any) => ({
+          id: c.remoteJid || c.id,
+          subject: c.pushName || c.name || c.subject || c.remoteJid || c.id,
+        }))
+        .sort((a: any, b: any) => a.subject.localeCompare(b.subject));
+      setGrupos(gruposFiltrados);
     } catch {}
   };
 
