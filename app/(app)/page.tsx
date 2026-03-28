@@ -260,38 +260,38 @@ export default function DashboardPage() {
       <div className="card" style={{ marginBottom: "20px", padding: "16px 20px" }}>
         <h3 style={{ fontSize: "13px", fontWeight: "600", color: "#f0f0f0", marginBottom: "14px", display: "flex", alignItems: "center", gap: "8px" }}>
           <MessageCircle size={14} style={{ color: "#29ABE2" }} />
-          Tempo de Resposta SDR
-          <span style={{ fontSize: "11px", color: "#606060", fontWeight: "400" }}>Horário comercial: 10h–18h, seg–sex</span>
+          Tempo até Agendamento (SDR)
+          <span style={{ fontSize: "11px", color: "#606060", fontWeight: "400" }}>1ª msg do lead → etapa "Agendou" · Horário comercial: 10h–18h, seg–sex</span>
         </h3>
         {loadingSDR ? (
           <p style={{ color: "#606060", fontSize: "12px" }}>Carregando métricas...</p>
         ) : !sdr || sdr.totalConversas === 0 ? (
-          <p style={{ color: "#606060", fontSize: "12px" }}>Nenhuma conversa com resposta medida ainda. As métricas aparecerão conforme novas conversas forem respondidas.</p>
+          <p style={{ color: "#606060", fontSize: "12px" }}>Nenhuma conversa chegou em "Agendou" ainda. As métricas aparecerão conforme leads forem agendados.</p>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "16px" }}>
             <KPICard
-              label="Tempo médio de resposta"
+              label="Tempo médio até agendar"
               value={sdr.tempoMedio < 60 ? `${sdr.tempoMedio}min` : `${Math.floor(sdr.tempoMedio / 60)}h ${sdr.tempoMedio % 60}min`}
               change={0}
               icon={<Timer size={16} />}
               iconBg="blue"
             />
             <KPICard
-              label="Conversas medidas"
+              label="Leads agendados"
               value={sdr.totalConversas}
               change={0}
               icon={<MessageCircle size={16} />}
               iconBg="blue"
             />
             <KPICard
-              label="Respondidas em < 5min"
+              label="Agendados em < 1h"
               value={`${sdr.totalConversas > 0 ? Math.round((sdr.respondidasEm5min / sdr.totalConversas) * 100) : 0}%`}
               change={0}
               icon={<Zap size={16} />}
               iconBg="green"
             />
             <KPICard
-              label="Respondidas em < 30min"
+              label="Agendados em < 4h"
               value={`${sdr.totalConversas > 0 ? Math.round((sdr.respondidasEm30min / sdr.totalConversas) * 100) : 0}%`}
               change={0}
               icon={<Clock size={16} />}

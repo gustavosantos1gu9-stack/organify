@@ -74,7 +74,7 @@ export async function calcularTempoMedioDecisao(): Promise<number> {
   return Math.round(tempos.reduce((a, b) => a + b, 0) / tempos.length);
 }
 
-// Calcular tempo médio de resposta da SDR (1ª msg lead → 1ª resposta SDR)
+// Calcular tempo médio da SDR: 1ª msg do lead → etapa "Agendou"
 // Horário comercial: 10h-18h, seg-sex. Só conversas a partir de dataInicio.
 export async function calcularTempoRespostaSDR(dataInicio?: string): Promise<{
   tempoMedio: number; // em minutos
@@ -88,11 +88,12 @@ export async function calcularTempoRespostaSDR(dataInicio?: string): Promise<{
   const agenciaId = await getAgenciaId();
   if (!agenciaId) return vazio;
 
-  // Buscar conversas a partir da data de início
+  // Buscar conversas que já chegaram em "Agendou" e têm agendou_at
   let query = supabase
     .from("conversas")
-    .select("id, primeira_mensagem_at, created_at")
-    .eq("agencia_id", agenciaId);
+    .select("id, primeira_mensagem_at, agendou_at, created_at")
+    .eq("agencia_id", agenciaId)
+    .not("agendou_at", "is", null);
 
   if (dataInicio) {
     query = query.gte("created_at", dataInicio);
@@ -101,38 +102,10 @@ export async function calcularTempoRespostaSDR(dataInicio?: string): Promise<{
   const { data: conversas } = await query;
   if (!conversas?.length) return vazio;
 
-  const ids = conversas.map(c => c.id);
-
-  // Buscar todas as mensagens dessas conversas
-  const { data: mensagens } = await supabase
-    .from("mensagens")
-    .select("conversa_id, de_mim, created_at")
-    .in("conversa_id", ids)
-    .order("created_at", { ascending: true });
-
-  if (!mensagens?.length) return vazio;
-
-  // Agrupar por conversa
-  const porConversa: Record<string, { primeiraLead?: Date; primeiraResposta?: Date }> = {};
-
-  for (const msg of mensagens) {
-    if (!porConversa[msg.conversa_id]) porConversa[msg.conversa_id] = {};
-    const entry = porConversa[msg.conversa_id];
-    const dt = new Date(msg.created_at);
-
-    if (!msg.de_mim && !entry.primeiraLead) {
-      entry.primeiraLead = dt;
-    }
-    if (msg.de_mim && entry.primeiraLead && !entry.primeiraResposta) {
-      entry.primeiraResposta = dt;
-    }
-  }
-
   // Calcular tempo em minutos considerando horário comercial (10h-18h seg-sex)
   function minutosComerciais(inicio: Date, fim: Date): number {
     const HORA_INICIO = 10;
     const HORA_FIM = 18;
-    const MIN_POR_DIA = (HORA_FIM - HORA_INICIO) * 60; // 480 min
 
     let minutos = 0;
     const cursor = new Date(inicio);
@@ -141,7 +114,6 @@ export async function calcularTempoRespostaSDR(dataInicio?: string): Promise<{
       const dia = cursor.getDay(); // 0=dom, 6=sab
       if (dia >= 1 && dia <= 5) {
         const h = cursor.getHours();
-        const m = cursor.getMinutes();
 
         if (h >= HORA_INICIO && h < HORA_FIM) {
           // Dentro do horário comercial — avança 1 minuto
@@ -168,11 +140,11 @@ export async function calcularTempoRespostaSDR(dataInicio?: string): Promise<{
 
   const tempos: number[] = [];
 
-  for (const entry of Object.values(porConversa)) {
-    if (entry.primeiraLead && entry.primeiraResposta) {
-      const min = minutosComerciais(entry.primeiraLead, entry.primeiraResposta);
-      tempos.push(min);
-    }
+  for (const c of conversas) {
+    const inicio = c.primeira_mensagem_at || c.created_at;
+    if (!inicio || !c.agendou_at) continue;
+    const min = minutosComerciais(new Date(inicio), new Date(c.agendou_at));
+    tempos.push(min);
   }
 
   if (!tempos.length) return vazio;
@@ -183,8 +155,8 @@ export async function calcularTempoRespostaSDR(dataInicio?: string): Promise<{
   return {
     tempoMedio: Math.round(soma / tempos.length),
     totalConversas: tempos.length,
-    respondidasEm5min: tempos.filter(t => t <= 5).length,
-    respondidasEm30min: tempos.filter(t => t <= 30).length,
+    respondidasEm5min: tempos.filter(t => t <= 60).length,     // agendados em até 1h
+    respondidasEm30min: tempos.filter(t => t <= 240).length,  // agendados em até 4h
     maisRapida: tempos[0],
     maisLenta: tempos[tempos.length - 1],
   };

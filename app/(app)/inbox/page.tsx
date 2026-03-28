@@ -81,7 +81,11 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, etapas }: { conversa:
   const salvarEtapa = async (novaEtapa: string) => {
     setSalvando(true);
     setEtapa(novaEtapa);
-    await supabase.from("conversas").update({ etapa_jornada: novaEtapa, etapa_alterada_at: new Date().toISOString() }).eq("id", conversa.id);
+    const updateData: Record<string, string> = { etapa_jornada: novaEtapa, etapa_alterada_at: new Date().toISOString() };
+    if (novaEtapa.toLowerCase().includes("agendou")) {
+      updateData.agendou_at = new Date().toISOString();
+    }
+    await supabase.from("conversas").update(updateData).eq("id", conversa.id);
     onEtapaChange(novaEtapa);
     const agId = await getAgenciaId();
     fetch("/api/pixel", {
