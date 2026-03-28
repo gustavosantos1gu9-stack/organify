@@ -39,12 +39,68 @@ export default function ConexoesPage() {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [novaInstancia, setNovaInstancia] = useState("relatorios");
   const [criandoInst, setCriandoInst] = useState(false);
+  const [qrTimer, setQrTimer] = useState(30);
+  const [qrRefreshing, setQrRefreshing] = useState(false);
 
   const [conexaoId, setConexaoId] = useState<string | null>(null);
 
   useEffect(() => {
     carregarTudo();
   }, []);
+
+  // Auto-refresh QR Code a cada 30s + verificar se conectou a cada 5s
+  useEffect(() => {
+    if (!qrCode || waConectado) return;
+
+    // Countdown do QR
+    setQrTimer(30);
+    const countdown = setInterval(() => {
+      setQrTimer(prev => {
+        if (prev <= 1) return 30;
+        return prev - 1;
+      });
+    }, 1000);
+
+    // Refresh QR a cada 30s
+    const refreshInterval = setInterval(async () => {
+      if (!instancia || !evoUrl || !evoKey) return;
+      setQrRefreshing(true);
+      try {
+        const res = await fetch(`${evoUrl}/instance/connect/${instancia}`, {
+          headers: { apikey: evoKey },
+        });
+        const data = await res.json();
+        const newQr = data.base64 || data.qrcode?.base64;
+        if (newQr) setQrCode(newQr);
+      } catch {}
+      setQrRefreshing(false);
+      setQrTimer(30);
+    }, 30000);
+
+    // Verificar se conectou a cada 5s
+    const checkInterval = setInterval(async () => {
+      if (!instancia || !evoUrl || !evoKey) return;
+      try {
+        const res = await fetch(`${evoUrl}/instance/connectionState/${instancia}`, {
+          headers: { apikey: evoKey },
+        });
+        const data = await res.json();
+        const state = (data.instance?.state || data.state || "").toLowerCase();
+        if (state === "open" || state === "connected") {
+          setWaConectado(true);
+          setQrCode(null);
+          await salvarConexao({ whatsapp_conectado: true });
+          verificarStatusWA(evoUrl, evoKey, instancia);
+        }
+      } catch {}
+    }, 5000);
+
+    return () => {
+      clearInterval(countdown);
+      clearInterval(refreshInterval);
+      clearInterval(checkInterval);
+    };
+  }, [qrCode, waConectado, instancia, evoUrl, evoKey]);
 
   async function carregarTudo() {
     const agId = await getAgenciaId();
@@ -407,19 +463,36 @@ export default function ConexoesPage() {
             <p style={{ fontSize: "12px", color: "#606060", marginBottom: "20px" }}>
               Abra o WhatsApp no celular → Aparelhos conectados → Conectar aparelho
             </p>
-            {qrCode.startsWith("data:image") ? (
-              <img src={qrCode} alt="QR" style={{ width: "220px", height: "220px", borderRadius: "8px", margin: "0 auto" }} />
-            ) : (
-              <div style={{ background: "#fff", padding: "20px", borderRadius: "8px", display: "inline-block" }}>
-                <p style={{ fontSize: "11px", color: "#000", fontFamily: "monospace", wordBreak: "break-all", maxWidth: "220px" }}>
-                  {qrCode.replace("qr:", "")}
-                </p>
-              </div>
-            )}
-            <div style={{ marginTop: "16px", display: "flex", gap: "8px", justifyContent: "center" }}>
-              <button className="btn-primary" style={{ cursor: "pointer" }} onClick={confirmarConexao}>
-                <Check size={14} /> Já escaneei
-              </button>
+            <div style={{ position: "relative", display: "inline-block" }}>
+              {qrCode.startsWith("data:image") ? (
+                <img src={qrCode} alt="QR" style={{
+                  width: "220px", height: "220px", borderRadius: "8px",
+                  opacity: qrRefreshing ? 0.3 : 1, transition: "opacity 0.3s",
+                }} />
+              ) : (
+                <div style={{ background: "#fff", padding: "20px", borderRadius: "8px", display: "inline-block" }}>
+                  <p style={{ fontSize: "11px", color: "#000", fontFamily: "monospace", wordBreak: "break-all", maxWidth: "220px" }}>
+                    {qrCode.replace("qr:", "")}
+                  </p>
+                </div>
+              )}
+              {qrRefreshing && (
+                <div style={{
+                  position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <RefreshCw size={24} style={{ color: "#25d366" }} className="spin" />
+                </div>
+              )}
+            </div>
+            <div style={{ marginTop: "12px" }}>
+              <p style={{ fontSize: "11px", color: "#606060" }}>
+                {qrRefreshing ? "Atualizando QR Code..." : `Atualiza automaticamente em ${qrTimer}s`}
+              </p>
+              <p style={{ fontSize: "11px", color: "#25d366", marginTop: "4px" }}>
+                Verificando conexão automaticamente...
+              </p>
+            </div>
+            <div style={{ marginTop: "12px" }}>
               <button className="btn-ghost" style={{ cursor: "pointer" }} onClick={() => setQrCode(null)}>
                 Cancelar
               </button>
