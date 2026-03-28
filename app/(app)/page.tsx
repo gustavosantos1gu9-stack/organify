@@ -6,7 +6,7 @@ import {
   Users, UserX, UserPlus, TrendingUp, RotateCcw,
   ArrowDownToLine, ArrowUpFromLine, DollarSign,
   UserCheck, ShoppingBag, Percent, Clock,
-  MinusCircle, AlertCircle, PlusCircle
+  MinusCircle, AlertCircle, PlusCircle, MessageCircle, Zap, Timer, Trophy
 } from "lucide-react";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis,
@@ -14,7 +14,7 @@ import {
 } from "recharts";
 import KPICard from "@/components/ui/KPICard";
 import PeriodSelector from "@/components/ui/PeriodSelector";
-import { useKPIsDashboard, useDadosGraficos, useConversaoPorPublico, useLeads, useLancamentosFuturos, useRecorrencias, useClientes, useMovimentacoes } from "@/lib/hooks";
+import { useKPIsDashboard, useDadosGraficos, useConversaoPorPublico, useLeads, useLancamentosFuturos, useRecorrencias, useClientes, useMovimentacoes, useTempoRespostaSDR } from "@/lib/hooks";
 import { formatCurrency } from "@/lib/utils";
 
 const tooltipStyle = { background: "#1e1e1e", border: "1px solid #2e2e2e", borderRadius: "8px", fontSize: "12px", color: "#f0f0f0" };
@@ -77,6 +77,9 @@ export default function DashboardPage() {
     }
     carregarDados();
   }, []);
+  // Métricas SDR — a partir de 27/03/2026
+  const { data: sdr, loading: loadingSDR } = useTempoRespostaSDR("2026-03-27T00:00:00");
+
   const { data: graficos } = useDadosGraficos(6);
   const { data: conversao } = useConversaoPorPublico();
   const { data: leads } = useLeads();
@@ -252,6 +255,58 @@ export default function DashboardPage() {
           </div>
         );
       })()}
+
+      {/* Métricas SDR — Tempo de Resposta */}
+      <div className="card" style={{ marginBottom: "20px", padding: "16px 20px" }}>
+        <h3 style={{ fontSize: "13px", fontWeight: "600", color: "#f0f0f0", marginBottom: "14px", display: "flex", alignItems: "center", gap: "8px" }}>
+          <MessageCircle size={14} style={{ color: "#29ABE2" }} />
+          Tempo de Resposta SDR
+          <span style={{ fontSize: "11px", color: "#606060", fontWeight: "400" }}>Horário comercial: 10h–18h, seg–sex</span>
+        </h3>
+        {loadingSDR ? (
+          <p style={{ color: "#606060", fontSize: "12px" }}>Carregando métricas...</p>
+        ) : !sdr || sdr.totalConversas === 0 ? (
+          <p style={{ color: "#606060", fontSize: "12px" }}>Nenhuma conversa com resposta medida ainda. As métricas aparecerão conforme novas conversas forem respondidas.</p>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "16px" }}>
+            <KPICard
+              label="Tempo médio de resposta"
+              value={sdr.tempoMedio < 60 ? `${sdr.tempoMedio}min` : `${Math.floor(sdr.tempoMedio / 60)}h ${sdr.tempoMedio % 60}min`}
+              change={0}
+              icon={<Timer size={16} />}
+              iconBg="blue"
+            />
+            <KPICard
+              label="Conversas medidas"
+              value={sdr.totalConversas}
+              change={0}
+              icon={<MessageCircle size={16} />}
+              iconBg="blue"
+            />
+            <KPICard
+              label="Respondidas em < 5min"
+              value={`${sdr.totalConversas > 0 ? Math.round((sdr.respondidasEm5min / sdr.totalConversas) * 100) : 0}%`}
+              change={0}
+              icon={<Zap size={16} />}
+              iconBg="green"
+            />
+            <KPICard
+              label="Respondidas em < 30min"
+              value={`${sdr.totalConversas > 0 ? Math.round((sdr.respondidasEm30min / sdr.totalConversas) * 100) : 0}%`}
+              change={0}
+              icon={<Clock size={16} />}
+              iconBg="amber"
+            />
+            <KPICard
+              label="Mais rápida"
+              value={sdr.maisRapida < 60 ? `${sdr.maisRapida}min` : `${Math.floor(sdr.maisRapida / 60)}h ${sdr.maisRapida % 60}min`}
+              change={0}
+              icon={<Trophy size={16} />}
+              iconBg="green"
+            />
+          </div>
+        )}
+      </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: "16px", marginBottom: "16px" }}>
         <KPICard label="Clientes novos" value={novosClientes ?? 0} change={0} icon={<UserPlus size={16}/>} iconBg="green"/>

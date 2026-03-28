@@ -74,6 +74,136 @@ export async function calcularTempoMedioDecisao(): Promise<number> {
   return Math.round(tempos.reduce((a, b) => a + b, 0) / tempos.length);
 }
 
+// Calcular tempo médio de resposta da SDR (1ª msg lead → 1ª resposta SDR)
+// Horário comercial: 10h-18h, seg-sex. Só conversas a partir de dataInicio.
+export async function calcularTempoRespostaSDR(dataInicio?: string): Promise<{
+  tempoMedio: number; // em minutos
+  totalConversas: number;
+  respondidasEm5min: number;
+  respondidasEm30min: number;
+  maisRapida: number;
+  maisLenta: number;
+}> {
+  const vazio = { tempoMedio: 0, totalConversas: 0, respondidasEm5min: 0, respondidasEm30min: 0, maisRapida: 0, maisLenta: 0 };
+  const agenciaId = await getAgenciaId();
+  if (!agenciaId) return vazio;
+
+  // Buscar conversas a partir da data de início
+  let query = supabase
+    .from("conversas")
+    .select("id, primeira_mensagem_at, created_at")
+    .eq("agencia_id", agenciaId);
+
+  if (dataInicio) {
+    query = query.gte("created_at", dataInicio);
+  }
+
+  const { data: conversas } = await query;
+  if (!conversas?.length) return vazio;
+
+  const ids = conversas.map(c => c.id);
+
+  // Buscar todas as mensagens dessas conversas
+  const { data: mensagens } = await supabase
+    .from("mensagens")
+    .select("conversa_id, de_mim, created_at")
+    .in("conversa_id", ids)
+    .order("created_at", { ascending: true });
+
+  if (!mensagens?.length) return vazio;
+
+  // Agrupar por conversa
+  const porConversa: Record<string, { primeiraLead?: Date; primeiraResposta?: Date }> = {};
+
+  for (const msg of mensagens) {
+    if (!porConversa[msg.conversa_id]) porConversa[msg.conversa_id] = {};
+    const entry = porConversa[msg.conversa_id];
+    const dt = new Date(msg.created_at);
+
+    if (!msg.de_mim && !entry.primeiraLead) {
+      entry.primeiraLead = dt;
+    }
+    if (msg.de_mim && entry.primeiraLead && !entry.primeiraResposta) {
+      entry.primeiraResposta = dt;
+    }
+  }
+
+  // Calcular tempo em minutos considerando horário comercial (10h-18h seg-sex)
+  function minutosComerciais(inicio: Date, fim: Date): number {
+    const HORA_INICIO = 10;
+    const HORA_FIM = 18;
+    const MIN_POR_DIA = (HORA_FIM - HORA_INICIO) * 60; // 480 min
+
+    let minutos = 0;
+    const cursor = new Date(inicio);
+
+    while (cursor < fim) {
+      const dia = cursor.getDay(); // 0=dom, 6=sab
+      if (dia >= 1 && dia <= 5) {
+        const h = cursor.getHours();
+        const m = cursor.getMinutes();
+
+        if (h >= HORA_INICIO && h < HORA_FIM) {
+          // Dentro do horário comercial — avança 1 minuto
+          minutos++;
+          cursor.setMinutes(cursor.getMinutes() + 1);
+        } else if (h < HORA_INICIO) {
+          // Antes do expediente — pula pra 10h
+          cursor.setHours(HORA_INICIO, 0, 0, 0);
+        } else {
+          // Depois do expediente — pula pro próximo dia 10h
+          cursor.setDate(cursor.getDate() + 1);
+          cursor.setHours(HORA_INICIO, 0, 0, 0);
+        }
+      } else {
+        // Fim de semana — pula pra segunda 10h
+        const diasPular = dia === 0 ? 1 : 2;
+        cursor.setDate(cursor.getDate() + diasPular);
+        cursor.setHours(HORA_INICIO, 0, 0, 0);
+      }
+    }
+
+    return minutos;
+  }
+
+  const tempos: number[] = [];
+
+  for (const entry of Object.values(porConversa)) {
+    if (entry.primeiraLead && entry.primeiraResposta) {
+      const min = minutosComerciais(entry.primeiraLead, entry.primeiraResposta);
+      tempos.push(min);
+    }
+  }
+
+  if (!tempos.length) return vazio;
+
+  tempos.sort((a, b) => a - b);
+  const soma = tempos.reduce((a, b) => a + b, 0);
+
+  return {
+    tempoMedio: Math.round(soma / tempos.length),
+    totalConversas: tempos.length,
+    respondidasEm5min: tempos.filter(t => t <= 5).length,
+    respondidasEm30min: tempos.filter(t => t <= 30).length,
+    maisRapida: tempos[0],
+    maisLenta: tempos[tempos.length - 1],
+  };
+}
+
+export function useTempoRespostaSDR(dataInicio?: string) {
+  const [data, setData] = useState<Awaited<ReturnType<typeof calcularTempoRespostaSDR>> | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    calcularTempoRespostaSDR(dataInicio).then(r => {
+      setData(r);
+      setLoading(false);
+    });
+  }, [dataInicio]);
+
+  return { data, loading };
+}
+
 // ─── tipos básicos ────────────────────────────────────────────────────────────
 export interface Cliente {
   id: string; agencia_id: string; tipo: string; nome: string;
