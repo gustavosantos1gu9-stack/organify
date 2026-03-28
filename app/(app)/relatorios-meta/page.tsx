@@ -196,32 +196,24 @@ export default function RelatoriosMetaPage() {
   async function carregarGrupos(url: string, key: string, instancia: string) {
     setLoadingGrupos(true);
     try {
-      // Tentar endpoint de grupos primeiro
-      let data: any[] = [];
-      try {
-        const res = await fetch(`${url}/group/fetchAllGroups/${instancia}?getParticipants=false`, {
-          headers: { apikey: key },
-        });
-        const json = await res.json();
-        data = Array.isArray(json) ? json : [];
-      } catch {}
+      const res = await fetch(`${url}/chat/findChats/${instancia}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: key },
+        body: JSON.stringify({}),
+      });
+      const json = await res.json();
+      const allChats = Array.isArray(json) ? json : [];
 
-      // Fallback: findChats e filtrar grupos
-      if (data.length === 0) {
-        const res = await fetch(`${url}/chat/findChats/${instancia}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", apikey: key },
-          body: JSON.stringify({}),
-        });
-        const json = await res.json();
-        data = (Array.isArray(json) ? json : []).filter((c: any) => c.id?.includes("@g.us"));
-      }
+      // Grupos estão no campo remoteJid com @g.us
+      const gruposFiltrados = allChats
+        .filter((c: any) => (c.remoteJid || c.id || "").includes("@g.us"))
+        .map((c: any) => ({
+          id: c.remoteJid || c.id,
+          subject: c.pushName || c.name || c.subject || c.remoteJid || c.id,
+          size: c.size || 0,
+        }))
+        .sort((a: any, b: any) => a.subject.localeCompare(b.subject));
 
-      const gruposFiltrados = data.map((c: any) => ({
-        id: c.id || c.jid,
-        subject: c.subject || c.name || c.id || c.jid,
-        size: c.size || c.participants?.length || 0,
-      }));
       setGrupos(gruposFiltrados);
     } catch (e) {
       console.error("Erro ao carregar grupos:", e);
