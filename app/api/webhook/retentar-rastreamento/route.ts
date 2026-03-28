@@ -15,7 +15,7 @@ async function tentarRastrear(conversa_id: string, numero: string, agencia_id: s
     .single()
 
   if (!conversa) return { ok: false, status: 'conversa_nao_encontrada' }
-  if (conversa.origem && conversa.origem !== 'Não Rastreada') return { ok: true, status: 'ja_rastreado' }
+  if (conversa.origem && conversa.origem !== 'Não Rastreada') return { ok: true, status: 'ja_rastreado', origem: conversa.origem }
 
   // Buscar número do WhatsApp da agência (NÃO hardcoded)
   const { data: agencia } = await supabase

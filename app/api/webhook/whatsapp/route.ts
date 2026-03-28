@@ -356,8 +356,10 @@ export async function POST(req: NextRequest) {
           ? tracking.utm_term : tracking.link_id;
 
         const isPrimeiro = eraNovaConversa || !conversa.primeira_mensagem_at;
+        const semRastreio = !conversa.origem || conversa.origem === "Não Rastreada";
 
-        if (isPrimeiro) {
+        // Atualizar conversa se: é primeira mensagem OU conversa ainda não tem rastreamento
+        if (isPrimeiro || semRastreio) {
           const updateData: any = {
             origem: tracking.origem || "Meta Ads",
             utm_source: tracking.utm_source,
@@ -367,10 +369,12 @@ export async function POST(req: NextRequest) {
             utm_term: tracking.utm_term,
             fbclid: tracking.fbclid,
             link_id: linkIdFromTerm,
-            primeira_mensagem_at: timestamp,
           };
 
-          // Se veio do fallback (match por mensagem), já temos o nome do link
+          if (isPrimeiro) {
+            updateData.primeira_mensagem_at = timestamp;
+          }
+
           if (tracking._link_nome) {
             updateData.link_nome = tracking._link_nome;
           }
@@ -385,7 +389,7 @@ export async function POST(req: NextRequest) {
             }
           }
         } else {
-          // Não é primeira mensagem — salvar como rastreamento histórico
+          // Já tem rastreamento — salvar como rastreamento adicional (histórico)
           try {
             await supabase.from("rastreamentos_historico").insert({
               conversa_id: conversa.id,
