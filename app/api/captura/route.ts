@@ -26,25 +26,30 @@ export async function POST(req: NextRequest) {
       created_at: new Date().toISOString(),
     };
 
+    const erros: string[] = [];
+
     // Salvar com link_id como chave principal (mais confiável)
     if (link_id) {
-      await supabase.from("rastreamentos_pendentes").upsert({
+      const { error } = await supabase.from("rastreamentos_pendentes").upsert({
         ...base, wa_numero: link_id,
       }, { onConflict: "wa_numero" });
+      if (error) erros.push(`link_id: ${error.message}`);
     }
 
     // Salvar com fbclid como chave
     if (fbclid) {
-      await supabase.from("rastreamentos_pendentes").upsert({
+      const { error } = await supabase.from("rastreamentos_pendentes").upsert({
         ...base, wa_numero: fbclid,
       }, { onConflict: "wa_numero" });
+      if (error) erros.push(`fbclid: ${error.message}`);
     }
 
     // Salvar com session_id como chave
     if (session_id) {
-      await supabase.from("rastreamentos_pendentes").upsert({
+      const { error } = await supabase.from("rastreamentos_pendentes").upsert({
         ...base, wa_numero: session_id,
       }, { onConflict: "wa_numero" });
+      if (error) erros.push(`session_id: ${error.message}`);
     }
 
     // Incrementar cliques no link se tiver link_id
@@ -52,8 +57,14 @@ export async function POST(req: NextRequest) {
       try { await supabase.rpc("incrementar_cliques", { link_uuid: link_id }); } catch {}
     }
 
+    if (erros.length > 0) {
+      console.error("Captura erros:", erros);
+      return NextResponse.json({ ok: false, erros });
+    }
+
     return NextResponse.json({ ok: true });
   } catch(e) {
+    console.error("Captura exceção:", e);
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }
 }

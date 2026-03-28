@@ -431,6 +431,7 @@ export default function InboxPage() {
   const [detalhes, setDetalhes] = useState<Conversa|null>(null);
   const [chatDireto, setChatDireto] = useState<Conversa|null>(null);
   const [sincronizandoTudo, setSincronizandoTudo] = useState(false);
+  const [autoRastreando, setAutoRastreando] = useState(false);
   const [enviandoCrm, setEnviandoCrm] = useState<Set<string>>(new Set());
   const [enviadosCrm, setEnviadosCrm] = useState<Set<string>>(new Set());
 
@@ -489,6 +490,25 @@ export default function InboxPage() {
       setEnviadosCrm(jaNoCrm);
     }
     setLoading(false);
+  };
+
+  const autoRastrear = async () => {
+    setAutoRastreando(true);
+    try {
+      const agId = await getAgenciaId();
+      const res = await fetch("/api/rastreamento/auto-detect", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agencia_id: agId }),
+      });
+      const data = await res.json();
+      if (data.rastreados > 0) {
+        alert(`${data.rastreados} conversa(s) rastreada(s) automaticamente!`);
+        carregar();
+      } else {
+        alert("Nenhuma conversa foi rastreada. Verifique se há links criados no Gerador de Links.");
+      }
+    } catch { alert("Erro ao auto-rastrear"); }
+    finally { setAutoRastreando(false); }
   };
 
   const sincronizarTudo = async () => {
@@ -598,6 +618,10 @@ export default function InboxPage() {
             </button>
           )}
           <button onClick={carregar} className="btn-ghost" style={{ padding:"8px",cursor:"pointer" }}><RefreshCw size={14}/></button>
+          <button onClick={autoRastrear} disabled={autoRastreando} className="btn-secondary" style={{ cursor:"pointer",fontSize:"12px",padding:"7px 12px",borderColor:autoRastreando?"#29ABE2":"" }}>
+            <Search size={12} style={{ animation:autoRastreando?"spin 1s linear infinite":"none" }}/>
+            {autoRastreando?"Rastreando...":"Auto-rastrear"}
+          </button>
           <button onClick={sincronizarTudo} disabled={sincronizandoTudo} className="btn-secondary" style={{ cursor:"pointer",fontSize:"12px",padding:"7px 12px" }}>
             <RefreshCw size={12} style={{ animation:sincronizandoTudo?"spin 1s linear infinite":"none" }}/>
             {sincronizandoTudo?"Importando...":"Importar tudo"}

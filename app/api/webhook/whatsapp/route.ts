@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       const fromMe = msg.key?.fromMe || false;
       const remoteJid = msg.key?.remoteJid || "";
 
-      if (!remoteJid || remoteJid.includes("@g.us")) {
+      if (!remoteJid || remoteJid.includes("@g.us") || remoteJid.includes("@broadcast")) {
         return NextResponse.json({ ok: true });
       }
 
@@ -90,18 +90,15 @@ export async function POST(req: NextRequest) {
             .select("id, fbclid, utm_campaign, utm_content")
             .eq("agencia_id", ag.id).eq("contato_numero", numero).single();
           if (conv) {
-            // Salvar mensagem enviada no banco
             if (msgId && conteudo) {
               await supabase.from("mensagens").upsert({
                 conversa_id: conv.id, agencia_id: ag.id,
                 mensagem_id: msgId, de_mim: true, tipo, conteudo, created_at: timestamp,
               }, { onConflict: "mensagem_id" });
-              // Atualizar última mensagem da conversa
               await supabase.from("conversas").update({
                 ultima_mensagem: conteudo, ultima_mensagem_at: timestamp,
               }).eq("id", conv.id);
             }
-            // Verificar termo-chave
             if (conteudo) {
               await verificarTermoChave(ag.id, conv.id, conteudo, numero, conv.fbclid, conv.utm_campaign, conv.utm_content);
             }
@@ -114,7 +111,10 @@ export async function POST(req: NextRequest) {
       const { data: agencia } = await supabase.from("agencias")
         .select("id, evolution_url, evolution_key, whatsapp_numero, meta_pixel_id, meta_token, meta_ativo")
         .eq("whatsapp_instancia", instanciaName).single();
-      if (!agencia) return NextResponse.json({ ok: true });
+      if (!agencia) {
+        console.error("Webhook: agência não encontrada para instância:", instanciaName);
+        return NextResponse.json({ ok: true });
+      }
 
       const nome = msg.pushName || numero;
 
@@ -131,7 +131,6 @@ export async function POST(req: NextRequest) {
       } catch {}
 
       // Buscar ou criar conversa
-      // Flag capturada ANTES do insert — conversa nova = primeira mensagem
       let eraNovaConversa = false;
       let { data: conversa } = await supabase.from("conversas")
         .select("*").eq("agencia_id", agencia.id).eq("contato_numero", numero).single();
@@ -147,7 +146,8 @@ export async function POST(req: NextRequest) {
           origem: isLid ? "Meta Ads" : "Não Rastreada",
         }).select().single();
         if (insertErr) {
-          console.error("Erro ao criar conversa:", insertErr.message, { numero, nome, agencia_id: agencia.id });
+          console.error("Webhook: erro ao criar conversa:", insertErr.message, { numero, nome });
+          return NextResponse.json({ ok: false, error: insertErr.message }, { status: 500 });
         }
         conversa = nova;
       } else {
@@ -158,252 +158,294 @@ export async function POST(req: NextRequest) {
         }).eq("id", conversa.id);
       }
 
+      if (!conversa) return NextResponse.json({ ok: false, error: "Conversa não criada" }, { status: 500 });
+
       // Salvar mensagem
-      if (conversa && msgId) {
+      if (msgId) {
         await supabase.from("mensagens").upsert({
           conversa_id: conversa.id, agencia_id: agencia.id,
           mensagem_id: msgId, de_mim: false, tipo, conteudo, created_at: timestamp,
         }, { onConflict: "mensagem_id" });
+      }
 
-        // Cruzar com rastreamento pendente
-        let tracking = null;
+      // ============================================
+      // RASTREAMENTO — cruzar com dados pendentes
+      // ============================================
+      let tracking = null;
 
-        // 0. Se @lid, buscar rastreamento recente pelo número de destino (agente)
-        if (isLid && eraNovaConversa) {
-          const cincoMinAtras = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-          const { data: lidTrack } = await supabase.from("rastreamentos_pendentes")
-            .select("*")
-            .eq("wa_destino", agencia.whatsapp_numero)
-            .gt("created_at", cincoMinAtras)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .single();
-          if (lidTrack) tracking = lidTrack;
+      // 0. Se @lid (Click-to-WhatsApp), buscar rastreamento recente pelo número de destino
+      if (isLid && eraNovaConversa) {
+        const cincoMinAtras = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+        const { data: lidTrack } = await supabase.from("rastreamentos_pendentes")
+          .select("*")
+          .eq("wa_destino", agencia.whatsapp_numero)
+          .gt("created_at", cincoMinAtras)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
+        if (lidTrack) tracking = lidTrack;
+      }
+
+      // 1. Tentar por número do lead
+      if (!tracking) {
+        const { data: t1 } = await supabase.from("rastreamentos_pendentes")
+          .select("*").eq("wa_numero", numero).single();
+        if (t1) tracking = t1;
+      }
+
+      // 2. Buscar rastreamento recente (até 24h) — pelo wa_destino da agência
+      // Sem restrição de isPrimeiraMsg para links (a janela de tempo já filtra)
+      if (!tracking) {
+        const vintQuatroHAtras = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { data: recentes } = await supabase.from("rastreamentos_pendentes")
+          .select("*")
+          .gt("created_at", vintQuatroHAtras)
+          .or(`wa_destino.eq.${agencia.whatsapp_numero},wa_destino.is.null`)
+          .order("created_at", { ascending: false })
+          .limit(30);
+
+        if (recentes && recentes.length > 0) {
+          const candidato = recentes.find((r: any) => {
+            if (!r.utm_campaign && !r.link_id && !r.fbclid) return false;
+            // wa_numero não deve ser número de telefone real (já associado a outro lead)
+            const isNumeroReal = /^\d{10,15}$/.test(r.wa_numero || "");
+            return !isNumeroReal;
+          });
+          if (candidato) {
+            tracking = candidato;
+            // Marcar como usado (gravar o número do lead)
+            await supabase.from("rastreamentos_pendentes")
+              .update({ wa_numero: numero })
+              .eq("wa_numero", candidato.wa_numero);
+          }
+        }
+      }
+
+      // 3. Tentar pelo fbclid/ctwaClid embutido na mensagem do WhatsApp (anúncios Meta)
+      if (!tracking) {
+        const externalAdReply = msg.message?.extendedTextMessage?.contextInfo?.externalAdReply
+          || msg.message?.imageMessage?.contextInfo?.externalAdReply
+          || msg.message?.videoMessage?.contextInfo?.externalAdReply;
+
+        const ctwaClid = externalAdReply?.ctwaClid || null;
+        const sourceId = externalAdReply?.sourceId || null;
+        const sourceUrl = externalAdReply?.sourceUrl || null;
+
+        // Tentar por fbclid exato
+        if (ctwaClid) {
+          const { data: t2 } = await supabase.from("rastreamentos_pendentes")
+            .select("*").eq("fbclid", ctwaClid).single();
+          if (t2) { tracking = t2; }
+          else {
+            const { data: t2b } = await supabase.from("rastreamentos_pendentes")
+              .select("*").eq("wa_numero", ctwaClid).single();
+            if (t2b) tracking = t2b;
+          }
         }
 
-        // 1. Tentar por número do lead
-        if (!tracking) {
-          const { data: t1 } = await supabase.from("rastreamentos_pendentes")
-            .select("*").eq("wa_numero", numero).single();
-          if (t1) tracking = t1;
+        // 4. Tentar por utm_campaign via sourceUrl
+        if (!tracking && sourceUrl) {
+          try {
+            const refUrl = new URL(sourceUrl);
+            const refCampaign = refUrl.searchParams.get("utm_campaign");
+            const refSource = refUrl.searchParams.get("utm_source");
+            const refFbclid = refUrl.searchParams.get("fbclid");
+            if (refFbclid) {
+              const { data: t3 } = await supabase.from("rastreamentos_pendentes")
+                .select("*").eq("fbclid", refFbclid).single();
+              if (t3) tracking = t3;
+            }
+            if (!tracking && refCampaign) {
+              const { data: t4 } = await supabase.from("rastreamentos_pendentes")
+                .select("*").eq("utm_campaign", refCampaign)
+                .order("created_at", { ascending: false }).limit(1).single();
+              if (t4) tracking = t4;
+            }
+            // Se achou sourceUrl mas não rastreamento, criar inline
+            if (!tracking && (refSource || refCampaign)) {
+              tracking = {
+                utm_source: refSource || externalAdReply?.mediaType || "ig",
+                utm_campaign: refCampaign || "",
+                utm_content: refUrl.searchParams.get("utm_content") || sourceId || "",
+                utm_medium: refUrl.searchParams.get("utm_medium") || "",
+                fbclid: refFbclid || ctwaClid || "",
+                origem: "Meta Ads",
+                link_id: null,
+              };
+            }
+          } catch {}
         }
 
-        // 2. Buscar rastreamento recente (até 60 min) — SOMENTE se for primeira mensagem
-        // Evita associar rastreamento a clientes antigos que mandaram mensagem por acaso
-        const isPrimeiraMsg = eraNovaConversa || !conversa.primeira_mensagem_at;
-        if (!tracking && isPrimeiraMsg) {
-          const umHoraAtras = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+        // 5. Se tem externalAdReply mas não achou rastreamento — criar inline
+        if (!tracking && externalAdReply && (externalAdReply.title || externalAdReply.body)) {
+          tracking = {
+            utm_source: "ig",
+            utm_campaign: externalAdReply.title || externalAdReply.body || "",
+            utm_content: sourceId || "",
+            utm_medium: "Instagram_Feed",
+            fbclid: ctwaClid || "",
+            origem: "Meta Ads",
+            link_id: null,
+          };
+        }
 
-          // Buscar rastreamentos recentes destinados ao número do agente (wa_destino)
-          // e que ainda não foram associados a um lead (wa_numero não é telefone real)
-          const { data: recentes } = await supabase.from("rastreamentos_pendentes")
-            .select("*")
-            .gt("created_at", umHoraAtras)
-            .or(`wa_destino.eq.${agencia.whatsapp_numero},wa_destino.is.null`)
-            .order("created_at", { ascending: false })
-            .limit(20);
+        // 6. Se veio via @lid mas não achou nenhum tracking
+        if (!tracking && isLid) {
+          tracking = {
+            utm_source: "meta",
+            utm_campaign: externalAdReply?.title || externalAdReply?.body || "",
+            utm_content: sourceId || "",
+            utm_medium: externalAdReply?.mediaType || "",
+            fbclid: ctwaClid || "",
+            origem: "Meta Ads",
+            link_id: null,
+          };
+        }
+      }
 
-          if (recentes && recentes.length > 0) {
-            const candidato = recentes.find((r: any) => {
-              if (!r.utm_campaign && !r.link_id && !r.fbclid) return false;
-              // wa_numero não deve ser número de telefone real (já associado)
-              const isNumeroReal = /^\d{10,15}$/.test(r.wa_numero || "");
-              return !isNumeroReal;
-            });
-            if (candidato) {
-              tracking = candidato;
-              await supabase.from("rastreamentos_pendentes")
-                .update({ wa_numero: numero })
-                .eq("wa_numero", candidato.wa_numero);
+      // 7. FALLBACK: tentar match por conteúdo da mensagem com links_campanha
+      if (!tracking && eraNovaConversa && conteudo) {
+        const { data: links } = await supabase.from("links_campanha")
+          .select("id, nome, wa_mensagem, utm_campaign, link_gerado")
+          .eq("agencia_id", agencia.id);
+
+        if (links?.length) {
+          const msgNorm = conteudo.toLowerCase().replace(/[^\w\sáéíóúâêôãõàçü]/g, "").replace(/\s+/g, " ").trim();
+          for (const link of links) {
+            const linkMsgNorm = (link.wa_mensagem || "").toLowerCase().replace(/[^\w\sáéíóúâêôãõàçü]/g, "").replace(/\s+/g, " ").trim();
+            if (!linkMsgNorm || linkMsgNorm.length < 5) continue;
+
+            if (msgNorm === linkMsgNorm || msgNorm.includes(linkMsgNorm) || linkMsgNorm.includes(msgNorm)) {
+              // Extrair UTMs do link gerado
+              let utm_source = "facebook", utm_medium = "cpc", utm_content = "", utm_term = "";
+              try {
+                const url = new URL(link.link_gerado);
+                utm_source = url.searchParams.get("utm_source") || "facebook";
+                utm_medium = url.searchParams.get("utm_medium") || "cpc";
+                utm_content = url.searchParams.get("utm_content") || "";
+                utm_term = url.searchParams.get("utm_term") || "";
+              } catch {}
+
+              tracking = {
+                utm_source,
+                utm_medium,
+                utm_campaign: link.utm_campaign || link.nome.toLowerCase().replace(/\s+/g, "-"),
+                utm_content,
+                utm_term,
+                fbclid: "",
+                origem: "Meta Ads",
+                link_id: link.id,
+                _link_nome: link.nome,
+              };
+              break;
             }
           }
         }
+      }
 
-        // 2. Tentar pelo fbclid/ctwaClid que vem embutido na mensagem do WhatsApp
-        if (!tracking) {
-          const externalAdReply = msg.message?.extendedTextMessage?.contextInfo?.externalAdReply
-            || msg.message?.imageMessage?.contextInfo?.externalAdReply
-            || msg.message?.videoMessage?.contextInfo?.externalAdReply;
+      // ============================================
+      // APLICAR RASTREAMENTO
+      // ============================================
+      if (tracking) {
+        const linkIdFromTerm = tracking.utm_term && tracking.utm_term.match(/^[0-9a-f-]{36}$/)
+          ? tracking.utm_term : tracking.link_id;
 
-          const ctwaClid = externalAdReply?.ctwaClid || null;
-          const sourceId = externalAdReply?.sourceId || null;
-          const sourceUrl = externalAdReply?.sourceUrl || null;
+        const isPrimeiro = eraNovaConversa || !conversa.primeira_mensagem_at;
 
-          // Tentar por fbclid exato
-          if (ctwaClid) {
-            const { data: t2 } = await supabase.from("rastreamentos_pendentes")
-              .select("*").eq("fbclid", ctwaClid).single();
-            if (t2) { tracking = t2; }
-            else {
-              // Tentar por wa_numero = ctwaClid (salvo pela API captura)
-              const { data: t2b } = await supabase.from("rastreamentos_pendentes")
-                .select("*").eq("wa_numero", ctwaClid).single();
-              if (t2b) tracking = t2b;
+        if (isPrimeiro) {
+          const updateData: any = {
+            origem: tracking.origem || "Meta Ads",
+            utm_source: tracking.utm_source,
+            utm_medium: tracking.utm_medium,
+            utm_campaign: tracking.utm_campaign,
+            utm_content: tracking.utm_content,
+            utm_term: tracking.utm_term,
+            fbclid: tracking.fbclid,
+            link_id: linkIdFromTerm,
+            primeira_mensagem_at: timestamp,
+          };
+
+          // Se veio do fallback (match por mensagem), já temos o nome do link
+          if (tracking._link_nome) {
+            updateData.link_nome = tracking._link_nome;
+          }
+
+          await supabase.from("conversas").update(updateData).eq("id", conversa.id);
+
+          if (linkIdFromTerm && !tracking._link_nome) {
+            const { data: linkData } = await supabase.from("links_campanha")
+              .select("nome").eq("id", linkIdFromTerm).single();
+            if (linkData?.nome) {
+              await supabase.from("conversas").update({ link_nome: linkData.nome }).eq("id", conversa.id);
             }
           }
-
-          // 3. Tentar por utm_campaign via sourceUrl
-          if (!tracking && sourceUrl) {
-            try {
-              const refUrl = new URL(sourceUrl);
-              const refCampaign = refUrl.searchParams.get("utm_campaign");
-              const refSource = refUrl.searchParams.get("utm_source");
-              const refFbclid = refUrl.searchParams.get("fbclid");
-              if (refFbclid) {
-                const { data: t3 } = await supabase.from("rastreamentos_pendentes")
-                  .select("*").eq("fbclid", refFbclid).single();
-                if (t3) tracking = t3;
-              }
-              if (!tracking && refCampaign) {
-                const { data: t4 } = await supabase.from("rastreamentos_pendentes")
-                  .select("*").eq("utm_campaign", refCampaign)
-                  .order("created_at", { ascending: false }).limit(1).single();
-                if (t4) tracking = t4;
-              }
-              // Se achou sourceUrl mas não rastreamento, criar inline
-              if (!tracking && (refSource || refCampaign)) {
-                tracking = {
-                  utm_source: refSource || externalAdReply?.mediaType || "ig",
-                  utm_campaign: refCampaign || "",
-                  utm_content: refUrl.searchParams.get("utm_content") || sourceId || "",
-                  utm_medium: refUrl.searchParams.get("utm_medium") || "",
-                  fbclid: refFbclid || ctwaClid || "",
-                  origem: "Meta Ads",
-                  link_id: null,
-                };
-              }
-            } catch {}
-          }
-
-          // 4. Se tem externalAdReply mas não achou rastreamento — criar inline com dados disponíveis
-          if (!tracking && externalAdReply && (externalAdReply.title || externalAdReply.body)) {
-            tracking = {
-              utm_source: "ig",
-              utm_campaign: externalAdReply.title || externalAdReply.body || "",
-              utm_content: sourceId || "",
-              utm_medium: "Instagram_Feed",
-              fbclid: ctwaClid || "",
-              origem: "Meta Ads",
-              link_id: null,
-            };
-          }
-
-          // 5. Se veio via @lid (Click-to-WhatsApp) mas não achou nenhum tracking
-          if (!tracking && isLid) {
-            tracking = {
-              utm_source: "meta",
-              utm_campaign: externalAdReply?.title || externalAdReply?.body || "",
-              utm_content: sourceId || "",
-              utm_medium: externalAdReply?.mediaType || "",
-              fbclid: ctwaClid || "",
-              origem: "Meta Ads",
-              link_id: null,
-            };
-          }
-        }
-
-        if (tracking) {
-          const linkIdFromTerm = tracking.utm_term && tracking.utm_term.match(/^[0-9a-f-]{36}$/)
-            ? tracking.utm_term : tracking.link_id;
-
-          const isPrimeiro = !conversa.primeira_mensagem_at;
-
-          if (isPrimeiro) {
-            // Primeira mensagem — salvar rastreamento principal na conversa
-            await supabase.from("conversas").update({
+        } else {
+          // Não é primeira mensagem — salvar como rastreamento histórico
+          try {
+            await supabase.from("rastreamentos_historico").insert({
+              conversa_id: conversa.id,
+              agencia_id: agencia.id,
+              contato_numero: numero,
               origem: tracking.origem || "Meta Ads",
               utm_source: tracking.utm_source,
               utm_medium: tracking.utm_medium,
               utm_campaign: tracking.utm_campaign,
               utm_content: tracking.utm_content,
-              utm_term: tracking.utm_term,
               fbclid: tracking.fbclid,
               link_id: linkIdFromTerm,
-              primeira_mensagem_at: timestamp,
-            }).eq("id", conversa.id);
-
-            if (linkIdFromTerm) {
-              const { data: linkData } = await supabase.from("links_campanha")
-                .select("nome").eq("id", linkIdFromTerm).single();
-              if (linkData?.nome) {
-                await supabase.from("conversas").update({ link_nome: linkData.nome }).eq("id", conversa.id);
-              }
-              try { await supabase.rpc("incrementar_cliques", { link_uuid: linkIdFromTerm }); } catch {}
-            }
-          } else {
-            // Não é primeira mensagem — salvar como rastreamento adicional (histórico)
-            // Não sobrescreve os dados originais da conversa
-            try {
-              await supabase.from("rastreamentos_historico").insert({
-                conversa_id: conversa.id,
-                agencia_id: agencia.id,
-                contato_numero: numero,
-                origem: tracking.origem || "Meta Ads",
-                utm_source: tracking.utm_source,
-                utm_medium: tracking.utm_medium,
-                utm_campaign: tracking.utm_campaign,
-                utm_content: tracking.utm_content,
-                fbclid: tracking.fbclid,
-                link_id: linkIdFromTerm,
-                created_at: timestamp,
-              });
-            } catch {}
-
-            if (linkIdFromTerm) {
-              try { await supabase.rpc("incrementar_cliques", { link_uuid: linkIdFromTerm }); } catch {}
-            }
-          }
-          // Limpar rastreamento por número e fbclid
-          await supabase.from("rastreamentos_pendentes").delete().eq("wa_numero", numero);
-          if (tracking.fbclid) {
-            await supabase.from("rastreamentos_pendentes").delete().eq("fbclid", tracking.fbclid);
-          }
-          if (tracking.link_id) {
-            await supabase.rpc("incrementar_cliques", { link_uuid: tracking.link_id });
-          }
-        } else {
-          await supabase.from("conversas").update({
-            primeira_mensagem_at: timestamp,
-            origem: conversa.origem || "Não Rastreada",
-          }).eq("id", conversa.id).is("primeira_mensagem_at", null);
-
-          // Retry assíncrono — tenta rastrear novamente após 8s caso rastreamento chegue atrasado
-          if (isPrimeiraMsg) {
-            fetch(`${APP_URL}/api/webhook/retentar-rastreamento`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ conversa_id: conversa.id, numero, agencia_id: agencia.id, timestamp }),
-            }).catch(() => {});
+              created_at: timestamp,
+            });
+          } catch {}
         }
-        }        // Verificar termo-chave na mensagem do lead
-        await verificarTermoChave(
-          agencia.id, conversa.id, conteudo, numero,
-          conversa.fbclid, conversa.utm_campaign, conversa.utm_content
-        );
 
-        // Disparar pixel SOMENTE se veio de anúncio
-        // Dispara para novo contato E para quem voltou por anúncio (tem tracking novo)
-        const veioDeAnuncio = tracking?.fbclid || tracking?.utm_source ||
-          tracking?.origem === "Meta Ads" || tracking?.origem === "Google Ads";
+        // Limpar rastreamentos pendentes
+        await supabase.from("rastreamentos_pendentes").delete().eq("wa_numero", numero);
+        if (tracking.fbclid) {
+          await supabase.from("rastreamentos_pendentes").delete().eq("fbclid", tracking.fbclid);
+        }
+      } else {
+        // Sem tracking — marcar primeira mensagem e agendar retry
+        await supabase.from("conversas").update({
+          primeira_mensagem_at: timestamp,
+          origem: conversa.origem || "Não Rastreada",
+        }).eq("id", conversa.id).is("primeira_mensagem_at", null);
 
-        if (veioDeAnuncio) {
-          const { data: etapaPrimeiro } = await supabase.from("jornada_etapas")
-            .select("nome").eq("agencia_id", agencia.id).eq("eh_primeiro_contato", true).single();
-          const nomeEtapa = etapaPrimeiro?.nome || "Entrou em contato";
-          fetch(`${APP_URL}/api/pixel`, {
+        if (eraNovaConversa) {
+          fetch(`${APP_URL}/api/webhook/retentar-rastreamento`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              agencia_id: agencia.id,
-              conversa_id: conversa.id,
-              etapa_nome: nomeEtapa,
-              phone: numero,
-              fbclid: tracking?.fbclid,
-              utm_campaign: tracking?.utm_campaign,
-              utm_content: tracking?.utm_content,
-            }),
+            body: JSON.stringify({ conversa_id: conversa.id, numero, agencia_id: agencia.id, timestamp }),
           }).catch(() => {});
         }
+      }
+
+      // Verificar termo-chave na mensagem do lead
+      await verificarTermoChave(
+        agencia.id, conversa.id, conteudo, numero,
+        conversa.fbclid || tracking?.fbclid, conversa.utm_campaign || tracking?.utm_campaign, conversa.utm_content || tracking?.utm_content
+      );
+
+      // Disparar pixel se veio de anúncio
+      const veioDeAnuncio = tracking?.fbclid || tracking?.utm_source ||
+        tracking?.origem === "Meta Ads" || tracking?.origem === "Google Ads";
+
+      if (veioDeAnuncio) {
+        const { data: etapaPrimeiro } = await supabase.from("jornada_etapas")
+          .select("nome").eq("agencia_id", agencia.id).eq("eh_primeiro_contato", true).single();
+        const nomeEtapa = etapaPrimeiro?.nome || "Entrou em contato";
+        fetch(`${APP_URL}/api/pixel`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            agencia_id: agencia.id,
+            conversa_id: conversa.id,
+            etapa_nome: nomeEtapa,
+            phone: numero,
+            fbclid: tracking?.fbclid,
+            utm_campaign: tracking?.utm_campaign,
+            utm_content: tracking?.utm_content,
+          }),
+        }).catch(() => {});
       }
     }
 
