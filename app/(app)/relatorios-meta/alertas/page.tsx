@@ -1,8 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Trash2, RefreshCw, X, Bell, AlertTriangle, CheckCircle } from "lucide-react";
+import { Plus, Trash2, RefreshCw, X, Edit2, AlertTriangle } from "lucide-react";
 import { supabase, getAgenciaId } from "@/lib/hooks";
+
+const TEMPLATE_PADRAO = `Boa tarde! Passando para informar que estamos com saldo baixo na conta e os anúncios podem pausar!
+
+O saldo da conta de anúncios *<CA>* está em *<SALDO>*
+Limite configurado: <LIMITE>
+
+Podemos abastecer?`;
 
 interface Alerta {
   id?: string;
@@ -12,6 +19,9 @@ interface Alerta {
   saldo_alerta: number;
   grupo_id: string;
   grupo_nome: string;
+  template_saldo: string;
+  template_status: string;
+  forma_pagamento: string;
   ativo: boolean;
   ultimo_alerta?: string;
   created_at?: string;
@@ -38,10 +48,14 @@ function formatarData(d: string) {
 export default function AlertasPage() {
   const [alertas, setAlertas] = useState<Alerta[]>([]);
   const [loading, setLoading] = useState(true);
-  const [criando, setCriando] = useState(false);
+  const [modal, setModal] = useState(false);
+  const [editando, setEditando] = useState<Alerta | null>(null);
   const [contas, setContas] = useState<{ id: string; name: string }[]>([]);
   const [grupos, setGrupos] = useState<{ id: string; subject: string }[]>([]);
-  const [form, setForm] = useState<Alerta>({ ad_account_id: "", nome_cliente: "", saldo_alerta: 50, grupo_id: "", grupo_nome: "", ativo: true });
+  const [form, setForm] = useState<Alerta>({
+    ad_account_id: "", nome_cliente: "", saldo_alerta: 50, grupo_id: "", grupo_nome: "",
+    template_saldo: TEMPLATE_PADRAO, template_status: "", forma_pagamento: "", ativo: true,
+  });
   const [salvando, setSalvando] = useState(false);
   const [verificando, setVerificando] = useState<string | null>(null);
   const [contaInfo, setContaInfo] = useState<Record<string, ContaInfo>>({});
@@ -57,15 +71,10 @@ export default function AlertasPage() {
     const data = await res.json();
     setAlertas(data.data || []);
 
-    // Buscar conexão
     const { data: con } = await supabase.from("relatorios_conexoes")
       .select("meta_token, evolution_url, evolution_key, whatsapp_instancia")
       .eq("agencia_id", agId!).order("created_at", { ascending: false }).limit(1).single();
-    if (con) {
-      setToken(con.meta_token || "");
-      setConConfig(con);
-    }
-
+    if (con) { setToken(con.meta_token || ""); setConConfig(con); }
     setLoading(false);
   };
 
@@ -73,14 +82,11 @@ export default function AlertasPage() {
     if (!token) return;
     try {
       const res = await fetch("/api/meta-ads", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "listar_contas", token }),
       });
       const data = await res.json();
-      if (Array.isArray(data)) {
-        setContas(data.map((c: any) => ({ id: (c.id || c.account_id || "").replace("act_", ""), name: c.name })));
-      }
+      if (Array.isArray(data)) setContas(data.map((c: any) => ({ id: (c.id || c.account_id || "").replace("act_", ""), name: c.name })));
     } catch {}
   };
 
@@ -94,14 +100,11 @@ export default function AlertasPage() {
       });
       const json = await res.json();
       const allChats = Array.isArray(json) ? json : [];
-      const gruposFiltrados = allChats
+      setGrupos(allChats
         .filter((c: any) => (c.remoteJid || c.id || "").includes("@g.us"))
-        .map((c: any) => ({
-          id: c.remoteJid || c.id,
-          subject: c.pushName || c.name || c.subject || c.remoteJid || c.id,
-        }))
-        .sort((a: any, b: any) => a.subject.localeCompare(b.subject));
-      setGrupos(gruposFiltrados);
+        .map((c: any) => ({ id: c.remoteJid || c.id, subject: c.pushName || c.name || c.subject || c.remoteJid || c.id }))
+        .sort((a: any, b: any) => a.subject.localeCompare(b.subject))
+      );
     } catch {}
   };
 
@@ -114,26 +117,41 @@ export default function AlertasPage() {
         body: JSON.stringify({ action: "check_account", ad_account_id: adAccountId, token }),
       });
       const data = await res.json();
-      if (!data.error) {
-        setContaInfo(prev => ({ ...prev, [adAccountId]: data }));
-      }
+      if (!data.error) setContaInfo(prev => ({ ...prev, [adAccountId]: data }));
     } catch {}
     setVerificando(null);
   };
 
-  const salvar = async () => {
-    if (!form.ad_account_id || !form.nome_cliente || !form.grupo_id) {
-      alert("Preencha todos os campos obrigatórios"); return;
+  const abrirModal = (alerta?: Alerta) => {
+    if (alerta) {
+      setEditando(alerta);
+      setForm({ ...alerta });
+      if (alerta.ad_account_id) verificarConta(alerta.ad_account_id);
+    } else {
+      setEditando(null);
+      setForm({
+        ad_account_id: "", nome_cliente: "", saldo_alerta: 50, grupo_id: "", grupo_nome: "",
+        template_saldo: TEMPLATE_PADRAO, template_status: "", forma_pagamento: "", ativo: true,
+      });
     }
+    setModal(true);
+  };
+
+  const salvar = async () => {
+    if (!form.ad_account_id || !form.nome_cliente) { alert("Preencha conta e nome da cliente"); return; }
+    if (!form.grupo_id) { alert("Selecione o grupo WhatsApp"); return; }
     setSalvando(true);
     try {
       const agId = await getAgenciaId();
+      const info = contaInfo[form.ad_account_id];
+      const alerta = { ...form, forma_pagamento: info?.forma_pagamento || form.forma_pagamento || "" };
+      if (editando?.id) alerta.id = editando.id;
+
       await fetch("/api/alertas", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "save", agencia_id: agId, alerta: form }),
+        body: JSON.stringify({ action: "save", agencia_id: agId, alerta }),
       });
-      setCriando(false);
-      setForm({ ad_account_id: "", nome_cliente: "", saldo_alerta: 50, grupo_id: "", grupo_nome: "", ativo: true });
+      setModal(false);
       carregar();
     } catch { alert("Erro ao salvar"); }
     finally { setSalvando(false); }
@@ -141,41 +159,35 @@ export default function AlertasPage() {
 
   const excluir = async (id: string) => {
     if (!confirm("Excluir este alerta?")) return;
-    await fetch("/api/alertas", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "delete", alerta: { id } }),
-    });
+    await fetch("/api/alertas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "delete", alerta: { id } }) });
     carregar();
   };
 
   const toggleAtivo = async (alerta: Alerta) => {
     const agId = await getAgenciaId();
-    await fetch("/api/alertas", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "save", agencia_id: agId, alerta: { ...alerta, ativo: !alerta.ativo } }),
-    });
+    await fetch("/api/alertas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "save", agencia_id: agId, alerta: { ...alerta, ativo: !alerta.ativo } }) });
     carregar();
   };
 
-  const verificarTodas = async () => {
-    for (const a of alertas) {
-      await verificarConta(a.ad_account_id);
-    }
-  };
+  const verificarTodas = async () => { for (const a of alertas) await verificarConta(a.ad_account_id); };
 
   useEffect(() => { carregar(); }, []);
   useEffect(() => { if (token) carregarContas(); }, [token]);
   useEffect(() => { if (conConfig) carregarGrupos(); }, [conConfig]);
 
-  const selecionarGrupo = (grupoId: string) => {
-    const g = grupos.find(g => g.id === grupoId);
-    setForm(f => ({ ...f, grupo_id: grupoId, grupo_nome: g?.subject || grupoId }));
-  };
-
-  const selecionarConta = (acId: string) => {
-    const c = contas.find(c => c.id === acId);
-    setForm(f => ({ ...f, ad_account_id: acId, nome_cliente: f.nome_cliente || c?.name || "" }));
-    if (acId) verificarConta(acId);
+  // Preview da mensagem com variáveis substituídas
+  const previewMsg = () => {
+    const info = contaInfo[form.ad_account_id];
+    let msg = form.template_saldo || TEMPLATE_PADRAO;
+    const vars: Record<string, string> = {
+      "<CA>": form.nome_cliente || "Cliente",
+      "<SALDO>": info ? formatMoney(info.balance) : "R$ 0,00",
+      "<LIMITE>": formatMoney(form.saldo_alerta),
+      "<STATUS>": info?.status || "Ativa",
+      "<PAGAMENTO>": info?.forma_pagamento || "PIX/Boleto",
+    };
+    for (const [k, v] of Object.entries(vars)) msg = msg.replaceAll(k, v);
+    return msg;
   };
 
   return (
@@ -183,18 +195,14 @@ export default function AlertasPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px" }}>
         <div>
           <div className="breadcrumb"><a href="/">Início</a><span>›</span><a href="/relatorios-meta">Relatórios Meta</a><span>›</span><span className="current">Alertas</span></div>
-          <h1 style={{ fontSize: "22px", fontWeight: "600" }}>Alertas de Saldo e Status</h1>
-          <p style={{ fontSize: "13px", color: "#606060", marginTop: "4px" }}>Monitora saldo PIX e status das contas de anúncio. Envia alerta no grupo da cliente.</p>
+          <h1 style={{ fontSize: "22px", fontWeight: "600" }}>Alertas de Saldo</h1>
+          <p style={{ fontSize: "13px", color: "#606060", marginTop: "4px" }}>Monitora saldo das contas PIX e envia alerta no grupo da cliente.</p>
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
           {alertas.length > 0 && (
-            <button onClick={verificarTodas} className="btn-secondary" style={{ cursor: "pointer", fontSize: "12px" }}>
-              <RefreshCw size={12} /> Verificar Todas
-            </button>
+            <button onClick={verificarTodas} className="btn-secondary" style={{ cursor: "pointer", fontSize: "12px" }}><RefreshCw size={12} /> Verificar</button>
           )}
-          <button onClick={() => setCriando(true)} className="btn-primary" style={{ cursor: "pointer", fontSize: "12px" }}>
-            <Plus size={12} /> Novo Alerta
-          </button>
+          <button onClick={() => abrirModal()} className="btn-primary" style={{ cursor: "pointer", fontSize: "12px" }}><Plus size={12} /> Novo Alerta</button>
         </div>
       </div>
 
@@ -207,18 +215,7 @@ export default function AlertasPage() {
 
       <div className="table-wrapper">
         <table>
-          <thead>
-            <tr>
-              <th>CLIENTE / CONTA</th>
-              <th>SALDO ATUAL</th>
-              <th>LIMITE ALERTA</th>
-              <th>FORMA PGTO</th>
-              <th>STATUS CONTA</th>
-              <th>GRUPO WHATSAPP</th>
-              <th>ÚLTIMO ALERTA</th>
-              <th>AÇÕES</th>
-            </tr>
-          </thead>
+          <thead><tr><th>CLIENTE / CONTA</th><th>SALDO ATUAL</th><th>LIMITE</th><th>PAGAMENTO</th><th>STATUS</th><th>GRUPO</th><th>ÚLTIMO ALERTA</th><th>AÇÕES</th></tr></thead>
           <tbody>
             {loading ? (
               <tr><td colSpan={8} style={{ textAlign: "center", color: "#606060", padding: "48px" }}>Carregando...</td></tr>
@@ -228,58 +225,23 @@ export default function AlertasPage() {
               const info = contaInfo[a.ad_account_id];
               const saldoBaixo = info && a.saldo_alerta && info.balance <= a.saldo_alerta;
               const contaProblema = info && info.account_status !== 1;
-
               return (
                 <tr key={a.id} style={{ opacity: a.ativo ? 1 : 0.5 }}>
                   <td>
                     <p style={{ fontSize: "13px", fontWeight: "600", color: "#f0f0f0", margin: 0 }}>{a.nome_cliente}</p>
                     <p style={{ fontSize: "11px", color: "#606060", margin: 0 }}>act_{a.ad_account_id}</p>
                   </td>
-                  <td>
-                    {verificando === a.ad_account_id ? (
-                      <span style={{ fontSize: "12px", color: "#606060" }}>Verificando...</span>
-                    ) : info ? (
-                      <span style={{ fontSize: "13px", fontWeight: "600", color: saldoBaixo ? "#ef4444" : "#22c55e" }}>
-                        {formatMoney(info.balance)}
-                      </span>
-                    ) : (
-                      <button onClick={() => verificarConta(a.ad_account_id)} style={{ fontSize: "11px", color: "#29ABE2", background: "none", border: "1px solid rgba(41,171,226,0.3)", borderRadius: "6px", padding: "2px 8px", cursor: "pointer" }}>
-                        Verificar
-                      </button>
-                    )}
-                  </td>
+                  <td>{verificando === a.ad_account_id ? <span style={{ fontSize: "12px", color: "#606060" }}>...</span> : info ? <span style={{ fontSize: "13px", fontWeight: "600", color: saldoBaixo ? "#ef4444" : "#22c55e" }}>{formatMoney(info.balance)}</span> : <button onClick={() => verificarConta(a.ad_account_id)} style={{ fontSize: "11px", color: "#29ABE2", background: "none", border: "1px solid rgba(41,171,226,0.3)", borderRadius: "6px", padding: "2px 8px", cursor: "pointer" }}>Ver</button>}</td>
                   <td style={{ fontSize: "13px", color: "#f59e0b" }}>{formatMoney(a.saldo_alerta)}</td>
-                  <td style={{ fontSize: "12px", color: "#a0a0a0" }}>{info?.forma_pagamento || "—"}</td>
-                  <td>
-                    {info ? (
-                      <span style={{
-                        fontSize: "11px", padding: "2px 8px", borderRadius: "20px",
-                        background: contaProblema ? "rgba(239,68,68,0.1)" : "rgba(34,197,94,0.1)",
-                        color: contaProblema ? "#ef4444" : "#22c55e",
-                        border: `1px solid ${contaProblema ? "rgba(239,68,68,0.3)" : "rgba(34,197,94,0.3)"}`,
-                      }}>
-                        {info.status}
-                      </span>
-                    ) : "—"}
-                  </td>
+                  <td style={{ fontSize: "12px", color: "#a0a0a0" }}>{info?.forma_pagamento || a.forma_pagamento || "—"}</td>
+                  <td>{info ? <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "20px", background: contaProblema ? "rgba(239,68,68,0.1)" : "rgba(34,197,94,0.1)", color: contaProblema ? "#ef4444" : "#22c55e", border: `1px solid ${contaProblema ? "rgba(239,68,68,0.3)" : "rgba(34,197,94,0.3)"}` }}>{info.status}</span> : "—"}</td>
                   <td style={{ fontSize: "12px", color: "#a0a0a0" }}>{a.grupo_nome || "—"}</td>
                   <td style={{ fontSize: "12px", color: "#606060" }}>{formatarData(a.ultimo_alerta || "")}</td>
                   <td>
                     <div style={{ display: "flex", gap: "6px" }}>
-                      <button onClick={() => toggleAtivo(a)} style={{
-                        fontSize: "11px", padding: "4px 8px", borderRadius: "6px", cursor: "pointer",
-                        background: a.ativo ? "rgba(34,197,94,0.1)" : "rgba(96,96,96,0.1)",
-                        border: `1px solid ${a.ativo ? "rgba(34,197,94,0.3)" : "#2e2e2e"}`,
-                        color: a.ativo ? "#22c55e" : "#606060",
-                      }}>
-                        {a.ativo ? "Ativo" : "Pausado"}
-                      </button>
-                      <button onClick={() => excluir(a.id!)} style={{
-                        padding: "4px 8px", borderRadius: "6px", border: "1px solid #2e2e2e",
-                        background: "#222", color: "#ef4444", cursor: "pointer",
-                      }}>
-                        <Trash2 size={12} />
-                      </button>
+                      <button onClick={() => abrirModal(a)} style={{ padding: "4px 8px", borderRadius: "6px", border: "1px solid #2e2e2e", background: "#222", color: "#29ABE2", cursor: "pointer" }}><Edit2 size={12} /></button>
+                      <button onClick={() => toggleAtivo(a)} style={{ fontSize: "11px", padding: "4px 8px", borderRadius: "6px", cursor: "pointer", background: a.ativo ? "rgba(34,197,94,0.1)" : "rgba(96,96,96,0.1)", border: `1px solid ${a.ativo ? "rgba(34,197,94,0.3)" : "#2e2e2e"}`, color: a.ativo ? "#22c55e" : "#606060" }}>{a.ativo ? "Ativo" : "Pausado"}</button>
+                      <button onClick={() => excluir(a.id!)} style={{ padding: "4px 8px", borderRadius: "6px", border: "1px solid #2e2e2e", background: "#222", color: "#ef4444", cursor: "pointer" }}><Trash2 size={12} /></button>
                     </div>
                   </td>
                 </tr>
@@ -289,58 +251,95 @@ export default function AlertasPage() {
         </table>
       </div>
 
-      {/* Modal de criação */}
-      {criando && (
+      {/* Modal Criar / Editar */}
+      {modal && (
         <>
-          <div onClick={() => setCriando(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 100 }} />
-          <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "500px", maxHeight: "85vh", overflowY: "auto", background: "#141414", border: "1px solid #2e2e2e", borderRadius: "12px", zIndex: 101, padding: "20px" }}>
+          <div onClick={() => setModal(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 100 }} />
+          <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "560px", maxHeight: "90vh", overflowY: "auto", background: "#141414", border: "1px solid #2e2e2e", borderRadius: "12px", zIndex: 101, padding: "24px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-              <h2 style={{ fontSize: "16px", fontWeight: "600", margin: 0 }}>Novo Alerta de Saldo</h2>
-              <button onClick={() => setCriando(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#606060" }}><X size={16} /></button>
+              <h2 style={{ fontSize: "16px", fontWeight: "600", margin: 0 }}>{editando ? "Editar Alerta" : "Novo Alerta"}</h2>
+              <button onClick={() => setModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#606060" }}><X size={16} /></button>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {/* Conta de Anúncio */}
               <div>
                 <label className="form-label">Conta de Anúncio</label>
-                <select className="form-input" value={form.ad_account_id} onChange={e => selecionarConta(e.target.value)}>
+                <select className="form-input" value={form.ad_account_id} onChange={e => { const c = contas.find(c => c.id === e.target.value); setForm(f => ({ ...f, ad_account_id: e.target.value, nome_cliente: f.nome_cliente || c?.name || "" })); if (e.target.value) verificarConta(e.target.value); }}>
                   <option value="">Selecione...</option>
                   {contas.map(c => <option key={c.id} value={c.id}>{c.name} ({c.id})</option>)}
                 </select>
               </div>
 
+              {/* Info da conta */}
               {contaInfo[form.ad_account_id] && (
                 <div style={{ background: "#1a1a1a", borderRadius: "8px", padding: "12px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
                   <div><span style={{ fontSize: "10px", color: "#606060" }}>SALDO</span><p style={{ fontSize: "14px", fontWeight: "600", color: "#f0f0f0", margin: "2px 0 0" }}>{formatMoney(contaInfo[form.ad_account_id].balance)}</p></div>
-                  <div><span style={{ fontSize: "10px", color: "#606060" }}>FORMA DE PAGAMENTO</span><p style={{ fontSize: "12px", color: "#a0a0a0", margin: "2px 0 0" }}>{contaInfo[form.ad_account_id].forma_pagamento}</p></div>
+                  <div><span style={{ fontSize: "10px", color: "#606060" }}>PAGAMENTO</span><p style={{ fontSize: "12px", color: "#a0a0a0", margin: "2px 0 0" }}>{contaInfo[form.ad_account_id].forma_pagamento}</p></div>
                   <div><span style={{ fontSize: "10px", color: "#606060" }}>STATUS</span><p style={{ fontSize: "12px", color: contaInfo[form.ad_account_id].account_status === 1 ? "#22c55e" : "#ef4444", margin: "2px 0 0" }}>{contaInfo[form.ad_account_id].status}</p></div>
                   <div><span style={{ fontSize: "10px", color: "#606060" }}>MOEDA</span><p style={{ fontSize: "12px", color: "#a0a0a0", margin: "2px 0 0" }}>{contaInfo[form.ad_account_id].currency}</p></div>
                 </div>
               )}
 
+              {/* Nome */}
               <div>
                 <label className="form-label">Nome da Cliente</label>
-                <input className="form-input" value={form.nome_cliente} onChange={e => setForm(f => ({ ...f, nome_cliente: e.target.value }))} placeholder="Ex: Clínica da Dra. Ana" />
+                <input className="form-input" value={form.nome_cliente} onChange={e => setForm(f => ({ ...f, nome_cliente: e.target.value }))} placeholder="Ex: Roseli Cabral" />
               </div>
 
+              {/* Saldo mínimo */}
               <div>
                 <label className="form-label">Saldo mínimo para alerta (R$)</label>
                 <input className="form-input" type="number" step="10" min="0" value={form.saldo_alerta} onChange={e => setForm(f => ({ ...f, saldo_alerta: parseFloat(e.target.value) || 0 }))} />
-                <p style={{ fontSize: "11px", color: "#606060", marginTop: "4px" }}>Quando o saldo cair abaixo deste valor, envia alerta no grupo.</p>
               </div>
 
+              {/* Grupo WhatsApp */}
               <div>
-                <label className="form-label">Grupo WhatsApp (destino do alerta)</label>
-                <select className="form-input" value={form.grupo_id} onChange={e => selecionarGrupo(e.target.value)}>
+                <label className="form-label">Grupo WhatsApp</label>
+                <select className="form-input" value={form.grupo_id} onChange={e => { const g = grupos.find(g => g.id === e.target.value); setForm(f => ({ ...f, grupo_id: e.target.value, grupo_nome: g?.subject || "" })); }}>
                   <option value="">Selecione o grupo...</option>
                   {grupos.map(g => <option key={g.id} value={g.id}>{g.subject}</option>)}
                 </select>
               </div>
+
+              {/* Template da mensagem */}
+              <div>
+                <label className="form-label">Personalize sua mensagem</label>
+                <textarea className="form-input" rows={8} value={form.template_saldo} onChange={e => setForm(f => ({ ...f, template_saldo: e.target.value }))} style={{ resize: "vertical", fontSize: "13px", lineHeight: "1.5" }} />
+              </div>
+
+              {/* Variáveis disponíveis */}
+              <div style={{ background: "#1a1a1a", borderRadius: "8px", padding: "12px" }}>
+                <p style={{ fontSize: "11px", fontWeight: "600", color: "#606060", margin: "0 0 8px" }}>VARIÁVEIS</p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+                  {[
+                    { var: "<CA>", desc: "Nome da cliente" },
+                    { var: "<SALDO>", desc: "Saldo atual" },
+                    { var: "<LIMITE>", desc: "Saldo mínimo" },
+                    { var: "<STATUS>", desc: "Status da conta" },
+                    { var: "<PAGAMENTO>", desc: "Forma de pagamento" },
+                  ].map(v => (
+                    <div key={v.var} onClick={() => setForm(f => ({ ...f, template_saldo: f.template_saldo + v.var }))} style={{ display: "flex", justifyContent: "space-between", padding: "4px 8px", borderRadius: "4px", cursor: "pointer", background: "#222", border: "1px solid #2e2e2e" }}>
+                      <code style={{ fontSize: "11px", color: "#29ABE2" }}>{v.var}</code>
+                      <span style={{ fontSize: "11px", color: "#606060" }}>{v.desc}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Preview */}
+              <div>
+                <p style={{ fontSize: "11px", fontWeight: "600", color: "#606060", margin: "0 0 8px" }}>PRÉ-VISUALIZAÇÃO</p>
+                <div style={{ background: "#1a1a1a", borderRadius: "8px", padding: "14px", fontSize: "13px", color: "#f0f0f0", whiteSpace: "pre-wrap", lineHeight: "1.5", borderLeft: "3px solid #29ABE2" }}>
+                  {previewMsg()}
+                </div>
+              </div>
             </div>
 
             <div style={{ display: "flex", gap: "8px", marginTop: "20px", justifyContent: "flex-end" }}>
-              <button onClick={() => setCriando(false)} className="btn-ghost" style={{ cursor: "pointer" }}>Cancelar</button>
+              <button onClick={() => setModal(false)} className="btn-ghost" style={{ cursor: "pointer" }}>Cancelar</button>
               <button onClick={salvar} disabled={salvando} className="btn-primary" style={{ cursor: "pointer" }}>
-                {salvando ? "Salvando..." : "Criar Alerta"}
+                {salvando ? "Salvando..." : editando ? "Salvar" : "Criar Alerta"}
               </button>
             </div>
           </div>

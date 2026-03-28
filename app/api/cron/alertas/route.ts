@@ -86,22 +86,25 @@ export async function GET(req: NextRequest) {
           }
         }
 
-        // Montar mensagem de alerta
+        // Montar mensagem a partir do template configurado
         let mensagem = "";
+        const replacements: Record<string, string> = {
+          "<CLIENTE>": alerta.nome_cliente || "",
+          "<CONTA>": meta.name || acId,
+          "<SALDO>": formatMoney(balance),
+          "<LIMITE>": formatMoney(alerta.saldo_alerta || 0),
+          "<STATUS>": statusTexto,
+          "<PAGAMENTO>": alerta.forma_pagamento || "PIX/Boleto",
+        };
+
         if (contaProblema) {
-          mensagem = `⚠️ *ALERTA DE CONTA*\n\n`;
-          mensagem += `Cliente: *${alerta.nome_cliente}*\n`;
-          mensagem += `Conta: ${meta.name || acId}\n`;
-          mensagem += `Status: *${statusTexto}*\n`;
-          mensagem += `Saldo: ${formatMoney(balance)}\n\n`;
-          mensagem += `_A conta de anúncio está com problema. Verifique no Gerenciador de Anúncios._`;
+          mensagem = alerta.template_status || `🚨 *ALERTA DE CONTA*\n\nCliente: *<CLIENTE>*\nConta: <CONTA>\nStatus: *<STATUS>*\nSaldo: <SALDO>\n\n_A conta está com problema. Verifique no Gerenciador de Anúncios._`;
         } else if (saldoBaixo) {
-          mensagem = `💰 *ALERTA DE SALDO BAIXO*\n\n`;
-          mensagem += `Cliente: *${alerta.nome_cliente}*\n`;
-          mensagem += `Conta: ${meta.name || acId}\n`;
-          mensagem += `Saldo atual: *${formatMoney(balance)}*\n`;
-          mensagem += `Limite configurado: ${formatMoney(alerta.saldo_alerta)}\n\n`;
-          mensagem += `_O saldo está abaixo do limite. Recarregue via PIX para não parar os anúncios._`;
+          mensagem = alerta.template_saldo || `⚠️ *ALERTA DE SALDO BAIXO*\n\nCliente: *<CLIENTE>*\nConta: <CONTA>\nSaldo atual: *<SALDO>*\nLimite configurado: <LIMITE>\n\n_Recarregue via PIX para não parar os anúncios._`;
+        }
+
+        for (const [key, value] of Object.entries(replacements)) {
+          mensagem = mensagem.replaceAll(key, value);
         }
 
         // Enviar via WhatsApp (Evolution API)
