@@ -150,7 +150,14 @@ export default function RelatoriosMetaPage() {
   async function carregarTudo() {
     const agId = await getAgenciaId();
 
-    // Carregar conexão
+    // Puxar Evolution API da agência (fallback)
+    const { data: ag } = await supabase
+      .from("agencias")
+      .select("evolution_url, evolution_key, whatsapp_instancia")
+      .eq("id", agId!)
+      .single();
+
+    // Carregar conexão do módulo de relatórios
     const { data: con } = await supabase
       .from("relatorios_conexoes")
       .select("*")
@@ -161,12 +168,18 @@ export default function RelatoriosMetaPage() {
 
     if (con) {
       setConexao(con);
-      // Carregar contas de anúncio
       if (con.meta_token) carregarContas(con.meta_token);
-      // Carregar grupos do WhatsApp
-      if (con.evolution_url && con.evolution_key && con.whatsapp_instancia) {
-        carregarGrupos(con.evolution_url, con.evolution_key, con.whatsapp_instancia);
+
+      // Pra grupos: usar evolution da conexão, senão da agência
+      const evoUrl = con.evolution_url || ag?.evolution_url;
+      const evoKey = con.evolution_key || ag?.evolution_key;
+      const waInst = con.whatsapp_instancia || ag?.whatsapp_instancia;
+      if (evoUrl && evoKey && waInst) {
+        carregarGrupos(evoUrl, evoKey, waInst);
       }
+    } else if (ag?.evolution_url && ag?.evolution_key && ag?.whatsapp_instancia) {
+      // Sem conexão de relatórios, usa agência diretamente pra grupos
+      carregarGrupos(ag.evolution_url, ag.evolution_key, ag.whatsapp_instancia);
     }
 
     // Carregar relatórios
@@ -196,19 +209,32 @@ export default function RelatoriosMetaPage() {
   async function carregarGrupos(url: string, key: string, instancia: string) {
     setLoadingGrupos(true);
     try {
-      const res = await fetch(`${url}/chat/findChats/${instancia}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", apikey: key },
-        body: JSON.stringify({}),
-      });
-      const data = await res.json();
-      const gruposFiltrados = (Array.isArray(data) ? data : [])
-        .filter((c: any) => c.id?.includes("@g.us"))
-        .map((c: any) => ({
-          id: c.id,
-          subject: c.name || c.subject || c.id,
-          size: c.size || 0,
-        }));
+      // Tentar endpoint de grupos primeiro
+      let data: any[] = [];
+      try {
+        const res = await fetch(`${url}/group/fetchAllGroups/${instancia}?getParticipants=false`, {
+          headers: { apikey: key },
+        });
+        const json = await res.json();
+        data = Array.isArray(json) ? json : [];
+      } catch {}
+
+      // Fallback: findChats e filtrar grupos
+      if (data.length === 0) {
+        const res = await fetch(`${url}/chat/findChats/${instancia}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: key },
+          body: JSON.stringify({}),
+        });
+        const json = await res.json();
+        data = (Array.isArray(json) ? json : []).filter((c: any) => c.id?.includes("@g.us"));
+      }
+
+      const gruposFiltrados = data.map((c: any) => ({
+        id: c.id || c.jid,
+        subject: c.subject || c.name || c.id || c.jid,
+        size: c.size || c.participants?.length || 0,
+      }));
       setGrupos(gruposFiltrados);
     } catch (e) {
       console.error("Erro ao carregar grupos:", e);
