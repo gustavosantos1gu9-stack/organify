@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://salxconvert-blond.vercel.app";
@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
 
       if (!conversa) {
         eraNovaConversa = true;
-        const { data: nova } = await supabase.from("conversas").insert({
+        const { data: nova, error: insertErr } = await supabase.from("conversas").insert({
           agencia_id: agencia.id, instancia: instanciaName,
           contato_numero: numero, contato_nome: nome, contato_foto: foto,
           contato_jid: remoteJid,
@@ -146,6 +146,9 @@ export async function POST(req: NextRequest) {
           primeira_mensagem_at: timestamp, nao_lidas: 1,
           origem: isLid ? "Meta Ads" : "Não Rastreada",
         }).select().single();
+        if (insertErr) {
+          console.error("Erro ao criar conversa:", insertErr.message, { numero, nome, agencia_id: agencia.id });
+        }
         conversa = nova;
       } else {
         await supabase.from("conversas").update({
