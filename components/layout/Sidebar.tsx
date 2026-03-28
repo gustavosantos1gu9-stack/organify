@@ -68,6 +68,7 @@ const navItems: NavItem[] = [
     icon: <FileBarChart size={16} />,
     children: [
       { href: "/relatorios-meta", label: "Relatórios" },
+      { href: "/relatorios-meta/alertas", label: "Alertas" },
       { href: "/relatorios-meta/conexoes", label: "Conexões" },
     ],
   },
@@ -127,6 +128,7 @@ const hrefToModuloKey: Record<string, string> = {
   "/crm": "crm",
   "/relatorios-meta": "relatorios_meta",
   "/relatorios-meta/conexoes": "relatorios_conexoes",
+  "/relatorios-meta/alertas": "relatorios_alertas",
   "/controle-clientes": "controle_clientes",
   "/cadastros": "cadastros",
   "/reunioes": "reunioes",
@@ -145,7 +147,7 @@ const hrefToModuloKey: Record<string, string> = {
 const groupChildKeys: Record<string, string[]> = {
   Financeiro: ["clientes", "dre", "lancamentos", "movimentacoes", "recorrencias"],
   SDR: ["inbox", "crm"],
-  "Relatórios Meta": ["relatorios_meta", "relatorios_conexoes"],
+  "Relatórios Meta": ["relatorios_meta", "relatorios_conexoes", "relatorios_alertas"],
   Operacional: ["controle_clientes", "cadastros", "reunioes", "escala_ester", "escala_nicolas", "churn"],
   Rastreamento: ["links_campanhas", "configurar_campanha", "jornada"],
 };
