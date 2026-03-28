@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   Check, Eye, EyeOff, RefreshCw, Wifi, WifiOff, Plus, Trash2,
-  Target, MessageCircle, X,
+  Target, MessageCircle,
 } from "lucide-react";
 import { supabase, getAgenciaId } from "@/lib/hooks";
 
@@ -28,28 +28,41 @@ export default function ConexoesPage() {
   const [contas, setContas] = useState<any[]>([]);
   const [loadingContas, setLoadingContas] = useState(false);
 
-  // WhatsApp / Evolution
+  // WhatsApp / Evolution (puxado da agência)
   const [evoUrl, setEvoUrl] = useState("");
   const [evoKey, setEvoKey] = useState("");
   const [instancia, setInstancia] = useState("");
-  const [instancias, setInstancias] = useState<Instancia[]>([]);
-  const [loadingInst, setLoadingInst] = useState(false);
-  const [qrCode, setQrCode] = useState<string | null>(null);
-  const [qrInstancia, setQrInstancia] = useState<string | null>(null);
-  const [novaInstancia, setNovaInstancia] = useState("");
-  const [criandoInst, setCriandoInst] = useState(false);
+  const [instanciaProfile, setInstanciaProfile] = useState("");
+  const [instanciaFoto, setInstanciaFoto] = useState("");
   const [waConectado, setWaConectado] = useState(false);
+  const [loadingWa, setLoadingWa] = useState(true);
+  const [qrCode, setQrCode] = useState<string | null>(null);
+  const [novaInstancia, setNovaInstancia] = useState("relatorios");
+  const [criandoInst, setCriandoInst] = useState(false);
 
-  const [salvando, setSalvando] = useState(false);
   const [conexaoId, setConexaoId] = useState<string | null>(null);
 
   useEffect(() => {
-    carregarConexao();
+    carregarTudo();
   }, []);
 
-  async function carregarConexao() {
+  async function carregarTudo() {
     const agId = await getAgenciaId();
-    const { data } = await supabase
+
+    // Puxar Evolution API da agência (a equipe não precisa saber)
+    const { data: ag } = await supabase
+      .from("agencias")
+      .select("evolution_url, evolution_key")
+      .eq("id", agId!)
+      .single();
+
+    if (ag?.evolution_url && ag?.evolution_key) {
+      setEvoUrl(ag.evolution_url);
+      setEvoKey(ag.evolution_key);
+    }
+
+    // Carregar conexão salva
+    const { data: con } = await supabase
       .from("relatorios_conexoes")
       .select("*")
       .eq("agencia_id", agId!)
@@ -57,22 +70,30 @@ export default function ConexoesPage() {
       .limit(1)
       .single();
 
-    if (data) {
-      setConexaoId(data.id);
-      setMetaToken(data.meta_token || "");
-      setMetaNome(data.meta_nome || "");
-      setMetaUserId(data.meta_user_id || "");
-      setMetaConectado(!!data.meta_token);
-      setEvoUrl(data.evolution_url || "");
-      setEvoKey(data.evolution_key || "");
-      setInstancia(data.whatsapp_instancia || "");
-      setWaConectado(data.whatsapp_conectado || false);
-      if (data.evolution_url && data.evolution_key) {
-        carregarInstancias(data.evolution_url, data.evolution_key);
+    if (con) {
+      setConexaoId(con.id);
+      setMetaToken(con.meta_token || "");
+      setMetaNome(con.meta_nome || "");
+      setMetaUserId(con.meta_user_id || "");
+      setMetaConectado(!!con.meta_token);
+      setInstancia(con.whatsapp_instancia || "");
+
+      // Usar Evolution da conexão se tiver, senão usa da agência
+      const url = con.evolution_url || ag?.evolution_url;
+      const key = con.evolution_key || ag?.evolution_key;
+      if (url && key) {
+        setEvoUrl(url);
+        setEvoKey(key);
       }
-      if (data.meta_token) {
-        carregarContasAnuncio(data.meta_token);
+
+      if (con.meta_token) carregarContasAnuncio(con.meta_token);
+      if (con.whatsapp_instancia && url && key) {
+        verificarStatusWA(url, key, con.whatsapp_instancia);
+      } else {
+        setLoadingWa(false);
       }
+    } else {
+      setLoadingWa(false);
     }
   }
 
@@ -95,7 +116,7 @@ export default function ConexoesPage() {
         await salvarConexao({ meta_token: metaToken, meta_nome: data.name, meta_user_id: data.id });
         carregarContasAnuncio(metaToken);
       } else {
-        alert(data.error || "Token inválido");
+        alert(data.error || "Token inválido ou expirado");
       }
     } catch { alert("Erro ao validar token"); }
     setValidandoMeta(false);
@@ -117,124 +138,121 @@ export default function ConexoesPage() {
 
   async function desconectarMeta() {
     if (!confirm("Desconectar Facebook?")) return;
-    setMetaToken("");
-    setMetaNome("");
-    setMetaUserId("");
-    setMetaConectado(false);
-    setContas([]);
+    setMetaToken(""); setMetaNome(""); setMetaUserId("");
+    setMetaConectado(false); setContas([]);
     await salvarConexao({ meta_token: null, meta_nome: null, meta_user_id: null });
   }
 
-  // ─── WhatsApp / Evolution ───────────────────────────────────
+  // ─── WhatsApp ───────────────────────────────────────────────
 
-  async function evoCall(action: string, instanceName?: string, payload?: Record<string, unknown>, url?: string, key?: string) {
-    const res = await fetch("/api/evolution", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, instanceName, payload, customUrl: url || evoUrl, customKey: key || evoKey }),
-    });
-    return res.json();
-  }
-
-  async function carregarInstancias(url?: string, key?: string) {
-    setLoadingInst(true);
+  async function verificarStatusWA(url: string, key: string, inst: string) {
+    setLoadingWa(true);
     try {
-      // Chamar direto a Evolution API
-      const targetUrl = url || evoUrl;
-      const targetKey = key || evoKey;
-      if (!targetUrl || !targetKey) { setLoadingInst(false); return; }
-
-      const res = await fetch(`${targetUrl}/instance/fetchInstances`, {
-        headers: { apikey: targetKey },
+      const res = await fetch(`${url}/instance/connectionState/${inst}`, {
+        headers: { apikey: key },
       });
       const data = await res.json();
-      const list = Array.isArray(data) ? data : [];
-      setInstancias(list);
+      const state = (data.instance?.state || data.state || "").toLowerCase();
+      setWaConectado(state === "open" || state === "connected");
 
-      // Verificar se a instância salva está conectada
-      if (instancia) {
-        const inst = list.find((i: any) => (i.name || i.instance?.instanceName) === instancia);
-        if (inst) {
-          const status = (inst.connectionStatus || inst.instance?.state || inst.state || "").toLowerCase();
-          setWaConectado(status === "open" || status === "connected");
-        }
+      // Buscar foto/nome do perfil
+      const infoRes = await fetch(`${url}/instance/fetchInstances`, {
+        headers: { apikey: key },
+      });
+      const instances = await infoRes.json();
+      const found = (Array.isArray(instances) ? instances : []).find(
+        (i: any) => (i.name || i.instance?.instanceName) === inst
+      );
+      if (found) {
+        setInstanciaProfile(found.profileName || inst);
+        setInstanciaFoto(found.profilePicUrl || "");
       }
-    } catch (e) {
-      console.error("Erro ao carregar instâncias:", e);
+    } catch {
+      setWaConectado(false);
     }
-    setLoadingInst(false);
+    setLoadingWa(false);
   }
 
-  async function salvarWhatsApp() {
-    if (!evoUrl.trim() || !evoKey.trim()) { alert("Preencha URL e API Key"); return; }
-    setSalvando(true);
-    await salvarConexao({ evolution_url: evoUrl, evolution_key: evoKey, whatsapp_instancia: instancia });
-    await carregarInstancias();
-    setSalvando(false);
-    alert("WhatsApp configurado!");
-  }
+  async function conectarWhatsApp() {
+    if (!evoUrl || !evoKey) {
+      alert("Evolution API não configurada. Configure em Configurações > Integrações.");
+      return;
+    }
 
-  async function criarInstancia() {
-    if (!novaInstancia.trim() || !evoUrl || !evoKey) { alert("Preencha o nome e configure a API"); return; }
+    const nomeInst = novaInstancia.trim() || "relatorios";
     setCriandoInst(true);
+    setQrCode(null);
+
     try {
-      const res = await fetch(`${evoUrl}/instance/create`, {
+      // Tentar conectar instância existente
+      const connectRes = await fetch(`${evoUrl}/instance/connect/${nomeInst}`, {
+        headers: { apikey: evoKey },
+      });
+      const connectData = await connectRes.json();
+
+      if (connectData.base64) {
+        setQrCode(connectData.base64);
+        setInstancia(nomeInst);
+        await salvarConexao({ whatsapp_instancia: nomeInst, evolution_url: evoUrl, evolution_key: evoKey });
+        setCriandoInst(false);
+        return;
+      }
+      if (connectData.qrcode?.base64) {
+        setQrCode(connectData.qrcode.base64);
+        setInstancia(nomeInst);
+        await salvarConexao({ whatsapp_instancia: nomeInst, evolution_url: evoUrl, evolution_key: evoKey });
+        setCriandoInst(false);
+        return;
+      }
+
+      // Se não conseguiu, criar nova instância
+      const createRes = await fetch(`${evoUrl}/instance/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json", apikey: evoKey },
         body: JSON.stringify({
-          instanceName: novaInstancia,
-          token: novaInstancia,
+          instanceName: nomeInst,
+          token: nomeInst,
           qrcode: true,
           integration: "WHATSAPP-BAILEYS",
         }),
       });
-      const data = await res.json();
-      if (data.qrcode?.base64) {
-        setQrCode(data.qrcode.base64);
-        setQrInstancia(novaInstancia);
+      const createData = await createRes.json();
+
+      if (createData.qrcode?.base64) {
+        setQrCode(createData.qrcode.base64);
+      } else if (createData.base64) {
+        setQrCode(createData.base64);
       }
-      setNovaInstancia("");
-      await carregarInstancias();
-    } catch { alert("Erro ao criar instância"); }
+
+      setInstancia(nomeInst);
+      await salvarConexao({ whatsapp_instancia: nomeInst, evolution_url: evoUrl, evolution_key: evoKey });
+    } catch {
+      alert("Erro ao conectar. Verifique se a Evolution API está rodando.");
+    }
     setCriandoInst(false);
   }
 
-  async function gerarQR(nome: string) {
-    try {
-      setQrInstancia(nome);
-      setQrCode(null);
-      const res = await fetch(`${evoUrl}/instance/connect/${nome}`, {
-        headers: { apikey: evoKey },
-      });
-      const data = await res.json();
-      if (data.base64) setQrCode(data.base64);
-      else if (data.qrcode?.base64) setQrCode(data.qrcode.base64);
-      else if (data.code) setQrCode(`qr:${data.code}`);
-    } catch { alert("Erro ao gerar QR Code"); }
+  async function confirmarConexao() {
+    setQrCode(null);
+    if (instancia) {
+      await verificarStatusWA(evoUrl, evoKey, instancia);
+      await salvarConexao({ whatsapp_conectado: true });
+    }
   }
 
-  async function selecionarInstancia(nome: string) {
-    setInstancia(nome);
-    await salvarConexao({ whatsapp_instancia: nome, whatsapp_conectado: true });
-  }
-
-  async function deletarInstancia(nome: string) {
-    if (!confirm(`Deletar instância ${nome}?`)) return;
+  async function desconectarWA() {
+    if (!confirm("Desconectar WhatsApp?")) return;
     try {
-      await fetch(`${evoUrl}/instance/delete/${nome}`, {
+      await fetch(`${evoUrl}/instance/logout/${instancia}`, {
         method: "DELETE",
         headers: { apikey: evoKey },
       });
-      if (instancia === nome) {
-        setInstancia("");
-        setWaConectado(false);
-        await salvarConexao({ whatsapp_instancia: null, whatsapp_conectado: false });
-      }
-      await carregarInstancias();
-    } catch { alert("Erro ao deletar"); }
+    } catch {}
+    setInstancia(""); setWaConectado(false); setInstanciaProfile(""); setInstanciaFoto("");
+    await salvarConexao({ whatsapp_instancia: null, whatsapp_conectado: false });
   }
 
-  // ─── Salvar conexão ─────────────────────────────────────────
+  // ─── Salvar ─────────────────────────────────────────────────
 
   async function salvarConexao(fields: Record<string, any>) {
     const agId = await getAgenciaId();
@@ -245,14 +263,6 @@ export default function ConexoesPage() {
       if (data) setConexaoId(data.id);
     }
   }
-
-  const getStatus = (inst: Instancia) =>
-    (inst.connectionStatus || inst.instance?.state || inst.instance?.status || inst.state || "disconnected").toLowerCase();
-  const isConectado = (inst: Instancia) => {
-    const s = getStatus(inst);
-    return s === "open" || s === "connected";
-  };
-  const getNome = (inst: Instancia) => inst.name || inst.instance?.instanceName || "";
 
   return (
     <div className="animate-in">
@@ -285,7 +295,7 @@ export default function ConexoesPage() {
         {!metaConectado ? (
           <>
             <p style={{ fontSize: "13px", color: "#606060", marginBottom: "16px" }}>
-              Cole o token do Gerenciador de Negócios (System User com permissão ads_read) para conectar todas as contas de anúncio.
+              Cole o token do Facebook para conectar todas as contas de anúncio.
             </p>
             <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
               <div style={{ position: "relative", flex: 1 }}>
@@ -304,45 +314,42 @@ export default function ConexoesPage() {
             </div>
           </>
         ) : (
-          <>
-            {/* Contas de anúncio vinculadas */}
-            <div style={{ borderTop: "1px solid #2e2e2e", paddingTop: "16px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-                <p style={{ fontSize: "13px", fontWeight: "600", color: "#f0f0f0" }}>
-                  Contas de anúncio vinculadas ({contas.length})
-                </p>
-                <button className="btn-ghost" onClick={() => carregarContasAnuncio(metaToken)} style={{ cursor: "pointer", padding: "4px" }}>
-                  <RefreshCw size={13} />
-                </button>
-              </div>
-              {loadingContas ? (
-                <p style={{ fontSize: "12px", color: "#606060" }}>Carregando contas...</p>
-              ) : contas.length === 0 ? (
-                <p style={{ fontSize: "12px", color: "#606060" }}>Nenhuma conta encontrada.</p>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "6px", maxHeight: "250px", overflowY: "auto" }}>
-                  {contas.map((c: any) => (
-                    <div key={c.id} style={{
-                      display: "flex", justifyContent: "space-between", alignItems: "center",
-                      padding: "10px 14px", background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "8px",
-                    }}>
-                      <div>
-                        <p style={{ fontSize: "13px", fontWeight: "500", color: "#f0f0f0" }}>{c.name}</p>
-                        <p style={{ fontSize: "11px", color: "#606060" }}>{c.id}</p>
-                      </div>
-                      <span style={{
-                        fontSize: "11px", padding: "3px 8px", borderRadius: "12px",
-                        background: c.account_status === 1 ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)",
-                        color: c.account_status === 1 ? "#22c55e" : "#ef4444",
-                      }}>
-                        {c.account_status === 1 ? "Ativa" : "Inativa"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
+          <div style={{ borderTop: "1px solid #2e2e2e", paddingTop: "16px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+              <p style={{ fontSize: "13px", fontWeight: "600", color: "#f0f0f0" }}>
+                Contas de anúncio ({contas.length})
+              </p>
+              <button className="btn-ghost" onClick={() => carregarContasAnuncio(metaToken)} style={{ cursor: "pointer", padding: "4px" }}>
+                <RefreshCw size={13} />
+              </button>
             </div>
-          </>
+            {loadingContas ? (
+              <p style={{ fontSize: "12px", color: "#606060" }}>Carregando contas...</p>
+            ) : contas.length === 0 ? (
+              <p style={{ fontSize: "12px", color: "#606060" }}>Nenhuma conta encontrada.</p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px", maxHeight: "250px", overflowY: "auto" }}>
+                {contas.map((c: any) => (
+                  <div key={c.id} style={{
+                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                    padding: "10px 14px", background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "8px",
+                  }}>
+                    <div>
+                      <p style={{ fontSize: "13px", fontWeight: "500", color: "#f0f0f0" }}>{c.name}</p>
+                      <p style={{ fontSize: "11px", color: "#606060" }}>{c.id}</p>
+                    </div>
+                    <span style={{
+                      fontSize: "11px", padding: "3px 8px", borderRadius: "12px",
+                      background: c.account_status === 1 ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)",
+                      color: c.account_status === 1 ? "#22c55e" : "#ef4444",
+                    }}>
+                      {c.account_status === 1 ? "Ativa" : "Inativa"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -352,137 +359,93 @@ export default function ConexoesPage() {
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: waConectado ? "#22c55e" : "#ef4444" }} />
             <MessageCircle size={18} color="#25d366" />
-            <h2 style={{ fontSize: "16px", fontWeight: "600" }}>WhatsApp (Envio de Relatórios)</h2>
+            <h2 style={{ fontSize: "16px", fontWeight: "600" }}>WhatsApp</h2>
           </div>
-          {instancia && waConectado && (
-            <span style={{ fontSize: "12px", color: "#22c55e" }}>Instância: {instancia}</span>
-          )}
         </div>
 
-        <p style={{ fontSize: "13px", color: "#606060", marginBottom: "16px" }}>
-          Conecte um WhatsApp separado para envio dos relatórios aos grupos dos clientes.
-        </p>
-
-        {/* Config da Evolution API */}
-        <div style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "10px", padding: "16px", marginBottom: "16px" }}>
-          <p style={{ fontSize: "13px", fontWeight: "600", marginBottom: "12px", color: "#f0f0f0" }}>Configuração da Evolution API</p>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
-            <div className="form-group">
-              <label className="form-label">URL da API</label>
-              <input className="form-input" value={evoUrl} onChange={e => setEvoUrl(e.target.value)} placeholder="https://..." />
+        {loadingWa ? (
+          <p style={{ fontSize: "13px", color: "#606060" }}>Verificando conexão...</p>
+        ) : waConectado ? (
+          /* WhatsApp conectado */
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "16px", background: "rgba(37,211,102,0.05)", border: "1px solid rgba(37,211,102,0.2)",
+            borderRadius: "10px",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              {instanciaFoto ? (
+                <img src={instanciaFoto} alt="" style={{ width: "44px", height: "44px", borderRadius: "50%", objectFit: "cover" }} />
+              ) : (
+                <div style={{ width: "44px", height: "44px", borderRadius: "50%", background: "rgba(37,211,102,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Wifi size={20} style={{ color: "#25d366" }} />
+                </div>
+              )}
+              <div>
+                <p style={{ fontSize: "14px", fontWeight: "600", color: "#f0f0f0" }}>{instanciaProfile || instancia}</p>
+                <p style={{ fontSize: "12px", color: "#25d366" }}>Conectado</p>
+              </div>
             </div>
-            <div className="form-group">
-              <label className="form-label">API Key</label>
-              <input className="form-input" value={evoKey} onChange={e => setEvoKey(e.target.value)} type="password" />
-            </div>
-          </div>
-          <button className="btn-primary" onClick={salvarWhatsApp} disabled={salvando} style={{ cursor: "pointer" }}>
-            <Check size={14} /> {salvando ? "Salvando..." : "Salvar e Conectar"}
-          </button>
-        </div>
-
-        {/* Instâncias */}
-        {evoUrl && evoKey && (
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-              <p style={{ fontSize: "13px", fontWeight: "600", color: "#f0f0f0" }}>Instâncias WhatsApp</p>
-              <button className="btn-ghost" onClick={() => carregarInstancias()} style={{ cursor: "pointer", padding: "6px" }}>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button className="btn-ghost" onClick={() => verificarStatusWA(evoUrl, evoKey, instancia)} style={{ cursor: "pointer", padding: "6px" }}>
                 <RefreshCw size={14} />
               </button>
+              <button onClick={desconectarWA} style={{
+                background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)",
+                borderRadius: "6px", padding: "6px 12px", cursor: "pointer", color: "#ef4444", fontSize: "12px",
+              }}>Desconectar</button>
             </div>
-
-            {loadingInst ? (
-              <p style={{ fontSize: "13px", color: "#606060" }}>Carregando...</p>
-            ) : instancias.length === 0 ? (
-              <p style={{ fontSize: "13px", color: "#606060" }}>Nenhuma instância encontrada.</p>
-            ) : instancias.map(inst => {
-              const nome = getNome(inst);
-              const conectado = isConectado(inst);
-              const selecionada = instancia === nome;
-              return (
-                <div key={inst.id || nome} style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "12px 16px", background: selecionada ? "rgba(41,171,226,0.05)" : "#1a1a1a",
-                  border: `1px solid ${selecionada ? "#29ABE2" : "#2e2e2e"}`,
-                  borderRadius: "8px", marginBottom: "8px",
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    {conectado ? <Wifi size={16} style={{ color: "#25d366" }} /> : <WifiOff size={16} style={{ color: "#ef4444" }} />}
-                    <div>
-                      <p style={{ fontSize: "13px", fontWeight: "600", color: "#f0f0f0" }}>
-                        {inst.profileName || nome}
-                        {selecionada && <span style={{ fontSize: "10px", color: "#29ABE2", marginLeft: "8px", background: "rgba(41,171,226,0.15)", padding: "2px 6px", borderRadius: "10px" }}>selecionada</span>}
-                      </p>
-                      <p style={{ fontSize: "11px", color: conectado ? "#25d366" : "#ef4444" }}>
-                        {conectado ? "Conectado" : "Desconectado"}
-                      </p>
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: "6px" }}>
-                    {conectado && !selecionada && (
-                      <button className="btn-primary" style={{ padding: "6px 12px", fontSize: "12px", cursor: "pointer" }}
-                        onClick={() => selecionarInstancia(nome)}>
-                        Usar esta
-                      </button>
-                    )}
-                    {!conectado && (
-                      <button className="btn-primary" style={{ padding: "6px 12px", fontSize: "12px", cursor: "pointer" }}
-                        onClick={() => gerarQR(nome)}>
-                        QR Code
-                      </button>
-                    )}
-                    <button className="btn-danger" style={{ padding: "6px 10px", fontSize: "12px", cursor: "pointer" }}
-                      onClick={() => deletarInstancia(nome)}>
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* QR Code */}
-            {qrCode && qrInstancia && (
-              <div style={{
-                background: "#1a1a1a", border: "1px solid rgba(37,211,102,0.3)",
-                borderRadius: "10px", padding: "20px", textAlign: "center", marginTop: "12px",
-              }}>
-                <p style={{ fontSize: "13px", fontWeight: "600", color: "#f0f0f0", marginBottom: "4px" }}>
-                  Conectar: <span style={{ color: "#25d366" }}>{qrInstancia}</span>
+          </div>
+        ) : qrCode ? (
+          /* QR Code pra escanear */
+          <div style={{
+            background: "#1a1a1a", border: "1px solid rgba(37,211,102,0.3)",
+            borderRadius: "10px", padding: "24px", textAlign: "center",
+          }}>
+            <p style={{ fontSize: "14px", fontWeight: "600", color: "#f0f0f0", marginBottom: "4px" }}>
+              Escaneie o QR Code
+            </p>
+            <p style={{ fontSize: "12px", color: "#606060", marginBottom: "20px" }}>
+              Abra o WhatsApp no celular → Aparelhos conectados → Conectar aparelho
+            </p>
+            {qrCode.startsWith("data:image") ? (
+              <img src={qrCode} alt="QR" style={{ width: "220px", height: "220px", borderRadius: "8px", margin: "0 auto" }} />
+            ) : (
+              <div style={{ background: "#fff", padding: "20px", borderRadius: "8px", display: "inline-block" }}>
+                <p style={{ fontSize: "11px", color: "#000", fontFamily: "monospace", wordBreak: "break-all", maxWidth: "220px" }}>
+                  {qrCode.replace("qr:", "")}
                 </p>
-                <p style={{ fontSize: "12px", color: "#606060", marginBottom: "16px" }}>
-                  WhatsApp → Aparelhos conectados → Conectar aparelho → Escaneie
-                </p>
-                {qrCode.startsWith("data:image") ? (
-                  <img src={qrCode} alt="QR" style={{ width: "200px", height: "200px", borderRadius: "8px" }} />
-                ) : (
-                  <div style={{ background: "#fff", padding: "16px", borderRadius: "8px", display: "inline-block" }}>
-                    <p style={{ fontSize: "11px", color: "#000", fontFamily: "monospace", wordBreak: "break-all", maxWidth: "200px" }}>
-                      {qrCode.replace("qr:", "")}
-                    </p>
-                  </div>
-                )}
-                <div style={{ marginTop: "12px" }}>
-                  <button className="btn-secondary" style={{ cursor: "pointer" }}
-                    onClick={() => { setQrCode(null); carregarInstancias(); selecionarInstancia(qrInstancia); }}>
-                    <RefreshCw size={13} /> Já conectei
-                  </button>
-                </div>
               </div>
             )}
-
-            {/* Nova instância */}
-            <div style={{ marginTop: "16px", padding: "16px", background: "#1a1a1a", border: "1px dashed #3a3a3a", borderRadius: "8px" }}>
-              <p style={{ fontSize: "13px", fontWeight: "600", color: "#f0f0f0", marginBottom: "12px" }}>
-                <Plus size={13} style={{ marginRight: "6px", verticalAlign: "middle" }} />
-                Nova instância
-              </p>
-              <div style={{ display: "flex", gap: "8px" }}>
-                <input className="form-input" placeholder="Nome (ex: relatorios)" value={novaInstancia} onChange={e => setNovaInstancia(e.target.value)} style={{ flex: 1 }} />
-                <button className="btn-primary" onClick={criarInstancia} disabled={criandoInst} style={{ cursor: "pointer" }}>
-                  <Plus size={13} /> {criandoInst ? "Criando..." : "Criar"}
-                </button>
-              </div>
+            <div style={{ marginTop: "16px", display: "flex", gap: "8px", justifyContent: "center" }}>
+              <button className="btn-primary" style={{ cursor: "pointer" }} onClick={confirmarConexao}>
+                <Check size={14} /> Já escaneei
+              </button>
+              <button className="btn-ghost" style={{ cursor: "pointer" }} onClick={() => setQrCode(null)}>
+                Cancelar
+              </button>
             </div>
+          </div>
+        ) : (
+          /* Botão pra conectar */
+          <div style={{ textAlign: "center", padding: "20px" }}>
+            <p style={{ fontSize: "13px", color: "#606060", marginBottom: "16px" }}>
+              Conecte um WhatsApp para enviar os relatórios nos grupos dos clientes.
+            </p>
+            <div style={{ display: "flex", gap: "8px", justifyContent: "center", alignItems: "center", marginBottom: "12px" }}>
+              <input className="form-input" placeholder="Nome da instância" value={novaInstancia}
+                onChange={e => setNovaInstancia(e.target.value)}
+                style={{ width: "200px", textAlign: "center" }} />
+            </div>
+            <button className="btn-primary" onClick={conectarWhatsApp} disabled={criandoInst}
+              style={{ cursor: "pointer", padding: "10px 24px", fontSize: "14px" }}>
+              <MessageCircle size={16} style={{ marginRight: "6px" }} />
+              {criandoInst ? "Gerando QR Code..." : "Conectar WhatsApp"}
+            </button>
+            {!evoUrl && (
+              <p style={{ fontSize: "11px", color: "#ef4444", marginTop: "8px" }}>
+                Evolution API não configurada. Configure em Configurações → Integrações.
+              </p>
+            )}
           </div>
         )}
       </div>
