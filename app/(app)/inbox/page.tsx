@@ -73,10 +73,21 @@ function EtapaBadge({ etapa }: { etapa?: string }) {
 }
 
 // Modal de detalhes
-function DetalhesModal({ conversa, onClose, onEtapaChange, etapas }: { conversa: Conversa; onClose:()=>void; onEtapaChange:(e:string)=>void; etapas: EtapaJornada[] }) {
+function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, etapas }: { conversa: Conversa; onClose:()=>void; onEtapaChange:(e:string)=>void; onConversaUpdate:(c:Partial<Conversa>)=>void; etapas: EtapaJornada[] }) {
   const [etapa, setEtapa] = useState(conversa.etapa_jornada || "");
   const [salvando, setSalvando] = useState(false);
   const [chatAberto, setChatAberto] = useState(false);
+  const [editando, setEditando] = useState(false);
+  const [editDados, setEditDados] = useState({
+    origem: conversa.origem || "Não Rastreada",
+    utm_source: conversa.utm_source || "",
+    utm_medium: conversa.utm_medium || "",
+    utm_campaign: conversa.utm_campaign || "",
+    utm_content: conversa.utm_content || "",
+    link_nome: conversa.link_nome || "",
+    fbclid: conversa.fbclid || "",
+  });
+  const [salvandoRastreio, setSalvandoRastreio] = useState(false);
 
   const salvarEtapa = async (novaEtapa: string) => {
     setSalvando(true);
@@ -86,23 +97,42 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, etapas }: { conversa:
     const agId = await getAgenciaId();
     fetch("/api/pixel", {
       method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ agencia_id:agId, conversa_id:conversa.id, etapa_nome:novaEtapa, phone:conversa.contato_numero, fbclid:conversa.fbclid, utm_campaign:conversa.utm_campaign, utm_content:conversa.utm_content }),
+      body: JSON.stringify({ agencia_id:agId, conversa_id:conversa.id, etapa_nome:novaEtapa, phone:conversa.contato_numero, fbclid:editDados.fbclid||conversa.fbclid, utm_campaign:editDados.utm_campaign||conversa.utm_campaign, utm_content:editDados.utm_content||conversa.utm_content }),
     }).catch(()=>{});
     setSalvando(false);
   };
 
-  const campos = [
-    { label:"Origem", value:<OrigemBadge origem={conversa.origem}/> },
+  const salvarRastreio = async () => {
+    setSalvandoRastreio(true);
+    const updates: any = {
+      origem: editDados.origem,
+      utm_source: editDados.utm_source || null,
+      utm_medium: editDados.utm_medium || null,
+      utm_campaign: editDados.utm_campaign || null,
+      utm_content: editDados.utm_content || null,
+      link_nome: editDados.link_nome || null,
+      fbclid: editDados.fbclid || null,
+    };
+    await supabase.from("conversas").update(updates).eq("id", conversa.id);
+    onConversaUpdate(updates);
+    setEditando(false);
+    setSalvandoRastreio(false);
+  };
+
+  const inputStyle = { background:"#222", border:"1px solid #333", borderRadius:"6px", padding:"5px 8px", color:"#f0f0f0", fontSize:"12px", width:"100%" };
+
+  const camposVisuais = [
+    { label:"Origem", value:<OrigemBadge origem={editDados.origem}/> },
     { label:"Etapa da Jornada", value:<EtapaBadge etapa={etapa}/> },
-    { label:"Nome do Link", value: conversa.link_nome || "—" },
-    { label:"Campanha (utm_source)", value: conversa.utm_source || "—" },
-    { label:"Meio (utm_medium)", value: conversa.utm_medium || "—" },
-    { label:"Campanha", value: conversa.utm_campaign || "—" },
-    { label:"Conjunto de Anúncio", value: conversa.utm_content ? conversa.utm_content.split("_")[0].trim() : "—" },
-    { label:"Nome do Anúncio", value: (conversa as any).nome_anuncio || (conversa.utm_content && conversa.utm_content.includes("_") ? conversa.utm_content.split("_").slice(1).join("_").trim() : "—") },
+    { label:"Nome do Link", value: editDados.link_nome || "—" },
+    { label:"Campanha (utm_source)", value: editDados.utm_source || "—" },
+    { label:"Meio (utm_medium)", value: editDados.utm_medium || "—" },
+    { label:"Campanha", value: editDados.utm_campaign || "—" },
+    { label:"Conjunto de Anúncio", value: editDados.utm_content ? editDados.utm_content.split("_")[0].trim() : "—" },
+    { label:"Nome do Anúncio", value: (conversa as any).nome_anuncio || (editDados.utm_content && editDados.utm_content.includes("_") ? editDados.utm_content.split("_").slice(1).join("_").trim() : "—") },
     { label:"Primeira Mensagem", value: formatarData(conversa.primeira_mensagem_at || conversa.created_at) },
     { label:"Última Alteração Etapa", value: formatarData(conversa.etapa_alterada_at || "") },
-    ...(conversa.fbclid ? [{ label:"fbclid", value: conversa.fbclid.substring(0,40)+"..." }] : []),
+    ...(editDados.fbclid ? [{ label:"fbclid", value: editDados.fbclid.substring(0,40)+"..." }] : []),
   ];
 
   return (
@@ -125,15 +155,65 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, etapas }: { conversa:
 
         {/* Rastreamento */}
         <div style={{ background:"#1a1a1a", borderRadius:"8px", padding:"14px", marginBottom:"16px" }}>
-          <p style={{ fontSize:"12px", fontWeight:"600", color:"#606060", marginBottom:"10px" }}>INFORMAÇÕES DE RASTREAMENTO</p>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"10px" }}>
-            {campos.map(c => (
-              <div key={c.label}>
-                <p style={{ fontSize:"10px", color:"#505050", margin:"0 0 2px" }}>{c.label}</p>
-                <div style={{ fontSize:"12px", color:"#f0f0f0" }}>{c.value}</div>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"10px" }}>
+            <p style={{ fontSize:"12px", fontWeight:"600", color:"#606060", margin:0 }}>INFORMAÇÕES DE RASTREAMENTO</p>
+            {!editando ? (
+              <button onClick={()=>setEditando(true)} style={{ fontSize:"11px", color:"#29ABE2", background:"none", border:"1px solid rgba(41,171,226,0.3)", borderRadius:"6px", padding:"3px 10px", cursor:"pointer" }}>Editar</button>
+            ) : (
+              <div style={{ display:"flex", gap:"6px" }}>
+                <button onClick={()=>setEditando(false)} style={{ fontSize:"11px", color:"#606060", background:"none", border:"1px solid #2e2e2e", borderRadius:"6px", padding:"3px 10px", cursor:"pointer" }}>Cancelar</button>
+                <button onClick={salvarRastreio} disabled={salvandoRastreio} style={{ fontSize:"11px", color:"#000", background:"#29ABE2", border:"none", borderRadius:"6px", padding:"3px 10px", cursor:"pointer", fontWeight:"600" }}>{salvandoRastreio?"Salvando...":"Salvar"}</button>
               </div>
-            ))}
+            )}
           </div>
+
+          {editando ? (
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"10px" }}>
+              <div>
+                <p style={{ fontSize:"10px", color:"#505050", margin:"0 0 4px" }}>Origem</p>
+                <select value={editDados.origem} onChange={e=>setEditDados(d=>({...d,origem:e.target.value}))}
+                  style={{ ...inputStyle, cursor:"pointer" }}>
+                  <option value="Meta Ads">Meta Ads</option>
+                  <option value="Google Ads">Google Ads</option>
+                  <option value="Outras Origens">Outras Origens</option>
+                  <option value="Não Rastreada">Não Rastreada</option>
+                </select>
+              </div>
+              <div>
+                <p style={{ fontSize:"10px", color:"#505050", margin:"0 0 4px" }}>Nome do Link</p>
+                <input value={editDados.link_nome} onChange={e=>setEditDados(d=>({...d,link_nome:e.target.value}))} style={inputStyle} placeholder="Ex: Link Instagram"/>
+              </div>
+              <div>
+                <p style={{ fontSize:"10px", color:"#505050", margin:"0 0 4px" }}>utm_source</p>
+                <input value={editDados.utm_source} onChange={e=>setEditDados(d=>({...d,utm_source:e.target.value}))} style={inputStyle} placeholder="Ex: facebook"/>
+              </div>
+              <div>
+                <p style={{ fontSize:"10px", color:"#505050", margin:"0 0 4px" }}>utm_medium</p>
+                <input value={editDados.utm_medium} onChange={e=>setEditDados(d=>({...d,utm_medium:e.target.value}))} style={inputStyle} placeholder="Ex: cpc"/>
+              </div>
+              <div>
+                <p style={{ fontSize:"10px", color:"#505050", margin:"0 0 4px" }}>Campanha (utm_campaign)</p>
+                <input value={editDados.utm_campaign} onChange={e=>setEditDados(d=>({...d,utm_campaign:e.target.value}))} style={inputStyle} placeholder="Ex: campanha-vendas"/>
+              </div>
+              <div>
+                <p style={{ fontSize:"10px", color:"#505050", margin:"0 0 4px" }}>Conjunto/Anúncio (utm_content)</p>
+                <input value={editDados.utm_content} onChange={e=>setEditDados(d=>({...d,utm_content:e.target.value}))} style={inputStyle} placeholder="Ex: conjunto_anuncio"/>
+              </div>
+              <div style={{ gridColumn:"1 / -1" }}>
+                <p style={{ fontSize:"10px", color:"#505050", margin:"0 0 4px" }}>fbclid</p>
+                <input value={editDados.fbclid} onChange={e=>setEditDados(d=>({...d,fbclid:e.target.value}))} style={inputStyle} placeholder="Ex: abc123..."/>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"10px" }}>
+              {camposVisuais.map(c => (
+                <div key={c.label}>
+                  <p style={{ fontSize:"10px", color:"#505050", margin:"0 0 2px" }}>{c.label}</p>
+                  <div style={{ fontSize:"12px", color:"#f0f0f0" }}>{c.value}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Etapas da jornada */}
@@ -587,7 +667,10 @@ export default function InboxPage() {
       </div>
 
       {filtrosAbertos && <FiltrosAvancados conversas={conversas} filtros={filtros} onChange={setFiltros} onClose={()=>setFiltrosAbertos(false)}/>}
-      {detalhes && <DetalhesModal conversa={detalhes} etapas={etapas} onClose={()=>setDetalhes(null)} onEtapaChange={etapa=>setConversas(prev=>prev.map(c=>c.id===detalhes.id?{...c,etapa_jornada:etapa}:c))}/>}
+      {detalhes && <DetalhesModal conversa={detalhes} etapas={etapas} onClose={()=>setDetalhes(null)}
+        onEtapaChange={etapa=>setConversas(prev=>prev.map(c=>c.id===detalhes.id?{...c,etapa_jornada:etapa}:c))}
+        onConversaUpdate={updates=>{setConversas(prev=>prev.map(c=>c.id===detalhes.id?{...c,...updates}:c));setDetalhes(d=>d?{...d,...updates}:d);}}
+      />}
       {chatDireto && <ChatLateral conversa={chatDireto} onClose={()=>setChatDireto(null)}/>}
     </div>
   );

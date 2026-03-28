@@ -17,6 +17,15 @@ async function tentarRastrear(conversa_id: string, numero: string, agencia_id: s
   if (!conversa) return { ok: false, status: 'conversa_nao_encontrada' }
   if (conversa.origem && conversa.origem !== 'Não Rastreada') return { ok: true, status: 'ja_rastreado' }
 
+  // Buscar número do WhatsApp da agência (NÃO hardcoded)
+  const { data: agencia } = await supabase
+    .from('agencias')
+    .select('whatsapp_numero')
+    .eq('id', agencia_id)
+    .single()
+
+  const waNumero = agencia?.whatsapp_numero || ''
+
   // Tentar por número
   let tracking = null
   const { data: t1 } = await supabase
@@ -25,13 +34,13 @@ async function tentarRastrear(conversa_id: string, numero: string, agencia_id: s
   if (t1) tracking = t1
 
   // Tentar por rastreamento recente (até 5 minutos)
-  if (!tracking) {
+  if (!tracking && waNumero) {
     const cincoMinAtras = new Date(Date.now() - 5 * 60 * 1000).toISOString()
     const { data: recentes } = await supabase
       .from('rastreamentos_pendentes')
       .select('*')
       .gt('created_at', cincoMinAtras)
-      .eq('wa_destino', '555193694003')
+      .eq('wa_destino', waNumero)
       .order('created_at', { ascending: false })
       .limit(10)
 
