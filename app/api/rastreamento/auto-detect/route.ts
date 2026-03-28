@@ -6,11 +6,10 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// Normaliza texto para comparação (remove espaços extras, pontuação, emojis, lowercase)
+// Normaliza texto para comparação (remove espaços extras, pontuação, lowercase)
 function normalizar(s: string): string {
   return (s || "")
     .toLowerCase()
-    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, "")
     .replace(/[^\w\sáéíóúâêôãõàçü]/g, "")
     .replace(/\s+/g, " ")
     .trim();
