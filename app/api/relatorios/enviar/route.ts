@@ -33,7 +33,17 @@ function formatPercent(n: number | string): string {
 }
 
 function getPeriodDates(periodo: string): { since: string; until: string } {
-  const hoje = new Date();
+  // Usar horário de Brasília para calcular períodos corretamente
+  const now = new Date();
+  const brDateStr = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+  // Criar date a partir da data BR para que getDate/getDay reflitam o dia correto
+  const [y, m, d] = brDateStr.split("-").map(Number);
+  const hoje = new Date(y, m - 1, d);
   const fmt = (d: Date) => d.toISOString().split("T")[0];
 
   if (periodo === "hoje") {

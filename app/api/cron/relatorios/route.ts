@@ -16,9 +16,36 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // Vercel roda em UTC — converter para horário de Brasília (America/Sao_Paulo)
     const agora = new Date();
-    const horaAtual = `${String(agora.getHours()).padStart(2, "0")}:${String(agora.getMinutes()).padStart(2, "0")}`;
-    const diaAtual = agora.getDay(); // 0=dom, 6=sab
+    const brFormatter = new Intl.DateTimeFormat("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    const brParts = brFormatter.formatToParts(agora);
+    const brHora = brParts.find(p => p.type === "hour")!.value;
+    const brMinuto = brParts.find(p => p.type === "minute")!.value;
+    const horaAtual = `${brHora}:${brMinuto}`;
+
+    // Dia da semana em Brasília
+    const brDayFormatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Sao_Paulo",
+      weekday: "short",
+    });
+    const brDayStr = brDayFormatter.format(agora);
+    const dayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+    const diaAtual = dayMap[brDayStr]; // 0=dom, 6=sab
+
+    // Data de hoje em Brasília (para checar ultimo_envio)
+    const brDateFormatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    const hojeBR = brDateFormatter.format(agora); // YYYY-MM-DD
 
     // Buscar relatórios ativos
     const { data: relatorios } = await supabase
@@ -51,11 +78,15 @@ export async function GET(req: NextRequest) {
         if (rel.dia_semana !== null && rel.dia_semana !== diaAtual) continue;
       }
 
-      // Checar se já enviou hoje (evitar duplicatas)
+      // Checar se já enviou hoje (evitar duplicatas) — comparar em horário de Brasília
       if (rel.ultimo_envio) {
-        const ultimoEnvio = new Date(rel.ultimo_envio);
-        const hoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
-        if (ultimoEnvio >= hoje) continue; // já enviou hoje
+        const ultimoEnvioBR = new Intl.DateTimeFormat("en-CA", {
+          timeZone: "America/Sao_Paulo",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(new Date(rel.ultimo_envio)); // YYYY-MM-DD
+        if (ultimoEnvioBR >= hojeBR) continue; // já enviou hoje
       }
 
       // Enviar
