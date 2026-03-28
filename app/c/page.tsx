@@ -87,36 +87,45 @@ function CaptureContent() {
 
   return (
     <div style={{
-      minHeight:"100vh", background:"#0f0f0f",
+      minHeight:"100vh",
+      background:"#EFEAE2",
       display:"flex", alignItems:"center", justifyContent:"center",
-      flexDirection:"column", gap:"20px", padding:"24px",
+      padding:"24px",
+      fontFamily:"'Open Sans', sans-serif",
     }}>
-      <img src="/logo.png" alt="Logo" style={{ width:"72px", height:"72px", objectFit:"contain" }}/>
+      <div style={{
+        background:"#fff",
+        borderRadius:"16px",
+        padding:"48px",
+        maxWidth:"90vw",
+        width:"420px",
+        boxShadow:"0 1px 3px rgba(0,0,0,0.02)",
+        display:"flex", flexDirection:"column", alignItems:"center",
+        gap:"32px",
+      }}>
+        <div style={{ width:"48px", height:"48px" }}>
+          <div style={{ width:"48px", height:"48px", borderRadius:"50%", border:"3px solid #ddd", borderTopColor:"#25d366", animation:"spin 1s linear infinite" }}/>
+        </div>
 
-      {origemLabel && (
-        <span style={{ fontSize:"11px", background:"rgba(41,171,226,0.1)", color:"#29ABE2", border:"1px solid rgba(41,171,226,0.2)", padding:"3px 10px", borderRadius:"20px" }}>
-          {origemLabel === "Meta Ads" ? "🔷" : origemLabel === "Google Ads" ? "🔺" : "🌐"} {origemLabel}
-        </span>
-      )}
+        <div style={{ textAlign:"center" }}>
+          <h1 style={{ fontSize:"18px", fontWeight:"600", color:"#444", marginBottom:"8px" }}>{titulo}</h1>
+          <p style={{ fontSize:"14px", color:"#888" }}>{desc}</p>
+        </div>
 
-      <div style={{ width:"48px", height:"48px", borderRadius:"50%", border:"3px solid #2e2e2e", borderTopColor:"#29ABE2", animation:"spin 1s linear infinite" }}/>
-
-      <div style={{ width:"56px", height:"56px", borderRadius:"50%", background:"rgba(41,171,226,0.1)", border:"2px solid #29ABE2", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"22px", fontWeight:"700", color:"#29ABE2" }}>
-        {contador}
+        {contador === 0 && (
+          <a href={waUrl} style={{
+            padding:"12px 28px", background:"#25d366", color:"#fff",
+            borderRadius:"24px", textDecoration:"none", fontWeight:"600", fontSize:"14px",
+          }}>
+            Abrir WhatsApp
+          </a>
+        )}
       </div>
 
-      <div style={{ textAlign:"center", maxWidth:"360px" }}>
-        <h1 style={{ fontSize:"20px", fontWeight:"600", color:"#f0f0f0", marginBottom:"8px" }}>{titulo}</h1>
-        <p style={{ fontSize:"14px", color:"#606060" }}>{desc}</p>
-      </div>
-
-      {contador === 0 && (
-        <a href={waUrl} style={{ padding:"12px 24px", background:"#29ABE2", color:"#000", borderRadius:"8px", textDecoration:"none", fontWeight:"600", fontSize:"14px" }}>
-          Clique aqui para continuar →
-        </a>
-      )}
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap');
+      `}</style>
     </div>
   );
 }
@@ -124,8 +133,8 @@ function CaptureContent() {
 export default function CapturePage() {
   return (
     <Suspense fallback={
-      <div style={{ minHeight:"100vh", background:"#0f0f0f", display:"flex", alignItems:"center", justifyContent:"center" }}>
-        <div style={{ width:"48px", height:"48px", borderRadius:"50%", border:"3px solid #2e2e2e", borderTopColor:"#29ABE2", animation:"spin 1s linear infinite" }}/>
+      <div style={{ minHeight:"100vh", background:"#EFEAE2", display:"flex", alignItems:"center", justifyContent:"center" }}>
+        <div style={{ width:"48px", height:"48px", borderRadius:"50%", border:"3px solid #ddd", borderTopColor:"#25d366", animation:"spin 1s linear infinite" }}/>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     }>
