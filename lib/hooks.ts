@@ -74,106 +74,157 @@ export async function calcularTempoMedioDecisao(): Promise<number> {
   return Math.round(tempos.reduce((a, b) => a + b, 0) / tempos.length);
 }
 
-// Calcular tempo médio da SDR: 1ª msg do lead → etapa "Agendou"
-// Horário comercial: 10h-18h, seg-sex. Só conversas a partir de dataInicio.
-export async function calcularTempoRespostaSDR(dataInicio?: string): Promise<{
-  tempoMedio: number; // em minutos
+// Horário comercial: 10h-18h, seg-sex
+function minutosComerciais(inicio: Date, fim: Date): number {
+  const HORA_INICIO = 10;
+  const HORA_FIM = 18;
+  let minutos = 0;
+  const cursor = new Date(inicio);
+
+  while (cursor < fim) {
+    const dia = cursor.getDay();
+    if (dia >= 1 && dia <= 5) {
+      const h = cursor.getHours();
+      if (h >= HORA_INICIO && h < HORA_FIM) {
+        minutos++;
+        cursor.setMinutes(cursor.getMinutes() + 1);
+      } else if (h < HORA_INICIO) {
+        cursor.setHours(HORA_INICIO, 0, 0, 0);
+      } else {
+        cursor.setDate(cursor.getDate() + 1);
+        cursor.setHours(HORA_INICIO, 0, 0, 0);
+      }
+    } else {
+      const diasPular = dia === 0 ? 1 : 2;
+      cursor.setDate(cursor.getDate() + diasPular);
+      cursor.setHours(HORA_INICIO, 0, 0, 0);
+    }
+  }
+  return minutos;
+}
+
+interface MetricasTempo {
+  tempoMedio: number;
   totalConversas: number;
-  respondidasEm5min: number;
-  respondidasEm30min: number;
+  faixaRapida: number;
+  faixaMedia: number;
   maisRapida: number;
   maisLenta: number;
-}> {
-  const vazio = { tempoMedio: 0, totalConversas: 0, respondidasEm5min: 0, respondidasEm30min: 0, maisRapida: 0, maisLenta: 0 };
-  const agenciaId = await getAgenciaId();
-  if (!agenciaId) return vazio;
+}
 
-  // Buscar conversas que já chegaram em "Agendou" e têm agendou_at
+const metricasVazio: MetricasTempo = { tempoMedio: 0, totalConversas: 0, faixaRapida: 0, faixaMedia: 0, maisRapida: 0, maisLenta: 0 };
+
+function calcularMetricas(tempos: number[], faixaRapidaMin: number, faixaMediaMin: number): MetricasTempo {
+  if (!tempos.length) return metricasVazio;
+  tempos.sort((a, b) => a - b);
+  const soma = tempos.reduce((a, b) => a + b, 0);
+  return {
+    tempoMedio: Math.round(soma / tempos.length),
+    totalConversas: tempos.length,
+    faixaRapida: tempos.filter(t => t <= faixaRapidaMin).length,
+    faixaMedia: tempos.filter(t => t <= faixaMediaMin).length,
+    maisRapida: tempos[0],
+    maisLenta: tempos[tempos.length - 1],
+  };
+}
+
+// Etapas que indicam que o lead já foi agendado ou passou de agendado
+const ETAPAS_POS_AGENDOU = ["agendou", "compareceu", "comprou", "fechou"];
+
+// 1) Tempo de 1ª resposta da SDR (1ª msg lead → 1ª resposta SDR)
+//    Só conversas que ainda NÃO chegaram em "Agendou" (contatos novos)
+export async function calcularTempoRespostaSDR(dataInicio?: string): Promise<MetricasTempo> {
+  const agenciaId = await getAgenciaId();
+  if (!agenciaId) return metricasVazio;
+
+  let query = supabase
+    .from("conversas")
+    .select("id, etapa_jornada, created_at")
+    .eq("agencia_id", agenciaId);
+
+  if (dataInicio) query = query.gte("created_at", dataInicio);
+
+  const { data: conversas } = await query;
+  if (!conversas?.length) return metricasVazio;
+
+  // Filtrar só conversas pré-agendamento (contatos novos)
+  const preAgendou = conversas.filter(c =>
+    !c.etapa_jornada || !ETAPAS_POS_AGENDOU.includes((c.etapa_jornada || "").toLowerCase())
+  );
+  if (!preAgendou.length) return metricasVazio;
+
+  const ids = preAgendou.map(c => c.id);
+
+  const { data: mensagens } = await supabase
+    .from("mensagens")
+    .select("conversa_id, de_mim, created_at")
+    .in("conversa_id", ids)
+    .order("created_at", { ascending: true });
+
+  if (!mensagens?.length) return metricasVazio;
+
+  const porConversa: Record<string, { primeiraLead?: Date; primeiraResposta?: Date }> = {};
+  for (const msg of mensagens) {
+    if (!porConversa[msg.conversa_id]) porConversa[msg.conversa_id] = {};
+    const entry = porConversa[msg.conversa_id];
+    const dt = new Date(msg.created_at);
+    if (!msg.de_mim && !entry.primeiraLead) entry.primeiraLead = dt;
+    if (msg.de_mim && entry.primeiraLead && !entry.primeiraResposta) entry.primeiraResposta = dt;
+  }
+
+  const tempos: number[] = [];
+  for (const entry of Object.values(porConversa)) {
+    if (entry.primeiraLead && entry.primeiraResposta) {
+      tempos.push(minutosComerciais(entry.primeiraLead, entry.primeiraResposta));
+    }
+  }
+
+  return calcularMetricas(tempos, 5, 30); // faixas: <5min, <30min
+}
+
+// 2) Tempo até "Agendou" (1ª msg lead → etapa Agendou)
+export async function calcularTempoAteAgendou(dataInicio?: string): Promise<MetricasTempo> {
+  const agenciaId = await getAgenciaId();
+  if (!agenciaId) return metricasVazio;
+
   let query = supabase
     .from("conversas")
     .select("id, primeira_mensagem_at, agendou_at, created_at")
     .eq("agencia_id", agenciaId)
     .not("agendou_at", "is", null);
 
-  if (dataInicio) {
-    query = query.gte("created_at", dataInicio);
-  }
+  if (dataInicio) query = query.gte("created_at", dataInicio);
 
   const { data: conversas } = await query;
-  if (!conversas?.length) return vazio;
-
-  // Calcular tempo em minutos considerando horário comercial (10h-18h seg-sex)
-  function minutosComerciais(inicio: Date, fim: Date): number {
-    const HORA_INICIO = 10;
-    const HORA_FIM = 18;
-
-    let minutos = 0;
-    const cursor = new Date(inicio);
-
-    while (cursor < fim) {
-      const dia = cursor.getDay(); // 0=dom, 6=sab
-      if (dia >= 1 && dia <= 5) {
-        const h = cursor.getHours();
-
-        if (h >= HORA_INICIO && h < HORA_FIM) {
-          // Dentro do horário comercial — avança 1 minuto
-          minutos++;
-          cursor.setMinutes(cursor.getMinutes() + 1);
-        } else if (h < HORA_INICIO) {
-          // Antes do expediente — pula pra 10h
-          cursor.setHours(HORA_INICIO, 0, 0, 0);
-        } else {
-          // Depois do expediente — pula pro próximo dia 10h
-          cursor.setDate(cursor.getDate() + 1);
-          cursor.setHours(HORA_INICIO, 0, 0, 0);
-        }
-      } else {
-        // Fim de semana — pula pra segunda 10h
-        const diasPular = dia === 0 ? 1 : 2;
-        cursor.setDate(cursor.getDate() + diasPular);
-        cursor.setHours(HORA_INICIO, 0, 0, 0);
-      }
-    }
-
-    return minutos;
-  }
+  if (!conversas?.length) return metricasVazio;
 
   const tempos: number[] = [];
-
   for (const c of conversas) {
     const inicio = c.primeira_mensagem_at || c.created_at;
     if (!inicio || !c.agendou_at) continue;
-    const min = minutosComerciais(new Date(inicio), new Date(c.agendou_at));
-    tempos.push(min);
+    tempos.push(minutosComerciais(new Date(inicio), new Date(c.agendou_at)));
   }
 
-  if (!tempos.length) return vazio;
-
-  tempos.sort((a, b) => a - b);
-  const soma = tempos.reduce((a, b) => a + b, 0);
-
-  return {
-    tempoMedio: Math.round(soma / tempos.length),
-    totalConversas: tempos.length,
-    respondidasEm5min: tempos.filter(t => t <= 60).length,     // agendados em até 1h
-    respondidasEm30min: tempos.filter(t => t <= 240).length,  // agendados em até 4h
-    maisRapida: tempos[0],
-    maisLenta: tempos[tempos.length - 1],
-  };
+  return calcularMetricas(tempos, 60, 240); // faixas: <1h, <4h
 }
 
-export function useTempoRespostaSDR(dataInicio?: string) {
-  const [data, setData] = useState<Awaited<ReturnType<typeof calcularTempoRespostaSDR>> | null>(null);
+export function useMetricasSDR(dataInicio?: string) {
+  const [resposta, setResposta] = useState<MetricasTempo | null>(null);
+  const [agendou, setAgendou] = useState<MetricasTempo | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    calcularTempoRespostaSDR(dataInicio).then(r => {
-      setData(r);
+    Promise.all([
+      calcularTempoRespostaSDR(dataInicio),
+      calcularTempoAteAgendou(dataInicio),
+    ]).then(([r, a]) => {
+      setResposta(r);
+      setAgendou(a);
       setLoading(false);
     });
   }, [dataInicio]);
 
-  return { data, loading };
+  return { resposta, agendou, loading };
 }
 
 // ─── tipos básicos ────────────────────────────────────────────────────────────
