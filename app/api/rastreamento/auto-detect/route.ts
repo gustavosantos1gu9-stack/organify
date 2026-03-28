@@ -6,13 +6,33 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// Normaliza texto para comparação (remove espaços extras, pontuação, lowercase)
 function normalizar(s: string): string {
   return (s || "")
     .toLowerCase()
     .replace(/[^\w\sáéíóúâêôãõàçü]/g, "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+// Extrai UTMs de qualquer formato de URL (absoluta ou relativa)
+function extrairUtms(linkGerado: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  try {
+    // Tentar como URL absoluta
+    const url = new URL(linkGerado);
+    url.searchParams.forEach((v, k) => { result[k] = v; });
+  } catch {
+    // URL relativa — extrair query string manualmente
+    const qIdx = (linkGerado || "").indexOf("?");
+    if (qIdx >= 0) {
+      const qs = linkGerado.substring(qIdx + 1);
+      for (const pair of qs.split("&")) {
+        const [k, ...vParts] = pair.split("=");
+        if (k) result[decodeURIComponent(k)] = decodeURIComponent(vParts.join("=") || "");
+      }
+    }
+  }
+  return result;
 }
 
 export async function POST(req: NextRequest) {
@@ -42,7 +62,6 @@ export async function POST(req: NextRequest) {
     if (conversa_id) {
       query = query.eq("id", conversa_id);
     } else {
-      // Só buscar conversas sem rastreamento
       query = query.or("origem.is.null,origem.eq.Não Rastreada");
     }
 
@@ -51,16 +70,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, msg: "Nenhuma conversa para rastrear", resultados: [] });
     }
 
-    const resultados: { id: string; nome: string; status: string; link_nome?: string; campanha?: string }[] = [];
+    const resultados: { id: string; nome: string; status: string; link_nome?: string; campanha?: string; utms?: Record<string, string> }[] = [];
 
     for (const conv of conversas) {
-      // Já rastreada? (para caso de conversa_id específico que já tem tracking)
       if (!conversa_id && conv.origem && conv.origem !== "Não Rastreada") {
         resultados.push({ id: conv.id, nome: conv.contato_nome, status: "ja_rastreado" });
         continue;
       }
 
-      // Buscar primeira mensagem do lead (não fromMe)
+      // Buscar primeiras mensagens do lead
       const { data: msgs } = await supabase
         .from("mensagens")
         .select("conteudo")
@@ -74,7 +92,7 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // Tentar match por conteúdo da mensagem com os links
+      // Match por conteúdo da mensagem com os links
       let melhorMatch: typeof links[0] | null = null;
 
       for (const msg of msgs) {
@@ -85,19 +103,17 @@ export async function POST(req: NextRequest) {
           const linkMsgNorm = normalizar(link.wa_mensagem);
           if (!linkMsgNorm) continue;
 
-          // Match exato ou contém
           if (msgNorm === linkMsgNorm || msgNorm.includes(linkMsgNorm) || linkMsgNorm.includes(msgNorm)) {
             melhorMatch = link;
             break;
           }
 
-          // Match parcial (>70% das palavras coincidem)
+          // Match parcial (>70% palavras)
           const palavrasMsg = msgNorm.split(" ").filter(w => w.length > 2);
           const palavrasLink = linkMsgNorm.split(" ").filter(w => w.length > 2);
           if (palavrasLink.length > 0) {
             const coincidentes = palavrasMsg.filter(p => palavrasLink.includes(p));
-            const similaridade = coincidentes.length / Math.max(palavrasLink.length, 1);
-            if (similaridade >= 0.7) {
+            if (coincidentes.length / palavrasLink.length >= 0.7) {
               melhorMatch = link;
               break;
             }
@@ -106,39 +122,35 @@ export async function POST(req: NextRequest) {
         if (melhorMatch) break;
       }
 
-      // Se não achou por mensagem e só tem 1 link ativo, assumir que é esse
+      // Se não achou por mensagem e só tem 1 link, assumir esse
       if (!melhorMatch && links.length === 1) {
         melhorMatch = links[0];
       }
 
       if (melhorMatch) {
-        // Extrair UTMs do link_gerado
-        let utm_source = "facebook", utm_medium = "cpc", utm_content = "", utm_term = "";
-        try {
-          const url = new URL(melhorMatch.link_gerado);
-          utm_source = url.searchParams.get("utm_source") || "facebook";
-          utm_medium = url.searchParams.get("utm_medium") || "cpc";
-          utm_content = url.searchParams.get("utm_content") || "";
-          utm_term = url.searchParams.get("utm_term") || "";
-        } catch {}
+        // Extrair TODAS as UTMs do link_gerado
+        const params = extrairUtms(melhorMatch.link_gerado);
 
-        await supabase.from("conversas").update({
+        const updateData = {
           origem: "Meta Ads",
-          utm_source,
-          utm_medium,
-          utm_campaign: melhorMatch.utm_campaign || melhorMatch.nome.toLowerCase().replace(/\s+/g, "-"),
-          utm_content: utm_content || null,
-          utm_term: utm_term || null,
+          utm_source: params.utm_source || "facebook",
+          utm_medium: params.utm_medium || "cpc",
+          utm_campaign: params.utm_campaign || melhorMatch.utm_campaign || melhorMatch.nome.toLowerCase().replace(/\s+/g, "-"),
+          utm_content: params.utm_content || null,
+          utm_term: params.utm_term || null,
           link_id: melhorMatch.id,
-          link_nome: melhorMatch.nome,
-        }).eq("id", conv.id);
+          link_nome: params.link_nome || melhorMatch.nome,
+        };
+
+        const { error } = await supabase.from("conversas").update(updateData).eq("id", conv.id);
 
         resultados.push({
           id: conv.id,
           nome: conv.contato_nome,
-          status: "rastreado",
+          status: error ? "erro" : "rastreado",
           link_nome: melhorMatch.nome,
-          campanha: melhorMatch.utm_campaign,
+          campanha: updateData.utm_campaign,
+          utms: { utm_source: updateData.utm_source, utm_medium: updateData.utm_medium, utm_campaign: updateData.utm_campaign },
         });
       } else {
         resultados.push({ id: conv.id, nome: conv.contato_nome, status: "sem_match" });

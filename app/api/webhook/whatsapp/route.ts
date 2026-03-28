@@ -316,26 +316,31 @@ export async function POST(req: NextRequest) {
             if (!linkMsgNorm || linkMsgNorm.length < 5) continue;
 
             if (msgNorm === linkMsgNorm || msgNorm.includes(linkMsgNorm) || linkMsgNorm.includes(msgNorm)) {
-              // Extrair UTMs do link gerado
-              let utm_source = "facebook", utm_medium = "cpc", utm_content = "", utm_term = "";
+              // Extrair UTMs do link gerado (suporta URL relativa)
+              const params: Record<string, string> = {};
               try {
                 const url = new URL(link.link_gerado);
-                utm_source = url.searchParams.get("utm_source") || "facebook";
-                utm_medium = url.searchParams.get("utm_medium") || "cpc";
-                utm_content = url.searchParams.get("utm_content") || "";
-                utm_term = url.searchParams.get("utm_term") || "";
-              } catch {}
+                url.searchParams.forEach((v, k) => { params[k] = v; });
+              } catch {
+                const qIdx = (link.link_gerado || "").indexOf("?");
+                if (qIdx >= 0) {
+                  for (const pair of link.link_gerado.substring(qIdx + 1).split("&")) {
+                    const [k, ...v] = pair.split("=");
+                    if (k) params[decodeURIComponent(k)] = decodeURIComponent(v.join("=") || "");
+                  }
+                }
+              }
 
               tracking = {
-                utm_source,
-                utm_medium,
-                utm_campaign: link.utm_campaign || link.nome.toLowerCase().replace(/\s+/g, "-"),
-                utm_content,
-                utm_term,
+                utm_source: params.utm_source || "facebook",
+                utm_medium: params.utm_medium || "cpc",
+                utm_campaign: params.utm_campaign || link.utm_campaign || link.nome.toLowerCase().replace(/\s+/g, "-"),
+                utm_content: params.utm_content || "",
+                utm_term: params.utm_term || "",
                 fbclid: "",
                 origem: "Meta Ads",
                 link_id: link.id,
-                _link_nome: link.nome,
+                _link_nome: params.link_nome || link.nome,
               };
               break;
             }
