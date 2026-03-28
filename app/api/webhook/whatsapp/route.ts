@@ -23,14 +23,10 @@ async function verificarTermoChave(agenciaId: string, conversaId: string, conteu
 
   if (!etapaEncontrada) return;
 
-  const updateData: Record<string, string> = {
+  await supabase.from("conversas").update({
     etapa_jornada: etapaEncontrada.nome,
     etapa_alterada_at: new Date().toISOString(),
-  };
-  if (etapaEncontrada.nome.toLowerCase().includes("agendou")) {
-    updateData.agendou_at = new Date().toISOString();
-  }
-  await supabase.from("conversas").update(updateData).eq("id", conversaId);
+  }).eq("id", conversaId);
 
   if (etapaEncontrada.evento_conversao) {
     fetch(`${APP_URL}/api/pixel`, {
