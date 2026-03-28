@@ -81,18 +81,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Relatório não encontrado" }, { status: 404 });
     }
 
-    // Buscar config da agência (Evolution + Meta)
-    const { data: ag } = await supabase
-      .from("agencias")
-      .select("evolution_url, evolution_key, whatsapp_instancia, meta_business_token")
-      .eq("id", rel.agencia_id)
+    // Buscar conexões do módulo de relatórios
+    const { data: con } = await supabase
+      .from("relatorios_conexoes")
+      .select("evolution_url, evolution_key, whatsapp_instancia, meta_token")
+      .eq("agencia_id", rel.agencia_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
       .single();
 
-    if (!ag) {
-      return NextResponse.json({ error: "Agência não encontrada" }, { status: 404 });
+    // Fallback: buscar da agência se não tiver conexão de relatórios
+    let ag: any = con;
+    if (!con) {
+      const { data: agData } = await supabase
+        .from("agencias")
+        .select("evolution_url, evolution_key, whatsapp_instancia, meta_business_token")
+        .eq("id", rel.agencia_id)
+        .single();
+      ag = agData;
     }
 
-    const token = rel.meta_token || ag.meta_business_token;
+    if (!ag) {
+      return NextResponse.json({ error: "Conexões não configuradas" }, { status: 404 });
+    }
+
+    const token = rel.meta_token || con?.meta_token || ag.meta_business_token;
     if (!token) {
       return NextResponse.json({ error: "Token Meta não configurado" }, { status: 400 });
     }
