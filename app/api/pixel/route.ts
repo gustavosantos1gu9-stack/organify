@@ -11,6 +11,10 @@ export async function POST(req: NextRequest) {
   try {
     const { agencia_id, conversa_id, etapa_nome, phone, fbclid, utm_campaign, utm_content, valor } = await req.json();
 
+    if (!agencia_id || !etapa_nome) {
+      return NextResponse.json({ ok: false, motivo: "agencia_id e etapa_nome são obrigatórios" });
+    }
+
     // Buscar config da agência
     const { data: agencia } = await supabase.from("agencias")
       .select("meta_pixel_id, meta_token, meta_ativo")
@@ -28,7 +32,7 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (!etapa?.evento_conversao) {
-      return NextResponse.json({ ok: false, motivo: "Etapa sem evento de conversão configurado" });
+      return NextResponse.json({ ok: false, motivo: `Etapa '${etapa_nome}' sem evento de conversão configurado` });
     }
 
     // Disparar evento
@@ -41,16 +45,17 @@ export async function POST(req: NextRequest) {
       utm_campaign,
       utm_content,
       valor: valor || etapa.valor_padrao || undefined,
+      external_id: conversa_id ? `${conversa_id}_${etapa.evento_conversao}` : undefined,
     });
 
-    // Salvar log do disparo
+    // Salvar log do disparo com mais detalhes
     await supabase.from("pixel_disparos").insert({
       agencia_id,
       conversa_id,
       etapa: etapa_nome,
       evento: etapa.evento_conversao,
       status: resultado.ok ? "sucesso" : "erro",
-      retorno: resultado.error || "OK",
+      retorno: resultado.error || (resultado.response?.events_received ? `OK (${resultado.response.events_received} events)` : "OK"),
       created_at: new Date().toISOString(),
     });
 
