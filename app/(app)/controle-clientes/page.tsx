@@ -401,6 +401,10 @@ export default function ControleClientesPage() {
   const [times, setTimes] = useState<string[]>([]);
   const [snapsMensais, setSnapsMensais] = useState<any[]>([]);
   const [churnsMes, setChurnsMes] = useState<any[]>([]);
+  const [metaDiasInicio, setMetaDiasInicio] = useState<number>(() => {
+    try { return parseInt(localStorage.getItem("meta_dias_inicio") || "10") || 10; } catch { return 10; }
+  });
+  const [editandoMeta, setEditandoMeta] = useState(false);
   const [colWidths, setColWidths] = useState<Record<string,number>>(() => Object.fromEntries(COLUNAS_PADRAO.map(c=>[c.key,c.w])));
   const [colunas, setColunas] = useState(() => {
     try {
@@ -637,6 +641,102 @@ export default function ControleClientesPage() {
                 <p style={{ fontSize:"20px", fontWeight:"700", color:k.cor, margin:0 }}>{k.value}</p>
               </div>
             ))}
+          </div>
+        );
+      })()}
+
+      {/* Métrica: Dias para iniciar campanha */}
+      {(() => {
+        const hoje = new Date();
+        const mesAtual = hoje.getMonth();
+        const anoAtual = hoje.getFullYear();
+
+        function parseData(d: string): Date | null {
+          if (!d) return null;
+          try {
+            if (d.includes("/")) { const p = d.split("/"); return new Date(parseInt(p[2]), parseInt(p[1])-1, parseInt(p[0])); }
+            return new Date(d);
+          } catch { return null; }
+        }
+
+        // Clientes que iniciaram campanha no mês atual
+        const iniciaram = clientes.filter(c => {
+          const inicio = parseData(c.data_inicio_campanha);
+          const entrada = parseData(c.data_entrada);
+          return inicio && entrada && inicio.getMonth() === mesAtual && inicio.getFullYear() === anoAtual;
+        });
+
+        const diasPorCliente = iniciaram.map(c => {
+          const inicio = parseData(c.data_inicio_campanha)!;
+          const entrada = parseData(c.data_entrada)!;
+          return { nome: c.nome, dias: Math.max(0, Math.round((inicio.getTime() - entrada.getTime()) / (1000*60*60*24))) };
+        });
+
+        const totalDias = diasPorCliente.reduce((s, c) => s + c.dias, 0);
+        const media = iniciaram.length > 0 ? totalDias / iniciaram.length : 0;
+        const percentMeta = metaDiasInicio > 0 ? Math.round((media / metaDiasInicio) * 100) : 0;
+
+        // Cor do progresso: verde se abaixo da meta, amarelo se perto, vermelho se acima
+        const corProgresso = media === 0 ? "#606060" : media <= metaDiasInicio * 0.5 ? "#22c55e" : media <= metaDiasInicio * 0.75 ? "#29ABE2" : media <= metaDiasInicio ? "#f59e0b" : "#ef4444";
+        const labelProgresso = media === 0 ? "Sem dados" : media <= metaDiasInicio * 0.5 ? "Excelente" : media <= metaDiasInicio * 0.75 ? "Bom" : media <= metaDiasInicio ? "Atenção" : "Acima da meta";
+
+        return (
+          <div className="card" style={{ padding:"16px", marginBottom:"20px" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"12px" }}>
+              <div>
+                <p style={{ fontSize:"12px", fontWeight:"600", color:"#606060", margin:"0 0 4px" }}>DIAS PARA INICIAR CAMPANHA</p>
+                <p style={{ fontSize:"11px", color:"#505050", margin:0 }}>Média do mês atual — {iniciaram.length} cliente{iniciaram.length !== 1 ? "s" : ""} iniciaram</p>
+              </div>
+              <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
+                <span style={{ fontSize:"11px", color:"#606060" }}>Meta:</span>
+                {editandoMeta ? (
+                  <input type="number" min="1" value={metaDiasInicio} autoFocus
+                    onChange={e => { const v = parseInt(e.target.value) || 10; setMetaDiasInicio(v); localStorage.setItem("meta_dias_inicio", String(v)); }}
+                    onBlur={() => setEditandoMeta(false)}
+                    onKeyDown={e => { if (e.key === "Enter") setEditandoMeta(false); }}
+                    style={{ width:"50px", background:"#222", border:"1px solid #29ABE2", borderRadius:"4px", padding:"2px 6px", color:"#f0f0f0", fontSize:"12px", textAlign:"center" }}/>
+                ) : (
+                  <button onClick={() => setEditandoMeta(true)} style={{ background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"4px", padding:"2px 8px", color:"#f0f0f0", fontSize:"12px", cursor:"pointer" }}>
+                    {metaDiasInicio} dias
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div style={{ display:"flex", alignItems:"flex-end", gap:"16px", marginBottom:"12px" }}>
+              <div>
+                <p style={{ fontSize:"32px", fontWeight:"700", color:corProgresso, margin:0, lineHeight:1 }}>
+                  {media > 0 ? media.toFixed(1) : "—"}
+                </p>
+                <p style={{ fontSize:"11px", color:"#606060", margin:"4px 0 0" }}>dias (média)</p>
+              </div>
+              <div style={{ flex:1 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"4px" }}>
+                  <span style={{ fontSize:"11px", fontWeight:"600", color:corProgresso }}>{labelProgresso}</span>
+                  <span style={{ fontSize:"11px", color:"#606060" }}>{percentMeta}% da meta</span>
+                </div>
+                <div style={{ height:"8px", background:"#1a1a1a", borderRadius:"4px", overflow:"hidden" }}>
+                  <div style={{ height:"100%", width:`${Math.min(percentMeta, 100)}%`, background:corProgresso, borderRadius:"4px", transition:"width 0.3s" }}/>
+                </div>
+                <div style={{ display:"flex", justifyContent:"space-between", marginTop:"2px" }}>
+                  <span style={{ fontSize:"9px", color:"#404040" }}>0</span>
+                  <span style={{ fontSize:"9px", color:"#404040" }}>{Math.round(metaDiasInicio*0.5)}d (50%)</span>
+                  <span style={{ fontSize:"9px", color:"#404040" }}>{Math.round(metaDiasInicio*0.75)}d (75%)</span>
+                  <span style={{ fontSize:"9px", color:"#404040" }}>{metaDiasInicio}d (meta)</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Detalhamento por cliente */}
+            {diasPorCliente.length > 0 && (
+              <div style={{ display:"flex", flexWrap:"wrap", gap:"6px" }}>
+                {diasPorCliente.map(c => (
+                  <span key={c.nome} style={{ fontSize:"11px", padding:"2px 8px", borderRadius:"12px", background:c.dias <= metaDiasInicio ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", color:c.dias <= metaDiasInicio ? "#22c55e" : "#ef4444", border:`1px solid ${c.dias <= metaDiasInicio ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}` }}>
+                    {c.nome}: {c.dias}d
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         );
       })()}
