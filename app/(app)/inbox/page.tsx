@@ -78,6 +78,7 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, eta
   const [salvando, setSalvando] = useState(false);
   const [chatAberto, setChatAberto] = useState(false);
   const [editando, setEditando] = useState(false);
+  const [historico, setHistorico] = useState<{etapa_anterior:string|null;etapa_nova:string;alterado_por:string;created_at:string}[]>([]);
   const [editDados, setEditDados] = useState({
     origem: conversa.origem || "Não Rastreada",
     utm_source: conversa.utm_source || "",
@@ -89,12 +90,27 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, eta
   });
   const [salvandoRastreio, setSalvandoRastreio] = useState(false);
 
+  // Carregar histórico de transições
+  useEffect(() => {
+    supabase.from("etapas_historico")
+      .select("etapa_anterior, etapa_nova, alterado_por, created_at")
+      .eq("conversa_id", conversa.id)
+      .order("created_at", { ascending: true })
+      .then(({ data }) => setHistorico(data || []));
+  }, [conversa.id, etapa]);
+
   const salvarEtapa = async (novaEtapa: string) => {
     setSalvando(true);
+    const etapaAnterior = etapa;
     setEtapa(novaEtapa);
     await supabase.from("conversas").update({ etapa_jornada: novaEtapa, etapa_alterada_at: new Date().toISOString() }).eq("id", conversa.id);
     onEtapaChange(novaEtapa);
     const agId = await getAgenciaId();
+    // Registrar histórico de transição
+    supabase.from("etapas_historico").insert({
+      conversa_id: conversa.id, agencia_id: agId,
+      etapa_anterior: etapaAnterior || null, etapa_nova: novaEtapa, alterado_por: "manual",
+    }).then(() => {});
     fetch("/api/pixel", {
       method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({ agencia_id:agId, conversa_id:conversa.id, etapa_nome:novaEtapa, phone:conversa.contato_numero, fbclid:editDados.fbclid||conversa.fbclid, utm_campaign:editDados.utm_campaign||conversa.utm_campaign, utm_content:editDados.utm_content||conversa.utm_content }),
@@ -236,6 +252,40 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, eta
             })}
           </div>
         </div>
+
+        {/* Histórico de transições */}
+        {historico.length > 0 && (
+          <div style={{ marginTop:"16px" }}>
+            <p style={{ fontSize:"12px", fontWeight:"600", color:"#606060", marginBottom:"10px" }}>HISTÓRICO DE TRANSIÇÕES</p>
+            <div style={{ background:"#1a1a1a", borderRadius:"8px", padding:"12px" }}>
+              {historico.map((h, i) => {
+                const data = new Date(h.created_at);
+                const dataStr = data.toLocaleString("pt-BR", { day:"2-digit", month:"2-digit", year:"2-digit", hour:"2-digit", minute:"2-digit" });
+                const corNova = getCorEtapa(h.etapa_nova);
+                return (
+                  <div key={i} style={{ display:"flex", alignItems:"flex-start", gap:"10px", paddingBottom: i < historico.length - 1 ? "10px" : "0", marginBottom: i < historico.length - 1 ? "10px" : "0", borderBottom: i < historico.length - 1 ? "1px solid #2e2e2e" : "none" }}>
+                    <div style={{ width:"8px", height:"8px", borderRadius:"50%", background:corNova, marginTop:"4px", flexShrink:0 }}/>
+                    <div style={{ flex:1 }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:"6px", flexWrap:"wrap" }}>
+                        {h.etapa_anterior && (
+                          <>
+                            <span style={{ fontSize:"12px", color:"#606060" }}>{h.etapa_anterior}</span>
+                            <span style={{ fontSize:"10px", color:"#404040" }}>→</span>
+                          </>
+                        )}
+                        <span style={{ fontSize:"12px", fontWeight:"600", color:corNova }}>{h.etapa_nova}</span>
+                      </div>
+                      <div style={{ display:"flex", gap:"8px", marginTop:"2px" }}>
+                        <span style={{ fontSize:"10px", color:"#505050" }}>{dataStr}</span>
+                        <span style={{ fontSize:"10px", color:"#404040" }}>{h.alterado_por === "automatico" ? "via termo-chave" : "manual"}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
       {chatAberto && <ChatLateral conversa={conversa} onClose={()=>setChatAberto(false)}/>}
     </>

@@ -23,10 +23,21 @@ async function verificarTermoChave(agenciaId: string, conversaId: string, conteu
 
   if (!etapaEncontrada) return;
 
+  // Buscar etapa anterior para histórico
+  const { data: convAtual } = await supabase.from("conversas")
+    .select("etapa_jornada").eq("id", conversaId).single();
+
   await supabase.from("conversas").update({
     etapa_jornada: etapaEncontrada.nome,
     etapa_alterada_at: new Date().toISOString(),
   }).eq("id", conversaId);
+
+  // Registrar histórico de transição
+  await supabase.from("etapas_historico").insert({
+    conversa_id: conversaId, agencia_id: agenciaId,
+    etapa_anterior: convAtual?.etapa_jornada || null,
+    etapa_nova: etapaEncontrada.nome, alterado_por: "automatico",
+  });
 
   if (etapaEncontrada.evento_conversao) {
     fetch(`${APP_URL}/api/pixel`, {
