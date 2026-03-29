@@ -674,11 +674,12 @@ export default function ControleClientesPage() {
 
         const totalDias = diasPorCliente.reduce((s, c) => s + c.dias, 0);
         const media = iniciaram.length > 0 ? totalDias / iniciaram.length : 0;
-        const percentMeta = metaDiasInicio > 0 ? Math.round((media / metaDiasInicio) * 100) : 0;
+        // % de cumprimento: meta/media — quanto menos dias, maior o %
+        const percentMeta = media > 0 && metaDiasInicio > 0 ? Math.min(100, Math.round((metaDiasInicio / media) * 100)) : media === 0 ? 0 : 100;
 
-        // Cor do progresso: verde se abaixo da meta, amarelo se perto, vermelho se acima
-        const corProgresso = media === 0 ? "#606060" : media <= metaDiasInicio * 0.5 ? "#22c55e" : media <= metaDiasInicio * 0.75 ? "#29ABE2" : media <= metaDiasInicio ? "#f59e0b" : "#ef4444";
-        const labelProgresso = media === 0 ? "Sem dados" : media <= metaDiasInicio * 0.5 ? "Excelente" : media <= metaDiasInicio * 0.75 ? "Bom" : media <= metaDiasInicio ? "Atenção" : "Acima da meta";
+        // Cor: verde se dentro da meta, vermelho quanto mais passa
+        const corProgresso = media === 0 ? "#606060" : percentMeta >= 100 ? "#22c55e" : percentMeta >= 75 ? "#29ABE2" : percentMeta >= 50 ? "#f59e0b" : "#ef4444";
+        const labelProgresso = media === 0 ? "Sem dados" : percentMeta >= 100 ? "Dentro da meta" : percentMeta >= 75 ? "Levemente acima" : percentMeta >= 50 ? "Atenção" : "Crítico";
 
         return (
           <div className="card" style={{ padding:"16px", marginBottom:"20px" }}>
@@ -719,10 +720,10 @@ export default function ControleClientesPage() {
                   <div style={{ height:"100%", width:`${Math.min(percentMeta, 100)}%`, background:corProgresso, borderRadius:"4px", transition:"width 0.3s" }}/>
                 </div>
                 <div style={{ display:"flex", justifyContent:"space-between", marginTop:"2px" }}>
-                  <span style={{ fontSize:"9px", color:"#404040" }}>0</span>
-                  <span style={{ fontSize:"9px", color:"#404040" }}>{Math.round(metaDiasInicio*0.5)}d (50%)</span>
-                  <span style={{ fontSize:"9px", color:"#404040" }}>{Math.round(metaDiasInicio*0.75)}d (75%)</span>
-                  <span style={{ fontSize:"9px", color:"#404040" }}>{metaDiasInicio}d (meta)</span>
+                  <span style={{ fontSize:"9px", color:"#ef4444" }}>0%</span>
+                  <span style={{ fontSize:"9px", color:"#f59e0b" }}>50%</span>
+                  <span style={{ fontSize:"9px", color:"#29ABE2" }}>75%</span>
+                  <span style={{ fontSize:"9px", color:"#22c55e" }}>100% ({metaDiasInicio}d)</span>
                 </div>
               </div>
             </div>
