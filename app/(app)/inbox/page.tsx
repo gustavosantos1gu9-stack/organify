@@ -107,14 +107,19 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, eta
     onEtapaChange(novaEtapa);
     const agId = await getAgenciaId();
     // Registrar histórico de transição
-    supabase.from("etapas_historico").insert({
+    await supabase.from("etapas_historico").insert({
       conversa_id: conversa.id, agencia_id: agId,
       etapa_anterior: etapaAnterior || null, etapa_nova: novaEtapa, alterado_por: "manual",
-    }).then(() => {});
-    fetch("/api/pixel", {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ agencia_id:agId, conversa_id:conversa.id, etapa_nome:novaEtapa, phone:conversa.contato_numero, fbclid:editDados.fbclid||conversa.fbclid, utm_campaign:editDados.utm_campaign||conversa.utm_campaign, utm_content:editDados.utm_content||conversa.utm_content }),
-    }).catch(()=>{});
+    });
+    // Disparar conversão no Meta CAPI
+    try {
+      const pixelRes = await fetch("/api/pixel", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ agencia_id:agId, conversa_id:conversa.id, etapa_nome:novaEtapa, phone:conversa.contato_numero, fbclid:editDados.fbclid||conversa.fbclid, utm_campaign:editDados.utm_campaign||conversa.utm_campaign, utm_content:editDados.utm_content||conversa.utm_content }),
+      });
+      const pixelData = await pixelRes.json();
+      if (!pixelData.ok) console.warn("Pixel:", pixelData.motivo || pixelData.error);
+    } catch(e) { console.error("Pixel erro:", e); }
     setSalvando(false);
   };
 
