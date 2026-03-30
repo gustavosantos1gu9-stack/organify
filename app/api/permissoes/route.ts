@@ -25,8 +25,12 @@ export async function GET(request: NextRequest) {
       .eq("auth_user_id", user.id)
       .single();
 
-    if (!usuario?.time_id) {
-      return NextResponse.json({ permissoes: null }); // sem time = admin, mostra tudo
+    if (!usuario) {
+      return NextResponse.json({ permissoes: null }); // sem registro em usuarios = dono/admin
+    }
+
+    if (!usuario.time_id) {
+      return NextResponse.json({ permissoes: [] }); // membro sem time = sem acesso
     }
 
     const { data: time } = await supabaseAdmin
