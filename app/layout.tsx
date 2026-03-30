@@ -5,8 +5,8 @@ export const metadata: Metadata = {
   title: "Salx Convert - Aceleração de Vendas",
   description: "Aceleração de Vendas",
   icons: {
-    icon: "/logo.png",
-    apple: "/logo.png",
+    icon: "/favicon.png",
+    apple: "/apple-icon.png",
   },
 };
 
