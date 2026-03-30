@@ -14,7 +14,6 @@ const MODULOS = [
   { key:"controle_clientes", label:"Controle de Clientes", perms:["Criar","Remover","Editar","Listar","Visualizar"] },
   { key:"cadastros", label:"Cadastros", perms:["Criar","Remover","Editar","Listar","Visualizar"] },
   { key:"reunioes", label:"Reuniões", perms:["Criar","Remover","Editar","Listar","Visualizar"] },
-  { key:"gerador_de_leads", label:"Gerador de Leads", perms:["Visualizar","Criar"] },
   { key:"relatorios_meta", label:"Relatórios Meta", perms:["Visualizar","Criar","Editar","Remover","Enviar"] },
   { key:"relatorios_conexoes", label:"Relatórios — Conexões", perms:["Visualizar","Editar"] },
   { key:"relatorios_alertas", label:"Relatórios — Alertas", perms:["Visualizar","Criar","Editar","Remover"] },
