@@ -53,7 +53,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Nenhum link rastreável encontrado", resultados: [] });
     }
 
-    // Buscar conversas não rastreadas (ou uma específica)
+    // Buscar conversas não rastreadas (ou uma específica) — apenas últimos 30 dias
+    const trintaDiasAtras = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     let query = supabase
       .from("conversas")
       .select("id, contato_numero, contato_nome, origem, utm_campaign")
@@ -62,7 +63,8 @@ export async function POST(req: NextRequest) {
     if (conversa_id) {
       query = query.eq("id", conversa_id);
     } else {
-      query = query.or("origem.is.null,origem.eq.Não Rastreada");
+      query = query.or("origem.is.null,origem.eq.Não Rastreada")
+        .gte("created_at", trintaDiasAtras);
     }
 
     const { data: conversas } = await query;

@@ -38,15 +38,20 @@ function DetalhesLink({ link, onVoltar, waNumero, conversasPorLink }: { link: Li
     async function buscarConversas() {
       const agId = await getAgenciaId();
       const utmNorm = link.nome.toLowerCase().replace(/\s+/g, "-");
+      // Só buscar conversas criadas APÓS o link — não puxar clientes antigos
+      const linkCriadoEm = link.created_at;
       const { data: d1 } = await supabase.from("conversas")
         .select("id, contato_nome, contato_numero, etapa_jornada, link_id, link_nome, utm_campaign, primeira_mensagem_at")
-        .eq("agencia_id", agId!).eq("link_id", link.id);
+        .eq("agencia_id", agId!).eq("link_id", link.id)
+        .gte("created_at", linkCriadoEm);
       const { data: d2 } = await supabase.from("conversas")
         .select("id, contato_nome, contato_numero, etapa_jornada, link_id, link_nome, utm_campaign, primeira_mensagem_at")
-        .eq("agencia_id", agId!).ilike("link_nome", `%${link.nome}%`);
+        .eq("agencia_id", agId!).ilike("link_nome", `%${link.nome}%`)
+        .gte("created_at", linkCriadoEm);
       const { data: d3 } = await supabase.from("conversas")
         .select("id, contato_nome, contato_numero, etapa_jornada, link_id, link_nome, utm_campaign, primeira_mensagem_at")
-        .eq("agencia_id", agId!).ilike("utm_campaign", `%${utmNorm}%`);
+        .eq("agencia_id", agId!).ilike("utm_campaign", `%${utmNorm}%`)
+        .gte("created_at", linkCriadoEm);
       const todas = [...(d1||[]), ...(d2||[]), ...(d3||[])];
       const unicas = todas.filter((c, i, arr) => arr.findIndex((x:any) => x.id === c.id) === i);
       setConversasLink(unicas);
@@ -409,20 +414,31 @@ export default function GeradorLinksPage() {
     setLoading(true);
     try {
       const agId = await getAgenciaId();
-      const [{ data: ag }, { data: ls }, { data: convs }] = await Promise.all([
+      const [{ data: ag }, { data: ls }] = await Promise.all([
         supabase.from("agencias").select("whatsapp_numero").eq("id", agId!).single(),
         supabase.from("links_campanha").select("*").eq("agencia_id", agId!).order("created_at", { ascending: false }),
-        supabase.from("conversas").select("id,link_id,link_nome,etapa_jornada,utm_campaign").eq("agencia_id", agId!),
       ]);
+      // Buscar conversas apenas dos últimos 90 dias (não puxar histórico inteiro)
+      const noventaDiasAtras = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: convs } = await supabase.from("conversas")
+        .select("id,link_id,link_nome,etapa_jornada,utm_campaign,created_at")
+        .eq("agencia_id", agId!)
+        .gte("created_at", noventaDiasAtras);
       setWaNumero(ag?.whatsapp_numero || "");
       setLinks(ls || []);
       // Agrupar conversas por link_id, link_nome e utm_campaign
+      // Filtrar: só contar conversas criadas APÓS o link correspondente
+      const linksMap = new Map((ls || []).map((l: any) => [l.id, l]));
       const porLink: Record<string,any[]> = {};
       for (const c of (convs||[])) {
         const chaves = [c.link_id, c.link_nome, c.utm_campaign].filter(Boolean);
         for (const chave of chaves) {
+          // Se a chave é um link_id, verificar se a conversa veio DEPOIS do link ser criado
+          const linkRef = linksMap.get(chave) || (ls || []).find((l: any) => l.nome === chave || l.utm_campaign === chave);
+          if (linkRef && c.created_at && linkRef.created_at && new Date(c.created_at) < new Date(linkRef.created_at)) {
+            continue; // Conversa anterior à criação do link — ignorar
+          }
           if (!porLink[chave]) porLink[chave] = [];
-          // Evitar duplicatas
           if (!porLink[chave].find((x:any) => x.id === c.id)) {
             porLink[chave].push(c);
           }
