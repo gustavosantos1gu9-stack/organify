@@ -94,8 +94,8 @@ export default function Topbar() {
     setAgenciaAtual(ag);
     localStorage.setItem("agencia_selecionada", ag.id);
     setSelectorOpen(false);
-    // Recarregar a página pra atualizar todos os dados
-    window.location.reload();
+    // Redirecionar pra home e recarregar
+    window.location.href = "/";
   }
 
   const handleSair = async () => {
