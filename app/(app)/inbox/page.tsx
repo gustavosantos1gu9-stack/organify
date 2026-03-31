@@ -735,35 +735,46 @@ export default function InboxPage() {
   const sincronizarTudo = async () => {
     if (!confirm("Vai importar TODAS as conversas com TODAS as mensagens. Pode demorar vários minutos. Continuar?")) return;
     setSincronizandoTudo(true);
-    setSyncProgresso("Iniciando...");
+    setSyncProgresso("Listando conversas...");
     try {
       const agId = await getAgenciaId();
-      let offset = 0;
-      let totalConversas = 0;
+
+      // Etapa 1: Listar todos os chats (1 request rápido)
+      const listarRes = await fetch("/api/evolution/sync-all", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agencia_id: agId, action: "listar" }),
+      });
+      const listarData = await listarRes.json();
+      if (!listarData.ok) { alert("Erro ao listar: " + (listarData.error || "")); return; }
+
+      const items = listarData.items || [];
+      const total = items.length;
       let totalMensagens = 0;
-      let totalGeral = 0;
-      let temMais = true;
-      while (temMais) {
-        const res = await fetch("/api/evolution/sync-all", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ agencia_id: agId, offset, lote: 10 }),
-        });
-        const data = await res.json();
-        if (!data.ok) {
-          setSyncProgresso(`Erro no lote ${offset}: ${data.error || "falha"}`);
-          break;
-        }
-        totalConversas += data.conversas || 0;
-        totalMensagens += data.mensagens || 0;
-        totalGeral = data.total || totalGeral;
-        temMais = data.tem_mais;
-        offset = data.proximo_offset;
-        setSyncProgresso(`${Math.min(offset, totalGeral)} de ${totalGeral} conversas · ${totalMensagens} mensagens`);
-        // Recarregar lista a cada lote pra mostrar progresso visual
-        carregar();
+      let erros = 0;
+
+      setSyncProgresso(`0 de ${total} conversas`);
+
+      // Etapa 2: Sync cada conversa individualmente (1 request por conversa)
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        try {
+          const res = await fetch("/api/evolution/sync-all", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ agencia_id: agId, action: "sync-one", jid: item.jid, info: item.chat }),
+          });
+          const data = await res.json();
+          if (data.ok) totalMensagens += data.mensagens || 0;
+          else erros++;
+        } catch { erros++; }
+
+        setSyncProgresso(`${i + 1} de ${total} · ${totalMensagens} msgs${erros ? ` · ${erros} erros` : ""}`);
+
+        // Atualizar lista a cada 20 conversas
+        if ((i + 1) % 20 === 0) carregar();
       }
+
       setSyncProgresso("");
-      alert(`Sincronização concluída!\n${totalConversas} conversa(s)\n${totalMensagens} mensagem(ns)`);
+      alert(`Sincronização concluída!\n${total} conversa(s)\n${totalMensagens} mensagem(ns)${erros ? `\n${erros} erro(s)` : ""}`);
       carregar();
     } catch { alert("Erro ao sincronizar"); setSyncProgresso(""); }
     finally { setSincronizandoTudo(false); }

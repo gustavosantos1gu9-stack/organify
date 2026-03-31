@@ -69,13 +69,21 @@ function IntegracoesCliente() {
             }
           }
           await supabase.from("agencias").update({ whatsapp_conectado: true }).eq("id", agenciaId!);
-          // Sync automático das conversas após conectar (primeiro lote)
+          // Sync automático: listar chats e syncar os primeiros 20
           try {
-            await fetch("/api/evolution/sync-all", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ agencia_id: agenciaId, lote: 10 }),
+            const listRes = await fetch("/api/evolution/sync-all", {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ agencia_id: agenciaId, action: "listar" }),
             });
+            const listData = await listRes.json();
+            if (listData.ok && listData.items) {
+              for (const item of listData.items.slice(0, 20)) {
+                await fetch("/api/evolution/sync-all", {
+                  method: "POST", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ agencia_id: agenciaId, action: "sync-one", jid: item.jid, info: item.chat }),
+                }).catch(() => {});
+              }
+            }
           } catch {}
         }
       } catch {}
