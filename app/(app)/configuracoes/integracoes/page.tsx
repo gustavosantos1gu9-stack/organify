@@ -59,16 +59,20 @@ function IntegracoesCliente() {
         if (status === "open" || status === "connected") {
           setWaConectado(true);
           setQrCode(null);
-          // Buscar profile
+          // Buscar profile e número
           const instances = await evoCall("fetchInstances");
+          let waNumero = "";
           if (Array.isArray(instances)) {
             const inst = instances.find((i: any) => (i.name || i.instance?.instanceName) === instancia);
             if (inst) {
               setProfileName(inst.profileName || instancia);
               setProfilePic(inst.profilePicUrl || "");
+              if (inst.owner) waNumero = inst.owner.replace("@s.whatsapp.net", "").replace(/\D/g, "");
             }
           }
-          await supabase.from("agencias").update({ whatsapp_conectado: true }).eq("id", agenciaId!);
+          const updateData: any = { whatsapp_conectado: true };
+          if (waNumero) updateData.whatsapp_numero = waNumero;
+          await supabase.from("agencias").update(updateData).eq("id", agenciaId!);
           // Sync automático: listar chats e syncar os primeiros 20
           try {
             const listRes = await fetch("/api/evolution/sync-all", {

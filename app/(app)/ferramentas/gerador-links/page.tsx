@@ -415,7 +415,7 @@ export default function GeradorLinksPage() {
     try {
       const agId = await getAgenciaId();
       const [{ data: ag }, { data: ls }] = await Promise.all([
-        supabase.from("agencias").select("whatsapp_numero").eq("id", agId!).single(),
+        supabase.from("agencias").select("whatsapp_numero, whatsapp_instancia, evolution_url, evolution_key, parent_id").eq("id", agId!).single(),
         supabase.from("links_campanha").select("*").eq("agencia_id", agId!).order("created_at", { ascending: false }),
       ]);
       // Buscar conversas apenas dos últimos 90 dias (não puxar histórico inteiro)
@@ -424,7 +424,35 @@ export default function GeradorLinksPage() {
         .select("id,link_id,link_nome,etapa_jornada,utm_campaign,created_at")
         .eq("agencia_id", agId!)
         .gte("created_at", noventaDiasAtras);
-      setWaNumero(ag?.whatsapp_numero || "");
+
+      // Resolver número do WhatsApp: do banco, ou buscar da instância conectada
+      let numero = ag?.whatsapp_numero || "";
+      if (!numero && ag?.whatsapp_instancia) {
+        try {
+          let evoUrl = ag.evolution_url;
+          let evoKey = ag.evolution_key;
+          if (!evoUrl && ag.parent_id) {
+            const { data: parent } = await supabase.from("agencias").select("evolution_url, evolution_key").eq("id", ag.parent_id).single();
+            if (parent) { evoUrl = parent.evolution_url; evoKey = parent.evolution_key; }
+          }
+          if (evoUrl && evoKey) {
+            const res = await fetch("/api/evolution", {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action: "fetchInstances", agencia_id: agId }),
+            });
+            const instances = await res.json();
+            if (Array.isArray(instances)) {
+              const inst = instances.find((i: any) => (i.name || i.instance?.instanceName) === ag.whatsapp_instancia);
+              if (inst?.owner) {
+                numero = inst.owner.replace("@s.whatsapp.net", "").replace(/\D/g, "");
+                // Salvar pra próxima vez
+                await supabase.from("agencias").update({ whatsapp_numero: numero }).eq("id", agId!);
+              }
+            }
+          }
+        } catch {}
+      }
+      setWaNumero(numero);
       setLinks(ls || []);
       // Agrupar conversas por link_id, link_nome e utm_campaign
       // Filtrar: só contar conversas criadas APÓS o link correspondente
