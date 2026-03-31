@@ -628,9 +628,6 @@ export default function InboxPage() {
           <div className="breadcrumb"><a href="/">Início</a><span>›</span><span className="current">Conversas</span></div>
           <h1 style={{ fontSize:"22px",fontWeight:"600" }}>Conversas</h1>
         </div>
-        <span style={{ display:"flex",alignItems:"center",gap:"6px",fontSize:"12px",color:"#29ABE2",background:"rgba(41,171,226,0.1)",border:"1px solid rgba(41,171,226,0.2)",padding:"4px 10px",borderRadius:"20px" }}>
-          <span style={{ width:"6px",height:"6px",borderRadius:"50%",background:"#29ABE2",display:"inline-block" }}/>WhatsApp Conectado
-        </span>
       </div>
 
       {/* KPIs clicáveis */}
