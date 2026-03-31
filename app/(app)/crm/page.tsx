@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Search, Plus, Trash2, Flame, DollarSign, Percent, Edit2, Upload, StickyNote, Check, X } from "lucide-react";
 import KPICard from "@/components/ui/KPICard";
 import Filtros from "@/components/ui/Filtros";
 import NovoLeadModal from "@/components/crm/NovoLeadModal";
 import ConverterLeadModal from "@/components/crm/ConverterLeadModal";
 import EditarLeadModal from "@/components/crm/EditarLeadModal";
-import { useLeads, criarLead, removerLead, atualizarEtapaLead, Lead, supabase } from "@/lib/hooks";
+import { useLeads, criarLead, removerLead, atualizarEtapaLead, Lead, supabase, getAgenciaId } from "@/lib/hooks";
 import { formatCurrency } from "@/lib/utils";
 
-const ETAPAS = [
+const ETAPAS_PADRAO = [
   { key:"novo", label:"Não respondeu", color:"#a0a0a0" },
   { key:"em_contato", label:"Em contato", color:"#3b82f6" },
   { key:"qualificado", label:"Qualificado", color:"#06b6d4" },
@@ -21,32 +21,33 @@ const ETAPAS = [
   { key:"perdido", label:"Perdido", color:"#ef4444" },
 ];
 
-function getQualificacao(etapa: string): { label: string; color: string; bg: string } {
-  if (etapa === "novo" || etapa === "em_contato") {
-    return { label: "Frio", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" };
-  }
-  if (etapa === "qualificado" || etapa === "reuniao_agendada") {
-    return { label: "Morno", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" };
-  }
-  if (etapa === "proposta_enviada" || etapa === "ganho") {
-    return { label: "Quente", color: "#ef4444", bg: "rgba(239,68,68,0.12)" };
-  }
-  return { label: "—", color: "#606060", bg: "rgba(96,96,96,0.1)" };
+const CORES_ETAPAS = ["#a0a0a0", "#3b82f6", "#06b6d4", "#f59e0b", "#f97316", "#8b5cf6", "#22c55e", "#ec4899", "#29ABE2", "#ef4444"];
+
+function getQualificacao(etapa: string, etapas: { key: string; label: string; color: string }[]): { label: string; color: string; bg: string } {
+  const total = etapas.length;
+  const idx = etapas.findIndex(e => e.key === etapa);
+  if (idx < 0) return { label: "—", color: "#606060", bg: "rgba(96,96,96,0.1)" };
+  const pct = total > 1 ? idx / (total - 1) : 0;
+  if (pct < 0.33) return { label: "Frio", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" };
+  if (pct < 0.66) return { label: "Morno", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" };
+  return { label: "Quente", color: "#ef4444", bg: "rgba(239,68,68,0.12)" };
 }
 
-const FILTROS_GRUPOS = [
-  { label:"Etapa", key:"etapa", opcoes: ETAPAS.map((e)=>({ label:e.label, value:e.key })) },
-  { label:"Origem", key:"origem", opcoes:[
-    { label:"Facebook", value:"Facebook" },
-    { label:"Instagram", value:"Instagram" },
-    { label:"Google", value:"Google" },
-    { label:"LinkedIn", value:"LinkedIn" },
-  ]},
-  { label:"Data", key:"data", tipo:"date-range" as const, opcoes:[] },
-];
+function buildFiltrosGrupos(etapas: { key: string; label: string }[]) {
+  return [
+    { label:"Etapa", key:"etapa", opcoes: etapas.map((e)=>({ label:e.label, value:e.key })) },
+    { label:"Origem", key:"origem", opcoes:[
+      { label:"Facebook", value:"Facebook" },
+      { label:"Instagram", value:"Instagram" },
+      { label:"Google", value:"Google" },
+      { label:"LinkedIn", value:"LinkedIn" },
+    ]},
+    { label:"Data", key:"data", tipo:"date-range" as const, opcoes:[] },
+  ];
+}
 
-function EtapaBadge({ etapa }: { etapa: string }) {
-  const e = ETAPAS.find((x)=>x.key===etapa)||ETAPAS[0];
+function EtapaBadge({ etapa, etapas }: { etapa: string; etapas: { key: string; label: string; color: string }[] }) {
+  const e = etapas.find((x)=>x.key===etapa)||etapas[0];
   return (
     <span style={{
       display:"inline-flex", alignItems:"center", padding:"3px 10px",
@@ -56,8 +57,9 @@ function EtapaBadge({ etapa }: { etapa: string }) {
   );
 }
 
-function KanbanBoard({ leads, onEtapaChange, onRemover, onConverter, onEditar, onRefresh }: {
+function KanbanBoard({ leads, etapas, onEtapaChange, onRemover, onConverter, onEditar, onRefresh }: {
   leads: Lead[];
+  etapas: { key: string; label: string; color: string }[];
   onEtapaChange:(id:string, etapa:string)=>void;
   onRemover:(id:string)=>void;
   onConverter:(lead:Lead)=>void;
@@ -87,13 +89,13 @@ function KanbanBoard({ leads, onEtapaChange, onRemover, onConverter, onEditar, o
 
   return (
     <div style={{ display:"flex", gap:"0", overflowX:"auto", minHeight:"500px" }}>
-      {ETAPAS.map((etapa, idx) => {
+      {etapas.map((etapa, idx) => {
         const cards = leads.filter((l)=>l.etapa===etapa.key);
         const isOver = dragOver===etapa.key;
         const total = cards.reduce((a,b)=>a+(b.valor||0),0);
         return (
           <div key={etapa.key}
-            style={{ minWidth:"220px", flex:"0 0 220px", borderRight: idx < ETAPAS.length-1 ? "1px solid #2e2e2e" : "none" }}
+            style={{ minWidth:"220px", flex:"0 0 220px", borderRight: idx < etapas.length-1 ? "1px solid #2e2e2e" : "none" }}
             onDragOver={(e)=>{ e.preventDefault(); setDragOver(etapa.key); }}
             onDragLeave={()=>setDragOver(null)}
             onDrop={(e)=>{ e.preventDefault(); if(dragId.current){ onEtapaChange(dragId.current,etapa.key); dragId.current=null; } setDragOver(null); }}
@@ -134,7 +136,7 @@ function KanbanBoard({ leads, onEtapaChange, onRemover, onConverter, onEditar, o
                   {/* Topo do card */}
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"6px" }}>
                     <div style={{ display:"flex", alignItems:"center", gap:"6px", flex:1, minWidth:0 }}>
-                      <div style={{ width:"8px", height:"8px", borderRadius:"50%", background: getQualificacao(lead.etapa).color, flexShrink:0 }}/>
+                      <div style={{ width:"8px", height:"8px", borderRadius:"50%", background: getQualificacao(lead.etapa, etapas).color, flexShrink:0 }}/>
                       <span style={{ fontSize:"13px", fontWeight:"500", color:"#f0f0f0", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{lead.nome}</span>
                     </div>
                     <button onClick={(e)=>{ e.stopPropagation(); setMenuAberto(menuAberto===lead.id?null:lead.id); }}
@@ -268,7 +270,29 @@ export default function CRMPage() {
   const [showModal, setShowModal] = useState(false);
   const [convertendo, setConvertendo] = useState<Lead|null>(null);
   const [editando, setEditando] = useState<Lead|null>(null);
+  const [ETAPAS, setETAPAS] = useState(ETAPAS_PADRAO);
   const { data: leads, loading, refresh } = useLeads(busca, filtros.etapa||"");
+
+  // Carregar etapas customizadas da jornada_etapas (se existirem)
+  useEffect(() => {
+    async function loadEtapas() {
+      const agId = await getAgenciaId();
+      if (!agId) return;
+      const { data: jornada } = await supabase
+        .from("jornada_etapas")
+        .select("id, nome, evento_conversao, ordem")
+        .eq("agencia_id", agId)
+        .order("ordem");
+      if (jornada && jornada.length > 0) {
+        setETAPAS(jornada.map((e: any, i: number) => ({
+          key: e.nome.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, ""),
+          label: e.nome,
+          color: CORES_ETAPAS[i % CORES_ETAPAS.length],
+        })));
+      }
+    }
+    loadEtapas();
+  }, []);
 
   const filtrados = (leads??[]).filter((l)=>{
     if (filtros.origem && l.origens?.nome!==filtros.origem) return false;
@@ -340,7 +364,7 @@ export default function CRMPage() {
             <Search size={14} style={{ position:"absolute", left:"12px", top:"50%", transform:"translateY(-50%)", color:"#606060" }}/>
             <input className="search-input" placeholder="Buscar leads..." value={busca} onChange={(e)=>setBusca(e.target.value)}/>
           </div>
-          <Filtros grupos={FILTROS_GRUPOS} valores={filtros} onChange={(k,v)=>setFiltros((f)=>({...f,[k]:v}))} onLimpar={()=>setFiltros({})}/>
+          <Filtros grupos={buildFiltrosGrupos(ETAPAS)} valores={filtros} onChange={(k,v)=>setFiltros((f)=>({...f,[k]:v}))} onLimpar={()=>setFiltros({})}/>
           <button className="btn-primary" onClick={()=>setShowModal(true)}><Plus size={14}/> Novo lead</button>
         </div>
 
@@ -358,6 +382,7 @@ export default function CRMPage() {
         ) : view==="kanban" ? (
           <KanbanBoard
             leads={filtrados}
+            etapas={ETAPAS}
             onEtapaChange={async(id,e)=>{ await atualizarEtapaLead(id,e); refresh(); }}
             onRemover={async(id)=>{ if(confirm("Remover este lead?")){ await removerLead(id); refresh(); }}}
             onConverter={setConvertendo}
@@ -391,15 +416,15 @@ export default function CRMPage() {
                   </td>
                   <td>
                     <div style={{ display:"flex", alignItems:"center", gap:"5px" }}>
-                      <div style={{ width:"8px", height:"8px", borderRadius:"50%", background: getQualificacao(l.etapa).color, flexShrink:0 }}/>
-                      <span style={{ fontSize:"11px", color: getQualificacao(l.etapa).color, background: getQualificacao(l.etapa).bg, padding:"2px 8px", borderRadius:"10px" }}>
-                        {getQualificacao(l.etapa).label}
+                      <div style={{ width:"8px", height:"8px", borderRadius:"50%", background: getQualificacao(l.etapa, ETAPAS).color, flexShrink:0 }}/>
+                      <span style={{ fontSize:"11px", color: getQualificacao(l.etapa, ETAPAS).color, background: getQualificacao(l.etapa, ETAPAS).bg, padding:"2px 8px", borderRadius:"10px" }}>
+                        {getQualificacao(l.etapa, ETAPAS).label}
                       </span>
                     </div>
                   </td>
                   <td style={{ fontWeight:"500" }}>{l.nome}</td>
                   <td style={{ color:"#a0a0a0",fontSize:"12px" }}>—</td>
-                  <td><EtapaBadge etapa={l.etapa}/></td>
+                  <td><EtapaBadge etapa={l.etapa} etapas={ETAPAS}/></td>
                   <td><span className="badge badge-gray">{l.origens?.nome||"—"}</span></td>
                   <td style={{ color:"#a0a0a0",fontSize:"12px" }}>{l.telefone||"—"}</td>
                   <td style={{ color:"#606060",fontSize:"12px" }}>{new Date(l.created_at).toLocaleDateString("pt-BR")}</td>
