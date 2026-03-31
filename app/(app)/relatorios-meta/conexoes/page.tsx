@@ -270,6 +270,7 @@ export default function ConexoesPage() {
           token: nomeInst,
           qrcode: true,
           integration: "WHATSAPP-BAILEYS",
+          syncFullHistory: true,
         }),
       });
       const createData = await createRes.json();

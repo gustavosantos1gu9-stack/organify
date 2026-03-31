@@ -190,7 +190,7 @@ function IntegracoesCliente() {
       } else {
         // Instância não existe — deletar caso corrompida e criar nova
         try { await evoCall("delete", nome); } catch {}
-        const data2 = await evoCall("create", nome, { instanceName: nome, token: nome, qrcode: true, integration: "WHATSAPP-BAILEYS" });
+        const data2 = await evoCall("create", nome, { instanceName: nome, token: nome, qrcode: true, integration: "WHATSAPP-BAILEYS", syncFullHistory: true });
         const qr2 = data2.qrcode?.base64 || data2.base64;
         if (qr2) {
           setQrCode(qr2); setInstancia(nome);
@@ -439,6 +439,7 @@ function IntegracoesMaster() {
         token: novoToken || novaInstancia,
         qrcode: true,
         integration: "WHATSAPP-BAILEYS",
+        syncFullHistory: true,
       });
       if (data.qrcode?.base64) {
         setQrCode(data.qrcode.base64);
