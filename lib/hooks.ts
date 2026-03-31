@@ -142,9 +142,10 @@ export interface CategoriaFinanceira {
 
 export interface Agencia {
   id: string; nome: string; cnpj?: string; email?: string;
-  telefone?: string; logo_url?: string;
+  telefone?: string; logo_url?: string; whatsapp_numero?: string;
   cep?: string; estado?: string; cidade?: string;
   logradouro?: string; numero?: string; complemento?: string; bairro?: string;
+  [key: string]: any; // permitir campos extras do banco
 }
 
 export interface KPIDashboard {

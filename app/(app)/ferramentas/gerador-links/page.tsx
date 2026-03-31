@@ -425,8 +425,13 @@ export default function GeradorLinksPage() {
         .eq("agencia_id", agId!)
         .gte("created_at", noventaDiasAtras);
 
-      // Resolver número do WhatsApp: do banco, ou buscar da instância conectada
+      // Resolver número do WhatsApp: do banco, da mãe, ou da instância
       let numero = ag?.whatsapp_numero || "";
+      // Se não tem, buscar da agência mãe
+      if (!numero && ag?.parent_id) {
+        const { data: parent } = await supabase.from("agencias").select("whatsapp_numero").eq("id", ag.parent_id).single();
+        if (parent?.whatsapp_numero) numero = parent.whatsapp_numero;
+      }
       if (!numero && ag?.whatsapp_instancia) {
         try {
           let evoUrl = ag.evolution_url;
