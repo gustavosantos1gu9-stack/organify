@@ -639,26 +639,27 @@ export default function InboxPage() {
   };
 
   const sincronizarTudo = async () => {
-    if (!confirm("Vai importar todas as conversas do WhatsApp. Continuar?")) return;
+    if (!confirm("Vai importar todas as conversas do WhatsApp com mensagens completas. Pode demorar alguns minutos. Continuar?")) return;
     setSincronizandoTudo(true);
     try {
       const agId = await getAgenciaId();
-      // Sync via API local em lotes
       let offset = 0;
-      let total = 0;
+      let totalConversas = 0;
+      let totalMensagens = 0;
       let temMais = true;
       while (temMais) {
         const res = await fetch("/api/evolution/sync-all", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ agencia_id: agId, offset, lote: 50, com_mensagens: true }),
+          body: JSON.stringify({ agencia_id: agId, offset, lote: 30, com_mensagens: true }),
         });
         const data = await res.json();
         if (!data.ok) { alert("Erro: " + (data.error || "falha no sync")); break; }
-        total += data.conversas || 0;
+        totalConversas += data.processados || 0;
+        totalMensagens += data.mensagens || 0;
         temMais = data.tem_mais;
         offset = data.proximo_offset;
       }
-      alert(`Sincronização concluída! ${total} conversa(s) importada(s).`);
+      alert(`Sincronização concluída!\n${totalConversas} conversa(s) processada(s)\n${totalMensagens} mensagem(ns) importada(s)`);
       carregar();
     } catch { alert("Erro ao sincronizar"); }
     finally { setSincronizandoTudo(false); }
