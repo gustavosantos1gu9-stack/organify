@@ -162,6 +162,7 @@ export default function Sidebar() {
   const [allowedModulos, setAllowedModulos] = useState<Set<string> | null>(null);
   const [modulosAgencia, setModulosAgencia] = useState<Set<string> | null>(null);
   const [permLoaded, setPermLoaded] = useState(false);
+  const [agenciaInfo, setAgenciaInfo] = useState<{ nome: string; isFilha: boolean } | null>(null);
 
   useEffect(() => {
     async function loadPermissions() {
@@ -181,6 +182,30 @@ export default function Sidebar() {
         if (modulos_agencia) {
           setModulosAgencia(new Set<string>(modulos_agencia));
         }
+
+        // Detectar se é agência filha e buscar nome
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data: usuario } = await supabase
+              .from("usuarios")
+              .select("agencia_id")
+              .eq("auth_user_id", user.id)
+              .single();
+
+            const agId = agenciaId || usuario?.agencia_id;
+            if (agId) {
+              const { data: ag } = await supabase
+                .from("agencias")
+                .select("nome, parent_id")
+                .eq("id", agId)
+                .single();
+              if (ag) {
+                setAgenciaInfo({ nome: ag.nome, isFilha: !!ag.parent_id });
+              }
+            }
+          }
+        } catch {}
       } catch {
         // on error, show all items
       } finally {
@@ -235,9 +260,15 @@ export default function Sidebar() {
               <span style={{ fontWeight: "800", fontSize: "16px", color: "#f0f0f0", letterSpacing: "-0.3px" }}>
                 SALX <span style={{ color: "#29ABE2" }}>Convert</span>
               </span>
-              <span style={{ fontSize: "10px", color: "#606060", textAlign: "center", letterSpacing: "0.05em", marginTop: "2px" }}>
-                acelerador de vendas
-              </span>
+              {agenciaInfo?.isFilha ? (
+                <span style={{ fontSize: "10px", color: "#29ABE2", marginTop: "3px", letterSpacing: "0.03em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "120px" }}>
+                  {agenciaInfo.nome}
+                </span>
+              ) : (
+                <span style={{ fontSize: "10px", color: "#606060", textAlign: "center", letterSpacing: "0.05em", marginTop: "2px" }}>
+                  acelerador de vendas
+                </span>
+              )}
             </div>
           </div>
         )}
