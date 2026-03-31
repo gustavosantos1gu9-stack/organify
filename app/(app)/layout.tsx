@@ -33,6 +33,7 @@ const hrefToModuloKey: Record<string, string> = {
   "/configuracoes/usuarios": "configuracoes",
   "/configuracoes/agencia": "configuracoes",
   "/configuracoes/integracoes": "configuracoes",
+  "/clientes-saas": "clientes_saas",
 };
 
 // Ordem de prioridade pra redirecionar ao primeiro módulo permitido
@@ -47,57 +48,69 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [checando, setChecando] = useState(true);
-  const [permitido, setPermitido] = useState(true);
+  const [redirecionando, setRedirecionando] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    let cancelled = false;
+
+    async function verificar() {
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) { router.push("/login"); return; }
+
+      if (cancelled) return;
       setChecando(false);
+      setRedirecionando(false);
 
-      // Verificar permissão da página atual
-      const agenciaId = typeof window !== "undefined" ? localStorage.getItem("agencia_selecionada") : null;
-      const permUrl = agenciaId ? `/api/permissoes?agencia_id=${agenciaId}` : "/api/permissoes";
-      fetch(permUrl, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      })
-        .then(r => r.json())
-        .then(({ permissoes, modulos_agencia }) => {
-          if (!permissoes && !modulos_agencia) return; // admin master, acesso total
+      try {
+        const agenciaId = typeof window !== "undefined" ? localStorage.getItem("agencia_selecionada") : null;
+        const permUrl = agenciaId ? `/api/permissoes?agencia_id=${agenciaId}` : "/api/permissoes";
+        const res = await fetch(permUrl, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const { permissoes, modulos_agencia } = await res.json();
 
-          const allowedPerms = permissoes ? new Set<string>(permissoes) : null;
-          const allowedAgencia = modulos_agencia ? new Set<string>(modulos_agencia) : null;
-          const moduloKey = hrefToModuloKey[pathname];
+        if (cancelled) return;
 
-          // Se a rota não está mapeada (ex: /perfil), permite
-          if (!moduloKey) return;
+        // Admin master sem agência filha selecionada = acesso total
+        if (!permissoes && !modulos_agencia) return;
 
-          const blocked = (allowedPerms && !allowedPerms.has(moduloKey)) ||
-                          (allowedAgencia && !allowedAgencia.has(moduloKey));
+        const allowedPerms = permissoes ? new Set<string>(permissoes) : null;
+        const allowedAgencia = modulos_agencia ? new Set<string>(modulos_agencia) : null;
+        const moduloKey = hrefToModuloKey[pathname];
 
-          if (blocked) {
-            setPermitido(false);
-            // Redirecionar pra primeira rota permitida
-            const destino = rotasPrioridade.find(r => {
-              const k = hrefToModuloKey[r];
-              if (!k) return false;
-              if (allowedPerms && !allowedPerms.has(k)) return false;
-              if (allowedAgencia && !allowedAgencia.has(k)) return false;
-              return true;
-            });
-            router.push(destino || "/perfil");
-          }
-        })
-        .catch(() => {});
-    });
+        // Rota não mapeada (ex: /perfil) = permite
+        if (!moduloKey) return;
+
+        const blocked = (allowedPerms && !allowedPerms.has(moduloKey)) ||
+                        (allowedAgencia && !allowedAgencia.has(moduloKey));
+
+        if (blocked) {
+          setRedirecionando(true);
+          const destino = rotasPrioridade.find(r => {
+            const k = hrefToModuloKey[r];
+            if (!k) return false;
+            if (allowedPerms && !allowedPerms.has(k)) return false;
+            if (allowedAgencia && !allowedAgencia.has(k)) return false;
+            return true;
+          });
+          router.replace(destino || "/perfil");
+        }
+      } catch {}
+    }
+
+    verificar();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!session) router.push("/login");
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, [pathname]);
 
-  if (checando || !permitido) return (
+  if (checando || redirecionando) return (
     <div style={{ minHeight:"100vh", background:"#0f0f0f", display:"flex", alignItems:"center", justifyContent:"center" }}>
       <div style={{ width:"40px", height:"40px", borderRadius:"50%", border:"3px solid #2e2e2e", borderTop:"3px solid #22c55e", animation:"spin 1s linear infinite" }}/>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
