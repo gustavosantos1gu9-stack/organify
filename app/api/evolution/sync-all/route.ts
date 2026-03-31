@@ -116,16 +116,24 @@ export async function POST(req: NextRequest) {
         : new Date().toISOString();
       const naoLidas = chat.unreadCount || 0;
 
+      // Data real da primeira interação (timestamp de criação do chat ou primeira msg)
+      const chatCreatedTs = chat.createdAt || chat.conversationTimestamp || chat.t || 0;
+      const primeiraMsgAtChat = chatCreatedTs
+        ? new Date(Number(chatCreatedTs) * 1000).toISOString()
+        : null;
+
       let { data: conversa } = await supabase.from("conversas")
         .select("id").eq("agencia_id", agencia.id).eq("contato_numero", numeroReal).single();
 
       if (!conversa) {
-        const { data: nova } = await supabase.from("conversas").insert({
+        const insertData: any = {
           agencia_id: agencia.id, instancia: INSTANCIA,
           contato_numero: numeroReal, contato_nome: nome || numeroReal, contato_foto: foto,
           contato_jid: jid,
           ultima_mensagem: ultimaMsg, ultima_mensagem_at: ultimaAt, nao_lidas: naoLidas,
-        }).select("id").single();
+        };
+        if (primeiraMsgAtChat) insertData.primeira_mensagem_at = primeiraMsgAtChat;
+        const { data: nova } = await supabase.from("conversas").insert(insertData).select("id").single();
         conversa = nova;
         conversasSalvas++;
       } else {
@@ -190,6 +198,27 @@ export async function POST(req: NextRequest) {
         }, { onConflict: "mensagem_id" });
         if (!error) mensagensSalvas++;
       }
+
+      // Buscar a primeira mensagem real (page 1, limit 1, ordem ascendente) para data exata
+      try {
+        const resFirst = await fetch(`${EVO_URL}/chat/findMessages/${INSTANCIA}`, {
+          method: "POST",
+          headers: { "apikey": EVO_KEY, "Content-Type": "application/json" },
+          body: JSON.stringify({ where: { key: { remoteJid: jid } }, limit: 1, page: 1 }),
+        });
+        const firstData = await resFirst.json();
+        const firstRecords = firstData?.messages?.records || firstData?.records || [];
+        if (firstRecords.length > 0) {
+          const ts = Number(firstRecords[0].messageTimestamp);
+          if (ts) {
+            const realFirst = new Date(ts * 1000).toISOString();
+            if (!primeiraMsgAt || realFirst < primeiraMsgAt) primeiraMsgAt = realFirst;
+          }
+        }
+      } catch {}
+
+      // Usar data do chat como fallback se ainda não temos primeira mensagem
+      if (!primeiraMsgAt && primeiraMsgAtChat) primeiraMsgAt = primeiraMsgAtChat;
 
       // Atualizar datas reais na conversa
       const conversaUpdate: any = {};
