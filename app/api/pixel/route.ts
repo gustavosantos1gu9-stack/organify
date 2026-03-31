@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
     await supabase.from("pixel_disparos").insert({
       agencia_id,
       conversa_id,
+      telefone: phone || null,
       etapa: etapa_nome,
       evento: etapa.evento_conversao,
       status: resultado.ok ? "sucesso" : "erro",
