@@ -104,13 +104,18 @@ async function listarChats(agencia: any) {
     // Resolver número inline (rápido)
     let numero = "";
     if (jid.includes("@lid")) {
+      // Tentar resolver número real do @lid
       const alt = chat.lastMessage?.key?.remoteJidAlt || chat.participant || "";
-      if (typeof alt === "string" && alt.includes("@s.whatsapp.net"))
+      if (typeof alt === "string" && alt.includes("@s.whatsapp.net")) {
         numero = alt.replace("@s.whatsapp.net", "").replace(/\D/g, "");
+      }
+      // Se não conseguiu, usar o lid como identificador (não descartar)
+      if (!numero) numero = jid.replace("@lid", "").replace(/\D/g, "") || jid.split("@")[0];
     } else {
       numero = jid.replace("@s.whatsapp.net", "").replace(/\D/g, "");
     }
-    if (!numero || numero === MEU || numero.length < 8 || numero.length > 15) continue;
+    if (!numero || numero === MEU) continue;
+    if (numero.length > 15) continue; // só filtra muito longos
 
     const contact = contactMap.get(jid) || null;
     const nome = resolverNome(chat, contact, []);
@@ -151,6 +156,18 @@ async function syncConversa(agencia: any, jid: string, info: any) {
       if (records.length < 100) break;
       page++;
     } catch { break; }
+  }
+
+  // Resolver número real do @lid via mensagens (se info.numero é um lid ID)
+  let numeroFinal = info.numero;
+  if (jid.includes("@lid")) {
+    for (const msg of todasMsgs.slice(0, 50)) {
+      const alt = msg.key?.remoteJidAlt || msg.participant || "";
+      if (typeof alt === "string" && alt.includes("@s.whatsapp.net")) {
+        const resolved = alt.replace("@s.whatsapp.net", "").replace(/\D/g, "");
+        if (resolved && resolved.length >= 8) { numeroFinal = resolved; break; }
+      }
+    }
   }
 
   // Resolver nome das mensagens se não veio do chat
@@ -194,7 +211,7 @@ async function syncConversa(agencia: any, jid: string, info: any) {
 
   // Criar/atualizar conversa
   let { data: conversa } = await supabase.from("conversas")
-    .select("id").eq("agencia_id", agencia.id).eq("contato_numero", info.numero).single();
+    .select("id").eq("agencia_id", agencia.id).eq("contato_numero", numeroFinal).single();
 
   const conversaData: any = { contato_jid: jid, nao_lidas: info.naoLidas || 0 };
   if (nome) conversaData.contato_nome = nome;
@@ -206,7 +223,7 @@ async function syncConversa(agencia: any, jid: string, info: any) {
   if (!conversa) {
     const { data: nova } = await supabase.from("conversas").insert({
       agencia_id: agencia.id, instancia: INST,
-      contato_numero: info.numero, contato_nome: nome || info.numero,
+      contato_numero: numeroFinal, contato_nome: nome || numeroFinal,
       contato_foto: info.foto, contato_jid: jid,
       ultima_mensagem: ultimaMsgConteudo || info.ultimaMsg || "",
       ultima_mensagem_at: ultimaMsgAt || info.ultimaAt || new Date().toISOString(),
