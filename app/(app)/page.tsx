@@ -115,10 +115,26 @@ function DashboardMaster() {
     (m.descricao || "").toLowerCase().includes("anuncio") ||
     (m.descricao || "").toLowerCase().includes("marketing")
   )).reduce((a,b) => a + b.valor, 0) ?? 0;
-  const novosClientes = clientes?.filter(c => {
-    const data = c.created_at.split("T")[0];
+  // Clientes novos = controle_clientes com data_entrada no período
+  const mesAtual = from.slice(3, 5) + "/" + from.slice(0, 4); // MM/YYYY
+  const novosClientes = controleClientes.filter(c => {
+    if (!c.data_entrada) return false;
+    const de = c.data_entrada; // formato DD/MM/YYYY ou YYYY-MM-DD
+    // Tentar extrair mês/ano
+    if (de.includes("/")) {
+      const partes = de.split("/");
+      if (partes.length === 3) {
+        const mes = partes[1];
+        const ano = partes[2].length === 2 ? "20" + partes[2] : partes[2];
+        const fromMes = from.slice(5, 7);
+        const fromAno = from.slice(0, 4);
+        return mes === fromMes && ano === fromAno;
+      }
+    }
+    // Formato ISO
+    const data = de.split("T")[0];
     return data >= from && data <= to;
-  }).length ?? 0;
+  }).length;
   const cac = novosClientes > 0 ? totalCac / novosClientes : 0;
 
   // Inadimplência = soma dos tickets dos clientes com pendência
