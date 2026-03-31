@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
 
       // Mensagens do lead — processar normalmente
       const { data: agencia } = await supabase.from("agencias")
-        .select("id, evolution_url, evolution_key, whatsapp_numero, meta_pixel_id, meta_token, meta_ativo")
+        .select("id, evolution_url, evolution_key, whatsapp_numero, meta_pixel_id, meta_token, meta_ativo, meta_business_token")
         .eq("whatsapp_instancia", instanciaName).single();
       if (!agencia) {
         console.error("Webhook: agência não encontrada para instância:", instanciaName);
@@ -257,11 +257,18 @@ export async function POST(req: NextRequest) {
 
       // 3. Tentar pelo fbclid/ctwaClid embutido na mensagem do WhatsApp (anúncios Meta)
       if (!tracking) {
+        // Buscar externalAdReply em TODOS os tipos de mensagem possíveis
         const externalAdReply = msg.message?.extendedTextMessage?.contextInfo?.externalAdReply
           || msg.message?.imageMessage?.contextInfo?.externalAdReply
-          || msg.message?.videoMessage?.contextInfo?.externalAdReply;
+          || msg.message?.videoMessage?.contextInfo?.externalAdReply
+          || msg.message?.documentMessage?.contextInfo?.externalAdReply
+          || msg.message?.contactMessage?.contextInfo?.externalAdReply
+          || msg.message?.locationMessage?.contextInfo?.externalAdReply
+          || msg.message?.conversation?.contextInfo?.externalAdReply
+          || msg.contextInfo?.externalAdReply
+          || data?.contextInfo?.externalAdReply;
 
-        const ctwaClid = externalAdReply?.ctwaClid || null;
+        const ctwaClid = externalAdReply?.ctwaClid || msg.message?.extendedTextMessage?.contextInfo?.ctwaClid || null;
         const sourceId = externalAdReply?.sourceId || null;
         const sourceUrl = externalAdReply?.sourceUrl || null;
 
@@ -310,16 +317,36 @@ export async function POST(req: NextRequest) {
           } catch {}
         }
 
-        // 5. Se tem externalAdReply mas não achou rastreamento — criar inline
-        if (!tracking && externalAdReply && (externalAdReply.title || externalAdReply.body)) {
+        // 5. Se tem externalAdReply — extrair campanha, conjunto e criativo
+        if (!tracking && externalAdReply) {
+          // Tentar buscar nomes reais da campanha/conjunto/criativo via Meta Ads API
+          let campanha = "";
+          let conjunto = "";
+          let criativo = "";
+
+          // Se tem sourceId, tentar buscar dados do anúncio
+          const adsToken = agencia.meta_business_token || agencia.meta_token;
+          if (sourceId && adsToken) {
+            try {
+              const adRes = await fetch(`https://graph.facebook.com/v21.0/${sourceId}?fields=name,adset{name},campaign{name}&access_token=${adsToken}`);
+              const adData = await adRes.json();
+              if (adData && !adData.error) {
+                criativo = adData.name || "";
+                conjunto = adData.adset?.name || "";
+                campanha = adData.campaign?.name || "";
+              }
+            } catch {}
+          }
+
           tracking = {
-            utm_source: "ig",
-            utm_campaign: externalAdReply.title || externalAdReply.body || "",
-            utm_content: sourceId || "",
-            utm_medium: "Instagram_Feed",
+            utm_source: externalAdReply.mediaType || "meta",
+            utm_campaign: campanha || externalAdReply.title || externalAdReply.body || "",
+            utm_content: conjunto ? `${conjunto}_${criativo}` : sourceId || "",
+            utm_medium: externalAdReply.mediaType || "",
             fbclid: ctwaClid || "",
             origem: "Meta Ads",
             link_id: null,
+            _nome_anuncio: criativo || externalAdReply.title || "",
           };
         }
 
@@ -327,9 +354,9 @@ export async function POST(req: NextRequest) {
         if (!tracking && isLid) {
           tracking = {
             utm_source: "meta",
-            utm_campaign: externalAdReply?.title || externalAdReply?.body || "",
+            utm_campaign: "",
             utm_content: sourceId || "",
-            utm_medium: externalAdReply?.mediaType || "",
+            utm_medium: "",
             fbclid: ctwaClid || "",
             origem: "Meta Ads",
             link_id: null,
@@ -411,6 +438,9 @@ export async function POST(req: NextRequest) {
 
           if (tracking._link_nome) {
             updateData.link_nome = tracking._link_nome;
+          }
+          if (tracking._nome_anuncio) {
+            updateData.nome_anuncio = tracking._nome_anuncio;
           }
 
           await supabase.from("conversas").update(updateData).eq("id", conversa.id);
