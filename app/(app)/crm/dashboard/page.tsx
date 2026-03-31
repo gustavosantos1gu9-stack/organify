@@ -30,16 +30,17 @@ export default function CRMDashboardPage() {
 
   useEffect(() => {
     async function calcular() {
-      const leadsGanhos = lf.filter((l) => l.etapa === "ganho");
-      if (!leadsGanhos.length) { setTempoMedio(0); return; }
+      // Leads que chegaram a agendar (reuniao_agendada ou além)
+      const leadsAgendaram = lf.filter((l) => ["reuniao_agendada","nao_compareceu","ganho","perdido"].includes(l.etapa));
+      if (!leadsAgendaram.length) { setTempoMedio(0); return; }
 
-      const ids = leadsGanhos.map((l) => l.id);
+      const ids = leadsAgendaram.map((l) => l.id);
 
       const { data: historico } = await supabase
         .from("leads_historico")
         .select("lead_id, etapa_nova, created_at")
         .in("lead_id", ids)
-        .in("etapa_nova", ["em_contato", "ganho"])
+        .in("etapa_nova", ["em_contato", "reuniao_agendada"])
         .order("created_at", { ascending: true });
 
       if (!historico?.length) { setTempoMedio(0); return; }
@@ -50,7 +51,7 @@ export default function CRMDashboardPage() {
         if (h.etapa_nova === "em_contato" && !porLead[h.lead_id].inicio) {
           porLead[h.lead_id].inicio = h.created_at;
         }
-        if (h.etapa_nova === "ganho") {
+        if (h.etapa_nova === "reuniao_agendada" && !porLead[h.lead_id].fim) {
           porLead[h.lead_id].fim = h.created_at;
         }
       }
@@ -151,7 +152,7 @@ export default function CRMDashboardPage() {
         <KPICard label="Comprou" value={comprou} change={0} icon={<TrendingUp size={16}/>} iconBg="green"/>
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"16px", marginBottom:"28px" }}>
-        <KPICard label="Tempo médio de decisão (dias)" value={tempoMedio > 0 ? `${tempoMedio} dias` : "0"} change={0} icon={<Clock size={16}/>} iconBg="blue"/>
+        <KPICard label="Tempo médio até agendamento (dias)" value={tempoMedio > 0 ? `${tempoMedio} dias` : "0"} change={0} icon={<Clock size={16}/>} iconBg="blue"/>
         <KPICard label="Não respondeu" value={lf.filter((l)=>l.etapa==="novo").length} change={0} icon={<Users size={16}/>} iconBg="blue"/>
         <KPICard label="Não compareceu" value={naoCompareceu} change={0} icon={<Users size={16}/>} iconBg="red"/>
         <KPICard label="Não comprou" value={naoComprou} change={0} icon={<Users size={16}/>} iconBg="red"/>
