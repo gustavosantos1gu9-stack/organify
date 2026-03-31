@@ -55,24 +55,34 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       setChecando(false);
 
       // Verificar permissão da página atual
-      fetch("/api/permissoes", {
+      const agenciaId = typeof window !== "undefined" ? localStorage.getItem("agencia_selecionada") : null;
+      const permUrl = agenciaId ? `/api/permissoes?agencia_id=${agenciaId}` : "/api/permissoes";
+      fetch(permUrl, {
         headers: { Authorization: `Bearer ${session.access_token}` },
       })
         .then(r => r.json())
-        .then(({ permissoes }) => {
-          if (!permissoes) return; // admin, acesso total
-          const allowed = new Set<string>(permissoes);
+        .then(({ permissoes, modulos_agencia }) => {
+          if (!permissoes && !modulos_agencia) return; // admin master, acesso total
+
+          const allowedPerms = permissoes ? new Set<string>(permissoes) : null;
+          const allowedAgencia = modulos_agencia ? new Set<string>(modulos_agencia) : null;
           const moduloKey = hrefToModuloKey[pathname];
 
           // Se a rota não está mapeada (ex: /perfil), permite
           if (!moduloKey) return;
 
-          if (!allowed.has(moduloKey)) {
+          const blocked = (allowedPerms && !allowedPerms.has(moduloKey)) ||
+                          (allowedAgencia && !allowedAgencia.has(moduloKey));
+
+          if (blocked) {
             setPermitido(false);
             // Redirecionar pra primeira rota permitida
             const destino = rotasPrioridade.find(r => {
               const k = hrefToModuloKey[r];
-              return k && allowed.has(k);
+              if (!k) return false;
+              if (allowedPerms && !allowedPerms.has(k)) return false;
+              if (allowedAgencia && !allowedAgencia.has(k)) return false;
+              return true;
             });
             router.push(destino || "/perfil");
           }

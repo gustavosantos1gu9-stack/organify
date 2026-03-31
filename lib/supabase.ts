@@ -24,12 +24,18 @@ export async function signOut() {
 }
 
 export async function getAgenciaId(): Promise<string | null> {
-  // Modo sem login — retorna agência fixa
   const AGENCIA_ID = "32cdce6e-4664-4ac6-979d-6d68a1a68745";
-  
+
   try {
     const user = await getUser();
     if (!user) return AGENCIA_ID;
+
+    // Se é admin (dono) e tem agência selecionada no localStorage, usar essa
+    if (typeof window !== "undefined") {
+      const selecionada = localStorage.getItem("agencia_selecionada");
+      if (selecionada) return selecionada;
+    }
+
     const { data } = await supabase
       .from("usuarios")
       .select("agencia_id")

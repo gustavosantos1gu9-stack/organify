@@ -10,27 +10,51 @@ export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get("authorization");
     if (!authHeader) {
-      return NextResponse.json({ permissoes: null });
+      return NextResponse.json({ permissoes: null, modulos_agencia: null });
     }
 
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
     if (authErr || !user) {
-      return NextResponse.json({ permissoes: null });
+      return NextResponse.json({ permissoes: null, modulos_agencia: null });
     }
 
     const { data: usuario } = await supabaseAdmin
       .from("usuarios")
-      .select("time_id")
+      .select("time_id, agencia_id")
       .eq("auth_user_id", user.id)
       .single();
 
     if (!usuario) {
-      return NextResponse.json({ permissoes: null }); // sem registro em usuarios = dono/admin
+      // Dono/admin — verificar se tem agência selecionada via query param
+      const agenciaId = request.nextUrl.searchParams.get("agencia_id");
+      if (agenciaId) {
+        const { data: ag } = await supabaseAdmin
+          .from("agencias")
+          .select("modulos_habilitados")
+          .eq("id", agenciaId)
+          .single();
+        return NextResponse.json({
+          permissoes: null, // admin = vê tudo que a agência permite
+          modulos_agencia: ag?.modulos_habilitados || null,
+        });
+      }
+      return NextResponse.json({ permissoes: null, modulos_agencia: null });
+    }
+
+    // Buscar modulos_habilitados da agência do usuário
+    let modulosAgencia: string[] | null = null;
+    if (usuario.agencia_id) {
+      const { data: ag } = await supabaseAdmin
+        .from("agencias")
+        .select("modulos_habilitados")
+        .eq("id", usuario.agencia_id)
+        .single();
+      modulosAgencia = ag?.modulos_habilitados || null;
     }
 
     if (!usuario.time_id) {
-      return NextResponse.json({ permissoes: [] }); // membro sem time = sem acesso
+      return NextResponse.json({ permissoes: [], modulos_agencia: modulosAgencia });
     }
 
     const { data: time } = await supabaseAdmin
@@ -40,7 +64,7 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (!time?.permissoes) {
-      return NextResponse.json({ permissoes: null });
+      return NextResponse.json({ permissoes: null, modulos_agencia: modulosAgencia });
     }
 
     const permissoes = time.permissoes as Record<string, string[]>;
@@ -51,8 +75,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ permissoes: allowed });
+    return NextResponse.json({ permissoes: allowed, modulos_agencia: modulosAgencia });
   } catch {
-    return NextResponse.json({ permissoes: null });
+    return NextResponse.json({ permissoes: null, modulos_agencia: null });
   }
 }

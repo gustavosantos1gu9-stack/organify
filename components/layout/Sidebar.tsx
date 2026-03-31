@@ -27,6 +27,7 @@ import {
   Headphones,
   Radar,
   FileBarChart,
+  Building2,
 } from "lucide-react";
 
 interface NavItem {
@@ -93,6 +94,7 @@ const navItems: NavItem[] = [
       { href: "/jornada", label: "Jornada de Compra" },
     ],
   },
+  { href: "/clientes-saas", label: "Clientes SaaS", icon: <Building2 size={16} /> },
   {
     label: "Configurações",
     icon: <Settings size={16} />,
@@ -142,6 +144,7 @@ const hrefToModuloKey: Record<string, string> = {
   "/financeiro/lancamentos-futuros": "lancamentos",
   "/financeiro/movimentacoes": "movimentacoes",
   "/financeiro/recorrencias": "recorrencias",
+  "/clientes-saas": "clientes_saas",
 };
 
 const groupChildKeys: Record<string, string[]> = {
@@ -157,6 +160,7 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [openMenus, setOpenMenus] = useState<string[]>([]);
   const [allowedModulos, setAllowedModulos] = useState<Set<string> | null>(null);
+  const [modulosAgencia, setModulosAgencia] = useState<Set<string> | null>(null);
   const [permLoaded, setPermLoaded] = useState(false);
 
   useEffect(() => {
@@ -165,12 +169,17 @@ export default function Sidebar() {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) { setPermLoaded(true); return; }
 
-        const res = await fetch("/api/permissoes", {
+        const agenciaId = typeof window !== "undefined" ? localStorage.getItem("agencia_selecionada") : null;
+        const url = agenciaId ? `/api/permissoes?agencia_id=${agenciaId}` : "/api/permissoes";
+        const res = await fetch(url, {
           headers: { Authorization: `Bearer ${session.access_token}` },
         });
-        const { permissoes } = await res.json();
+        const { permissoes, modulos_agencia } = await res.json();
         if (permissoes) {
           setAllowedModulos(new Set<string>(permissoes));
+        }
+        if (modulos_agencia) {
+          setModulosAgencia(new Set<string>(modulos_agencia));
         }
       } catch {
         // on error, show all items
@@ -265,23 +274,35 @@ export default function Sidebar() {
         }}
       >
         {!permLoaded ? null : navItems.filter((item) => {
-          if (!allowedModulos) return true; // admin or no team → show all
+          // Helper: verificar se o módulo é permitido (time + agência)
+          const isModuloAllowed = (key: string) => {
+            if (allowedModulos && !allowedModulos.has(key)) return false;
+            if (modulosAgencia && !modulosAgencia.has(key)) return false;
+            return true;
+          };
+
+          // "Clientes SaaS" só aparece pro admin master (sem modulosAgencia = master)
+          if (item.label === "Clientes SaaS") {
+            return !modulosAgencia && !allowedModulos;
+          }
+
+          if (!allowedModulos && !modulosAgencia) return true; // admin master sem agência filha selecionada
 
           if (item.label === "Configurações") {
-            return allowedModulos.has("configuracoes");
+            return isModuloAllowed("configuracoes");
           }
 
           // Collapsible groups: show if any child module is allowed
           const childKeys = groupChildKeys[item.label];
           if (childKeys) {
-            return childKeys.some((k) => allowedModulos.has(k));
+            return childKeys.some((k) => isModuloAllowed(k));
           }
 
           const href = item.href;
           if (!href) return true;
           const moduloKey = hrefToModuloKey[href];
           if (!moduloKey) return true;
-          return allowedModulos.has(moduloKey);
+          return isModuloAllowed(moduloKey);
         }).map((item) => {
           if (item.children) {
             const isOpen = openMenus.includes(item.label);
@@ -314,10 +335,12 @@ export default function Sidebar() {
                 {!collapsed && isOpen && (
                   <div style={{ marginLeft: "26px", marginTop: "2px", display: "flex", flexDirection: "column", gap: "1px" }}>
                     {item.children.filter((child) => {
-                      if (!allowedModulos || !child.href) return true;
+                      if ((!allowedModulos && !modulosAgencia) || !child.href) return true;
                       const moduloKey = hrefToModuloKey[child.href];
                       if (!moduloKey) return true;
-                      return allowedModulos.has(moduloKey);
+                      if (allowedModulos && !allowedModulos.has(moduloKey)) return false;
+                      if (modulosAgencia && !modulosAgencia.has(moduloKey)) return false;
+                      return true;
                     }).map((child) => {
                       if (child.children) {
                         const subOpen = openMenus.includes(`${item.label}:${child.label}`);
