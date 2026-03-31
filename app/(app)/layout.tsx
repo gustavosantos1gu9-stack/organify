@@ -74,27 +74,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         if (cancelled) return;
 
-        // Admin master sem agência filha selecionada = acesso total
-        if (!permissoes && !modulos_agencia) return;
+        // Admin (permissoes=null) = acesso total, mesmo em agência filha
+        if (!permissoes) return;
 
-        const allowedPerms = permissoes ? new Set<string>(permissoes) : null;
-        const allowedAgencia = modulos_agencia ? new Set<string>(modulos_agencia) : null;
+        const allowedPerms = new Set<string>(permissoes);
         const moduloKey = hrefToModuloKey[pathname];
 
         // Rota não mapeada (ex: /perfil) = permite
         if (!moduloKey) return;
 
-        const blocked = (allowedPerms && !allowedPerms.has(moduloKey)) ||
-                        (allowedAgencia && !allowedAgencia.has(moduloKey));
+        const blocked = !allowedPerms.has(moduloKey);
 
         if (blocked) {
           setRedirecionando(true);
           const destino = rotasPrioridade.find(r => {
             const k = hrefToModuloKey[r];
-            if (!k) return false;
-            if (allowedPerms && !allowedPerms.has(k)) return false;
-            if (allowedAgencia && !allowedAgencia.has(k)) return false;
-            return true;
+            return k && allowedPerms.has(k);
           });
           router.replace(destino || "/perfil");
         }
