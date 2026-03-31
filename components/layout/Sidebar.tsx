@@ -28,6 +28,11 @@ import {
   Radar,
   FileBarChart,
   Building2,
+  MousePointer,
+  Webhook,
+  Info,
+  UserCheck,
+  Mail,
 } from "lucide-react";
 
 interface NavItem {
@@ -43,6 +48,7 @@ interface NavChild {
   children?: { href: string; label: string }[];
 }
 
+// ─── Menu MASTER (agência SALX) ─────────────────────────────
 const navItems: NavItem[] = [
   { href: "/", label: "Início", icon: <LayoutDashboard size={16} /> },
   {
@@ -122,6 +128,23 @@ const navItems: NavItem[] = [
   },
 ];
 
+// ─── Menu CLIENTE (agência filha) — flat, sem grupos ─────────
+const navItemsCliente: NavItem[] = [
+  { href: "/", label: "Dashboard", icon: <LayoutDashboard size={16} /> },
+  { href: "/inbox", label: "Conversas", icon: <MessageCircle size={16} /> },
+  { href: "/crm", label: "CRM", icon: <ClipboardList size={16} /> },
+  { href: "/ferramentas/gerador-links", label: "Links Rastreáveis", icon: <Link2 size={16} /> },
+  { href: "/ferramentas/campanhas", label: "Configurar Campanha", icon: <Target size={16} /> },
+  { href: "/jornada", label: "Jornada de Compra", icon: <BarChart3 size={16} /> },
+  { href: "/mensagens-rastreaveis", label: "Mensagens Rastreáveis", icon: <Mail size={16} /> },
+  { href: "/disparos-pixel", label: "Disparos de Pixel", icon: <MousePointer size={16} /> },
+  { href: "/disparos-webhook", label: "Disparos de Webhook", icon: <Webhook size={16} /> },
+  { href: "/relatorios-meta", label: "Relatórios", icon: <FileBarChart size={16} /> },
+  { href: "/configuracoes/integracoes", label: "Integrações", icon: <Plug size={16} /> },
+  { href: "/configuracoes/usuarios", label: "Acessos", icon: <UserCheck size={16} /> },
+  { href: "/configuracoes/agencia", label: "Informações", icon: <Info size={16} /> },
+];
+
 // Map href → module key for permission filtering
 const hrefToModuloKey: Record<string, string> = {
   "/": "inicio",
@@ -145,6 +168,9 @@ const hrefToModuloKey: Record<string, string> = {
   "/financeiro/movimentacoes": "movimentacoes",
   "/financeiro/recorrencias": "recorrencias",
   "/clientes-saas": "clientes_saas",
+  "/mensagens-rastreaveis": "mensagens_rastreaveis",
+  "/disparos-pixel": "disparos_pixel",
+  "/disparos-webhook": "disparos_webhook",
 };
 
 const groupChildKeys: Record<string, string[]> = {
@@ -226,6 +252,151 @@ export default function Sidebar() {
     return pathname.startsWith(href);
   };
 
+  const isFilha = agenciaInfo?.isFilha ?? false;
+
+  // ─── Renderizar item flat (usado pelo menu cliente) ────────
+  const renderFlatItem = (item: NavItem) => (
+    <Link key={item.href} href={item.href!}
+      className={`sidebar-item ${isActive(item.href!) ? "active" : ""}`}
+      style={{ justifyContent: collapsed ? "center" : undefined, padding: collapsed ? "9px" : undefined }}
+      title={collapsed ? item.label : undefined}
+    >
+      <span style={{ flexShrink: 0 }}>{item.icon}</span>
+      {!collapsed && <span>{item.label}</span>}
+    </Link>
+  );
+
+  // ─── Filtrar itens do master ───────────────────────────────
+  const filterMasterItems = (items: NavItem[]) => items.filter((item) => {
+    const isModuloAllowed = (key: string) => {
+      if (allowedModulos && !allowedModulos.has(key)) return false;
+      if (modulosAgencia && !modulosAgencia.has(key)) return false;
+      return true;
+    };
+
+    if (item.label === "Clientes SaaS") {
+      return !modulosAgencia && !allowedModulos;
+    }
+
+    if (!allowedModulos && !modulosAgencia) return true;
+
+    if (item.label === "Configurações") {
+      return isModuloAllowed("configuracoes");
+    }
+
+    const childKeys = groupChildKeys[item.label];
+    if (childKeys) {
+      return childKeys.some((k) => isModuloAllowed(k));
+    }
+
+    const href = item.href;
+    if (!href) return true;
+    const moduloKey = hrefToModuloKey[href];
+    if (!moduloKey) return true;
+    return isModuloAllowed(moduloKey);
+  });
+
+  // ─── Renderizar item do master (com suporte a groups) ──────
+  const renderMasterItem = (item: NavItem) => {
+    if (item.children) {
+      const isOpen = openMenus.includes(item.label);
+      const hasActiveChild = item.children.some((c) =>
+        c.href ? isActive(c.href) : c.children?.some(sc => isActive(sc.href))
+      );
+      return (
+        <div key={item.label}>
+          <button
+            onClick={() => !collapsed && toggleMenu(item.label)}
+            className="sidebar-item"
+            style={{
+              color: hasActiveChild ? "#f0f0f0" : undefined,
+              background: hasActiveChild ? "#2a2a2a" : undefined,
+              justifyContent: collapsed ? "center" : "space-between",
+              padding: collapsed ? "9px" : undefined,
+            }}
+            title={collapsed ? item.label : undefined}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <span style={{ color: hasActiveChild ? "#29ABE2" : undefined, flexShrink: 0 }}>
+                {item.icon}
+              </span>
+              {!collapsed && <span>{item.label}</span>}
+            </div>
+            {!collapsed && (
+              <ChevronDown size={12} style={{ transform: isOpen ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s", color: "#606060" }} />
+            )}
+          </button>
+          {!collapsed && isOpen && (
+            <div style={{ marginLeft: "26px", marginTop: "2px", display: "flex", flexDirection: "column", gap: "1px" }}>
+              {item.children.filter((child) => {
+                if ((!allowedModulos && !modulosAgencia) || !child.href) return true;
+                const moduloKey = hrefToModuloKey[child.href];
+                if (!moduloKey) return true;
+                if (allowedModulos && !allowedModulos.has(moduloKey)) return false;
+                if (modulosAgencia && !modulosAgencia.has(moduloKey)) return false;
+                return true;
+              }).map((child) => {
+                if (child.children) {
+                  const subOpen = openMenus.includes(`${item.label}:${child.label}`);
+                  const hasActiveSub = child.children.some(sc => isActive(sc.href));
+                  return (
+                    <div key={child.label}>
+                      <button
+                        onClick={() => toggleMenu(`${item.label}:${child.label}`)}
+                        style={{
+                          width: "100%", display: "flex", alignItems: "center",
+                          justifyContent: "space-between", padding: "7px 12px",
+                          borderRadius: "6px", fontSize: "13px", cursor: "pointer",
+                          background: hasActiveSub ? "#29ABE210" : "transparent",
+                          border: "none",
+                          color: hasActiveSub ? "#f0f0f0" : "#707070",
+                        }}
+                      >
+                        <span>{child.label}</span>
+                        <ChevronDown size={11} style={{ transform: subOpen ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s", color: "#505050" }}/>
+                      </button>
+                      {subOpen && (
+                        <div style={{ marginLeft: "12px", display: "flex", flexDirection: "column", gap: "1px" }}>
+                          {child.children.map((sc) => (
+                            <Link key={sc.href} href={sc.href} style={{
+                              display: "block", padding: "6px 12px", borderRadius: "6px",
+                              fontSize: "12px",
+                              color: isActive(sc.href) ? "#f0f0f0" : "#606060",
+                              background: isActive(sc.href) ? "#29ABE215" : "transparent",
+                              textDecoration: "none",
+                              borderLeft: isActive(sc.href) ? "2px solid #29ABE2" : "2px solid transparent",
+                            }}>
+                              {sc.label}
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+                return (
+                  <Link key={child.href} href={child.href!} style={{
+                    display: "block", padding: "7px 12px", borderRadius: "6px",
+                    fontSize: "13px",
+                    color: isActive(child.href!) ? "#f0f0f0" : "#707070",
+                    background: isActive(child.href!) ? "#29ABE215" : "transparent",
+                    textDecoration: "none",
+                    borderLeft: isActive(child.href!) ? "2px solid #29ABE2" : "2px solid transparent",
+                    transition: "all 0.15s",
+                  }}>
+                    {child.label}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return renderFlatItem(item);
+  };
+
   return (
     <aside
       style={{
@@ -260,9 +431,9 @@ export default function Sidebar() {
               <span style={{ fontWeight: "800", fontSize: "16px", color: "#f0f0f0", letterSpacing: "-0.3px" }}>
                 SALX <span style={{ color: "#29ABE2" }}>Convert</span>
               </span>
-              {agenciaInfo?.isFilha ? (
+              {isFilha ? (
                 <span style={{ fontSize: "10px", color: "#29ABE2", marginTop: "3px", letterSpacing: "0.03em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "120px" }}>
-                  {agenciaInfo.nome}
+                  {agenciaInfo!.nome}
                 </span>
               ) : (
                 <span style={{ fontSize: "10px", color: "#606060", textAlign: "center", letterSpacing: "0.05em", marginTop: "2px" }}>
@@ -304,144 +475,13 @@ export default function Sidebar() {
           gap: "2px",
         }}
       >
-        {!permLoaded ? null : navItems.filter((item) => {
-          // Helper: verificar se o módulo é permitido (time + agência)
-          const isModuloAllowed = (key: string) => {
-            if (allowedModulos && !allowedModulos.has(key)) return false;
-            if (modulosAgencia && !modulosAgencia.has(key)) return false;
-            return true;
-          };
-
-          // "Clientes SaaS" só aparece pro admin master (sem modulosAgencia = master)
-          if (item.label === "Clientes SaaS") {
-            return !modulosAgencia && !allowedModulos;
-          }
-
-          if (!allowedModulos && !modulosAgencia) return true; // admin master sem agência filha selecionada
-
-          if (item.label === "Configurações") {
-            return isModuloAllowed("configuracoes");
-          }
-
-          // Collapsible groups: show if any child module is allowed
-          const childKeys = groupChildKeys[item.label];
-          if (childKeys) {
-            return childKeys.some((k) => isModuloAllowed(k));
-          }
-
-          const href = item.href;
-          if (!href) return true;
-          const moduloKey = hrefToModuloKey[href];
-          if (!moduloKey) return true;
-          return isModuloAllowed(moduloKey);
-        }).map((item) => {
-          if (item.children) {
-            const isOpen = openMenus.includes(item.label);
-            const hasActiveChild = item.children.some((c) =>
-              c.href ? isActive(c.href) : c.children?.some(sc => isActive(sc.href))
-            );
-            return (
-              <div key={item.label}>
-                <button
-                  onClick={() => !collapsed && toggleMenu(item.label)}
-                  className="sidebar-item"
-                  style={{
-                    color: hasActiveChild ? "#f0f0f0" : undefined,
-                    background: hasActiveChild ? "#2a2a2a" : undefined,
-                    justifyContent: collapsed ? "center" : "space-between",
-                    padding: collapsed ? "9px" : undefined,
-                  }}
-                  title={collapsed ? item.label : undefined}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <span style={{ color: hasActiveChild ? "#29ABE2" : undefined, flexShrink: 0 }}>
-                      {item.icon}
-                    </span>
-                    {!collapsed && <span>{item.label}</span>}
-                  </div>
-                  {!collapsed && (
-                    <ChevronDown size={12} style={{ transform: isOpen ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s", color: "#606060" }} />
-                  )}
-                </button>
-                {!collapsed && isOpen && (
-                  <div style={{ marginLeft: "26px", marginTop: "2px", display: "flex", flexDirection: "column", gap: "1px" }}>
-                    {item.children.filter((child) => {
-                      if ((!allowedModulos && !modulosAgencia) || !child.href) return true;
-                      const moduloKey = hrefToModuloKey[child.href];
-                      if (!moduloKey) return true;
-                      if (allowedModulos && !allowedModulos.has(moduloKey)) return false;
-                      if (modulosAgencia && !modulosAgencia.has(moduloKey)) return false;
-                      return true;
-                    }).map((child) => {
-                      if (child.children) {
-                        const subOpen = openMenus.includes(`${item.label}:${child.label}`);
-                        const hasActiveSub = child.children.some(sc => isActive(sc.href));
-                        return (
-                          <div key={child.label}>
-                            <button
-                              onClick={() => toggleMenu(`${item.label}:${child.label}`)}
-                              style={{
-                                width: "100%", display: "flex", alignItems: "center",
-                                justifyContent: "space-between", padding: "7px 12px",
-                                borderRadius: "6px", fontSize: "13px", cursor: "pointer",
-                                background: hasActiveSub ? "#29ABE210" : "transparent",
-                                border: "none",
-                                color: hasActiveSub ? "#f0f0f0" : "#707070",
-                              }}
-                            >
-                              <span>{child.label}</span>
-                              <ChevronDown size={11} style={{ transform: subOpen ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s", color: "#505050" }}/>
-                            </button>
-                            {subOpen && (
-                              <div style={{ marginLeft: "12px", display: "flex", flexDirection: "column", gap: "1px" }}>
-                                {child.children.map((sc) => (
-                                  <Link key={sc.href} href={sc.href} style={{
-                                    display: "block", padding: "6px 12px", borderRadius: "6px",
-                                    fontSize: "12px",
-                                    color: isActive(sc.href) ? "#f0f0f0" : "#606060",
-                                    background: isActive(sc.href) ? "#29ABE215" : "transparent",
-                                    textDecoration: "none",
-                                    borderLeft: isActive(sc.href) ? "2px solid #29ABE2" : "2px solid transparent",
-                                  }}>
-                                    {sc.label}
-                                  </Link>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      }
-                      return (
-                        <Link key={child.href} href={child.href!} style={{
-                          display: "block", padding: "7px 12px", borderRadius: "6px",
-                          fontSize: "13px",
-                          color: isActive(child.href!) ? "#f0f0f0" : "#707070",
-                          background: isActive(child.href!) ? "#29ABE215" : "transparent",
-                          textDecoration: "none",
-                          borderLeft: isActive(child.href!) ? "2px solid #29ABE2" : "2px solid transparent",
-                          transition: "all 0.15s",
-                        }}>
-                          {child.label}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          }
-
-          return (
-            <Link key={item.href} href={item.href!}
-              className={`sidebar-item ${isActive(item.href!) ? "active" : ""}`}
-              style={{ justifyContent: collapsed ? "center" : undefined, padding: collapsed ? "9px" : undefined }}
-              title={collapsed ? item.label : undefined}
-            >
-              <span style={{ flexShrink: 0 }}>{item.icon}</span>
-              {!collapsed && <span>{item.label}</span>}
-            </Link>
-          );
-        })}
+        {!permLoaded ? null : isFilha ? (
+          // ─── Menu CLIENTE: flat, sem grupos ─────────
+          navItemsCliente.map(renderFlatItem)
+        ) : (
+          // ─── Menu MASTER: com grupos colapsáveis ────
+          filterMasterItems(navItems).map(renderMasterItem)
+        )}
       </nav>
 
       {/* Sair */}

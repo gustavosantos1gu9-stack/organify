@@ -34,6 +34,10 @@ const hrefToModuloKey: Record<string, string> = {
   "/configuracoes/agencia": "configuracoes",
   "/configuracoes/integracoes": "configuracoes",
   "/clientes-saas": "clientes_saas",
+  "/mensagens-rastreaveis": "mensagens_rastreaveis",
+  "/disparos-pixel": "disparos_pixel",
+  "/disparos-webhook": "disparos_webhook",
+  "/configuracoes/integracoes": "configuracoes",
 };
 
 // Ordem de prioridade pra redirecionar ao primeiro módulo permitido

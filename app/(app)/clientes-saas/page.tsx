@@ -8,20 +8,20 @@ import {
 import { supabase } from "@/lib/hooks";
 
 const MODULOS_DISPONIVEIS = [
-  { key: "inbox", label: "Inbox WhatsApp" },
+  { key: "inicio", label: "Dashboard" },
+  { key: "inbox", label: "Conversas" },
   { key: "crm", label: "CRM" },
-  { key: "links_campanhas", label: "Links & Campanhas" },
+  { key: "links_campanhas", label: "Links Rastreáveis" },
   { key: "configurar_campanha", label: "Configurar Campanha" },
   { key: "jornada", label: "Jornada de Compra" },
-  { key: "controle_clientes", label: "Controle de Clientes" },
-  { key: "cadastros", label: "Cadastros" },
-  { key: "relatorios_meta", label: "Relatórios Meta" },
-  { key: "relatorios_conexoes", label: "Relatórios — Conexões" },
-  { key: "relatorios_alertas", label: "Relatórios — Alertas" },
-  { key: "configuracoes", label: "Configurações" },
+  { key: "mensagens_rastreaveis", label: "Mensagens Rastreáveis" },
+  { key: "disparos_pixel", label: "Disparos de Pixel" },
+  { key: "disparos_webhook", label: "Disparos de Webhook" },
+  { key: "relatorios_meta", label: "Relatórios" },
+  { key: "configuracoes", label: "Integrações / Acessos / Info" },
 ];
 
-const MODULOS_PADRAO = ["inbox", "crm", "links_campanhas", "configurar_campanha", "jornada"];
+const MODULOS_PADRAO = ["inicio", "inbox", "crm", "links_campanhas", "configurar_campanha", "jornada", "relatorios_meta", "configuracoes"];
 
 interface Agencia {
   id: string;
