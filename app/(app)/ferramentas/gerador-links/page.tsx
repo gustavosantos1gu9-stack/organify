@@ -278,7 +278,8 @@ function DetalhesLink({ link, onVoltar, waNumero, conversasPorLink }: { link: Li
   );
 }
 
-function FormLink({ onSave, onCancel, waNumero }: { onSave: (link: LinkCampanha) => void; onCancel: () => void; waNumero: string }) {
+function FormLink({ onSave, onCancel, waNumero: waNumeroInicial }: { onSave: (link: LinkCampanha) => void; onCancel: () => void; waNumero: string }) {
+  const [waNumero, setWaNumero] = useState(waNumeroInicial);
   const [form, setForm] = useState({
     nome: "", wa_mensagem: "", redirect_tipo: "web",
     titulo_redirect: "Por favor, aguarde alguns segundos.",
@@ -289,10 +290,14 @@ function FormLink({ onSave, onCancel, waNumero }: { onSave: (link: LinkCampanha)
 
   const handleSalvar = async () => {
     if (!form.nome.trim()) { alert("Preencha o nome do link"); return; }
-    if (!waNumero) { alert("Nenhum WhatsApp conectado. Configure em Integrações."); return; }
+    if (!waNumero) { alert("Preencha o número do WhatsApp abaixo."); return; }
     setLoading(true);
     try {
       const agId = await getAgenciaId();
+      // Salvar número no banco pra próxima vez
+      if (waNumero) {
+        await supabase.from("agencias").update({ whatsapp_numero: waNumero }).eq("id", agId!);
+      }
       const baseUrl = typeof window !== "undefined" ? `${window.location.origin}/c` : "";
       const utmCampaign = form.nome.toLowerCase().replace(/\s+/g, "-");
       // Gerar UUID antecipado para incluir no link
@@ -347,6 +352,16 @@ function FormLink({ onSave, onCancel, waNumero }: { onSave: (link: LinkCampanha)
           Configurações do Link
         </h2>
         <div style={{ display:"flex", flexDirection:"column", gap:"20px" }}>
+          <div className="form-group">
+            <label className="form-label">Numero do WhatsApp *</label>
+            <input className="form-input" placeholder="5511999999999 (com DDI + DDD)" value={waNumero}
+              onChange={e => setWaNumero(e.target.value.replace(/\D/g, ""))}
+              style={{ fontFamily: "monospace" }} />
+            <p style={{ fontSize:"11px", color: waNumero ? "#606060" : "#f59e0b", marginTop:"4px" }}>
+              {waNumero ? "Numero detectado automaticamente. Altere se necessario." : "Digite o numero do WhatsApp com DDI (55) + DDD + numero."}
+            </p>
+          </div>
+
           <div className="form-group">
             <label className="form-label">Nome do Link Rastreável *</label>
             <input className="form-input" placeholder="Ex: Meta Ads - Black Friday" value={form.nome} onChange={e=>set("nome",e.target.value)}/>

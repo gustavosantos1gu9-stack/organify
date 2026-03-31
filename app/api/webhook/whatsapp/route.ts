@@ -127,6 +127,29 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
+      // Auto-salvar whatsapp_numero se ainda não tem (pega do participant da msg)
+      if (!agencia.whatsapp_numero) {
+        const meuNumero = msg.key?.participant?.replace("@s.whatsapp.net", "").replace(/\D/g, "")
+          || remoteJid.replace("@s.whatsapp.net", "").replace(/\D/g, "");
+        // O número do dono é quem NÃO é o remetente (se !fromMe, o remetente é o lead)
+        // Buscar da instância via Evolution
+        try {
+          const instRes = await fetch(`${agencia.evolution_url}/instance/fetchInstances`, {
+            headers: { apikey: agencia.evolution_key },
+          });
+          const instances = await instRes.json();
+          if (Array.isArray(instances)) {
+            const inst = instances.find((i: any) => (i.name || i.instance?.instanceName) === instanciaName);
+            const owner = inst?.owner?.replace("@s.whatsapp.net", "").replace(/\D/g, "")
+              || inst?.instance?.owner?.replace("@s.whatsapp.net", "").replace(/\D/g, "");
+            if (owner) {
+              await supabase.from("agencias").update({ whatsapp_numero: owner }).eq("id", agencia.id);
+              agencia.whatsapp_numero = owner;
+            }
+          }
+        } catch {}
+      }
+
       const nome = msg.pushName || numero;
 
       // Buscar foto
