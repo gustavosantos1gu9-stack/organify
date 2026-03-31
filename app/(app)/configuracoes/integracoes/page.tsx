@@ -81,7 +81,7 @@ function IntegracoesCliente() {
               url: webhookUrl,
               webhook_by_events: false,
               webhook_base64: false,
-              events: ["MESSAGES_UPSERT", "messages.upsert", "CONNECTION_UPDATE"],
+              events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE"],
             });
           } catch {}
 
@@ -173,7 +173,7 @@ function IntegracoesCliente() {
                         action: "setWebhook", instanceName: instSalva, agencia_id: agId,
                         payload: {
                           url: webhookUrl, webhook_by_events: false, webhook_base64: false,
-                          events: ["MESSAGES_UPSERT", "messages.upsert", "CONNECTION_UPDATE"],
+                          events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE"],
                         },
                       }),
                     });
@@ -514,7 +514,7 @@ function IntegracoesMaster() {
           url: webhookUrl,
           webhook_by_events: false,
           webhook_base64: false,
-          events: ["MESSAGES_UPSERT", "messages.upsert", "CONNECTION_UPDATE"],
+          events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE"],
         });
       } catch {}
       setNovaInstancia("");

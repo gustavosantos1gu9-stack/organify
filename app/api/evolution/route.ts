@@ -57,7 +57,8 @@ export async function POST(req: NextRequest) {
       case "fetchMessages":
         url = `${EVO_URL}/chat/findMessages/${instancia}`; method = "POST"; body = JSON.stringify(payload || {}); break;
       case "setWebhook":
-        url = `${EVO_URL}/webhook/set/${instancia}`; method = "POST"; body = JSON.stringify(payload); break;
+        url = `${EVO_URL}/webhook/set/${instancia}`; method = "POST";
+        body = JSON.stringify({ webhook: { ...payload, enabled: true } }); break;
       default:
         return NextResponse.json({ error: "Ação inválida" }, { status: 400 });
     }
