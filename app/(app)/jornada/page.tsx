@@ -257,12 +257,6 @@ export default function JornadaPage() {
           </div>
           <h1 style={{ fontSize: "22px", fontWeight: "600" }}>Jornada de Compra</h1>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#22c55e", background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)", padding: "4px 10px", borderRadius: "20px" }}>
-            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#22c55e", display: "inline-block" }}/>
-            WhatsApp Conectado
-          </span>
-        </div>
       </div>
 
       <div style={{ display: "flex", gap: "10px", marginBottom: "24px" }}>

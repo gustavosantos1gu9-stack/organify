@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { User, LogOut, UserCircle, Building2, ChevronDown, ArrowLeftRight } from "lucide-react";
+import { User, LogOut, UserCircle, Building2, ChevronDown, ArrowLeftRight, Wifi, WifiOff } from "lucide-react";
 import Link from "next/link";
-import { supabase } from "@/lib/hooks";
+import { supabase, getAgenciaId } from "@/lib/hooks";
 
 interface AgenciaOption {
   id: string;
@@ -23,6 +23,9 @@ export default function Topbar() {
   const selectorRef = useRef<HTMLDivElement>(null);
   const [isMaster, setIsMaster] = useState(false);
 
+  // WhatsApp status
+  const [waConectado, setWaConectado] = useState<boolean | null>(null);
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
@@ -32,6 +35,7 @@ export default function Topbar() {
 
     // Carregar agências filhas (se for admin)
     carregarAgencias();
+    verificarWhatsApp();
 
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
@@ -40,6 +44,32 @@ export default function Topbar() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  async function verificarWhatsApp() {
+    try {
+      const agId = await getAgenciaId();
+      if (!agId) return;
+      const { data: ag } = await supabase.from("agencias").select("evolution_url, evolution_key, whatsapp_instancia, parent_id").eq("id", agId).single();
+      if (!ag) return;
+
+      let evoUrl = ag.evolution_url || "";
+      let evoKey = ag.evolution_key || "";
+      if (!evoUrl && ag.parent_id) {
+        const { data: parent } = await supabase.from("agencias").select("evolution_url, evolution_key").eq("id", ag.parent_id).single();
+        if (parent) { evoUrl = parent.evolution_url || ""; evoKey = parent.evolution_key || ""; }
+      }
+
+      if (!evoUrl || !evoKey) { setWaConectado(false); return; }
+
+      const instNome = ag.whatsapp_instancia;
+      if (!instNome) { setWaConectado(false); return; }
+
+      const res = await fetch(`${evoUrl}/instance/connectionState/${instNome}`, { headers: { apikey: evoKey } });
+      const data = await res.json();
+      const state = (data.instance?.state || data.state || "").toLowerCase();
+      setWaConectado(state === "open" || state === "connected");
+    } catch { setWaConectado(false); }
+  }
 
   async function carregarAgencias() {
     try {
@@ -156,6 +186,21 @@ export default function Topbar() {
             </div>
           )}
         </div>
+      )}
+
+      {/* WhatsApp status */}
+      {waConectado !== null && (
+        <Link href="/configuracoes/integracoes" style={{
+          display: "flex", alignItems: "center", gap: "6px",
+          padding: "4px 10px", borderRadius: "20px", textDecoration: "none",
+          fontSize: "11px", fontWeight: "500", cursor: "pointer",
+          background: waConectado ? "rgba(37,211,102,0.1)" : "rgba(239,68,68,0.1)",
+          border: `1px solid ${waConectado ? "rgba(37,211,102,0.3)" : "rgba(239,68,68,0.3)"}`,
+          color: waConectado ? "#25d366" : "#ef4444",
+        }}>
+          {waConectado ? <Wifi size={12} /> : <WifiOff size={12} />}
+          {waConectado ? "WhatsApp Conectado" : "WhatsApp Desconectado"}
+        </Link>
       )}
 
       {isMaster && (
