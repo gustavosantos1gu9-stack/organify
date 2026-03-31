@@ -301,6 +301,7 @@ function IntegracoesCliente() {
           <div className="form-group">
             <label className="form-label">Pixel ID</label>
             <input className="form-input" placeholder="1234567890123456" value={pixelId} onChange={e => setPixelId(e.target.value)} />
+            <p style={{ fontSize: "11px", color: "#505050", marginTop: "6px" }}>Gerenciador de Eventos → Fontes de dados → ID do Pixel</p>
           </div>
           <div className="form-group">
             <label className="form-label">Access Token (Conversions API)</label>
@@ -311,14 +312,15 @@ function IntegracoesCliente() {
                 {showToken ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>
+            <p style={{ fontSize: "11px", color: "#505050", marginTop: "6px" }}>Gerenciador de Eventos → Pixel → Configuracoes → Gerar token</p>
           </div>
         </div>
         {/* Gerenciador de Anúncios */}
         <div style={{ borderTop: "1px solid #2e2e2e", paddingTop: "16px", marginTop: "4px", marginBottom: "16px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
             <div>
-              <p style={{ fontSize: "14px", fontWeight: "600", color: "#f0f0f0", margin: 0 }}>Gerenciador de Anúncios</p>
-              <p style={{ fontSize: "12px", color: "#606060", margin: 0 }}>Para filtrar conversas por campanha e conjunto de anúncios</p>
+              <p style={{ fontSize: "14px", fontWeight: "600", color: "#f0f0f0", margin: 0 }}>Gerenciador de Anuncios</p>
+              <p style={{ fontSize: "12px", color: "#606060", margin: 0 }}>Para filtrar conversas por campanha e conjunto de anuncios</p>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: metaAdsAtivo ? "#29ABE2" : "#ef4444" }} />
@@ -329,9 +331,10 @@ function IntegracoesCliente() {
             <div className="form-group">
               <label className="form-label">Ad Account ID</label>
               <input className="form-input" placeholder="act_1234567890" value={metaAdAccountId} onChange={e => setMetaAdAccountId(e.target.value)} />
+              <p style={{ fontSize: "11px", color: "#505050", marginTop: "6px" }}>Gerenciador de Anuncios → URL da conta (act_XXXXXXXXX)</p>
             </div>
             <div className="form-group">
-              <label className="form-label">Token do Gerenciador de Negócios</label>
+              <label className="form-label">Token do Gerenciador de Negocios</label>
               <div style={{ position: "relative" }}>
                 <input className="form-input" placeholder="EAAxxxxxxx..." type={showBusinessToken ? "text" : "password"}
                   value={metaBusinessToken} onChange={e => setMetaBusinessToken(e.target.value)} style={{ paddingRight: "40px" }} />
@@ -341,6 +344,25 @@ function IntegracoesCliente() {
               </div>
             </div>
           </div>
+          {/* Passo a passo */}
+          <details style={{ marginTop: "12px" }}>
+            <summary style={{ fontSize: "12px", color: "#29ABE2", cursor: "pointer", userSelect: "none" }}>Como gerar o Token do Gerenciador?</summary>
+            <div style={{ marginTop: "10px", padding: "14px", background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "8px", fontSize: "12px", color: "#a0a0a0", lineHeight: "1.8" }}>
+              <p style={{ color: "#f0f0f0", fontWeight: "600", marginBottom: "8px" }}>Passo a passo:</p>
+              <ol style={{ margin: 0, paddingLeft: "18px" }}>
+                <li>Acesse <strong style={{ color: "#29ABE2" }}>business.facebook.com</strong> → Configuracoes do Negocio</li>
+                <li>No menu lateral: <strong>Usuarios</strong> → <strong>Usuarios do sistema</strong></li>
+                <li>Se nao tem usuario, clique em <strong>Adicionar</strong> → nome "SALX Convert" → funcao <strong>Admin</strong></li>
+                <li>Clique no usuario criado</li>
+                <li>Clique em <strong>Adicionar ativos</strong> → selecione <strong>Contas de anuncios</strong> → marque a conta → <strong>Controle total</strong> → Salvar</li>
+                <li>Clique em <strong>Gerar novo token</strong></li>
+                <li>Selecione o App (se nao tem, crie um em developers.facebook.com → tipo "API de Marketing")</li>
+                <li>Marque a permissao <strong>ads_read</strong></li>
+                <li>Clique em <strong>Gerar</strong> e copie o token</li>
+              </ol>
+              <p style={{ marginTop: "10px", color: "#f59e0b", fontSize: "11px" }}>Este token nao expira. Gere um por portfolio empresarial do cliente.</p>
+            </div>
+          </details>
         </div>
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <button className="btn-primary" onClick={salvarMeta} style={{ cursor: "pointer" }}><Check size={14} /> Salvar</button>
