@@ -302,13 +302,59 @@ function ChatLateral({ conversa, onClose }: { conversa: Conversa; onClose:()=>vo
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [texto, setTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [carregandoAntigas, setCarregandoAntigas] = useState(false);
+  const [todasCarregadas, setTodasCarregadas] = useState(false);
+  const LIMIT = 50;
   const endRef = useRef<HTMLDivElement>(null);
+  const chatRef = useRef<HTMLDivElement>(null);
 
-  const carregar = async () => {
-    const { data } = await supabase.from("mensagens").select("*")
-      .eq("conversa_id", conversa.id).order("created_at",{ascending:true});
-    setMensagens(data||[]);
-    setTimeout(()=>endRef.current?.scrollIntoView({behavior:"smooth"}),50);
+  const carregar = async (scrollToEnd = true) => {
+    const { data, count } = await supabase.from("mensagens").select("*", { count: "exact" })
+      .eq("conversa_id", conversa.id).order("created_at",{ascending:false}).limit(LIMIT);
+    const msgs = (data||[]).reverse();
+    setMensagens(msgs);
+    // Se trouxe menos que o limite, já são todas
+    if ((count || 0) <= LIMIT) setTodasCarregadas(true);
+    if (scrollToEnd) setTimeout(()=>endRef.current?.scrollIntoView({behavior:"smooth"}),50);
+  };
+
+  const carregarMaisAntigas = async () => {
+    setCarregandoAntigas(true);
+    try {
+      const agId = await getAgenciaId();
+      // Buscar todas as mensagens da Evolution e salvar no banco
+      const res = await fetch("/api/evolution/sync", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agencia_id: agId,
+          conversa_id: conversa.id,
+          numero: conversa.contato_numero,
+          jid_original: conversa.contato_jid,
+        }),
+      });
+      const result = await res.json();
+
+      // Recarregar todas do banco
+      const { data } = await supabase.from("mensagens").select("*")
+        .eq("conversa_id", conversa.id).order("created_at",{ascending:true});
+      const scrollEl = chatRef.current;
+      const scrollBefore = scrollEl ? scrollEl.scrollHeight : 0;
+      setMensagens(data||[]);
+      setTodasCarregadas(true);
+
+      // Atualizar primeira_mensagem_at
+      if (data?.length) {
+        await supabase.from("conversas").update({
+          primeira_mensagem_at: data[0].created_at,
+        }).eq("id", conversa.id);
+      }
+
+      // Manter posição do scroll (não pular pro final)
+      setTimeout(() => {
+        if (scrollEl) scrollEl.scrollTop = scrollEl.scrollHeight - scrollBefore;
+      }, 50);
+    } catch { alert("Erro ao carregar mensagens antigas"); }
+    finally { setCarregandoAntigas(false); }
   };
 
   const enviar = async () => {
@@ -316,11 +362,19 @@ function ChatLateral({ conversa, onClose }: { conversa: Conversa; onClose:()=>vo
     setEnviando(true);
     try {
       const agId = await getAgenciaId();
-      const { data: ag } = await supabase.from("agencias").select("evolution_url,evolution_key,whatsapp_instancia").eq("id",agId!).single();
+      const { data: ag } = await supabase.from("agencias").select("evolution_url,evolution_key,whatsapp_instancia,parent_id").eq("id",agId!).single();
       if (!ag) return;
+      // Herdar config da mãe se necessário
+      let evoUrl = ag.evolution_url;
+      let evoKey = ag.evolution_key;
+      if (!evoUrl && ag.parent_id) {
+        const { data: parent } = await supabase.from("agencias").select("evolution_url,evolution_key").eq("id",ag.parent_id).single();
+        if (parent) { evoUrl = parent.evolution_url; evoKey = parent.evolution_key; }
+      }
+      if (!evoUrl) return;
       const jid = conversa.contato_jid || `${conversa.contato_numero}@s.whatsapp.net`;
-      await fetch(`${ag.evolution_url}/message/sendText/${ag.whatsapp_instancia}`,{
-        method:"POST", headers:{"apikey":ag.evolution_key,"Content-Type":"application/json"},
+      await fetch(`${evoUrl}/message/sendText/${ag.whatsapp_instancia}`,{
+        method:"POST", headers:{"apikey":evoKey,"Content-Type":"application/json"},
         body:JSON.stringify({number:jid,text:texto}),
       });
       setTexto("");
@@ -329,6 +383,22 @@ function ChatLateral({ conversa, onClose }: { conversa: Conversa; onClose:()=>vo
   };
 
   useEffect(()=>{carregar();},[conversa.id]);
+
+  // Agrupar mensagens por dia
+  const groupByDay = (msgs: Mensagem[]) => {
+    const groups: { date: string; msgs: Mensagem[] }[] = [];
+    for (const m of msgs) {
+      const day = new Date(m.created_at).toLocaleDateString("pt-BR", { day:"2-digit", month:"2-digit", year:"numeric" });
+      if (!groups.length || groups[groups.length-1].date !== day) {
+        groups.push({ date: day, msgs: [m] });
+      } else {
+        groups[groups.length-1].msgs.push(m);
+      }
+    }
+    return groups;
+  };
+
+  const groups = groupByDay(mensagens);
 
   return (
     <>
@@ -342,14 +412,39 @@ function ChatLateral({ conversa, onClose }: { conversa: Conversa; onClose:()=>vo
           </div>
           <button onClick={onClose} style={{ background:"none",border:"none",cursor:"pointer",color:"#606060" }}><X size={16}/></button>
         </div>
-        <div style={{ flex:1,overflowY:"auto",padding:"12px",display:"flex",flexDirection:"column",gap:"8px" }}>
-          {mensagens.map(m=>(
-            <div key={m.id} style={{ display:"flex",justifyContent:m.de_mim?"flex-end":"flex-start" }}>
-              <div style={{ maxWidth:"80%",background:m.de_mim?"#29ABE2":"#1e1e1e",borderRadius:m.de_mim?"12px 12px 2px 12px":"12px 12px 12px 2px",padding:"8px 12px" }}>
-                <p style={{ fontSize:"13px",color:m.de_mim?"#000":"#f0f0f0",margin:0,whiteSpace:"pre-wrap" }}>{m.conteudo}</p>
-                <p style={{ fontSize:"10px",color:m.de_mim?"rgba(0,0,0,0.5)":"#606060",margin:"3px 0 0",textAlign:"right" }}>
-                  {new Date(m.created_at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}
-                </p>
+        <div ref={chatRef} style={{ flex:1,overflowY:"auto",padding:"12px",display:"flex",flexDirection:"column",gap:"4px" }}>
+          {/* Botão carregar mais antigas */}
+          {!todasCarregadas && (
+            <button onClick={carregarMaisAntigas} disabled={carregandoAntigas}
+              style={{
+                alignSelf:"center", background:"rgba(41,171,226,0.08)", border:"1px solid rgba(41,171,226,0.2)",
+                borderRadius:"20px", padding:"8px 16px", cursor:"pointer", color:"#29ABE2",
+                fontSize:"12px", marginBottom:"8px", display:"flex", alignItems:"center", gap:"6px",
+                opacity: carregandoAntigas ? 0.6 : 1,
+              }}>
+              <RefreshCw size={12} style={{ animation: carregandoAntigas ? "spin 1s linear infinite" : "none" }}/>
+              {carregandoAntigas ? "Carregando..." : "Carregar mensagens mais antigas"}
+            </button>
+          )}
+          {groups.map(group => (
+            <div key={group.date}>
+              {/* Separador de dia */}
+              <div style={{ display:"flex", alignItems:"center", gap:"10px", margin:"8px 0 12px" }}>
+                <div style={{ flex:1, height:"1px", background:"#2e2e2e" }}/>
+                <span style={{ fontSize:"11px", color:"#606060", whiteSpace:"nowrap" }}>{group.date}</span>
+                <div style={{ flex:1, height:"1px", background:"#2e2e2e" }}/>
+              </div>
+              <div style={{ display:"flex", flexDirection:"column", gap:"6px" }}>
+                {group.msgs.map(m=>(
+                  <div key={m.id} style={{ display:"flex",justifyContent:m.de_mim?"flex-end":"flex-start" }}>
+                    <div style={{ maxWidth:"80%",background:m.de_mim?"#29ABE2":"#1e1e1e",borderRadius:m.de_mim?"12px 12px 2px 12px":"12px 12px 12px 2px",padding:"8px 12px" }}>
+                      <p style={{ fontSize:"13px",color:m.de_mim?"#000":"#f0f0f0",margin:0,whiteSpace:"pre-wrap" }}>{m.conteudo}</p>
+                      <p style={{ fontSize:"10px",color:m.de_mim?"rgba(0,0,0,0.5)":"#606060",margin:"3px 0 0",textAlign:"right" }}>
+                        {new Date(m.created_at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ))}

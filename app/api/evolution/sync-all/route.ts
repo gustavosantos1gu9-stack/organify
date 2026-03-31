@@ -140,24 +140,15 @@ export async function POST(req: NextRequest) {
 
       if (!com_mensagens || !conversa?.id) continue;
 
-      // Buscar mensagens — paginar para pegar TODAS (ou até 500)
-      let allMsgs: any[] = [];
-      let page = 1;
-      const PAGE_LIMIT = 100;
-      const MAX_MSGS = 500;
-      while (allMsgs.length < MAX_MSGS) {
-        const resMsgs = await fetch(`${EVO_URL}/chat/findMessages/${INSTANCIA}`, {
-          method: "POST",
-          headers: { "apikey": EVO_KEY, "Content-Type": "application/json" },
-          body: JSON.stringify({ where: { key: { remoteJid: jid } }, limit: PAGE_LIMIT, page }),
-        });
-        const msgsData = await resMsgs.json();
-        const records = msgsData?.messages?.records || msgsData?.records || [];
-        if (!records.length) break;
-        allMsgs = allMsgs.concat(records);
-        if (records.length < PAGE_LIMIT) break;
-        page++;
-      }
+      // Buscar últimas 50 mensagens (as mais recentes) — rápido no sync inicial
+      // Mensagens mais antigas são carregadas sob demanda no chat
+      const resMsgs = await fetch(`${EVO_URL}/chat/findMessages/${INSTANCIA}`, {
+        method: "POST",
+        headers: { "apikey": EVO_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({ where: { key: { remoteJid: jid } }, limit: 50 }),
+      });
+      const msgsData = await resMsgs.json();
+      const allMsgs = msgsData?.messages?.records || msgsData?.records || [];
 
       const msgs = allMsgs
         .filter((m: any) => m.key?.id && (m.message || m.messageType))
