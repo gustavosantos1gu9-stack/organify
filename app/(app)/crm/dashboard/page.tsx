@@ -10,8 +10,8 @@ import { Flame, Percent, DollarSign, Clock, Plus, Users, Star, TrendingUp } from
 
 const tooltipStyle = { background:"#1e1e1e", border:"1px solid #2e2e2e", borderRadius:"8px", fontSize:"12px", color:"#f0f0f0" };
 const ORIGENS = ["Facebook","Google","Instagram","LinkedIn","Outro"];
-const ETAPAS_KEYS = ["novo","em_contato","reuniao_agendada","nao_compareceu","ganho","perdido"];
-const ETAPAS_LABELS = ["Não respondeu","Em contato","Agendou","Não compareceu","Comprou","Não comprou"];
+const ETAPAS_KEYS = ["novo","em_contato","qualificado","reuniao_agendada","nao_compareceu","proposta_enviada","ganho","perdido"];
+const ETAPAS_LABELS = ["Novo","Em contato","Qualificado","Reunião ag.","No-show","Proposta","Ganho","Perdido"];
 
 export default function CRMDashboardPage() {
   const hoje = new Date();
@@ -31,7 +31,7 @@ export default function CRMDashboardPage() {
   useEffect(() => {
     async function calcular() {
       // Leads que chegaram a agendar (reuniao_agendada ou além)
-      const leadsAgendaram = lf.filter((l) => ["reuniao_agendada","nao_compareceu","ganho","perdido"].includes(l.etapa));
+      const leadsAgendaram = lf.filter((l) => ["reuniao_agendada","nao_compareceu","proposta_enviada","ganho","perdido"].includes(l.etapa));
       if (!leadsAgendaram.length) { setTempoMedio(0); return; }
 
       const ids = leadsAgendaram.map((l) => l.id);
@@ -75,17 +75,32 @@ export default function CRMDashboardPage() {
   }, [from, to, leads]);
 
   const total = lf.length;
-  const emContato = lf.filter((l) => l.etapa === "em_contato").length;
-  const agendou = lf.filter((l) => ["reuniao_agendada","nao_compareceu","ganho","perdido"].includes(l.etapa)).length;
-  const naoCompareceu = lf.filter((l) => l.etapa === "nao_compareceu").length;
-  const comprou = lf.filter((l) => l.etapa === "ganho").length;
-  const naoComprou = lf.filter((l) => l.etapa === "perdido").length;
-  const compareceu = comprou + naoComprou; // quem compareceu = comprou ou não comprou
+  const agendados = lf.filter((l) => ["reuniao_agendada","nao_compareceu","proposta_enviada","ganho"].includes(l.etapa)).length;
+  const noShows = lf.filter((l) => l.etapa === "nao_compareceu").length;
+  const realizados = lf.filter((l) => ["proposta_enviada","ganho"].includes(l.etapa)).length;
+  const fechados = lf.filter((l) => l.etapa === "ganho").length;
 
-  const passouEmContato = emContato + agendou;
-  const taxaConvAgend = passouEmContato > 0 ? ((agendou/passouEmContato)*100).toFixed(1) : "0.0";
-  const taxaConvPresencial = compareceu > 0 ? ((comprou/compareceu)*100).toFixed(1) : "0.0";
-  const taxaFaltas = agendou > 0 ? ((naoCompareceu/agendou)*100).toFixed(1) : "0.0";
+  const pctLeadsAgend = total > 0 ? ((agendados/total)*100).toFixed(1) : "0.0";
+  const pctAgendReal = agendados > 0 ? ((realizados/agendados)*100).toFixed(1) : "0.0";
+  const pctRealVenda = realizados > 0 ? ((fechados/realizados)*100).toFixed(1) : "0.0";
+
+  const quentes = lf.filter((l) => ["proposta_enviada","ganho"].includes(l.etapa)).length;
+  const foramReuniao = lf.filter((l) => ["proposta_enviada","ganho"].includes(l.etapa)).length;
+  const taxaConversao = foramReuniao > 0 ? ((fechados/foramReuniao)*100).toFixed(2) : "0.00";
+  const pipeline = lf.reduce((a,b)=>a+(b.valor||0),0);
+  const perdidos = lf.filter((l)=>l.etapa==="perdido").length;
+  const etapasQualificadas = ["qualificado", "reuniao_agendada", "proposta_enviada", "ganho"];
+  const mqls = lf.filter((l) =>
+    etapasQualificadas.includes(l.etapa) &&
+    (l.utm_source?.toLowerCase().includes("facebook") ||
+     l.utm_source?.toLowerCase().includes("instagram") ||
+     l.utm_medium?.toLowerCase().includes("facebook") ||
+     l.utm_medium?.toLowerCase().includes("instagram") ||
+     l.origens?.nome?.toLowerCase().includes("facebook") ||
+     l.origens?.nome?.toLowerCase().includes("instagram"))
+  ).length;
+  const reunioesAgendadas = lf.filter((l)=>l.etapa==="reuniao_agendada").length;
+  const vendas = lf.filter((l)=>l.etapa==="ganho").reduce((a,b)=>a+(b.valor||0),0);
 
   const barEtapas = ETAPAS_KEYS.map((k,i) => ({
     etapa: ETAPAS_LABELS[i],
@@ -118,9 +133,9 @@ export default function CRMDashboardPage() {
         <h2 style={{ fontSize:"15px", fontWeight:"600", marginBottom:"20px" }}>Funil de Conversão</h2>
         <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"0", marginBottom:"20px", borderBottom:"1px solid #2e2e2e", paddingBottom:"16px" }}>
           {[
-            { label:"Em contato → Agendou", value:`${taxaConvAgend}%` },
-            { label:"Agendou → Compareceu", value:`${agendou > 0 ? ((compareceu/agendou)*100).toFixed(1) : "0.0"}%` },
-            { label:"Compareceu → Comprou", value:`${taxaConvPresencial}%` },
+            { label:"Leads → Agendamentos", value:`${pctLeadsAgend}%` },
+            { label:"Agendados → Compareceram", value:`${pctAgendReal}%` },
+            { label:"Compareceram → Vendas", value:`${pctRealVenda}%` },
           ].map((item, i) => (
             <div key={i} style={{ textAlign:"center", padding:"0 16px", borderRight: i < 2 ? "1px solid #2e2e2e" : "none" }}>
               <p style={{ fontSize:"12px", color:"#606060", marginBottom:"6px" }}>{item.label}</p>
@@ -131,9 +146,9 @@ export default function CRMDashboardPage() {
         <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"12px" }}>
           {[
             { label:"Total Leads", value:total },
-            { label:"Agendou", value:agendou },
-            { label:"Compareceu", value:compareceu },
-            { label:"Comprou", value:comprou },
+            { label:"Agendados", value:agendados },
+            { label:"Realizadas", value:realizados },
+            { label:"Fechadas", value:fechados },
           ].map((item) => (
             <div key={item.label} style={{ background:"#1a1a1a", borderRadius:"8px", padding:"14px 16px" }}>
               <p style={{ fontSize:"12px", color:"#606060", marginBottom:"6px" }}>{item.label}</p>
@@ -144,18 +159,23 @@ export default function CRMDashboardPage() {
       </div>
 
       {/* KPIs */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:"16px", marginBottom:"16px" }}>
-        <KPICard label="Taxa de conversão (agendamento)" value={`${taxaConvAgend}%`} change={0} icon={<Percent size={16}/>} iconBg="blue"/>
-        <KPICard label="Taxa de conversão (presencial)" value={`${taxaConvPresencial}%`} change={0} icon={<Percent size={16}/>} iconBg="amber"/>
-        <KPICard label="Taxa de faltas" value={`${taxaFaltas}%`} change={0} icon={<Percent size={16}/>} iconBg="red"/>
-        <KPICard label="Agendou" value={agendou} change={0} icon={<Flame size={16}/>} iconBg="amber"/>
-        <KPICard label="Comprou" value={comprou} change={0} icon={<TrendingUp size={16}/>} iconBg="green"/>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"16px", marginBottom:"16px" }}>
+        <KPICard label="Leads quentes" value={quentes} change={0} icon={<Flame size={16}/>} iconBg="red"/>
+        <KPICard label="Taxa de conversão" value={`${taxaConversao}%`} change={0} icon={<Percent size={16}/>} iconBg="amber"/>
+        <KPICard label="Tempo médio de decisão (dias)" value={tempoMedio > 0 ? `${tempoMedio} dias` : "0"} change={0} icon={<Clock size={16}/>} iconBg="blue"/>
+        <KPICard label="CAC" value="R$ 0,00" change={0} icon={<DollarSign size={16}/>} iconBg="green"/>
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"16px", marginBottom:"16px" }}>
+        <KPICard label="Pipeline total" value={formatCurrency(pipeline)} change={0} icon={<DollarSign size={16}/>} iconBg="green"/>
+        <KPICard label="Novos leads" value={lf.filter((l)=>l.etapa==="novo").length} change={0} icon={<Plus size={16}/>} iconBg="green"/>
+        <KPICard label="MQLs" value={mqls} change={0} icon={<Users size={16}/>} iconBg="blue"/>
+        <KPICard label="Leads perdidos" value={perdidos} change={0} icon={<Users size={16}/>} iconBg="red"/>
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"16px", marginBottom:"28px" }}>
-        <KPICard label="Tempo médio até agendamento (dias)" value={tempoMedio > 0 ? `${tempoMedio} dias` : "0"} change={0} icon={<Clock size={16}/>} iconBg="blue"/>
-        <KPICard label="Não respondeu" value={lf.filter((l)=>l.etapa==="novo").length} change={0} icon={<Users size={16}/>} iconBg="blue"/>
-        <KPICard label="Não compareceu" value={naoCompareceu} change={0} icon={<Users size={16}/>} iconBg="red"/>
-        <KPICard label="Não comprou" value={naoComprou} change={0} icon={<Users size={16}/>} iconBg="red"/>
+        <KPICard label="Reuniões agendadas" value={reunioesAgendadas} change={0} icon={<Star size={16}/>} iconBg="green"/>
+        <KPICard label="No-shows" value={noShows} change={0} icon={<Users size={16}/>} iconBg="red"/>
+        <KPICard label="Reuniões realizadas" value={realizados} change={0} icon={<Star size={16}/>} iconBg="amber"/>
+        <KPICard label="Taxa no-show" value={`${agendados > 0 ? ((noShows/agendados)*100).toFixed(1) : "0.0"}%`} change={0} icon={<Percent size={16}/>} iconBg="red"/>
       </div>
 
       {/* Sem dados */}

@@ -13,10 +13,12 @@ import { formatCurrency } from "@/lib/utils";
 const ETAPAS_PADRAO = [
   { key:"novo", label:"Não respondeu", color:"#a0a0a0" },
   { key:"em_contato", label:"Em contato", color:"#3b82f6" },
-  { key:"reuniao_agendada", label:"Agendou", color:"#f59e0b" },
+  { key:"qualificado", label:"Qualificado", color:"#06b6d4" },
+  { key:"reuniao_agendada", label:"Reunião agendada", color:"#f59e0b" },
   { key:"nao_compareceu", label:"Não compareceu", color:"#f97316" },
-  { key:"ganho", label:"Comprou", color:"#22c55e" },
-  { key:"perdido", label:"Não comprou", color:"#ef4444" },
+  { key:"proposta_enviada", label:"Proposta enviada", color:"#8b5cf6" },
+  { key:"ganho", label:"Ganho", color:"#29ABE2" },
+  { key:"perdido", label:"Perdido", color:"#ef4444" },
 ];
 
 const CORES_ETAPAS = ["#a0a0a0", "#3b82f6", "#06b6d4", "#f59e0b", "#f97316", "#8b5cf6", "#22c55e", "#ec4899", "#29ABE2", "#ef4444"];
@@ -298,17 +300,15 @@ export default function CRMPage() {
     return true;
   });
 
-  // KPIs baseados nos filtros
-  const emContato = filtrados.filter((l)=>l.etapa==="em_contato").length;
-  const agendou = filtrados.filter((l)=>l.etapa==="reuniao_agendada"||l.etapa==="nao_compareceu"||l.etapa==="ganho"||l.etapa==="perdido").length;
-  const naoCompareceu = filtrados.filter((l)=>l.etapa==="nao_compareceu").length;
-  const comprou = filtrados.filter((l)=>l.etapa==="ganho").length;
-  const totalAgendouECompareceu = agendou; // todos que passaram por agendou
-  const compareceu = comprou + filtrados.filter((l)=>l.etapa==="perdido").length; // compareceu = comprou + não comprou
-  const taxaConversaoPresencial = compareceu > 0 ? Math.round(comprou / compareceu * 100) : 0;
-  const passouEmContato = emContato + agendou; // quem está ou passou de em_contato
-  const taxaConversaoAgendamento = passouEmContato > 0 ? Math.round(agendou / passouEmContato * 100) : 0;
-  const taxaFaltas = totalAgendouECompareceu > 0 ? Math.round(naoCompareceu / totalAgendouECompareceu * 100) : 0;
+  // KPIs
+  const totalPipeline = filtrados.reduce((a,b)=>a+(b.valor||0),0);
+  const leadsQuentes = filtrados.filter((l)=>l.etapa==="reuniao_agendada"||l.etapa==="proposta_enviada").length;
+  const ganhos = filtrados.filter((l)=>l.etapa==="ganho").length;
+  const foramReuniao = filtrados.filter((l)=>l.etapa==="proposta_enviada"||l.etapa==="ganho").length;
+  const taxaConversao = foramReuniao ? Math.round(ganhos/foramReuniao*100) : 0;
+  const noShows = filtrados.filter((l)=>l.etapa==="nao_compareceu").length;
+  const agendados = filtrados.filter((l)=>l.etapa==="reuniao_agendada"||l.etapa==="nao_compareceu"||l.etapa==="proposta_enviada"||l.etapa==="ganho").length;
+  const taxaNoShow = agendados ? Math.round(noShows/agendados*100) : 0;
 
   const handleSalvar = async (data: Record<string,unknown>) => {
     try {
@@ -335,11 +335,11 @@ export default function CRMPage() {
       <h1 style={{ fontSize:"22px", fontWeight:"600", marginBottom:"24px" }}>CRM</h1>
 
       <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:"16px", marginBottom:"28px" }}>
-        <KPICard label="Taxa de conversão (agendamento)" value={`${taxaConversaoAgendamento}%`} change={0} icon={<Percent size={16}/>} iconBg="blue"/>
-        <KPICard label="Taxa de conversão (presencial)" value={`${taxaConversaoPresencial}%`} change={0} icon={<Percent size={16}/>} iconBg="amber"/>
-        <KPICard label="Taxa de faltas" value={`${taxaFaltas}%`} change={0} icon={<Percent size={16}/>} iconBg="red"/>
-        <KPICard label="Agendou" value={agendou} change={0} icon={<Flame size={16}/>} iconBg="amber"/>
-        <KPICard label="Comprou" value={comprou} change={0} icon={<Check size={16}/>} iconBg="green"/>
+        <KPICard label="Taxa de conversão" value={`${taxaConversao}%`} change={0} icon={<Percent size={16}/>} iconBg="amber"/>
+        <KPICard label="Taxa de no-show" value={`${taxaNoShow}%`} change={0} icon={<Percent size={16}/>} iconBg="red"/>
+        <KPICard label="Reuniões realizadas" value={foramReuniao} change={0} icon={<Flame size={16}/>} iconBg="amber"/>
+        <KPICard label="Leads quentes" value={leadsQuentes} change={0} icon={<Flame size={16}/>} iconBg="red"/>
+        <KPICard label="Pipeline total" value={formatCurrency(totalPipeline)} change={0} icon={<DollarSign size={16}/>} iconBg="green"/>
       </div>
 
       <div className="table-wrapper">
