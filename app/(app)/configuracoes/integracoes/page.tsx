@@ -153,7 +153,8 @@ function IntegracoesCliente() {
     setCriando(true);
     try {
       const agId = agenciaId || await getAgenciaId();
-      const nome = novaInstancia.trim() || "whatsapp";
+      // Gerar nome único por agência (evita conflito com master)
+      const nome = novaInstancia.trim() || `wa-${(agId || "").slice(0, 8)}`;
 
       // Primeiro tenta deletar instância antiga com problema (se existir com status "close")
       try {
