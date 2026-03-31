@@ -56,7 +56,7 @@ export default function DisparosPixelPage() {
     if (!disparos?.length) { setItems([]); setLoading(false); return; }
 
     // Buscar dados das conversas (nome e número)
-    const conversaIds = [...new Set(disparos.map(d => d.conversa_id).filter(Boolean))];
+    const conversaIds = Array.from(new Set(disparos.map(d => d.conversa_id).filter(Boolean)));
     const conversaMap = new Map<string, { nome: string; numero: string }>();
 
     if (conversaIds.length > 0) {
