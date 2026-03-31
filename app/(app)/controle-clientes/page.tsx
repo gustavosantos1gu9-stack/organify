@@ -659,11 +659,18 @@ export default function ControleClientesPage() {
           } catch { return null; }
         }
 
-        // Clientes que iniciaram campanha no mês atual
+        // Clientes que iniciaram campanha no mês atual (e não no futuro)
+        const mesStr = String(mesAtual + 1).padStart(2, "0"); // "03" pra março
+        const anoStr = String(anoAtual); // "2026"
         const iniciaram = clientes.filter(c => {
           const inicio = parseData(c.data_inicio_campanha);
+          if (!inicio) return false;
           const entrada = parseData(c.data_entrada);
-          return inicio && entrada && inicio.getMonth() === mesAtual && inicio.getFullYear() === anoAtual;
+          if (!entrada) return false;
+          // Deve ser do mês atual E não ser data futura
+          if (inicio.getMonth() !== mesAtual || inicio.getFullYear() !== anoAtual) return false;
+          if (inicio > hoje) return false; // data futura não conta
+          return true;
         });
 
         const diasPorCliente = iniciaram.map(c => {
