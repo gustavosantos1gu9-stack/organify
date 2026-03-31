@@ -11,9 +11,19 @@ export async function POST(req: NextRequest) {
     const { numero, conversa_id, jid_original, agencia_id } = await req.json();
 
     // Buscar config da agência
-    const { data: agencia } = await supabase.from("agencias")
-      .select("evolution_url, evolution_key, whatsapp_instancia")
+    let { data: agencia } = await supabase.from("agencias")
+      .select("evolution_url, evolution_key, whatsapp_instancia, parent_id")
       .eq("id", agencia_id).single();
+
+    // Se a agência filha não tem Evolution, herdar da mãe
+    if (agencia && !agencia.evolution_url && agencia.parent_id) {
+      const { data: parent } = await supabase.from("agencias")
+        .select("evolution_url, evolution_key")
+        .eq("id", agencia.parent_id).single();
+      if (parent) {
+        agencia = { ...agencia, evolution_url: parent.evolution_url, evolution_key: parent.evolution_key };
+      }
+    }
 
     if (!agencia?.evolution_url) return NextResponse.json({ error: "Não configurado" }, { status: 400 });
 

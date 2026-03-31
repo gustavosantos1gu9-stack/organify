@@ -639,15 +639,27 @@ export default function InboxPage() {
   };
 
   const sincronizarTudo = async () => {
-    if (!confirm("Vai importar todas as conversas via Railway. Continuar?")) return;
+    if (!confirm("Vai importar todas as conversas do WhatsApp. Continuar?")) return;
     setSincronizandoTudo(true);
     try {
       const agId = await getAgenciaId();
-      await fetch("https://organify-sync-production.up.railway.app/sync/conversas",{
-        method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({agencia_id:agId}),
-      });
-      alert("Sincronização iniciada! Aguarde alguns minutos e recarregue.");
+      // Sync via API local em lotes
+      let offset = 0;
+      let total = 0;
+      let temMais = true;
+      while (temMais) {
+        const res = await fetch("/api/evolution/sync-all", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agencia_id: agId, offset, lote: 50, com_mensagens: true }),
+        });
+        const data = await res.json();
+        if (!data.ok) { alert("Erro: " + (data.error || "falha no sync")); break; }
+        total += data.conversas || 0;
+        temMais = data.tem_mais;
+        offset = data.proximo_offset;
+      }
+      alert(`Sincronização concluída! ${total} conversa(s) importada(s).`);
+      carregar();
     } catch { alert("Erro ao sincronizar"); }
     finally { setSincronizandoTudo(false); }
   };

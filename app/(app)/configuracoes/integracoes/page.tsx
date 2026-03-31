@@ -69,6 +69,14 @@ function IntegracoesCliente() {
             }
           }
           await supabase.from("agencias").update({ whatsapp_conectado: true }).eq("id", agenciaId!);
+          // Sync automático das conversas após conectar
+          try {
+            await fetch("/api/evolution/sync-all", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ agencia_id: agenciaId, com_mensagens: true, lote: 100 }),
+            });
+          } catch {}
         }
       } catch {}
     }, 5000);
