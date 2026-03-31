@@ -73,6 +73,18 @@ function IntegracoesCliente() {
           const updateData: any = { whatsapp_conectado: true };
           if (waNumero) updateData.whatsapp_numero = waNumero;
           await supabase.from("agencias").update(updateData).eq("id", agenciaId!);
+
+          // Configurar webhook automaticamente pra receber mensagens em tempo real
+          try {
+            const webhookUrl = `${window.location.origin}/api/webhook/whatsapp`;
+            await evoCall("setWebhook", instancia, {
+              url: webhookUrl,
+              webhook_by_events: false,
+              webhook_base64: false,
+              events: ["MESSAGES_UPSERT", "messages.upsert", "CONNECTION_UPDATE"],
+            });
+          } catch {}
+
           // Sync automático: listar chats e syncar os primeiros 20
           try {
             const listRes = await fetch("/api/evolution/sync-all", {
@@ -146,10 +158,27 @@ function IntegracoesCliente() {
               const inst = instances.find((i: any) => (i.name || i.instance?.instanceName) === instSalva);
               if (inst) {
                 const status = (inst.connectionStatus || inst.instance?.state || "").toLowerCase();
+                const conectado = status === "open" || status === "connected";
                 setInstancia(instSalva);
-                setWaConectado(status === "open" || status === "connected");
+                setWaConectado(conectado);
                 setProfileName(inst.profileName || instSalva);
                 setProfilePic(inst.profilePicUrl || "");
+                // Garantir webhook configurado em toda visita
+                if (conectado) {
+                  try {
+                    const webhookUrl = `${window.location.origin}/api/webhook/whatsapp`;
+                    await fetch("/api/evolution", {
+                      method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        action: "setWebhook", instanceName: instSalva, agencia_id: agId,
+                        payload: {
+                          url: webhookUrl, webhook_by_events: false, webhook_base64: false,
+                          events: ["MESSAGES_UPSERT", "messages.upsert", "CONNECTION_UPDATE"],
+                        },
+                      }),
+                    });
+                  } catch {}
+                }
               }
             }
           } catch {}
@@ -478,6 +507,16 @@ function IntegracoesMaster() {
         setQrCode(data.qrcode.base64);
         setQrInstancia(novaInstancia);
       }
+      // Configurar webhook automaticamente
+      try {
+        const webhookUrl = `${window.location.origin}/api/webhook/whatsapp`;
+        await evoCall("setWebhook", novaInstancia, {
+          url: webhookUrl,
+          webhook_by_events: false,
+          webhook_base64: false,
+          events: ["MESSAGES_UPSERT", "messages.upsert", "CONNECTION_UPDATE"],
+        });
+      } catch {}
       setNovaInstancia("");
       setNovoToken("");
       await carregarInstancias();
