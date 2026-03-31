@@ -33,18 +33,35 @@ function IntegracoesCliente() {
   const [metaToken, setMetaToken] = useState("");
   const [showToken, setShowToken] = useState(false);
   const [metaAtivo, setMetaAtivo] = useState(false);
+  const [metaAdAccountId, setMetaAdAccountId] = useState("");
+  const [metaBusinessToken, setMetaBusinessToken] = useState("");
+  const [showBusinessToken, setShowBusinessToken] = useState(false);
+  const [metaAdsAtivo, setMetaAdsAtivo] = useState(false);
 
   useEffect(() => {
     async function load() {
       const agId = await getAgenciaId();
       const { data } = await supabase.from("agencias").select("*").eq("id", agId!).single();
       if (data) {
-        setEvoUrl(data.evolution_url || "");
-        setEvoKey(data.evolution_key || "");
+        // Se a agência filha não tem Evolution, puxar da mãe
+        let evoUrlFinal = data.evolution_url || "";
+        let evoKeyFinal = data.evolution_key || "";
+        if (!evoUrlFinal && data.parent_id) {
+          const { data: parent } = await supabase.from("agencias").select("evolution_url, evolution_key").eq("id", data.parent_id).single();
+          if (parent) {
+            evoUrlFinal = parent.evolution_url || "";
+            evoKeyFinal = parent.evolution_key || "";
+          }
+        }
+        setEvoUrl(evoUrlFinal);
+        setEvoKey(evoKeyFinal);
         setPixelId(data.meta_pixel_id || "");
         setMetaToken(data.meta_token || "");
         setMetaAtivo(data.meta_ativo || false);
-        if (data.evolution_url && data.evolution_key) {
+        setMetaAdAccountId(data.meta_ad_account_id || "");
+        setMetaBusinessToken(data.meta_business_token || "");
+        setMetaAdsAtivo(data.meta_ads_ativo || false);
+        if (evoUrlFinal && evoKeyFinal) {
           // Buscar instâncias e verificar conexão
           try {
             const res = await fetch("/api/evolution", {
@@ -101,8 +118,13 @@ function IntegracoesCliente() {
   const salvarMeta = async () => {
     const agId = await getAgenciaId();
     const ativo = pixelId.trim().length > 0 && metaToken.trim().length > 0;
-    await supabase.from("agencias").update({ meta_pixel_id: pixelId, meta_token: metaToken, meta_ativo: ativo }).eq("id", agId!);
+    const adsAtivo = metaAdAccountId.trim().length > 0 && metaBusinessToken.trim().length > 0;
+    await supabase.from("agencias").update({
+      meta_pixel_id: pixelId, meta_token: metaToken, meta_ativo: ativo,
+      meta_ad_account_id: metaAdAccountId || null, meta_business_token: metaBusinessToken || null, meta_ads_ativo: adsAtivo,
+    }).eq("id", agId!);
     setMetaAtivo(ativo);
+    setMetaAdsAtivo(adsAtivo);
     alert("Meta Ads salvo!");
   };
 
@@ -193,6 +215,35 @@ function IntegracoesCliente() {
               <button onClick={() => setShowToken(!showToken)} style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#606060" }}>
                 {showToken ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
+            </div>
+          </div>
+        </div>
+        {/* Gerenciador de Anúncios */}
+        <div style={{ borderTop: "1px solid #2e2e2e", paddingTop: "16px", marginTop: "4px", marginBottom: "16px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+            <div>
+              <p style={{ fontSize: "14px", fontWeight: "600", color: "#f0f0f0", margin: 0 }}>Gerenciador de Anúncios</p>
+              <p style={{ fontSize: "12px", color: "#606060", margin: 0 }}>Para filtrar conversas por campanha e conjunto de anúncios</p>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: metaAdsAtivo ? "#29ABE2" : "#ef4444" }} />
+              <span style={{ fontSize: "12px", color: metaAdsAtivo ? "#29ABE2" : "#ef4444" }}>{metaAdsAtivo ? "Ativo" : "Inativo"}</span>
+            </div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div className="form-group">
+              <label className="form-label">Ad Account ID</label>
+              <input className="form-input" placeholder="act_1234567890" value={metaAdAccountId} onChange={e => setMetaAdAccountId(e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Token do Gerenciador de Negócios</label>
+              <div style={{ position: "relative" }}>
+                <input className="form-input" placeholder="EAAxxxxxxx..." type={showBusinessToken ? "text" : "password"}
+                  value={metaBusinessToken} onChange={e => setMetaBusinessToken(e.target.value)} style={{ paddingRight: "40px" }} />
+                <button onClick={() => setShowBusinessToken(!showBusinessToken)} style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#606060" }}>
+                  {showBusinessToken ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
             </div>
           </div>
         </div>
