@@ -79,7 +79,7 @@ export default function CRMDashboardPage() {
   const naoCompareceu = lf.filter((l) => l.etapa === "nao_compareceu").length;
   const comprou = lf.filter((l) => l.etapa === "ganho").length;
   const naoComprou = lf.filter((l) => l.etapa === "perdido").length;
-  const compareceu = agendou - naoCompareceu;
+  const compareceu = comprou + naoComprou; // quem compareceu = comprou ou não comprou
 
   const passouEmContato = emContato + agendou;
   const taxaConvAgend = passouEmContato > 0 ? ((agendou/passouEmContato)*100).toFixed(1) : "0.0";

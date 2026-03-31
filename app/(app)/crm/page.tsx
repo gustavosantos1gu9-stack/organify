@@ -305,7 +305,7 @@ export default function CRMPage() {
   const naoCompareceu = filtrados.filter((l)=>l.etapa==="nao_compareceu").length;
   const comprou = filtrados.filter((l)=>l.etapa==="ganho").length;
   const totalAgendouECompareceu = agendou; // todos que passaram por agendou
-  const compareceu = agendou - naoCompareceu; // agendou menos faltas
+  const compareceu = comprou + filtrados.filter((l)=>l.etapa==="perdido").length; // compareceu = comprou + não comprou
   const taxaConversaoPresencial = compareceu > 0 ? Math.round(comprou / compareceu * 100) : 0;
   const passouEmContato = emContato + agendou; // quem está ou passou de em_contato
   const taxaConversaoAgendamento = passouEmContato > 0 ? Math.round(agendou / passouEmContato * 100) : 0;
