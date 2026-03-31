@@ -61,8 +61,9 @@ function IntegracoesCliente() {
         setMetaAdAccountId(data.meta_ad_account_id || "");
         setMetaBusinessToken(data.meta_business_token || "");
         setMetaAdsAtivo(data.meta_ads_ativo || false);
-        if (evoUrlFinal && evoKeyFinal) {
-          // Buscar instâncias e verificar conexão
+        // Verificar instância salva desta agência
+        const instSalva = data.whatsapp_instancia || "";
+        if (evoUrlFinal && evoKeyFinal && instSalva) {
           try {
             const res = await fetch("/api/evolution", {
               method: "POST",
@@ -70,14 +71,15 @@ function IntegracoesCliente() {
               body: JSON.stringify({ action: "fetchInstances" }),
             });
             const instances = await res.json();
-            if (Array.isArray(instances) && instances.length > 0) {
-              const inst = instances[0];
-              const nome = inst.name || inst.instance?.instanceName || "";
-              const status = (inst.connectionStatus || inst.instance?.state || "").toLowerCase();
-              setInstancia(nome);
-              setWaConectado(status === "open" || status === "connected");
-              setProfileName(inst.profileName || nome);
-              setProfilePic(inst.profilePicUrl || "");
+            if (Array.isArray(instances)) {
+              const inst = instances.find((i: any) => (i.name || i.instance?.instanceName) === instSalva);
+              if (inst) {
+                const status = (inst.connectionStatus || inst.instance?.state || "").toLowerCase();
+                setInstancia(instSalva);
+                setWaConectado(status === "open" || status === "connected");
+                setProfileName(inst.profileName || instSalva);
+                setProfilePic(inst.profilePicUrl || "");
+              }
             }
           } catch {}
         }
@@ -91,6 +93,7 @@ function IntegracoesCliente() {
     if (!evoUrl || !evoKey) { alert("Evolution API não configurada. Peça para seu gestor configurar."); return; }
     setCriando(true);
     try {
+      const agId = await getAgenciaId();
       const nome = novaInstancia.trim() || "whatsapp";
       const res = await fetch("/api/evolution", {
         method: "POST",
@@ -99,8 +102,10 @@ function IntegracoesCliente() {
       });
       const data = await res.json();
       const qr = data.base64 || data.qrcode?.base64;
-      if (qr) { setQrCode(qr); setInstancia(nome); }
-      else {
+      if (qr) {
+        setQrCode(qr); setInstancia(nome);
+        await supabase.from("agencias").update({ whatsapp_instancia: nome }).eq("id", agId!);
+      } else {
         // Criar instância
         const res2 = await fetch("/api/evolution", {
           method: "POST",
@@ -109,7 +114,10 @@ function IntegracoesCliente() {
         });
         const data2 = await res2.json();
         const qr2 = data2.qrcode?.base64 || data2.base64;
-        if (qr2) { setQrCode(qr2); setInstancia(nome); }
+        if (qr2) {
+          setQrCode(qr2); setInstancia(nome);
+          await supabase.from("agencias").update({ whatsapp_instancia: nome }).eq("id", agId!);
+        }
       }
     } catch { alert("Erro ao conectar"); }
     setCriando(false);
