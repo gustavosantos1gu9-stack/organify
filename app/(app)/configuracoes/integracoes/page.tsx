@@ -15,7 +15,197 @@ interface Instancia {
   state?: string;
 }
 
-export default function IntegracoesPage() {
+// ─── Versão CLIENTE: só QR Code WhatsApp + Meta Pixel ────────
+function IntegracoesCliente() {
+  const [evoUrl, setEvoUrl] = useState("");
+  const [evoKey, setEvoKey] = useState("");
+  const [instancia, setInstancia] = useState("");
+  const [waConectado, setWaConectado] = useState(false);
+  const [profileName, setProfileName] = useState("");
+  const [profilePic, setProfilePic] = useState("");
+  const [qrCode, setQrCode] = useState<string | null>(null);
+  const [novaInstancia, setNovaInstancia] = useState("whatsapp");
+  const [criando, setCriando] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Meta
+  const [pixelId, setPixelId] = useState("");
+  const [metaToken, setMetaToken] = useState("");
+  const [showToken, setShowToken] = useState(false);
+  const [metaAtivo, setMetaAtivo] = useState(false);
+
+  useEffect(() => {
+    async function load() {
+      const agId = await getAgenciaId();
+      const { data } = await supabase.from("agencias").select("*").eq("id", agId!).single();
+      if (data) {
+        setEvoUrl(data.evolution_url || "");
+        setEvoKey(data.evolution_key || "");
+        setPixelId(data.meta_pixel_id || "");
+        setMetaToken(data.meta_token || "");
+        setMetaAtivo(data.meta_ativo || false);
+        if (data.evolution_url && data.evolution_key) {
+          // Buscar instâncias e verificar conexão
+          try {
+            const res = await fetch("/api/evolution", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action: "fetchInstances" }),
+            });
+            const instances = await res.json();
+            if (Array.isArray(instances) && instances.length > 0) {
+              const inst = instances[0];
+              const nome = inst.name || inst.instance?.instanceName || "";
+              const status = (inst.connectionStatus || inst.instance?.state || "").toLowerCase();
+              setInstancia(nome);
+              setWaConectado(status === "open" || status === "connected");
+              setProfileName(inst.profileName || nome);
+              setProfilePic(inst.profilePicUrl || "");
+            }
+          } catch {}
+        }
+      }
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  const conectarWA = async () => {
+    if (!evoUrl || !evoKey) { alert("Evolution API não configurada. Peça para seu gestor configurar."); return; }
+    setCriando(true);
+    try {
+      const nome = novaInstancia.trim() || "whatsapp";
+      const res = await fetch("/api/evolution", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "connect", instanceName: nome }),
+      });
+      const data = await res.json();
+      const qr = data.base64 || data.qrcode?.base64;
+      if (qr) { setQrCode(qr); setInstancia(nome); }
+      else {
+        // Criar instância
+        const res2 = await fetch("/api/evolution", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "create", instanceName: nome, payload: { instanceName: nome, token: nome, qrcode: true, integration: "WHATSAPP-BAILEYS" } }),
+        });
+        const data2 = await res2.json();
+        const qr2 = data2.qrcode?.base64 || data2.base64;
+        if (qr2) { setQrCode(qr2); setInstancia(nome); }
+      }
+    } catch { alert("Erro ao conectar"); }
+    setCriando(false);
+  };
+
+  const salvarMeta = async () => {
+    const agId = await getAgenciaId();
+    const ativo = pixelId.trim().length > 0 && metaToken.trim().length > 0;
+    await supabase.from("agencias").update({ meta_pixel_id: pixelId, meta_token: metaToken, meta_ativo: ativo }).eq("id", agId!);
+    setMetaAtivo(ativo);
+    alert("Meta Ads salvo!");
+  };
+
+  if (loading) return <div style={{ textAlign: "center", padding: "60px", color: "#606060" }}>Carregando...</div>;
+
+  return (
+    <div className="animate-in">
+      <div className="breadcrumb">
+        <a href="/">Dashboard</a><span>›</span>
+        <span className="current">Integrações</span>
+      </div>
+      <h1 style={{ fontSize: "22px", fontWeight: "600", marginBottom: "28px" }}>Integrações</h1>
+
+      {/* WhatsApp */}
+      <div className="card" style={{ marginBottom: "20px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
+          <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: waConectado ? "#22c55e" : "#ef4444" }} />
+          <MessageCircle size={20} color="#25d366" />
+          <h2 style={{ fontSize: "16px", fontWeight: "600" }}>WhatsApp</h2>
+        </div>
+
+        {waConectado ? (
+          <div style={{
+            display: "flex", alignItems: "center", gap: "14px",
+            padding: "16px", background: "rgba(37,211,102,0.05)", border: "1px solid rgba(37,211,102,0.2)", borderRadius: "10px",
+          }}>
+            {profilePic ? (
+              <img src={profilePic} alt="" style={{ width: "44px", height: "44px", borderRadius: "50%" }} />
+            ) : (
+              <div style={{ width: "44px", height: "44px", borderRadius: "50%", background: "rgba(37,211,102,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Wifi size={20} color="#25d366" />
+              </div>
+            )}
+            <div>
+              <p style={{ fontSize: "14px", fontWeight: "600", color: "#f0f0f0" }}>{profileName}</p>
+              <p style={{ fontSize: "12px", color: "#25d366" }}>Conectado</p>
+            </div>
+          </div>
+        ) : qrCode ? (
+          <div style={{ textAlign: "center", padding: "20px", background: "#1a1a1a", border: "1px solid rgba(37,211,102,0.3)", borderRadius: "10px" }}>
+            <p style={{ fontSize: "14px", fontWeight: "600", color: "#f0f0f0", marginBottom: "4px" }}>Escaneie o QR Code</p>
+            <p style={{ fontSize: "12px", color: "#606060", marginBottom: "20px" }}>Abra o WhatsApp → Aparelhos conectados → Conectar aparelho</p>
+            {qrCode.startsWith("data:image") ? (
+              <img src={qrCode} alt="QR" style={{ width: "220px", height: "220px", borderRadius: "8px" }} />
+            ) : (
+              <div style={{ background: "#fff", padding: "20px", borderRadius: "8px", display: "inline-block" }}>
+                <p style={{ fontSize: "11px", color: "#000", fontFamily: "monospace", wordBreak: "break-all", maxWidth: "220px" }}>{qrCode.replace("qr:", "")}</p>
+              </div>
+            )}
+            <div style={{ marginTop: "16px" }}>
+              <button className="btn-secondary" style={{ cursor: "pointer" }} onClick={() => { setQrCode(null); window.location.reload(); }}>
+                <RefreshCw size={13} /> Já conectei
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ textAlign: "center", padding: "24px" }}>
+            <p style={{ fontSize: "13px", color: "#606060", marginBottom: "16px" }}>Conecte um WhatsApp para rastrear conversas e disparar eventos.</p>
+            <button className="btn-primary" onClick={conectarWA} disabled={criando} style={{ cursor: "pointer", padding: "10px 24px" }}>
+              <MessageCircle size={16} style={{ marginRight: "6px" }} />
+              {criando ? "Gerando QR Code..." : "Conectar WhatsApp"}
+            </button>
+            {!evoUrl && (
+              <p style={{ fontSize: "11px", color: "#f59e0b", marginTop: "8px" }}>Evolution API não configurada para esta conta.</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Meta Ads - Pixel */}
+      <div className="card">
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
+          <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: metaAtivo ? "#29ABE2" : "#ef4444" }} />
+          <Target size={18} color="#1877f2" />
+          <h2 style={{ fontSize: "16px", fontWeight: "600" }}>Meta Ads</h2>
+        </div>
+        <p style={{ fontSize: "13px", color: "#606060", marginBottom: "20px" }}>Pixel e Conversions API para rastrear e otimizar campanhas</p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
+          <div className="form-group">
+            <label className="form-label">Pixel ID</label>
+            <input className="form-input" placeholder="1234567890123456" value={pixelId} onChange={e => setPixelId(e.target.value)} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Access Token (Conversions API)</label>
+            <div style={{ position: "relative" }}>
+              <input className="form-input" placeholder="EAAxxxxxxx..." type={showToken ? "text" : "password"}
+                value={metaToken} onChange={e => setMetaToken(e.target.value)} style={{ paddingRight: "40px" }} />
+              <button onClick={() => setShowToken(!showToken)} style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#606060" }}>
+                {showToken ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            </div>
+          </div>
+        </div>
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <button className="btn-primary" onClick={salvarMeta} style={{ cursor: "pointer" }}><Check size={14} /> Salvar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Versão MASTER: completa (original) ──────────────────────
+function IntegracoesMaster() {
   // Evolution API
   const [evoUrl, setEvoUrl] = useState("https://evolution-api-production-e0b8.up.railway.app");
   const [evoKey, setEvoKey] = useState("6656711fd37b4eadc6a9d6a31b84c8648e19708f55e7f09b85b7b61d9660d6ad");
@@ -480,4 +670,27 @@ export default function IntegracoesPage() {
       </div>
     </div>
   );
+}
+
+// ─── Wrapper: escolhe versão master ou cliente ───────────────
+export default function IntegracoesPage() {
+  const [isFilha, setIsFilha] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    async function check() {
+      const agId = await getAgenciaId();
+      if (!agId) { setIsFilha(false); return; }
+      const { data } = await supabase.from("agencias").select("parent_id").eq("id", agId).single();
+      setIsFilha(!!data?.parent_id);
+    }
+    check();
+  }, []);
+
+  if (isFilha === null) return (
+    <div style={{ display: "flex", justifyContent: "center", padding: "60px" }}>
+      <div style={{ width: "32px", height: "32px", borderRadius: "50%", border: "3px solid #2e2e2e", borderTop: "3px solid #29ABE2", animation: "spin 1s linear infinite" }} />
+    </div>
+  );
+
+  return isFilha ? <IntegracoesCliente /> : <IntegracoesMaster />;
 }
