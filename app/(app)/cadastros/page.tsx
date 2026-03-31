@@ -71,6 +71,7 @@ export default function CadastrosPage() {
   const [novoLabel, setNovoLabel] = useState("");
   const [novoTipo, setNovoTipo] = useState("text");
   const [adicionando, setAdicionando] = useState(false);
+  const [excluindo, setExcluindo] = useState<string | null>(null);
 
   const carregar = async () => {
     setLoading(true);
@@ -117,6 +118,25 @@ export default function CadastrosPage() {
       if (detalhe?.id === id) setDetalhe(null);
     } finally {
       setRejeitando(null);
+    }
+  };
+
+  const excluir = async (cadastro: Cadastro) => {
+    if (!confirm(`Excluir cadastro de "${cadastro.nome}"? Isso também removerá do controle de clientes.`)) return;
+    setExcluindo(cadastro.id);
+    try {
+      // Remove do controle de clientes (se foi aprovado e criou entrada lá)
+      if (cadastro.status === "aprovado") {
+        await supabase.from("controle_clientes").delete().eq("nome", cadastro.nome);
+      }
+      // Remove o cadastro
+      await supabase.from("cadastros_clientes").delete().eq("id", cadastro.id);
+      await carregar();
+      if (detalhe?.id === cadastro.id) setDetalhe(null);
+    } catch {
+      alert("Erro ao excluir.");
+    } finally {
+      setExcluindo(null);
     }
   };
 
@@ -236,6 +256,10 @@ export default function CadastrosPage() {
                         </button>
                       </>
                     )}
+                    <button onClick={() => excluir(c)} disabled={excluindo === c.id}
+                      style={{ background: "#2d0a0a", border: "1px solid #ef444440", borderRadius: "6px", padding: "6px 10px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", opacity: excluindo === c.id ? 0.6 : 1 }}>
+                      <Trash2 size={13} /> {excluindo === c.id ? "..." : "Excluir"}
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -264,18 +288,24 @@ export default function CadastrosPage() {
                 </div>
               ))}
             </div>
-            {detalhe.status === "pendente" && (
-              <div style={{ padding: "16px 20px", borderTop: "1px solid #2e2e2e", display: "flex", gap: "10px", position: "sticky", bottom: 0, background: "#141414" }}>
-                <button onClick={() => aprovar(detalhe)} disabled={aprovando === detalhe.id}
-                  style={{ flex: 1, padding: "12px", background: "#22c55e", border: "none", borderRadius: "8px", cursor: "pointer", color: "#000", fontWeight: "700", fontSize: "14px" }}>
-                  {aprovando === detalhe.id ? "Aprovando..." : "✓ Aprovar"}
-                </button>
-                <button onClick={() => rejeitar(detalhe.id)} disabled={rejeitando === detalhe.id}
-                  style={{ flex: 1, padding: "12px", background: "#ef4444", border: "none", borderRadius: "8px", cursor: "pointer", color: "#fff", fontWeight: "700", fontSize: "14px" }}>
-                  {rejeitando === detalhe.id ? "Rejeitando..." : "✕ Rejeitar"}
-                </button>
-              </div>
-            )}
+            <div style={{ padding: "16px 20px", borderTop: "1px solid #2e2e2e", display: "flex", gap: "10px", position: "sticky", bottom: 0, background: "#141414", flexWrap: "wrap" }}>
+              {detalhe.status === "pendente" && (
+                <>
+                  <button onClick={() => aprovar(detalhe)} disabled={aprovando === detalhe.id}
+                    style={{ flex: 1, padding: "12px", background: "#22c55e", border: "none", borderRadius: "8px", cursor: "pointer", color: "#000", fontWeight: "700", fontSize: "14px" }}>
+                    {aprovando === detalhe.id ? "Aprovando..." : "✓ Aprovar"}
+                  </button>
+                  <button onClick={() => rejeitar(detalhe.id)} disabled={rejeitando === detalhe.id}
+                    style={{ flex: 1, padding: "12px", background: "#ef4444", border: "none", borderRadius: "8px", cursor: "pointer", color: "#fff", fontWeight: "700", fontSize: "14px" }}>
+                    {rejeitando === detalhe.id ? "Rejeitando..." : "✕ Rejeitar"}
+                  </button>
+                </>
+              )}
+              <button onClick={() => excluir(detalhe)} disabled={excluindo === detalhe.id}
+                style={{ width: "100%", padding: "12px", background: "transparent", border: "1px solid #ef444460", borderRadius: "8px", cursor: "pointer", color: "#ef4444", fontWeight: "600", fontSize: "13px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+                <Trash2 size={14} /> {excluindo === detalhe.id ? "Excluindo..." : "Excluir cadastro"}
+              </button>
+            </div>
           </div>
         </>
       )}
