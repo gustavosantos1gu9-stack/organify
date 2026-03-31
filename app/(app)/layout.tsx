@@ -65,7 +65,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       setRedirecionando(false);
 
       try {
-        const agenciaId = typeof window !== "undefined" ? localStorage.getItem("agencia_selecionada") : null;
+        const agenciaId = typeof window !== "undefined" ? sessionStorage.getItem("agencia_selecionada") : null;
         const permUrl = agenciaId ? `/api/permissoes?agencia_id=${agenciaId}` : "/api/permissoes";
         const res = await fetch(permUrl, {
           headers: { Authorization: `Bearer ${session.access_token}` },

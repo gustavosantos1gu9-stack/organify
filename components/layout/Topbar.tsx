@@ -114,7 +114,7 @@ export default function Topbar() {
       setAgencias(todas);
 
       // Verificar se tem seleção salva
-      const savedId = localStorage.getItem("agencia_selecionada");
+      const savedId = sessionStorage.getItem("agencia_selecionada");
       const saved = todas.find(a => a.id === savedId);
       setAgenciaAtual(saved || master);
     } catch {}
@@ -122,14 +122,14 @@ export default function Topbar() {
 
   function selecionarAgencia(ag: AgenciaOption) {
     setAgenciaAtual(ag);
-    localStorage.setItem("agencia_selecionada", ag.id);
+    sessionStorage.setItem("agencia_selecionada", ag.id);
     setSelectorOpen(false);
     // Redirecionar pra home e recarregar
     window.location.href = "/";
   }
 
   const handleSair = async () => {
-    localStorage.removeItem("agencia_selecionada");
+    sessionStorage.removeItem("agencia_selecionada");
     await supabase.auth.signOut();
     window.location.href = "/login";
   };

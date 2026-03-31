@@ -196,7 +196,7 @@ export default function Sidebar() {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) { setPermLoaded(true); return; }
 
-        const agenciaId = typeof window !== "undefined" ? localStorage.getItem("agencia_selecionada") : null;
+        const agenciaId = typeof window !== "undefined" ? sessionStorage.getItem("agencia_selecionada") : null;
         const url = agenciaId ? `/api/permissoes?agencia_id=${agenciaId}` : "/api/permissoes";
         const res = await fetch(url, {
           headers: { Authorization: `Bearer ${session.access_token}` },

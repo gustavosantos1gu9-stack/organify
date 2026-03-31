@@ -32,7 +32,7 @@ export async function getAgenciaId(): Promise<string | null> {
 
     // Se é admin (dono) e tem agência selecionada no localStorage, usar essa
     if (typeof window !== "undefined") {
-      const selecionada = localStorage.getItem("agencia_selecionada");
+      const selecionada = sessionStorage.getItem("agencia_selecionada");
       if (selecionada) return selecionada;
     }
 
