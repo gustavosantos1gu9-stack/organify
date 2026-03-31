@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Search, Plus, Trash2, Flame, DollarSign, Percent, Edit2, Upload, StickyNote, Check, X } from "lucide-react";
 import KPICard from "@/components/ui/KPICard";
-import Filtros from "@/components/ui/Filtros";
+import { Filter } from "lucide-react";
 import NovoLeadModal from "@/components/crm/NovoLeadModal";
 import ConverterLeadModal from "@/components/crm/ConverterLeadModal";
 import EditarLeadModal from "@/components/crm/EditarLeadModal";
@@ -31,18 +31,6 @@ function getQualificacao(etapa: string, etapas: { key: string; label: string; co
   return { label: "Quente", color: "#ef4444", bg: "rgba(239,68,68,0.12)" };
 }
 
-function buildFiltrosGrupos(etapas: { key: string; label: string }[]) {
-  return [
-    { label:"Etapa", key:"etapa", opcoes: etapas.map((e)=>({ label:e.label, value:e.key })) },
-    { label:"Origem", key:"origem", opcoes:[
-      { label:"Facebook", value:"Facebook" },
-      { label:"Instagram", value:"Instagram" },
-      { label:"Google", value:"Google" },
-      { label:"LinkedIn", value:"LinkedIn" },
-    ]},
-    { label:"Data", key:"data", tipo:"date-range" as const, opcoes:[] },
-  ];
-}
 
 function EtapaBadge({ etapa, etapas }: { etapa: string; etapas: { key: string; label: string; color: string }[] }) {
   const e = etapas.find((x)=>x.key===etapa)||etapas[0];
@@ -268,6 +256,7 @@ export default function CRMPage() {
   const [showModal, setShowModal] = useState(false);
   const [convertendo, setConvertendo] = useState<Lead|null>(null);
   const [editando, setEditando] = useState<Lead|null>(null);
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const [ETAPAS, setETAPAS] = useState(ETAPAS_PADRAO);
   const { data: leads, loading, refresh } = useLeads(busca, filtros.etapa||"");
 
@@ -293,9 +282,19 @@ export default function CRMPage() {
   }, []);
 
   const filtrados = (leads??[]).filter((l)=>{
-    if (filtros.origem && l.origens?.nome!==filtros.origem) return false;
-    if (filtros.data_de && l.created_at<filtros.data_de) return false;
-    if (filtros.data_ate && l.created_at>filtros.data_ate+"T23:59:59") return false;
+    if (filtros.etapa && l.etapa !== filtros.etapa) return false;
+    if (filtros.origem) {
+      if (filtros.origem === "Meta Ads" && !l.utm_source?.toLowerCase().includes("facebook") && !l.utm_source?.toLowerCase().includes("instagram") && l.origens?.nome !== "Meta Ads") return false;
+      if (filtros.origem === "Google Ads" && !l.utm_source?.toLowerCase().includes("google") && l.origens?.nome !== "Google Ads") return false;
+      if (filtros.origem === "Não Rastreada" && l.utm_source) return false;
+    }
+    if (filtros.data_de && l.created_at < filtros.data_de) return false;
+    if (filtros.data_ate && l.created_at > filtros.data_ate+"T23:59:59") return false;
+    if (filtros.campanha && l.utm_campaign !== filtros.campanha) return false;
+    if (filtros.conjunto && l.utm_content !== filtros.conjunto) return false;
+    if (filtros.criativo && l.utm_term !== filtros.criativo) return false;
+    if (filtros.utm_source && !l.utm_source?.includes(filtros.utm_source)) return false;
+    if (filtros.utm_medium && !l.utm_medium?.includes(filtros.utm_medium)) return false;
     return true;
   });
 
@@ -365,7 +364,15 @@ export default function CRMPage() {
             <Search size={14} style={{ position:"absolute", left:"12px", top:"50%", transform:"translateY(-50%)", color:"#606060" }}/>
             <input className="search-input" placeholder="Buscar leads..." value={busca} onChange={(e)=>setBusca(e.target.value)}/>
           </div>
-          <Filtros grupos={buildFiltrosGrupos(ETAPAS)} valores={filtros} onChange={(k,v)=>setFiltros((f)=>({...f,[k]:v}))} onLimpar={()=>setFiltros({})}/>
+          <button onClick={()=>setFiltrosAbertos(true)} className="btn-secondary" style={{ cursor:"pointer",fontSize:"12px",position:"relative" }}>
+            <Filter size={13}/> Filtros
+            {Object.keys(filtros).length > 0 && <span style={{ position:"absolute",top:"-4px",right:"-4px",background:"#29ABE2",color:"#000",fontSize:"9px",fontWeight:"800",borderRadius:"50%",width:"14px",height:"14px",display:"flex",alignItems:"center",justifyContent:"center" }}>{Object.keys(filtros).length}</span>}
+          </button>
+          {Object.keys(filtros).length > 0 && (
+            <button onClick={()=>setFiltros({})} className="btn-ghost" style={{ cursor:"pointer",fontSize:"12px",color:"#ef4444" }}>
+              <X size={12}/> Limpar
+            </button>
+          )}
           <button className="btn-primary" onClick={()=>setShowModal(true)}><Plus size={14}/> Novo lead</button>
         </div>
 
@@ -450,6 +457,133 @@ export default function CRMPage() {
       {showModal && <NovoLeadModal onClose={()=>setShowModal(false)} onSave={handleSalvar}/>}
       {convertendo && <ConverterLeadModal lead={convertendo} onClose={()=>setConvertendo(null)} onSave={()=>{ setConvertendo(null); refresh(); }}/>}
       {editando && <EditarLeadModal lead={editando} onClose={()=>setEditando(null)} onSave={()=>{ setEditando(null); refresh(); }}/>}
+      {filtrosAbertos && <CRMFiltrosAvancados filtros={filtros} etapas={ETAPAS} onChange={setFiltros} onClose={()=>setFiltrosAbertos(false)}/>}
+    </div>
+  );
+}
+
+function CRMFiltrosAvancados({ filtros, etapas, onChange, onClose }: { filtros: Record<string,string>; etapas: {key:string;label:string}[]; onChange:(f:Record<string,string>)=>void; onClose:()=>void }) {
+  const [local, setLocal] = useState<Record<string,string>>({ ...filtros });
+  const set = (k: string, v: string) => setLocal(f => ({ ...f, [k]: v }));
+  const [campanhas, setCampanhas] = useState<string[]>([]);
+  const [conjuntos, setConjuntos] = useState<string[]>([]);
+  const [criativos, setCriativos] = useState<string[]>([]);
+
+  useEffect(() => {
+    const uniq = (arr: (string|null|undefined)[]) => Array.from(new Set(arr.filter(Boolean) as string[])).sort();
+    async function load() {
+      const agId = await getAgenciaId();
+      if (!agId) return;
+      const { data: ag } = await supabase.from("agencias").select("meta_business_token, meta_ad_account_id").eq("id", agId).single();
+      if (ag?.meta_business_token && ag?.meta_ad_account_id) {
+        try {
+          const [resCamp, resCri] = await Promise.all([
+            fetch("/api/meta-ads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "campanhas", token: ag.meta_business_token, adAccountId: ag.meta_ad_account_id }) }),
+            fetch("/api/meta-ads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "criativos", token: ag.meta_business_token, adAccountId: ag.meta_ad_account_id }) }),
+          ]);
+          const campData = await resCamp.json();
+          const criData = await resCri.json();
+          if (Array.isArray(campData)) setCampanhas(campData.map((c:any)=>c.name).filter(Boolean).sort());
+          if (Array.isArray(criData)) setCriativos(criData.map((c:any)=>c.name).filter(Boolean).sort());
+        } catch {}
+      }
+      // Conjuntos do banco
+      const { data: leads } = await supabase.from("leads").select("utm_campaign, utm_content, utm_term").eq("agencia_id", agId).not("utm_campaign", "is", null);
+      if (leads) {
+        if (!campanhas.length) setCampanhas(prev => prev.length ? prev : uniq(leads.map(l => l.utm_campaign)));
+        setConjuntos(uniq(leads.map(l => l.utm_content)));
+        if (!criativos.length) setCriativos(prev => prev.length ? prev : uniq(leads.map(l => l.utm_term)));
+      }
+    }
+    load();
+  }, []);
+
+  const aplicar = () => {
+    const limpos: Record<string,string> = {};
+    for (const [k, v] of Object.entries(local)) { if (v) limpos[k] = v; }
+    onChange(limpos);
+    onClose();
+  };
+
+  return (
+    <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal animate-in" style={{ maxWidth:"560px",maxHeight:"90vh",overflowY:"auto" }}>
+        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"24px" }}>
+          <h2 style={{ fontSize:"17px",fontWeight:"600" }}>Filtros Avançados</h2>
+          <button onClick={onClose} className="btn-ghost" style={{ padding:"6px",cursor:"pointer" }}><X size={16}/></button>
+        </div>
+        <div style={{ display:"flex",flexDirection:"column",gap:"18px" }}>
+          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px" }}>
+            <div className="form-group">
+              <label className="form-label">Origem</label>
+              <select className="form-input" value={local.origem||""} onChange={e=>set("origem",e.target.value)}>
+                <option value="">Todas</option>
+                <option value="Meta Ads">Meta Ads</option>
+                <option value="Google Ads">Google Ads</option>
+                <option value="Não Rastreada">Não Rastreada</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Etapa da Jornada</label>
+              <select className="form-input" value={local.etapa||""} onChange={e=>set("etapa",e.target.value)}>
+                <option value="">Todas</option>
+                {etapas.map(e=><option key={e.key} value={e.key}>{e.label}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px" }}>
+            <div className="form-group">
+              <label className="form-label">Data de</label>
+              <input className="form-input" type="date" value={local.data_de||""} onChange={e=>set("data_de",e.target.value)}/>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Data até</label>
+              <input className="form-input" type="date" value={local.data_ate||""} onChange={e=>set("data_ate",e.target.value)}/>
+            </div>
+          </div>
+          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"12px" }}>
+            <div className="form-group">
+              <label className="form-label">UTM Source</label>
+              <input className="form-input" placeholder="UTM Source" value={local.utm_source||""} onChange={e=>set("utm_source",e.target.value)}/>
+            </div>
+            <div className="form-group">
+              <label className="form-label">UTM Medium</label>
+              <input className="form-input" placeholder="UTM Medium" value={local.utm_medium||""} onChange={e=>set("utm_medium",e.target.value)}/>
+            </div>
+            <div className="form-group">
+              <label className="form-label">UTM Campaign</label>
+              <input className="form-input" placeholder="UTM Campaign" value={local.utm_campaign||""} onChange={e=>set("utm_campaign",e.target.value)}/>
+            </div>
+          </div>
+          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px" }}>
+            <div className="form-group">
+              <label className="form-label">Campanha de Anúncio</label>
+              <select className="form-input" value={local.campanha||""} onChange={e=>set("campanha",e.target.value)}>
+                <option value="">Todas</option>
+                {campanhas.map(c=><option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Conjunto de Anúncio</label>
+              <select className="form-input" value={local.conjunto||""} onChange={e=>set("conjunto",e.target.value)}>
+                <option value="">Todos</option>
+                {conjuntos.map(c=><option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Criativo</label>
+            <select className="form-input" value={local.criativo||""} onChange={e=>set("criativo",e.target.value)}>
+              <option value="">Todos</option>
+              {criativos.map(c=><option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        </div>
+        <div style={{ display:"flex",justifyContent:"space-between",marginTop:"24px" }}>
+          <button className="btn-secondary" onClick={onClose} style={{ cursor:"pointer" }}>Fechar</button>
+          <button className="btn-primary" onClick={aplicar} style={{ cursor:"pointer" }}>Aplicar</button>
+        </div>
+      </div>
     </div>
   );
 }

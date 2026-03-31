@@ -374,14 +374,55 @@ function FiltrosAvancados({ conversas, filtros, onChange, onClose }: { conversas
   const [local, setLocal] = useState(filtros);
   const set = (k: string, v: string) => setLocal((f: any) => ({ ...f, [k]: v }));
 
-  // Valores únicos do banco
+  // Valores únicos do banco local
   const uniq = (arr: (string|undefined)[]) => Array.from(new Set(arr.filter(Boolean) as string[])).sort();
-  const campanhas = uniq(conversas.map(c=>c.utm_campaign));
-  const conjuntos = uniq(conversas.map(c=>c.utm_content));
   const links = uniq(conversas.map(c=>c.link_nome));
-  const anuncios = uniq(conversas.map(c=>(c as any).nome_anuncio));
   const sources = uniq(conversas.map(c=>c.utm_source));
   const mediums = uniq(conversas.map(c=>c.utm_medium));
+
+  // Campanhas/Conjuntos/Criativos — puxar do Meta Ads + fallback local
+  const [campanhas, setCampanhas] = useState<string[]>([]);
+  const [conjuntos, setConjuntos] = useState<string[]>([]);
+  const [anuncios, setAnuncios] = useState<string[]>([]);
+
+  useEffect(() => {
+    async function loadAds() {
+      const agId = await getAgenciaId();
+      if (!agId) return;
+      const { data: ag } = await supabase.from("agencias").select("meta_business_token, meta_ad_account_id").eq("id", agId).single();
+
+      if (ag?.meta_business_token && ag?.meta_ad_account_id) {
+        try {
+          // Campanhas da conta
+          const resCamp = await fetch("/api/meta-ads", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "campanhas", token: ag.meta_business_token, adAccountId: ag.meta_ad_account_id }),
+          });
+          const campData = await resCamp.json();
+          if (Array.isArray(campData)) setCampanhas(campData.map((c: any) => c.name).filter(Boolean).sort());
+
+          // Criativos
+          const resCri = await fetch("/api/meta-ads", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "criativos", token: ag.meta_business_token, adAccountId: ag.meta_ad_account_id }),
+          });
+          const criData = await resCri.json();
+          if (Array.isArray(criData)) setAnuncios(criData.map((c: any) => c.name).filter(Boolean).sort());
+        } catch {}
+      }
+
+      // Conjuntos: sempre do banco (leads utm_content)
+      const { data: leads } = await supabase
+        .from("leads").select("utm_campaign, utm_content, utm_term")
+        .eq("agencia_id", agId).not("utm_campaign", "is", null);
+      if (leads) {
+        if (!campanhas.length) setCampanhas(uniq(leads.map(l => l.utm_campaign)));
+        setConjuntos(uniq(leads.map(l => l.utm_content)));
+        if (!anuncios.length) setAnuncios(uniq(leads.map(l => l.utm_term)));
+      }
+    }
+    loadAds();
+  }, []);
 
   return (
     <>
