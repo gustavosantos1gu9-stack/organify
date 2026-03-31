@@ -424,96 +424,125 @@ function FiltrosAvancados({ conversas, filtros, onChange, onClose }: { conversas
     loadAds();
   }, []);
 
+  const etapasInbox = [
+    { key:"em_contato", label:"Em contato" },
+    { key:"reuniao_agendada", label:"Agendou" },
+    { key:"nao_compareceu", label:"Não compareceu" },
+    { key:"ganho", label:"Comprou" },
+    { key:"perdido", label:"Não comprou" },
+  ];
+
   return (
-    <>
-      <div onClick={onClose} style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:200 }}/>
-      <div style={{ position:"fixed",right:0,top:0,bottom:0,width:"360px",background:"#141414",borderLeft:"1px solid #2e2e2e",zIndex:201,display:"flex",flexDirection:"column",overflowY:"auto" }}>
-        <div style={{ padding:"14px 16px",borderBottom:"1px solid #2e2e2e",display:"flex",justifyContent:"space-between",alignItems:"center",background:"#1a1a1a" }}>
-          <p style={{ fontSize:"14px",fontWeight:"600",color:"#f0f0f0",margin:0 }}>Filtros Avançados</p>
-          <button onClick={onClose} style={{ background:"none",border:"none",cursor:"pointer",color:"#606060" }}><X size={16}/></button>
+    <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal animate-in" style={{ maxWidth:"560px",maxHeight:"90vh",overflowY:"auto" }}>
+        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"24px" }}>
+          <h2 style={{ fontSize:"17px",fontWeight:"600" }}>Filtros Avançados</h2>
+          <button onClick={onClose} className="btn-ghost" style={{ padding:"6px",cursor:"pointer" }}><X size={16}/></button>
         </div>
 
-        <div style={{ padding:"16px",display:"flex",flexDirection:"column",gap:"16px",flex:1 }}>
-
-          {/* Origem */}
-          <div>
-            <p style={{ fontSize:"11px",color:"#606060",fontWeight:"600",marginBottom:"8px" }}>ORIGEM</p>
-            <div style={{ display:"flex",flexWrap:"wrap",gap:"6px" }}>
-              {["","Meta Ads","Google Ads","Outras Origens","Não Rastreada"].map(o=>(
-                <button key={o} onClick={()=>set("origem",o)} style={{ padding:"4px 10px",borderRadius:"20px",border:"1px solid",fontSize:"12px",cursor:"pointer",
-                  borderColor:local.origem===o?"#29ABE2":"#2e2e2e",background:local.origem===o?"rgba(41,171,226,0.1)":"transparent",color:local.origem===o?"#29ABE2":"#606060" }}>
-                  {o||"Todas"}
-                </button>
-              ))}
+        <div style={{ display:"flex",flexDirection:"column",gap:"18px" }}>
+          {/* Origem e Etapa */}
+          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px" }}>
+            <div className="form-group">
+              <label className="form-label">Origem</label>
+              <select className="form-input" value={local.origem||""} onChange={e=>set("origem",e.target.value)}>
+                <option value="">Todas</option>
+                <option value="Meta Ads">Meta Ads</option>
+                <option value="Google Ads">Google Ads</option>
+                <option value="Outras Origens">Outras Origens</option>
+                <option value="Não Rastreada">Não Rastreada</option>
+              </select>
             </div>
-          </div>
-
-          {/* Etapa */}
-          <div>
-            <p style={{ fontSize:"11px",color:"#606060",fontWeight:"600",marginBottom:"8px" }}>ETAPA DA JORNADA</p>
-            <div style={{ display:"flex",flexWrap:"wrap",gap:"6px" }}>
-              {["Entrou em contato","Qualificado","Agendou","Compareceu","Comprou","Perdido"].map(e=>{
-                const cor = getCorEtapa(e);
-                const etapas: string[] = local.etapas || [];
-                const ativo = etapas.includes(e);
-                return (
-                  <button key={e} onClick={()=>{
-                    const novas = ativo ? etapas.filter((x:string)=>x!==e) : [...etapas, e];
-                    setLocal((f:any)=>({...f, etapas: novas, etapa: undefined}));
-                  }} style={{ padding:"4px 10px",borderRadius:"20px",border:"1px solid",fontSize:"12px",cursor:"pointer",
-                    borderColor:ativo?cor:"#2e2e2e",background:ativo?`${cor}18`:"transparent",color:ativo?cor:"#606060" }}>
-                    {e}
-                  </button>
-                );
-              })}
+            <div className="form-group">
+              <label className="form-label">Etapa da Jornada</label>
+              <select className="form-input" value={local.etapa||""} onChange={e=>set("etapa",e.target.value)}>
+                <option value="">Todas</option>
+                {etapasInbox.map(e=><option key={e.key} value={e.key}>{e.label}</option>)}
+              </select>
             </div>
           </div>
 
           {/* Datas */}
-          {[
-            {key:"dataPrimeira",label:"DATA DA PRIMEIRA MENSAGEM"},
-            {key:"dataEtapa",label:"DATA DA ÚLTIMA ALTERAÇÃO DE ETAPA"},
-            {key:"dataUltima",label:"DATA DA ÚLTIMA MENSAGEM"},
-          ].map(d=>(
-            <div key={d.key}>
-              <p style={{ fontSize:"11px",color:"#606060",fontWeight:"600",marginBottom:"8px" }}>{d.label}</p>
-              <div style={{ display:"flex",gap:"8px" }}>
-                <input type="date" value={local[d.key+"De"]||""} onChange={e=>set(d.key+"De",e.target.value)}
-                  style={{ background:"#1a1a1a",border:"1px solid #2e2e2e",borderRadius:"6px",padding:"6px 8px",color:"#f0f0f0",fontSize:"12px",flex:1 }}/>
-                <input type="date" value={local[d.key+"Ate"]||""} onChange={e=>set(d.key+"Ate",e.target.value)}
-                  style={{ background:"#1a1a1a",border:"1px solid #2e2e2e",borderRadius:"6px",padding:"6px 8px",color:"#f0f0f0",fontSize:"12px",flex:1 }}/>
-              </div>
+          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px" }}>
+            <div className="form-group">
+              <label className="form-label">Data da Primeira Mensagem</label>
+              <input className="form-input" type="date" value={local.dataPrimeiraDe||""} onChange={e=>set("dataPrimeiraDe",e.target.value)}/>
             </div>
-          ))}
+            <div className="form-group">
+              <label className="form-label">Data da Última Alteração de Etapa</label>
+              <input className="form-input" type="date" value={local.dataEtapaDe||""} onChange={e=>set("dataEtapaDe",e.target.value)}/>
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Data da Última Mensagem</label>
+            <input className="form-input" type="date" value={local.dataUltimaDe||""} onChange={e=>set("dataUltimaDe",e.target.value)}/>
+          </div>
 
-          {/* Selects dinâmicos */}
-          {[
-            {key:"utmSource",label:"UTM SOURCE",opts:sources},
-            {key:"utmMedium",label:"UTM MEDIUM",opts:mediums},
-            {key:"campanha",label:"CAMPANHA",opts:campanhas},
-            {key:"conjunto",label:"CONJUNTO DE ANÚNCIO",opts:conjuntos},
-            {key:"link",label:"LINK RASTREÁVEL",opts:links},
-            {key:"anuncio",label:"CRIATIVO / ANÚNCIO",opts:anuncios},
-          ].map(f=>(
-            f.opts.length > 0 ? (
-              <div key={f.key}>
-                <p style={{ fontSize:"11px",color:"#606060",fontWeight:"600",marginBottom:"8px" }}>{f.label}</p>
-                <select value={local[f.key]||""} onChange={e=>set(f.key,e.target.value)}
-                  style={{ width:"100%",background:"#1a1a1a",border:"1px solid #2e2e2e",borderRadius:"6px",padding:"7px 10px",color:"#f0f0f0",fontSize:"12px",cursor:"pointer" }}>
-                  <option value="">Todas</option>
-                  {f.opts.map((o:string)=><option key={o} value={o}>{o}</option>)}
-                </select>
-              </div>
-            ) : null
-          ))}
+          {/* UTMs */}
+          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"12px" }}>
+            <div className="form-group">
+              <label className="form-label">UTM Source</label>
+              <select className="form-input" value={local.utmSource||""} onChange={e=>set("utmSource",e.target.value)}>
+                <option value="">Todos</option>
+                {sources.map(s=><option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">UTM Medium</label>
+              <select className="form-input" value={local.utmMedium||""} onChange={e=>set("utmMedium",e.target.value)}>
+                <option value="">Todos</option>
+                {mediums.map(m=><option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">UTM Campaign</label>
+              <input className="form-input" placeholder="UTM Campaign" value={local.utmCampaign||""} onChange={e=>set("utmCampaign",e.target.value)}/>
+            </div>
+          </div>
+
+          {/* Link Rastreável */}
+          {links.length > 0 && (
+            <div className="form-group">
+              <label className="form-label">Link Rastreável</label>
+              <select className="form-input" value={local.link||""} onChange={e=>set("link",e.target.value)}>
+                <option value="">Todos</option>
+                {links.map(l=><option key={l} value={l}>{l}</option>)}
+              </select>
+            </div>
+          )}
+
+          {/* Campanha / Conjunto / Criativo */}
+          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px" }}>
+            <div className="form-group">
+              <label className="form-label">Campanha de Anúncio</label>
+              <select className="form-input" value={local.campanha||""} onChange={e=>set("campanha",e.target.value)}>
+                <option value="">Todas</option>
+                {campanhas.map(c=><option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Conjunto de Anúncio</label>
+              <select className="form-input" value={local.conjunto||""} onChange={e=>set("conjunto",e.target.value)}>
+                <option value="">Todos</option>
+                {conjuntos.map(c=><option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Criativo</label>
+            <select className="form-input" value={local.anuncio||""} onChange={e=>set("anuncio",e.target.value)}>
+              <option value="">Todos</option>
+              {anuncios.map(c=><option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
         </div>
 
-        <div style={{ padding:"12px 16px",borderTop:"1px solid #2e2e2e",display:"flex",gap:"8px",background:"#1a1a1a" }}>
-          <button onClick={()=>{setLocal({});onChange({});}} className="btn-ghost" style={{ flex:1,cursor:"pointer",fontSize:"12px" }}>Limpar</button>
-          <button onClick={()=>{onChange(local);onClose();}} className="btn-primary" style={{ flex:2,cursor:"pointer",fontSize:"12px" }}>Aplicar Filtros</button>
+        <div style={{ display:"flex",justifyContent:"space-between",marginTop:"24px" }}>
+          <button className="btn-secondary" onClick={onClose} style={{ cursor:"pointer" }}>Fechar</button>
+          <button className="btn-primary" onClick={()=>{onChange(local);onClose();}} style={{ cursor:"pointer" }}>Aplicar</button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
