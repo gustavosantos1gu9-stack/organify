@@ -310,11 +310,9 @@ function ChatLateral({ conversa, onClose }: { conversa: Conversa; onClose:()=>vo
 
   const carregar = async (scrollToEnd = true) => {
     const { data, count } = await supabase.from("mensagens").select("*", { count: "exact" })
-      .eq("conversa_id", conversa.id).order("created_at",{ascending:false}).limit(LIMIT);
-    const msgs = (data||[]).reverse();
-    setMensagens(msgs);
-    // Se trouxe menos que o limite, já são todas
-    if ((count || 0) <= LIMIT) setTodasCarregadas(true);
+      .eq("conversa_id", conversa.id).order("created_at",{ascending:true});
+    setMensagens(data||[]);
+    setTodasCarregadas((count || 0) > 0);
     if (scrollToEnd) setTimeout(()=>endRef.current?.scrollIntoView({behavior:"smooth"}),50);
   };
 
@@ -651,6 +649,7 @@ export default function InboxPage() {
   const [detalhes, setDetalhes] = useState<Conversa|null>(null);
   const [chatDireto, setChatDireto] = useState<Conversa|null>(null);
   const [sincronizandoTudo, setSincronizandoTudo] = useState(false);
+  const [syncProgresso, setSyncProgresso] = useState("");
   const [autoRastreando, setAutoRastreando] = useState(false);
   const [importandoTintim, setImportandoTintim] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -734,29 +733,39 @@ export default function InboxPage() {
   };
 
   const sincronizarTudo = async () => {
-    if (!confirm("Vai importar todas as conversas do WhatsApp com mensagens completas. Pode demorar alguns minutos. Continuar?")) return;
+    if (!confirm("Vai importar TODAS as conversas com TODAS as mensagens. Pode demorar vários minutos. Continuar?")) return;
     setSincronizandoTudo(true);
+    setSyncProgresso("Iniciando...");
     try {
       const agId = await getAgenciaId();
       let offset = 0;
       let totalConversas = 0;
       let totalMensagens = 0;
+      let totalGeral = 0;
       let temMais = true;
       while (temMais) {
         const res = await fetch("/api/evolution/sync-all", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ agencia_id: agId, offset, lote: 30, com_mensagens: true }),
+          body: JSON.stringify({ agencia_id: agId, offset, lote: 10 }),
         });
         const data = await res.json();
-        if (!data.ok) { alert("Erro: " + (data.error || "falha no sync")); break; }
-        totalConversas += data.processados || 0;
+        if (!data.ok) {
+          setSyncProgresso(`Erro no lote ${offset}: ${data.error || "falha"}`);
+          break;
+        }
+        totalConversas += data.conversas || 0;
         totalMensagens += data.mensagens || 0;
+        totalGeral = data.total || totalGeral;
         temMais = data.tem_mais;
         offset = data.proximo_offset;
+        setSyncProgresso(`${Math.min(offset, totalGeral)} de ${totalGeral} conversas · ${totalMensagens} mensagens`);
+        // Recarregar lista a cada lote pra mostrar progresso visual
+        carregar();
       }
-      alert(`Sincronização concluída!\n${totalConversas} conversa(s) processada(s)\n${totalMensagens} mensagem(ns) importada(s)`);
+      setSyncProgresso("");
+      alert(`Sincronização concluída!\n${totalConversas} conversa(s)\n${totalMensagens} mensagem(ns)`);
       carregar();
-    } catch { alert("Erro ao sincronizar"); }
+    } catch { alert("Erro ao sincronizar"); setSyncProgresso(""); }
     finally { setSincronizandoTudo(false); }
   };
 
@@ -970,7 +979,7 @@ export default function InboxPage() {
           </button>
           <button onClick={sincronizarTudo} disabled={sincronizandoTudo} className="btn-secondary" style={{ cursor:"pointer",fontSize:"12px",padding:"7px 12px" }}>
             <RefreshCw size={12} style={{ animation:sincronizandoTudo?"spin 1s linear infinite":"none" }}/>
-            {sincronizandoTudo?"Importando...":"Importar tudo"}
+            {sincronizandoTudo?(syncProgresso||"Importando..."):"Importar tudo"}
           </button>
           <input ref={fileInputRef} type="file" accept=".csv" style={{ display: "none" }}
             onChange={e => { if (e.target.files?.[0]) importarTintim(e.target.files[0]); e.target.value = ""; }} />

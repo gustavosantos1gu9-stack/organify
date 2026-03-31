@@ -6,19 +6,120 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-export const maxDuration = 300; // 5 min para Vercel
+export const maxDuration = 300;
+
+// ─── Helpers ─────────────────────────────────────────────────
+
+function extrairConteudo(msg: any): { tipo: string; conteudo: string } | null {
+  const m = msg.message;
+  if (!m) return null;
+  if (m.conversation) return { tipo: "text", conteudo: m.conversation };
+  if (m.extendedTextMessage?.text) return { tipo: "text", conteudo: m.extendedTextMessage.text };
+  if (m.imageMessage) return { tipo: "image", conteudo: m.imageMessage.caption || "📷 Imagem" };
+  if (m.audioMessage) return { tipo: "audio", conteudo: "🎵 Áudio" };
+  if (m.videoMessage) return { tipo: "video", conteudo: "🎥 Vídeo" };
+  if (m.documentMessage) return { tipo: "document", conteudo: m.documentMessage.fileName || "📄 Documento" };
+  if (m.stickerMessage) return { tipo: "sticker", conteudo: "🏷️ Sticker" };
+  if (m.contactMessage) return { tipo: "text", conteudo: `👤 ${m.contactMessage.displayName || "Contato"}` };
+  if (m.locationMessage) return { tipo: "text", conteudo: "📍 Localização" };
+  if (m.buttonsResponseMessage) return { tipo: "text", conteudo: m.buttonsResponseMessage.selectedDisplayText || "Botão" };
+  if (m.listResponseMessage) return { tipo: "text", conteudo: m.listResponseMessage.title || "Lista" };
+  if (m.templateButtonReplyMessage) return { tipo: "text", conteudo: m.templateButtonReplyMessage.selectedDisplayText || "Botão" };
+  if (m.viewOnceMessage?.message) return extrairConteudo({ message: m.viewOnceMessage.message });
+  if (m.viewOnceMessageV2?.message) return extrairConteudo({ message: m.viewOnceMessageV2.message });
+  if (m.reactionMessage) return null;
+  if (m.protocolMessage) return null;
+  if (m.ephemeralMessage?.message) return extrairConteudo({ message: m.ephemeralMessage.message });
+  return null;
+}
+
+async function buscarTodasMensagens(evoUrl: string, evoKey: string, instancia: string, jid: string): Promise<any[]> {
+  const todas: any[] = [];
+  let page = 1;
+  const MAX_PAGES = 50; // até 5000 mensagens (100 por página)
+
+  while (page <= MAX_PAGES) {
+    try {
+      const res = await fetch(`${evoUrl}/chat/findMessages/${instancia}`, {
+        method: "POST",
+        headers: { "apikey": evoKey, "Content-Type": "application/json" },
+        body: JSON.stringify({ where: { key: { remoteJid: jid } }, limit: 100, page }),
+      });
+      const data = await res.json();
+      const records = data?.messages?.records || data?.records || [];
+      if (!Array.isArray(records) || records.length === 0) break;
+      todas.push(...records);
+      if (records.length < 100) break; // última página
+      page++;
+    } catch {
+      break;
+    }
+  }
+
+  return todas;
+}
+
+function resolverNumeroLid(chat: any, msgs: any[]): string {
+  // Tentar vários caminhos para encontrar o número real de um @lid
+  const tentativas = [
+    chat.lastMessage?.key?.remoteJidAlt,
+    chat.participant,
+  ];
+
+  for (const t of tentativas) {
+    if (typeof t === "string" && t.includes("@s.whatsapp.net")) {
+      return t.replace("@s.whatsapp.net", "").replace(/\D/g, "");
+    }
+  }
+
+  // Buscar nas mensagens
+  for (const msg of msgs) {
+    const alt = msg.key?.remoteJidAlt || msg.participant || "";
+    if (typeof alt === "string" && alt.includes("@s.whatsapp.net")) {
+      return alt.replace("@s.whatsapp.net", "").replace(/\D/g, "");
+    }
+  }
+
+  return "";
+}
+
+function resolverNome(chat: any, msgs: any[]): string {
+  // 1. Campos do chat
+  const campos = [
+    chat.pushName,
+    chat.name,
+    chat.contact?.pushName,
+    chat.contact?.name,
+    chat.notify,
+    chat.verifiedName,
+    chat.formattedTitle,
+  ];
+  for (const c of campos) {
+    if (c && typeof c === "string" && c.trim()) return c.trim();
+  }
+
+  // 2. pushName de mensagens RECEBIDAS (não fromMe)
+  for (const msg of msgs) {
+    if (!msg.key?.fromMe && msg.pushName && typeof msg.pushName === "string" && msg.pushName.trim()) {
+      return msg.pushName.trim();
+    }
+  }
+
+  return "";
+}
+
+// ─── Endpoint principal ──────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
-    const { agencia_id, offset = 0, lote = 50, com_mensagens = false } = body;
+    const { agencia_id, offset = 0, lote = 10 } = body;
 
     // Buscar config da agência
     let { data: agencia } = await supabase.from("agencias")
       .select("id, evolution_url, evolution_key, whatsapp_instancia, whatsapp_numero, parent_id")
       .eq("id", agencia_id).single();
 
-    // Se a agência filha não tem Evolution, herdar da mãe
     if (agencia && !agencia.evolution_url && agencia.parent_id) {
       const { data: parent } = await supabase.from("agencias")
         .select("evolution_url, evolution_key")
@@ -35,7 +136,7 @@ export async function POST(req: NextRequest) {
     const INSTANCIA = agencia.whatsapp_instancia;
     const MEU_NUMERO = (agencia.whatsapp_numero || "").replace(/\D/g, "");
 
-    // findChats — buscar TODOS (sem limite)
+    // Buscar todos os chats da instância
     const resChats = await fetch(`${EVO_URL}/chat/findChats/${INSTANCIA}`, {
       method: "POST",
       headers: { "apikey": EVO_KEY, "Content-Type": "application/json" },
@@ -51,45 +152,21 @@ export async function POST(req: NextRequest) {
     });
 
     const loteAtual = individuais.slice(offset, offset + lote);
-    let conversasSalvas = 0;
+    let conversasProcessadas = 0;
     let mensagensSalvas = 0;
 
     for (const chat of loteAtual) {
       const jid = chat.remoteJid || chat.id || "";
       const isLid = jid.includes("@lid");
 
+      // ─── 1. Buscar TODAS as mensagens primeiro ───
+      const todasMsgs = await buscarTodasMensagens(EVO_URL, EVO_KEY, INSTANCIA, jid);
+
+      // ─── 2. Resolver número ───
       let numeroReal = "";
       if (isLid) {
-        // Click-to-WhatsApp: buscar número real
-        const alt = chat.lastMessage?.key?.remoteJidAlt
-          || chat.participant
-          || chat.name?.match?.(/\d{10,15}/)?.[0]
-          || "";
-        const altStr = typeof alt === "string" ? alt : "";
-        if (altStr.includes("@s.whatsapp.net")) {
-          numeroReal = altStr.replace("@s.whatsapp.net", "");
-        } else if (/^\d{10,15}$/.test(altStr.replace(/\D/g, ""))) {
-          numeroReal = altStr.replace(/\D/g, "");
-        } else {
-          // Tentar buscar via mensagens para descobrir o número
-          try {
-            const resMsgs = await fetch(`${EVO_URL}/chat/findMessages/${INSTANCIA}`, {
-              method: "POST",
-              headers: { "apikey": EVO_KEY, "Content-Type": "application/json" },
-              body: JSON.stringify({ where: { key: { remoteJid: jid } }, limit: 5 }),
-            });
-            const msgsData = await resMsgs.json();
-            const records = msgsData?.messages?.records || msgsData?.records || [];
-            for (const r of records) {
-              const rAlt = r.key?.remoteJidAlt || r.participant || "";
-              if (rAlt.includes("@s.whatsapp.net")) {
-                numeroReal = rAlt.replace("@s.whatsapp.net", "");
-                break;
-              }
-            }
-          } catch {}
-          if (!numeroReal) continue;
-        }
+        numeroReal = resolverNumeroLid(chat, todasMsgs);
+        if (!numeroReal) continue;
       } else {
         numeroReal = jid.replace("@s.whatsapp.net", "");
       }
@@ -98,164 +175,106 @@ export async function POST(req: NextRequest) {
       if (!numeroReal || numeroReal === MEU_NUMERO) continue;
       if (numeroReal.length < 10 || numeroReal.length > 15) continue;
 
-      // Nome: tentar vários campos possíveis
-      const nome = chat.pushName
-        || chat.name
-        || chat.contact?.pushName
-        || chat.contact?.name
-        || chat.notify
-        || chat.verifiedName
-        || chat.formattedTitle
-        || "";
-
+      // ─── 3. Resolver nome ───
+      const nome = resolverNome(chat, todasMsgs);
       const foto = chat.profilePicUrl || chat.contact?.profilePicUrl || null;
-      const lm = chat.lastMessage;
-      const ultimaMsg = lm?.message?.conversation || lm?.message?.extendedTextMessage?.text || "";
-      const ultimaAt = lm?.messageTimestamp
-        ? new Date(Number(lm.messageTimestamp) * 1000).toISOString()
-        : new Date().toISOString();
-      const naoLidas = chat.unreadCount || 0;
 
-      // Data real da primeira interação (timestamp de criação do chat ou primeira msg)
-      const chatCreatedTs = chat.createdAt || chat.conversationTimestamp || chat.t || 0;
-      const primeiraMsgAtChat = chatCreatedTs
-        ? new Date(Number(chatCreatedTs) * 1000).toISOString()
-        : null;
-
-      let { data: conversa } = await supabase.from("conversas")
-        .select("id").eq("agencia_id", agencia.id).eq("contato_numero", numeroReal).single();
-
-      if (!conversa) {
-        const insertData: any = {
-          agencia_id: agencia.id, instancia: INSTANCIA,
-          contato_numero: numeroReal, contato_nome: nome || numeroReal, contato_foto: foto,
-          contato_jid: jid,
-          ultima_mensagem: ultimaMsg, ultima_mensagem_at: ultimaAt, nao_lidas: naoLidas,
-        };
-        if (primeiraMsgAtChat) insertData.primeira_mensagem_at = primeiraMsgAtChat;
-        const { data: nova } = await supabase.from("conversas").insert(insertData).select("id").single();
-        conversa = nova;
-        conversasSalvas++;
-      } else {
-        // Atualizar nome só se veio um nome real (não sobrescrever com número)
-        const updateData: any = {
-          contato_foto: foto, contato_jid: jid,
-          ultima_mensagem: ultimaMsg, ultima_mensagem_at: ultimaAt, nao_lidas: naoLidas,
-        };
-        if (nome) updateData.contato_nome = nome;
-        await supabase.from("conversas").update(updateData).eq("id", conversa.id);
-      }
-
-      if (!com_mensagens || !conversa?.id) continue;
-
-      // Buscar últimas 50 mensagens (as mais recentes) — rápido no sync inicial
-      // Mensagens mais antigas são carregadas sob demanda no chat
-      const resMsgs = await fetch(`${EVO_URL}/chat/findMessages/${INSTANCIA}`, {
-        method: "POST",
-        headers: { "apikey": EVO_KEY, "Content-Type": "application/json" },
-        body: JSON.stringify({ where: { key: { remoteJid: jid } }, limit: 50 }),
-      });
-      const msgsData = await resMsgs.json();
-      const allMsgs = msgsData?.messages?.records || msgsData?.records || [];
-
-      const msgs = allMsgs
-        .filter((m: any) => m.key?.id && (m.message || m.messageType))
+      // ─── 4. Processar mensagens ───
+      const msgsValidas = todasMsgs
+        .filter((m: any) => m.key?.id && Number(m.messageTimestamp) > 0)
         .sort((a: any, b: any) => Number(a.messageTimestamp) - Number(b.messageTimestamp));
 
-      // Calcular primeira_mensagem_at a partir da mensagem mais antiga
       let primeiraMsgAt: string | null = null;
       let ultimaMsgAt: string | null = null;
+      let ultimaMsgConteudo = "";
+      let msgsSalvasConversa = 0;
 
-      for (const msg of msgs) {
+      // Batch upsert para performance
+      const batch: any[] = [];
+
+      for (const msg of msgsValidas) {
         const msgId = msg.key?.id;
         if (!msgId) continue;
-        const fromMe = msg.key?.fromMe || false;
+
         const ts = Number(msg.messageTimestamp);
-        if (!ts) continue;
         const timestamp = new Date(ts * 1000).toISOString();
 
         if (!primeiraMsgAt || timestamp < primeiraMsgAt) primeiraMsgAt = timestamp;
-        if (!ultimaMsgAt || timestamp > ultimaMsgAt) ultimaMsgAt = timestamp;
+        if (!ultimaMsgAt || timestamp > ultimaMsgAt) {
+          ultimaMsgAt = timestamp;
+          const ext = extrairConteudo(msg);
+          if (ext) ultimaMsgConteudo = ext.conteudo;
+        }
 
-        let tipo = "text"; let conteudo = "";
-        const m = msg.message;
-        if (!m) continue;
-        if (m.conversation) conteudo = m.conversation;
-        else if (m.extendedTextMessage?.text) conteudo = m.extendedTextMessage.text;
-        else if (m.imageMessage) { tipo = "image"; conteudo = m.imageMessage.caption || "📷 Imagem"; }
-        else if (m.audioMessage) { tipo = "audio"; conteudo = "🎵 Áudio"; }
-        else if (m.videoMessage) { tipo = "video"; conteudo = "🎥 Vídeo"; }
-        else if (m.documentMessage) { tipo = "document"; conteudo = m.documentMessage.fileName || "📄 Documento"; }
-        else if (m.stickerMessage) { tipo = "sticker"; conteudo = "🏷️ Sticker"; }
-        else if (m.contactMessage) { tipo = "text"; conteudo = `👤 ${m.contactMessage.displayName || "Contato"}`; }
-        else if (m.locationMessage) { tipo = "text"; conteudo = "📍 Localização"; }
-        else if (m.reactionMessage) continue; // ignorar reações
-        else continue;
+        const ext = extrairConteudo(msg);
+        if (!ext) continue;
 
-        const { error } = await supabase.from("mensagens").upsert({
-          conversa_id: conversa.id, agencia_id: agencia.id,
-          mensagem_id: msgId, de_mim: fromMe, tipo, conteudo, created_at: timestamp,
-        }, { onConflict: "mensagem_id" });
-        if (!error) mensagensSalvas++;
-      }
-
-      // Buscar a primeira mensagem real (page 1, limit 1, ordem ascendente) para data exata
-      try {
-        const resFirst = await fetch(`${EVO_URL}/chat/findMessages/${INSTANCIA}`, {
-          method: "POST",
-          headers: { "apikey": EVO_KEY, "Content-Type": "application/json" },
-          body: JSON.stringify({ where: { key: { remoteJid: jid } }, limit: 1, page: 1 }),
+        batch.push({
+          conversa_id: "__PLACEHOLDER__",
+          agencia_id: agencia.id,
+          mensagem_id: msgId,
+          de_mim: msg.key?.fromMe || false,
+          tipo: ext.tipo,
+          conteudo: ext.conteudo,
+          created_at: timestamp,
         });
-        const firstData = await resFirst.json();
-        const firstRecords = firstData?.messages?.records || firstData?.records || [];
-        if (firstRecords.length > 0) {
-          const ts = Number(firstRecords[0].messageTimestamp);
-          if (ts) {
-            const realFirst = new Date(ts * 1000).toISOString();
-            if (!primeiraMsgAt || realFirst < primeiraMsgAt) primeiraMsgAt = realFirst;
-          }
-        }
-      } catch {}
+      }
 
-      // Usar data do chat como fallback se ainda não temos primeira mensagem
-      if (!primeiraMsgAt && primeiraMsgAtChat) primeiraMsgAt = primeiraMsgAtChat;
+      // ─── 5. Criar ou atualizar conversa ───
+      let { data: conversa } = await supabase.from("conversas")
+        .select("id").eq("agencia_id", agencia.id).eq("contato_numero", numeroReal).single();
 
-      // Atualizar datas reais na conversa
-      const conversaUpdate: any = {};
-      if (primeiraMsgAt) conversaUpdate.primeira_mensagem_at = primeiraMsgAt;
-      if (ultimaMsgAt) {
-        conversaUpdate.ultima_mensagem_at = ultimaMsgAt;
-        // Pegar conteúdo da última mensagem real
-        const ultimaReal = msgs[msgs.length - 1];
-        if (ultimaReal?.message) {
-          const m = ultimaReal.message;
-          conversaUpdate.ultima_mensagem = m.conversation || m.extendedTextMessage?.text
-            || (m.imageMessage ? "📷 Imagem" : "")
-            || (m.audioMessage ? "🎵 Áudio" : "")
-            || (m.videoMessage ? "🎥 Vídeo" : "")
-            || (m.documentMessage ? "📄 Documento" : "")
-            || "";
-        }
+      const conversaData: any = {
+        contato_foto: foto,
+        contato_jid: jid,
+        ultima_mensagem: ultimaMsgConteudo,
+        ultima_mensagem_at: ultimaMsgAt || new Date().toISOString(),
+        nao_lidas: chat.unreadCount || 0,
+      };
+      if (nome) conversaData.contato_nome = nome;
+      if (primeiraMsgAt) conversaData.primeira_mensagem_at = primeiraMsgAt;
+
+      if (!conversa) {
+        const { data: nova } = await supabase.from("conversas").insert({
+          agencia_id: agencia.id,
+          instancia: INSTANCIA,
+          contato_numero: numeroReal,
+          contato_nome: nome || numeroReal,
+          ...conversaData,
+        }).select("id").single();
+        conversa = nova;
+      } else {
+        await supabase.from("conversas").update(conversaData).eq("id", conversa.id);
       }
-      // Tentar pegar nome do contato das mensagens recebidas (se ainda sem nome)
-      if (!nome) {
-        const msgComNome = msgs.find((m: any) => !m.key?.fromMe && m.pushName);
-        if (msgComNome?.pushName) {
-          conversaUpdate.contato_nome = msgComNome.pushName;
-        }
+
+      if (!conversa?.id) continue;
+
+      // ─── 6. Salvar mensagens em lotes de 50 ───
+      for (let i = 0; i < batch.length; i += 50) {
+        const chunk = batch.slice(i, i + 50).map(m => ({
+          ...m,
+          conversa_id: conversa!.id,
+        }));
+        const { error } = await supabase.from("mensagens").upsert(chunk, { onConflict: "mensagem_id" });
+        if (!error) msgsSalvasConversa += chunk.length;
       }
-      if (Object.keys(conversaUpdate).length > 0) {
-        await supabase.from("conversas").update(conversaUpdate).eq("id", conversa.id);
-      }
+
+      mensagensSalvas += msgsSalvasConversa;
+      conversasProcessadas++;
     }
 
     return NextResponse.json({
-      ok: true, conversas: conversasSalvas, mensagens: mensagensSalvas,
-      offset, processados: loteAtual.length, total: individuais.length,
-      proximo_offset: offset + lote, tem_mais: offset + lote < individuais.length,
+      ok: true,
+      conversas: conversasProcessadas,
+      mensagens: mensagensSalvas,
+      offset,
+      processados: loteAtual.length,
+      total: individuais.length,
+      proximo_offset: offset + lote,
+      tem_mais: offset + lote < individuais.length,
     });
   } catch(e) {
-    console.error(e);
+    console.error("sync-all erro:", e);
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }
 }

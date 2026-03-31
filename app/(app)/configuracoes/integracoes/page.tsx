@@ -69,12 +69,12 @@ function IntegracoesCliente() {
             }
           }
           await supabase.from("agencias").update({ whatsapp_conectado: true }).eq("id", agenciaId!);
-          // Sync automático das conversas após conectar
+          // Sync automático das conversas após conectar (primeiro lote)
           try {
             await fetch("/api/evolution/sync-all", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ agencia_id: agenciaId, com_mensagens: true, lote: 100 }),
+              body: JSON.stringify({ agencia_id: agenciaId, lote: 10 }),
             });
           } catch {}
         }
