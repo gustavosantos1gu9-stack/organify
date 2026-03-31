@@ -20,6 +20,7 @@ function IntegracoesCliente() {
   const [evoUrl, setEvoUrl] = useState("");
   const [evoKey, setEvoKey] = useState("");
   const [instancia, setInstancia] = useState("");
+  const [agenciaId, setAgenciaId] = useState<string | null>(null);
   const [waConectado, setWaConectado] = useState(false);
   const [profileName, setProfileName] = useState("");
   const [profilePic, setProfilePic] = useState("");
@@ -38,9 +39,59 @@ function IntegracoesCliente() {
   const [showBusinessToken, setShowBusinessToken] = useState(false);
   const [metaAdsAtivo, setMetaAdsAtivo] = useState(false);
 
+  // Helper para chamar Evolution API sempre com agencia_id
+  const evoCall = useCallback(async (action: string, instanceName?: string, payload?: Record<string, unknown>) => {
+    const res = await fetch("/api/evolution", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, instanceName, payload, agencia_id: agenciaId }),
+    });
+    return res.json();
+  }, [agenciaId]);
+
+  // Polling: checa status da conexão a cada 5s quando QR está visível
+  useEffect(() => {
+    if (!qrCode || !instancia || waConectado) return;
+    const interval = setInterval(async () => {
+      try {
+        const data = await evoCall("status", instancia);
+        const status = (data?.state || data?.instance?.state || "").toLowerCase();
+        if (status === "open" || status === "connected") {
+          setWaConectado(true);
+          setQrCode(null);
+          // Buscar profile
+          const instances = await evoCall("fetchInstances");
+          if (Array.isArray(instances)) {
+            const inst = instances.find((i: any) => (i.name || i.instance?.instanceName) === instancia);
+            if (inst) {
+              setProfileName(inst.profileName || instancia);
+              setProfilePic(inst.profilePicUrl || "");
+            }
+          }
+          await supabase.from("agencias").update({ whatsapp_conectado: true }).eq("id", agenciaId!);
+        }
+      } catch {}
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [qrCode, instancia, waConectado, agenciaId, evoCall]);
+
+  // Auto-refresh QR Code a cada 30s (QR expira rápido)
+  useEffect(() => {
+    if (!qrCode || !instancia || waConectado) return;
+    const interval = setInterval(async () => {
+      try {
+        const data = await evoCall("connect", instancia);
+        const newQr = data.base64 || data.qrcode?.base64;
+        if (newQr) setQrCode(newQr);
+      } catch {}
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [qrCode, instancia, waConectado, evoCall]);
+
   useEffect(() => {
     async function load() {
       const agId = await getAgenciaId();
+      setAgenciaId(agId);
       const { data } = await supabase.from("agencias").select("*").eq("id", agId!).single();
       if (data) {
         // Se a agência filha não tem Evolution, puxar da mãe
@@ -68,7 +119,7 @@ function IntegracoesCliente() {
             const res = await fetch("/api/evolution", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ action: "fetchInstances" }),
+              body: JSON.stringify({ action: "fetchInstances", agencia_id: agId }),
             });
             const instances = await res.json();
             if (Array.isArray(instances)) {
@@ -93,33 +144,45 @@ function IntegracoesCliente() {
     if (!evoUrl || !evoKey) { alert("Evolution API não configurada. Peça para seu gestor configurar."); return; }
     setCriando(true);
     try {
-      const agId = await getAgenciaId();
+      const agId = agenciaId || await getAgenciaId();
       const nome = novaInstancia.trim() || "whatsapp";
-      const res = await fetch("/api/evolution", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "connect", instanceName: nome }),
-      });
-      const data = await res.json();
+
+      // Primeiro tenta deletar instância antiga com problema (se existir com status "close")
+      try {
+        const statusRes = await evoCall("status", nome);
+        const state = (statusRes?.state || statusRes?.instance?.state || "").toLowerCase();
+        if (state === "close" || state === "connecting") {
+          // Instância existe mas desconectada — tentar reconectar
+          const data = await evoCall("connect", nome);
+          const qr = data.base64 || data.qrcode?.base64;
+          if (qr) {
+            setQrCode(qr); setInstancia(nome);
+            await supabase.from("agencias").update({ whatsapp_instancia: nome }).eq("id", agId!);
+            setCriando(false);
+            return;
+          }
+        }
+      } catch {}
+
+      // Tentar connect direto
+      const data = await evoCall("connect", nome);
       const qr = data.base64 || data.qrcode?.base64;
       if (qr) {
         setQrCode(qr); setInstancia(nome);
         await supabase.from("agencias").update({ whatsapp_instancia: nome }).eq("id", agId!);
       } else {
-        // Criar instância
-        const res2 = await fetch("/api/evolution", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "create", instanceName: nome, payload: { instanceName: nome, token: nome, qrcode: true, integration: "WHATSAPP-BAILEYS" } }),
-        });
-        const data2 = await res2.json();
+        // Instância não existe — deletar caso corrompida e criar nova
+        try { await evoCall("delete", nome); } catch {}
+        const data2 = await evoCall("create", nome, { instanceName: nome, token: nome, qrcode: true, integration: "WHATSAPP-BAILEYS" });
         const qr2 = data2.qrcode?.base64 || data2.base64;
         if (qr2) {
           setQrCode(qr2); setInstancia(nome);
           await supabase.from("agencias").update({ whatsapp_instancia: nome }).eq("id", agId!);
+        } else {
+          alert("Não foi possível gerar o QR Code. Tente novamente.");
         }
       }
-    } catch { alert("Erro ao conectar"); }
+    } catch { alert("Erro ao conectar. Verifique sua conexão e tente novamente."); }
     setCriando(false);
   };
 

@@ -12,7 +12,14 @@ async function getEvoConfig(agenciaId?: string) {
     const { data } = await supabase.from("agencias").select("evolution_url,evolution_key,whatsapp_instancia").limit(1).single();
     return data;
   }
-  const { data } = await supabase.from("agencias").select("evolution_url,evolution_key,whatsapp_instancia").eq("id", agenciaId).single();
+  const { data } = await supabase.from("agencias").select("evolution_url,evolution_key,whatsapp_instancia,parent_id").eq("id", agenciaId).single();
+  // Se a agência filha não tem Evolution configurada, puxar da mãe
+  if (data && !data.evolution_url && data.parent_id) {
+    const { data: parent } = await supabase.from("agencias").select("evolution_url,evolution_key,whatsapp_instancia").eq("id", data.parent_id).single();
+    if (parent) {
+      return { ...data, evolution_url: parent.evolution_url, evolution_key: parent.evolution_key };
+    }
+  }
   return data;
 }
 
