@@ -27,16 +27,15 @@ function extrairConteudo(msg: any): { tipo: string; conteudo: string } | null {
   if (m.templateButtonReplyMessage) return { tipo: "text", conteudo: m.templateButtonReplyMessage.selectedDisplayText || "Botão" };
   if (m.viewOnceMessage?.message) return extrairConteudo({ message: m.viewOnceMessage.message });
   if (m.viewOnceMessageV2?.message) return extrairConteudo({ message: m.viewOnceMessageV2.message });
-  if (m.reactionMessage) return null;
-  if (m.protocolMessage) return null;
   if (m.ephemeralMessage?.message) return extrairConteudo({ message: m.ephemeralMessage.message });
+  if (m.reactionMessage || m.protocolMessage) return null;
   return null;
 }
 
 async function buscarTodasMensagens(evoUrl: string, evoKey: string, instancia: string, jid: string): Promise<any[]> {
   const todas: any[] = [];
   let page = 1;
-  const MAX_PAGES = 50; // até 5000 mensagens (100 por página)
+  const MAX_PAGES = 50;
 
   while (page <= MAX_PAGES) {
     try {
@@ -45,11 +44,12 @@ async function buscarTodasMensagens(evoUrl: string, evoKey: string, instancia: s
         headers: { "apikey": evoKey, "Content-Type": "application/json" },
         body: JSON.stringify({ where: { key: { remoteJid: jid } }, limit: 100, page }),
       });
+      if (!res.ok) break;
       const data = await res.json();
       const records = data?.messages?.records || data?.records || [];
       if (!Array.isArray(records) || records.length === 0) break;
       todas.push(...records);
-      if (records.length < 100) break; // última página
+      if (records.length < 100) break;
       page++;
     } catch {
       break;
@@ -59,125 +59,153 @@ async function buscarTodasMensagens(evoUrl: string, evoKey: string, instancia: s
   return todas;
 }
 
-function resolverNumeroLid(chat: any, msgs: any[]): string {
-  // Tentar vários caminhos para encontrar o número real de um @lid
-  const tentativas = [
-    chat.lastMessage?.key?.remoteJidAlt,
-    chat.participant,
-  ];
-
-  for (const t of tentativas) {
-    if (typeof t === "string" && t.includes("@s.whatsapp.net")) {
-      return t.replace("@s.whatsapp.net", "").replace(/\D/g, "");
-    }
-  }
-
-  // Buscar nas mensagens
-  for (const msg of msgs) {
-    const alt = msg.key?.remoteJidAlt || msg.participant || "";
-    if (typeof alt === "string" && alt.includes("@s.whatsapp.net")) {
-      return alt.replace("@s.whatsapp.net", "").replace(/\D/g, "");
-    }
-  }
-
-  return "";
-}
-
 function resolverNome(chat: any, msgs: any[]): string {
-  // 1. Campos do chat
+  // Campos do chat
   const campos = [
-    chat.pushName,
-    chat.name,
-    chat.contact?.pushName,
-    chat.contact?.name,
-    chat.notify,
-    chat.verifiedName,
-    chat.formattedTitle,
+    chat.pushName, chat.name, chat.contact?.pushName, chat.contact?.name,
+    chat.notify, chat.verifiedName, chat.formattedTitle,
   ];
   for (const c of campos) {
-    if (c && typeof c === "string" && c.trim()) return c.trim();
+    if (c && typeof c === "string" && c.trim() && !/^\d+$/.test(c.trim())) return c.trim();
   }
-
-  // 2. pushName de mensagens RECEBIDAS (não fromMe)
+  // pushName de mensagens recebidas
   for (const msg of msgs) {
     if (!msg.key?.fromMe && msg.pushName && typeof msg.pushName === "string" && msg.pushName.trim()) {
       return msg.pushName.trim();
     }
   }
-
   return "";
 }
 
-// ─── Endpoint principal ──────────────────────────────────────
+// ─── Endpoint ────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
     const { agencia_id, offset = 0, lote = 10 } = body;
 
-    // Buscar config da agência
+    // Config da agência (herda da mãe se filha)
     let { data: agencia } = await supabase.from("agencias")
       .select("id, evolution_url, evolution_key, whatsapp_instancia, whatsapp_numero, parent_id")
       .eq("id", agencia_id).single();
 
     if (agencia && !agencia.evolution_url && agencia.parent_id) {
       const { data: parent } = await supabase.from("agencias")
-        .select("evolution_url, evolution_key")
-        .eq("id", agencia.parent_id).single();
-      if (parent) {
-        agencia = { ...agencia, evolution_url: parent.evolution_url, evolution_key: parent.evolution_key };
-      }
+        .select("evolution_url, evolution_key").eq("id", agencia.parent_id).single();
+      if (parent) agencia = { ...agencia, evolution_url: parent.evolution_url, evolution_key: parent.evolution_key };
     }
 
     if (!agencia?.evolution_url) return NextResponse.json({ error: "Agência não configurada" }, { status: 400 });
 
-    const EVO_URL = agencia.evolution_url;
-    const EVO_KEY = agencia.evolution_key;
-    const INSTANCIA = agencia.whatsapp_instancia;
+    const EVO = { url: agencia.evolution_url, key: agencia.evolution_key, inst: agencia.whatsapp_instancia };
     const MEU_NUMERO = (agencia.whatsapp_numero || "").replace(/\D/g, "");
 
-    // Buscar todos os chats da instância
-    const resChats = await fetch(`${EVO_URL}/chat/findChats/${INSTANCIA}`, {
-      method: "POST",
-      headers: { "apikey": EVO_KEY, "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
+    // ─── Buscar TODOS os chats + contatos ───
+    const [resChats, resContacts] = await Promise.all([
+      fetch(`${EVO.url}/chat/findChats/${EVO.inst}`, {
+        method: "POST",
+        headers: { "apikey": EVO.key, "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      }),
+      fetch(`${EVO.url}/chat/findContacts/${EVO.inst}`, {
+        method: "POST",
+        headers: { "apikey": EVO.key, "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      }).catch(() => null),
+    ]);
+
     const chats = await resChats.json();
-    const lista = Array.isArray(chats) ? chats : [];
+    const chatList = Array.isArray(chats) ? chats : [];
 
-    const individuais = lista.filter((c: any) => {
-      const jid = c.remoteJid || c.id || "";
-      if (jid.includes("@g.us") || jid.includes("@broadcast") || jid === "status@broadcast") return false;
-      return jid.includes("@s.whatsapp.net") || jid.includes("@lid");
-    });
+    // Mapa de contatos por jid (para nomes)
+    const contactMap = new Map<string, any>();
+    if (resContacts && resContacts.ok) {
+      const contacts = await resContacts.json();
+      if (Array.isArray(contacts)) {
+        for (const c of contacts) {
+          const id = c.id || c.remoteJid || "";
+          if (id) contactMap.set(id, c);
+        }
+      }
+    }
 
-    const loteAtual = individuais.slice(offset, offset + lote);
+    // Combinar: chats individuais + contatos que não têm chat
+    const jidSet = new Set<string>();
+    const conversasCandidatas: { jid: string; chat: any; contact: any }[] = [];
+
+    // Primeiro: chats
+    for (const chat of chatList) {
+      const jid = chat.remoteJid || chat.id || "";
+      if (jid.includes("@g.us") || jid.includes("@broadcast") || jid === "status@broadcast") continue;
+      if (!jid.includes("@s.whatsapp.net") && !jid.includes("@lid")) continue;
+      jidSet.add(jid);
+      conversasCandidatas.push({ jid, chat, contact: contactMap.get(jid) || null });
+    }
+
+    // Segundo: contatos que não apareceram nos chats
+    for (const [id, contact] of contactMap) {
+      if (jidSet.has(id)) continue;
+      if (id.includes("@g.us") || id.includes("@broadcast")) continue;
+      if (!id.includes("@s.whatsapp.net") && !id.includes("@lid")) continue;
+      jidSet.add(id);
+      conversasCandidatas.push({ jid: id, chat: null, contact });
+    }
+
+    // Paginar
+    const loteAtual = conversasCandidatas.slice(offset, offset + lote);
     let conversasProcessadas = 0;
     let mensagensSalvas = 0;
 
-    for (const chat of loteAtual) {
-      const jid = chat.remoteJid || chat.id || "";
+    for (const { jid, chat, contact } of loteAtual) {
       const isLid = jid.includes("@lid");
 
-      // ─── 1. Buscar TODAS as mensagens primeiro ───
-      const todasMsgs = await buscarTodasMensagens(EVO_URL, EVO_KEY, INSTANCIA, jid);
+      // ─── 1. Buscar TODAS as mensagens ───
+      const todasMsgs = await buscarTodasMensagens(EVO.url, EVO.key, EVO.inst, jid);
 
       // ─── 2. Resolver número ───
       let numeroReal = "";
       if (isLid) {
-        numeroReal = resolverNumeroLid(chat, todasMsgs);
-        if (!numeroReal) continue;
+        // @lid: buscar número real de várias fontes
+        const tentativas = [
+          chat?.lastMessage?.key?.remoteJidAlt,
+          chat?.participant,
+          contact?.id?.replace?.("@lid", ""),
+        ];
+        for (const t of tentativas) {
+          if (typeof t === "string" && t.includes("@s.whatsapp.net")) {
+            numeroReal = t.replace("@s.whatsapp.net", "").replace(/\D/g, "");
+            break;
+          }
+        }
+        // Tentar das mensagens
+        if (!numeroReal) {
+          for (const msg of todasMsgs.slice(0, 20)) {
+            const alt = msg.key?.remoteJidAlt || msg.participant || "";
+            if (typeof alt === "string" && alt.includes("@s.whatsapp.net")) {
+              numeroReal = alt.replace("@s.whatsapp.net", "").replace(/\D/g, "");
+              break;
+            }
+          }
+        }
+        if (!numeroReal) continue; // sem número = impossível salvar
       } else {
-        numeroReal = jid.replace("@s.whatsapp.net", "");
+        numeroReal = jid.replace("@s.whatsapp.net", "").replace(/\D/g, "");
       }
 
-      numeroReal = numeroReal.replace(/\D/g, "");
       if (!numeroReal || numeroReal === MEU_NUMERO) continue;
-      if (numeroReal.length < 10 || numeroReal.length > 15) continue;
+      if (numeroReal.length < 8 || numeroReal.length > 15) continue; // relaxado de 10 pra 8
 
       // ─── 3. Resolver nome ───
-      const nome = resolverNome(chat, todasMsgs);
-      const foto = chat.profilePicUrl || chat.contact?.profilePicUrl || null;
+      const chatObj = chat || {};
+      if (contact) {
+        chatObj.contact = contact;
+        if (!chatObj.pushName && contact.pushName) chatObj.pushName = contact.pushName;
+        if (!chatObj.name && (contact.name || contact.notify || contact.verifiedName)) {
+          chatObj.name = contact.name || contact.notify || contact.verifiedName;
+        }
+      }
+      const nome = resolverNome(chatObj, todasMsgs);
+      const foto = chat?.profilePicUrl || contact?.profilePicUrl || null;
 
       // ─── 4. Processar mensagens ───
       const msgsValidas = todasMsgs
@@ -187,15 +215,11 @@ export async function POST(req: NextRequest) {
       let primeiraMsgAt: string | null = null;
       let ultimaMsgAt: string | null = null;
       let ultimaMsgConteudo = "";
-      let msgsSalvasConversa = 0;
-
-      // Batch upsert para performance
       const batch: any[] = [];
 
       for (const msg of msgsValidas) {
         const msgId = msg.key?.id;
         if (!msgId) continue;
-
         const ts = Number(msg.messageTimestamp);
         const timestamp = new Date(ts * 1000).toISOString();
 
@@ -220,27 +244,38 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // ─── 5. Criar ou atualizar conversa ───
+      // Fallback: data do chat
+      if (!primeiraMsgAt) {
+        const chatTs = chat?.createdAt || chat?.conversationTimestamp || chat?.t || 0;
+        if (chatTs) primeiraMsgAt = new Date(Number(chatTs) * 1000).toISOString();
+      }
+
+      // ─── 5. Criar/atualizar conversa ───
       let { data: conversa } = await supabase.from("conversas")
         .select("id").eq("agencia_id", agencia.id).eq("contato_numero", numeroReal).single();
 
       const conversaData: any = {
-        contato_foto: foto,
         contato_jid: jid,
-        ultima_mensagem: ultimaMsgConteudo,
-        ultima_mensagem_at: ultimaMsgAt || new Date().toISOString(),
-        nao_lidas: chat.unreadCount || 0,
+        nao_lidas: chat?.unreadCount || 0,
       };
       if (nome) conversaData.contato_nome = nome;
+      if (foto) conversaData.contato_foto = foto;
+      if (ultimaMsgConteudo) conversaData.ultima_mensagem = ultimaMsgConteudo;
+      if (ultimaMsgAt) conversaData.ultima_mensagem_at = ultimaMsgAt;
       if (primeiraMsgAt) conversaData.primeira_mensagem_at = primeiraMsgAt;
 
       if (!conversa) {
         const { data: nova } = await supabase.from("conversas").insert({
           agencia_id: agencia.id,
-          instancia: INSTANCIA,
+          instancia: EVO.inst,
           contato_numero: numeroReal,
           contato_nome: nome || numeroReal,
-          ...conversaData,
+          contato_foto: foto,
+          contato_jid: jid,
+          ultima_mensagem: ultimaMsgConteudo || "",
+          ultima_mensagem_at: ultimaMsgAt || new Date().toISOString(),
+          primeira_mensagem_at: primeiraMsgAt,
+          nao_lidas: chat?.unreadCount || 0,
         }).select("id").single();
         conversa = nova;
       } else {
@@ -249,17 +284,13 @@ export async function POST(req: NextRequest) {
 
       if (!conversa?.id) continue;
 
-      // ─── 6. Salvar mensagens em lotes de 50 ───
+      // ─── 6. Salvar mensagens em lotes ───
       for (let i = 0; i < batch.length; i += 50) {
-        const chunk = batch.slice(i, i + 50).map(m => ({
-          ...m,
-          conversa_id: conversa!.id,
-        }));
+        const chunk = batch.slice(i, i + 50).map(m => ({ ...m, conversa_id: conversa!.id }));
         const { error } = await supabase.from("mensagens").upsert(chunk, { onConflict: "mensagem_id" });
-        if (!error) msgsSalvasConversa += chunk.length;
+        if (!error) mensagensSalvas += chunk.length;
       }
 
-      mensagensSalvas += msgsSalvasConversa;
       conversasProcessadas++;
     }
 
@@ -269,9 +300,9 @@ export async function POST(req: NextRequest) {
       mensagens: mensagensSalvas,
       offset,
       processados: loteAtual.length,
-      total: individuais.length,
+      total: conversasCandidatas.length,
       proximo_offset: offset + lote,
-      tem_mais: offset + lote < individuais.length,
+      tem_mais: offset + lote < conversasCandidatas.length,
     });
   } catch(e) {
     console.error("sync-all erro:", e);
