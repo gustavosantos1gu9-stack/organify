@@ -190,8 +190,15 @@ function IntegracoesCliente() {
       } else {
         // Instância não existe — deletar caso corrompida e criar nova
         try { await evoCall("delete", nome); } catch {}
-        const data2 = await evoCall("create", nome, { instanceName: nome, token: nome, qrcode: true, integration: "WHATSAPP-BAILEYS", syncFullHistory: true });
-        const qr2 = data2.qrcode?.base64 || data2.base64;
+        // Tentar criar com syncFullHistory, fallback sem
+        let data2 = await evoCall("create", nome, { instanceName: nome, token: nome, qrcode: true, integration: "WHATSAPP-BAILEYS", syncFullHistory: true });
+        let qr2 = data2.qrcode?.base64 || data2.base64;
+        if (!qr2 && (data2.error || data2.message)) {
+          // Fallback: criar sem syncFullHistory
+          try { await evoCall("delete", nome); } catch {}
+          data2 = await evoCall("create", nome, { instanceName: nome, token: nome, qrcode: true, integration: "WHATSAPP-BAILEYS" });
+          qr2 = data2.qrcode?.base64 || data2.base64;
+        }
         if (qr2) {
           setQrCode(qr2); setInstancia(nome);
           await supabase.from("agencias").update({ whatsapp_instancia: nome }).eq("id", agId!);

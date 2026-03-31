@@ -78,7 +78,8 @@ async function listarChats(agencia: any) {
     }).catch(() => null),
   ]);
 
-  const chatList = Array.isArray(await resChats.json().catch(() => [])) ? await resChats.clone().json() : [];
+  const chatsRaw = await resChats.json().catch(() => []);
+  const chatList = Array.isArray(chatsRaw) ? chatsRaw : [];
   const contactMap = new Map<string, any>();
   if (resContacts?.ok) {
     const contacts = await resContacts.json().catch(() => []);
