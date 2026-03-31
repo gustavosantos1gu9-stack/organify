@@ -7,14 +7,14 @@ import { CheckCircle } from "lucide-react";
 export default function ConfigAgenciaPage() {
   const { data: agencia, loading, refresh } = useAgencia();
   const [geral, setGeral] = useState({ nome: "", cnpj: "" });
-  const [contato, setContato] = useState({ telefone: "", email: "" });
+  const [contato, setContato] = useState({ telefone: "", email: "", whatsapp_numero: "" });
   const [end, setEnd] = useState({ cep:"",estado:"",cidade:"",logradouro:"",numero:"",complemento:"",bairro:"" });
   const [saved, setSaved] = useState<string|null>(null);
 
   useEffect(() => {
     if (agencia) {
       setGeral({ nome: agencia.nome??"", cnpj: agencia.cnpj??"" });
-      setContato({ telefone: agencia.telefone??"", email: agencia.email??"" });
+      setContato({ telefone: agencia.telefone??"", email: agencia.email??"", whatsapp_numero: agencia.whatsapp_numero??"" });
       setEnd({ cep:agencia.cep??"",estado:agencia.estado??"",cidade:agencia.cidade??"",logradouro:agencia.logradouro??"",numero:agencia.numero??"",complemento:agencia.complemento??"",bairro:agencia.bairro??"" });
     }
   }, [agencia]);
@@ -49,9 +49,16 @@ export default function ConfigAgenciaPage() {
             </div>
           )}
           {secao==="contato" && (
-            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:"16px",marginBottom:"16px" }}>
+            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"16px",marginBottom:"16px" }}>
               <div className="form-group"><label className="form-label">Telefone</label><input className="form-input" placeholder="(99) 99999-9999" value={contato.telefone} onChange={(e)=>setContato(c=>({...c,telefone:e.target.value}))}/></div>
               <div className="form-group"><label className="form-label">E-mail</label><input className="form-input" type="email" value={contato.email} onChange={(e)=>setContato(c=>({...c,email:e.target.value}))}/></div>
+              <div className="form-group">
+                <label className="form-label">WhatsApp (para links rastreaveis)</label>
+                <input className="form-input" placeholder="5511999999999" value={contato.whatsapp_numero}
+                  onChange={(e)=>setContato(c=>({...c,whatsapp_numero:e.target.value.replace(/\D/g,"")}))}
+                  style={{ fontFamily:"monospace" }}/>
+                <p style={{ fontSize:"11px",color:"#606060",marginTop:"4px" }}>DDI + DDD + numero. Ex: 5511999999999</p>
+              </div>
             </div>
           )}
           {secao==="endereco" && (
