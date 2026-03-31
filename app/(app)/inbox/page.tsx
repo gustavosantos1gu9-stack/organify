@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, RefreshCw, Eye, Send, X, Filter, MessageCircle, ChevronDown, UserPlus } from "lucide-react";
+import { Search, RefreshCw, Eye, Send, X, Filter, MessageCircle, ChevronDown, UserPlus, Upload } from "lucide-react";
 import { supabase, getAgenciaId } from "@/lib/hooks";
 
 interface Conversa {
@@ -487,6 +487,8 @@ export default function InboxPage() {
   const [chatDireto, setChatDireto] = useState<Conversa|null>(null);
   const [sincronizandoTudo, setSincronizandoTudo] = useState(false);
   const [autoRastreando, setAutoRastreando] = useState(false);
+  const [importandoTintim, setImportandoTintim] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [enviandoCrm, setEnviandoCrm] = useState<Set<string>>(new Set());
   const [enviadosCrm, setEnviadosCrm] = useState<Set<string>>(new Set());
 
@@ -619,6 +621,120 @@ export default function InboxPage() {
 
   const filtrosAtivos = Object.values(filtros).filter(Boolean).length;
 
+  // ─── Importar CSV do Tintim ────────────────────────────────
+  const importarTintim = async (file: File) => {
+    setImportandoTintim(true);
+    try {
+      const agId = await getAgenciaId();
+      const text = await file.text();
+      const lines = text.split("\n");
+      const headers = lines[0].split(",").map(h => h.trim().replace(/"/g, ""));
+
+      const col = (name: string) => headers.indexOf(name);
+      const iNome = col("Nome do Contato");
+      const iWhats = col("WhatsApp do Contato");
+      const iEtapa = col("Etapa da Jornada");
+      const iDataPrimeira = col("Data da Primeira Mensagem");
+      const iDataUltima = col("Data da Última Mensagem");
+      const iValor = col("Valor da Última Venda");
+      const iOrigem = col("Origem");
+      const iCampanha = col("Nome da Campanha de Anúncio");
+      const iConjunto = col("Nome do Conjunto de Anúncio");
+      const iAnuncio = col("Nome do Anúncio");
+      const iUtmSource = col("utm_source");
+      const iUtmMedium = col("utm_medium");
+      const iUtmCampaign = col("utm_campaign");
+      const iUtmContent = col("utm_content");
+      const iUtmTerm = col("utm_term");
+
+      const mapEtapa: Record<string, string> = {
+        "Fez Contato": "em_contato",
+        "Agendou": "reuniao_agendada",
+        "Não Compareceu": "nao_compareceu",
+        "Comprou": "ganho",
+        "Não Comprou": "perdido",
+        "Não respondeu": "novo",
+      };
+
+      // Parse CSV respeitando aspas
+      const parseCSVLine = (line: string): string[] => {
+        const result: string[] = [];
+        let current = "";
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i];
+          if (ch === '"') { inQuotes = !inQuotes; }
+          else if (ch === "," && !inQuotes) { result.push(current.trim()); current = ""; }
+          else { current += ch; }
+        }
+        result.push(current.trim());
+        return result;
+      }
+
+      let importados = 0;
+      let duplicados = 0;
+
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        const cols = parseCSVLine(line);
+
+        const telefone = (cols[iWhats] || "").replace(/\D/g, "");
+        if (!telefone) continue;
+
+        const nome = cols[iNome] || "";
+        const etapaTintim = cols[iEtapa] || "";
+        const etapa = mapEtapa[etapaTintim] || "em_contato";
+        const origem = cols[iOrigem] || "";
+        const dataPrimeira = cols[iDataPrimeira] || "";
+        const dataUltima = cols[iDataUltima] || "";
+        const valor = parseFloat(cols[iValor] || "0") || 0;
+        const campanha = cols[iCampanha] || "";
+        const conjunto = cols[iConjunto] || "";
+        const anuncio = cols[iAnuncio] || "";
+        const utmSource = cols[iUtmSource] || (origem.includes("Meta") ? "facebook" : "");
+        const utmMedium = cols[iUtmMedium] || "";
+        const utmCampaign = cols[iUtmCampaign] || campanha;
+        const utmContent = cols[iUtmContent] || conjunto;
+        const utmTerm = cols[iUtmTerm] || anuncio;
+
+        // Verificar duplicata por telefone
+        const { data: existe } = await supabase
+          .from("leads")
+          .select("id")
+          .eq("agencia_id", agId!)
+          .eq("telefone", telefone)
+          .limit(1)
+          .maybeSingle();
+
+        if (existe) { duplicados++; continue; }
+
+        await supabase.from("leads").insert({
+          agencia_id: agId,
+          nome: nome || telefone,
+          telefone,
+          etapa,
+          valor: valor > 0 ? valor : undefined,
+          utm_source: utmSource || undefined,
+          utm_medium: utmMedium || undefined,
+          utm_campaign: utmCampaign || undefined,
+          utm_content: utmContent || undefined,
+          utm_term: utmTerm || undefined,
+          whatsapp: true,
+          created_at: dataPrimeira ? new Date(dataPrimeira).toISOString() : new Date().toISOString(),
+        });
+        importados++;
+      }
+
+      alert(`Importação concluída!\n${importados} contatos importados\n${duplicados} duplicados ignorados`);
+      carregar();
+    } catch (e: any) {
+      console.error(e);
+      alert("Erro ao importar: " + (e.message || "verifique o formato do CSV"));
+    }
+    setImportandoTintim(false);
+  };
+
   return (
     <div className="animate-in">
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
@@ -677,6 +793,12 @@ export default function InboxPage() {
           <button onClick={sincronizarTudo} disabled={sincronizandoTudo} className="btn-secondary" style={{ cursor:"pointer",fontSize:"12px",padding:"7px 12px" }}>
             <RefreshCw size={12} style={{ animation:sincronizandoTudo?"spin 1s linear infinite":"none" }}/>
             {sincronizandoTudo?"Importando...":"Importar tudo"}
+          </button>
+          <input ref={fileInputRef} type="file" accept=".csv" style={{ display: "none" }}
+            onChange={e => { if (e.target.files?.[0]) importarTintim(e.target.files[0]); e.target.value = ""; }} />
+          <button onClick={() => fileInputRef.current?.click()} disabled={importandoTintim} className="btn-primary" style={{ cursor:"pointer",fontSize:"12px",padding:"7px 12px" }}>
+            <Upload size={12}/>
+            {importandoTintim ? "Importando..." : "Importar Tintim"}
           </button>
         </div>
 
