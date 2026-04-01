@@ -160,7 +160,7 @@ export default function InboxDashboardPage() {
 
   const getOrdem = (etapa: string) => ordemMap[etapa] ?? 0;
 
-  const totalFunil = transicoesNoPeriodo.length;
+  const totalFunil = cf.length;
   const agendados = transicoesNoPeriodo.filter(h => isAgendou(h.etapa_nova)).length;
   const compareceram = transicoesNoPeriodo.filter(h => isCompareceu(h.etapa_nova)).length;
   const fecharam = transicoesNoPeriodo.filter(h => isFechou(h.etapa_nova)).length;
