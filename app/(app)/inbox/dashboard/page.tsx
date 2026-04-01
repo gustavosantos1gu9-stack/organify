@@ -123,6 +123,30 @@ export default function InboxDashboardPage() {
     cf.filter((c) => c.utm_campaign).map((c) => c.utm_campaign)
   ).size;
 
+  // ── Funil de Conversão ──
+  // Mapear etapas da jornada pra funil (usa nomes configurados)
+  const etapaNomes = etapas.map(e => e.nome);
+  // Detectar etapas do funil por posição/nome
+  const agendouNomes = etapaNomes.filter(n => /agend/i.test(n) || /reuni/i.test(n));
+  const compareceuNomes = etapaNomes.filter(n => /comparec/i.test(n) || /realiz/i.test(n));
+  const fechouNomes = etapaNomes.filter(n => /comprou/i.test(n) || /fechou/i.test(n) || /ganho/i.test(n) || /vend/i.test(n));
+
+  // Conversas que passaram por cada estágio (acumulativo - quem está em etapa posterior também conta)
+  const idxOf = (nome: string) => etapaNomes.indexOf(nome);
+  const agendouIdx = agendouNomes.length > 0 ? Math.min(...agendouNomes.map(idxOf)) : -1;
+  const compareceuIdx = compareceuNomes.length > 0 ? Math.min(...compareceuNomes.map(idxOf)) : -1;
+  const fechouIdx = fechouNomes.length > 0 ? Math.min(...fechouNomes.map(idxOf)) : -1;
+
+  const convsComEtapa = cf.filter(c => c.etapa_jornada && etapaNomes.includes(c.etapa_jornada));
+  const totalFunil = cf.length;
+  const agendados = agendouIdx >= 0 ? convsComEtapa.filter(c => idxOf(c.etapa_jornada!) >= agendouIdx).length : 0;
+  const compareceram = compareceuIdx >= 0 ? convsComEtapa.filter(c => idxOf(c.etapa_jornada!) >= compareceuIdx).length : 0;
+  const fecharam = fechouIdx >= 0 ? convsComEtapa.filter(c => idxOf(c.etapa_jornada!) >= fechouIdx).length : 0;
+
+  const pctLeadsAgend = totalFunil > 0 ? ((agendados / totalFunil) * 100).toFixed(1) : "0.0";
+  const pctAgendComp = agendados > 0 ? ((compareceram / agendados) * 100).toFixed(1) : "0.0";
+  const pctCompVenda = compareceram > 0 ? ((fecharam / compareceram) * 100).toFixed(1) : "0.0";
+
   // ── Chart: Conversas por dia (stacked) ──
   const dayMap: Record<string, Record<string, number>> = {};
   cf.forEach((c) => {
@@ -242,6 +266,36 @@ export default function InboxDashboardPage() {
         <KPICard label="Tempo médio resposta" value="—" icon={<Clock size={16} />} iconBg="blue" />
         <KPICard label="Conversas na Jornada" value={naJornada} icon={<Star size={16} />} iconBg="green" />
         <KPICard label="Campanhas ativas" value={campanhasAtivas} icon={<Flame size={16} />} iconBg="amber" />
+      </div>
+
+      {/* ── Funil de Conversão ── */}
+      <div className="card" style={{ marginBottom: "20px" }}>
+        <h2 style={{ fontSize: "15px", fontWeight: "600", marginBottom: "20px" }}>Funil de Conversão</h2>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 0, marginBottom: "20px", borderBottom: "1px solid #2e2e2e", paddingBottom: "16px" }}>
+          {[
+            { label: "Leads → Agendamentos", value: `${pctLeadsAgend}%` },
+            { label: "Agendados → Compareceram", value: `${pctAgendComp}%` },
+            { label: "Compareceram → Vendas", value: `${pctCompVenda}%` },
+          ].map((item, i) => (
+            <div key={i} style={{ textAlign: "center", padding: "0 16px", borderRight: i < 2 ? "1px solid #2e2e2e" : "none" }}>
+              <p style={{ fontSize: "12px", color: "#606060", marginBottom: "6px" }}>{item.label}</p>
+              <p style={{ fontSize: "22px", fontWeight: "700", color: item.value === "0.0%" ? "#404040" : "#22c55e" }}>{item.value}</p>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "12px" }}>
+          {[
+            { label: "Total Conversas", value: totalFunil },
+            { label: "Agendados", value: agendados },
+            { label: "Compareceram", value: compareceram },
+            { label: "Fechadas", value: fecharam },
+          ].map((item) => (
+            <div key={item.label} style={{ background: "#1a1a1a", borderRadius: "8px", padding: "14px 16px" }}>
+              <p style={{ fontSize: "12px", color: "#606060", marginBottom: "6px" }}>{item.label}</p>
+              <p style={{ fontSize: "20px", fontWeight: "700", color: item.value > 0 ? "#f0f0f0" : "#404040" }}>{item.value}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* ── Sem dados ── */}
