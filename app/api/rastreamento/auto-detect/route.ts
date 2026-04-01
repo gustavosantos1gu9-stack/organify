@@ -14,15 +14,12 @@ function normalizar(s: string): string {
     .trim();
 }
 
-// Extrai UTMs de qualquer formato de URL (absoluta ou relativa)
 function extrairUtms(linkGerado: string): Record<string, string> {
   const result: Record<string, string> = {};
   try {
-    // Tentar como URL absoluta
     const url = new URL(linkGerado);
     url.searchParams.forEach((v, k) => { result[k] = v; });
   } catch {
-    // URL relativa — extrair query string manualmente
     const qIdx = (linkGerado || "").indexOf("?");
     if (qIdx >= 0) {
       const qs = linkGerado.substring(qIdx + 1);
@@ -42,28 +39,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "agencia_id obrigatório" }, { status: 400 });
     }
 
-    // Buscar todos os links da agência
+    // Buscar token e links da agência
+    const { data: agencia } = await supabase.from("agencias")
+      .select("meta_business_token, meta_token")
+      .eq("id", agencia_id).single();
+    const adsToken = agencia?.meta_business_token || agencia?.meta_token || null;
+
     const { data: links } = await supabase
       .from("links_campanha")
       .select("id, nome, wa_mensagem, utm_campaign, link_gerado")
       .eq("agencia_id", agencia_id)
       .order("created_at", { ascending: false });
 
-    if (!links?.length) {
-      return NextResponse.json({ error: "Nenhum link rastreável encontrado", resultados: [] });
-    }
-
-    // Buscar conversas não rastreadas (ou uma específica) — apenas últimos 30 dias
+    // Buscar conversas: não rastreadas OU Meta Ads sem campanha (CTWA incompleto)
     const trintaDiasAtras = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     let query = supabase
       .from("conversas")
-      .select("id, contato_numero, contato_nome, origem, utm_campaign, fbclid")
+      .select("id, contato_numero, contato_nome, origem, utm_campaign, utm_content, fbclid")
       .eq("agencia_id", agencia_id);
 
     if (conversa_id) {
       query = query.eq("id", conversa_id);
     } else {
-      query = query.or("origem.is.null,origem.eq.Não Rastreada")
+      // Não rastreadas OU Meta Ads sem campanha preenchida
+      query = query.or("origem.is.null,origem.eq.Não Rastreada,and(origem.eq.Meta Ads,utm_campaign.is.null)")
         .gte("created_at", trintaDiasAtras);
     }
 
@@ -75,18 +74,67 @@ export async function POST(req: NextRequest) {
     const resultados: { id: string; nome: string; status: string; link_nome?: string; campanha?: string; utms?: Record<string, string> }[] = [];
 
     for (const conv of conversas) {
+      // ── CTWA incompleto: Meta Ads sem campanha → tentar resolver via Meta API ──
+      if (conv.origem === "Meta Ads" && !conv.utm_campaign) {
+        // Tentar resolver pelo sourceId no utm_content ou pelo fbclid
+        const sourceId = conv.utm_content && /^\d+$/.test(conv.utm_content) ? conv.utm_content : null;
+
+        if (sourceId && adsToken) {
+          try {
+            const adRes = await fetch(
+              `https://graph.facebook.com/v21.0/${sourceId}?fields=name,campaign_id,adset_id&access_token=${adsToken}`
+            );
+            const adData = await adRes.json();
+            if (adData && !adData.error && adData.campaign_id) {
+              // Buscar nomes da campanha e conjunto
+              const [campRes, conjRes] = await Promise.all([
+                fetch(`https://graph.facebook.com/v21.0/${adData.campaign_id}?fields=name&access_token=${adsToken}`),
+                fetch(`https://graph.facebook.com/v21.0/${adData.adset_id}?fields=name&access_token=${adsToken}`),
+              ]);
+              const campData = await campRes.json();
+              const conjData = await conjRes.json();
+              const campanha = campData?.name || "";
+              const conjunto = conjData?.name || "";
+              const criativo = adData.name || "";
+
+              await supabase.from("conversas").update({
+                utm_campaign: campanha,
+                utm_content: conjunto ? `${conjunto}_${criativo}` : conv.utm_content,
+                nome_anuncio: criativo,
+                utm_source: "facebook",
+                utm_medium: "cpc",
+              }).eq("id", conv.id);
+
+              resultados.push({
+                id: conv.id, nome: conv.contato_nome, status: "rastreado",
+                campanha, utms: { utm_source: "facebook", utm_medium: "cpc", utm_campaign: campanha },
+              });
+              continue;
+            }
+          } catch {}
+        }
+
+        // Sem sourceId ou sem token — não tem como resolver
+        resultados.push({ id: conv.id, nome: conv.contato_nome, status: "sem_match" });
+        continue;
+      }
+
+      // ── Já rastreado ou CTWA com fbclid → não sobrescrever ──
       if (!conversa_id && conv.origem && conv.origem !== "Não Rastreada") {
         resultados.push({ id: conv.id, nome: conv.contato_nome, status: "ja_rastreado" });
         continue;
       }
-
-      // Não sobrescrever conversas que já vieram do CTWA (Meta Ads direto)
       if (conv.fbclid) {
         resultados.push({ id: conv.id, nome: conv.contato_nome, status: "ja_rastreado" });
         continue;
       }
 
-      // Buscar primeiras mensagens do lead
+      // ── Não rastreada: tentar match por mensagem com links rastreáveis ──
+      if (!links?.length) {
+        resultados.push({ id: conv.id, nome: conv.contato_nome, status: "sem_match" });
+        continue;
+      }
+
       const { data: msgs } = await supabase
         .from("mensagens")
         .select("conteudo")
@@ -100,7 +148,6 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // Match por conteúdo da mensagem com os links
       let melhorMatch: typeof links[0] | null = null;
 
       for (const msg of msgs) {
@@ -116,7 +163,6 @@ export async function POST(req: NextRequest) {
             break;
           }
 
-          // Match parcial (>70% palavras)
           const palavrasMsg = msgNorm.split(" ").filter(w => w.length > 2);
           const palavrasLink = linkMsgNorm.split(" ").filter(w => w.length > 2);
           if (palavrasLink.length > 0) {
@@ -130,12 +176,8 @@ export async function POST(req: NextRequest) {
         if (melhorMatch) break;
       }
 
-      // Removido: fallback de 1 link. Não assumir link se mensagem não bateu.
-
       if (melhorMatch) {
-        // Extrair TODAS as UTMs do link_gerado
         const params = extrairUtms(melhorMatch.link_gerado);
-
         const updateData = {
           origem: "Meta Ads",
           utm_source: params.utm_source || "facebook",
@@ -150,11 +192,9 @@ export async function POST(req: NextRequest) {
         const { error } = await supabase.from("conversas").update(updateData).eq("id", conv.id);
 
         resultados.push({
-          id: conv.id,
-          nome: conv.contato_nome,
+          id: conv.id, nome: conv.contato_nome,
           status: error ? "erro" : "rastreado",
-          link_nome: melhorMatch.nome,
-          campanha: updateData.utm_campaign,
+          link_nome: melhorMatch.nome, campanha: updateData.utm_campaign,
           utms: { utm_source: updateData.utm_source, utm_medium: updateData.utm_medium, utm_campaign: updateData.utm_campaign },
         });
       } else {
