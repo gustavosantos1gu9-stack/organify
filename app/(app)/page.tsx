@@ -381,53 +381,54 @@ function DashboardCliente() {
   const [from, setFrom] = useState(new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split("T")[0]);
   const [to, setTo] = useState(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split("T")[0]);
   const [agNome, setAgNome] = useState("");
-
-  const { data: leads } = useLeads();
+  const [conversas, setConversas] = useState<any[]>([]);
 
   useEffect(() => {
-    async function loadNome() {
+    async function load() {
       const { getAgenciaId } = await import("@/lib/supabase");
       const { supabase } = await import("@/lib/supabase");
       const agId = await getAgenciaId();
-      if (agId) {
-        const { data } = await supabase.from("agencias").select("nome").eq("id", agId).single();
-        if (data) setAgNome(data.nome);
-      }
+      if (!agId) return;
+      const [{ data: ag }, { data: convs }] = await Promise.all([
+        supabase.from("agencias").select("nome").eq("id", agId).single(),
+        supabase.from("conversas").select("*").eq("agencia_id", agId).order("created_at", { ascending: false }),
+      ]);
+      if (ag) setAgNome(ag.nome);
+      setConversas(convs || []);
     }
-    loadNome();
+    load();
   }, []);
 
-  // Calcular métricas do cliente
-  const leadsArr = leads || [];
-  const leadsNoPeriodo = leadsArr.filter((l: any) => {
-    const d = l.created_at?.split("T")[0];
+  // Filtrar por período
+  const convsNoPeriodo = conversas.filter((c: any) => {
+    const d = c.created_at?.split("T")[0];
     return d >= from && d <= to;
   });
 
-  const totalConversas = leadsNoPeriodo.length;
-  const rastreadas = leadsNoPeriodo.filter((l: any) => l.utm_source);
-  const naoRastreadas = leadsNoPeriodo.filter((l: any) => !l.utm_source);
+  const totalConversas = convsNoPeriodo.length;
+  const rastreadas = convsNoPeriodo.filter((c: any) => c.origem && c.origem !== "Não Rastreada");
+  const naoRastreadas = convsNoPeriodo.filter((c: any) => !c.origem || c.origem === "Não Rastreada");
   const pctRastreadas = totalConversas > 0 ? ((rastreadas.length / totalConversas) * 100).toFixed(1) : "0";
   const pctNaoRastreadas = totalConversas > 0 ? ((naoRastreadas.length / totalConversas) * 100).toFixed(1) : "0";
 
   // Origem das conversas
   const origemMap: Record<string, number> = {};
-  leadsNoPeriodo.forEach((l: any) => {
-    const origem = l.utm_source || "Não Rastreada";
+  convsNoPeriodo.forEach((c: any) => {
+    const origem = c.origem || "Não Rastreada";
     origemMap[origem] = (origemMap[origem] || 0) + 1;
   });
   const origemData = Object.entries(origemMap).map(([nome, total]) => ({ nome, total })).sort((a, b) => b.total - a.total);
 
   // Gráfico por dia
   const porDia: Record<string, Record<string, number>> = {};
-  leadsNoPeriodo.forEach((l: any) => {
-    const dia = l.created_at?.split("T")[0] || "";
-    const origem = l.utm_source || "Não Rastreada";
+  convsNoPeriodo.forEach((c: any) => {
+    const dia = c.created_at?.split("T")[0] || "";
+    const origem = c.origem || "Não Rastreada";
     if (!porDia[dia]) porDia[dia] = {};
     porDia[dia][origem] = (porDia[dia][origem] || 0) + 1;
   });
   const diasOrdenados = Object.keys(porDia).sort();
-  const todasOrigens = Array.from(new Set(leadsNoPeriodo.map((l: any) => l.utm_source || "Não Rastreada")));
+  const todasOrigens = Array.from(new Set(convsNoPeriodo.map((c: any) => c.origem || "Não Rastreada")));
   const CORES_ORIGEM = ["#3b82f6", "#f59e0b", "#22c55e", "#ef4444", "#8b5cf6", "#ec4899"];
 
   const graficoDia = diasOrdenados.map(dia => {
@@ -436,19 +437,16 @@ function DashboardCliente() {
     return entry;
   });
 
-  // Jornada / funil
-  const etapas = ["novo", "em_contato", "qualificado", "reuniao_agendada", "proposta_enviada", "ganho"];
-  const etapaLabels: Record<string, string> = {
-    novo: "Fez Contato", em_contato: "Em Contato", qualificado: "Qualificado",
-    reuniao_agendada: "Agendou", proposta_enviada: "Proposta", ganho: "Fechou",
-  };
-  const funilData = etapas.map(e => ({
-    etapa: etapaLabels[e] || e,
-    total: leadsNoPeriodo.filter((l: any) => {
-      const idx = etapas.indexOf(l.etapa);
-      return idx >= etapas.indexOf(e);
-    }).length,
-  })).filter(f => f.total > 0);
+  // Jornada / funil — usar etapa_jornada das conversas
+  const etapasJornada = convsNoPeriodo.reduce((acc: Record<string, number>, c: any) => {
+    const etapa = c.etapa_jornada || "Sem etapa";
+    acc[etapa] = (acc[etapa] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  const funilData = Object.entries(etapasJornada)
+    .map(([etapa, total]) => ({ etapa, total }))
+    .sort((a, b) => b.total - a.total)
+    .filter(f => f.total > 0);
 
   return (
     <div className="animate-in">
