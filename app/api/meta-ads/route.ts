@@ -100,15 +100,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Ad Account ID não informado" }, { status: 400 });
       }
       const acId = adAccountId.startsWith("act_") ? adAccountId : `act_${adAccountId}`;
-      const timeRange = date_from && date_to
-        ? `time_range={"since":"${date_from}","until":"${date_to}"}&`
-        : "";
 
-      // Buscar ads com insights para ranking de criativos
-      const data = await metaFetch(
-        `${META_API}/${acId}/ads?fields=id,name,creative{id,name,thumbnail_url,object_story_spec},insights.${timeRange.replace("&", "")}{impressions,reach,clicks,ctr,cpm,spend,actions,cost_per_action_type}&limit=50`,
-        accessToken
-      );
+      // Buscar todos os ads (com insights opcionais se tiver período)
+      let url = `${META_API}/${acId}/ads?fields=id,name,status&limit=100`;
+      if (date_from && date_to) {
+        url = `${META_API}/${acId}/ads?fields=id,name,status,creative{id,name,thumbnail_url,object_story_spec},insights.time_range({"since":"${date_from}","until":"${date_to}"}){impressions,reach,clicks,ctr,cpm,spend,actions,cost_per_action_type}&limit=100`;
+      }
+      const data = await metaFetch(url, accessToken);
       return NextResponse.json(data.data || []);
     }
 
