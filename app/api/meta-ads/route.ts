@@ -22,11 +22,11 @@ async function metaFetch(url: string, token: string) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { action, agencia_id, ad_account_id, token, date_from, date_to } = body;
+    const { action, agencia_id, ad_account_id, adAccountId: adAccountIdCamel, token, date_from, date_to } = body;
 
     // Se não recebeu token diretamente, buscar da agência
     let accessToken = token;
-    let adAccountId = ad_account_id;
+    let adAccountId = ad_account_id || adAccountIdCamel;
 
     if (!accessToken && agencia_id) {
       const { data: ag } = await supabase.from("agencias").select("meta_business_token, meta_ad_account_id").eq("id", agencia_id).single();

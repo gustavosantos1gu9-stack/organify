@@ -390,7 +390,7 @@ function IntegracoesCliente() {
                 <li>Clique em <strong>Adicionar ativos</strong> → selecione <strong>Contas de anuncios</strong> → marque a conta → <strong>Controle total</strong> → Salvar</li>
                 <li>Clique em <strong>Gerar novo token</strong></li>
                 <li>Selecione o App (se nao tem, crie um em developers.facebook.com → tipo "API de Marketing")</li>
-                <li>Marque a permissao <strong>ads_read</strong></li>
+                <li>Marque as permissoes <strong>ads_management</strong>, <strong>ads_read</strong> e <strong>business_management</strong></li>
                 <li>Clique em <strong>Gerar</strong> e copie o token</li>
               </ol>
               <p style={{ marginTop: "10px", color: "#f59e0b", fontSize: "11px" }}>Este token nao expira. Gere um por portfolio empresarial do cliente.</p>
