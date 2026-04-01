@@ -53,8 +53,13 @@ export async function dispararEventoMeta(data: MetaEventData): Promise<{ ok: boo
 
     // Dados customizados
     const customData: Record<string, any> = {};
-    if (valor) {
-      customData.value = valor;
+    // Purchase exige value + currency obrigatoriamente
+    const valorNumerico = typeof valor === "number" ? valor : (typeof valor === "object" ? 0 : Number(valor) || 0);
+    if (valorNumerico > 0) {
+      customData.value = valorNumerico;
+      customData.currency = moeda || "BRL";
+    } else if (event_name === "Purchase") {
+      customData.value = 0;
       customData.currency = moeda || "BRL";
     }
     if (utm_campaign) customData.utm_campaign = utm_campaign;
