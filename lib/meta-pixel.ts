@@ -63,7 +63,8 @@ export async function dispararEventoMeta(data: MetaEventData): Promise<{ ok: boo
     const eventData: Record<string, any> = {
       event_name,
       event_time: Math.floor(Date.now() / 1000),
-      action_source: "system_generated",
+      action_source: "website",
+      event_source_url: source_url || "https://wa.me/",
       user_data: userData,
     };
 

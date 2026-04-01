@@ -247,8 +247,20 @@ export async function POST(req: NextRequest) {
       // ============================================
       let tracking = null;
 
-      // 0. Se @lid (Click-to-WhatsApp), buscar rastreamento recente pelo número de destino
-      if (isLid && eraNovaConversa) {
+      // Detectar externalAdReply antecipadamente pra saber se é CTWA
+      const _externalAdReply = msg.message?.extendedTextMessage?.contextInfo?.externalAdReply
+        || msg.message?.imageMessage?.contextInfo?.externalAdReply
+        || msg.message?.videoMessage?.contextInfo?.externalAdReply
+        || msg.message?.documentMessage?.contextInfo?.externalAdReply
+        || msg.message?.contactMessage?.contextInfo?.externalAdReply
+        || msg.message?.locationMessage?.contextInfo?.externalAdReply
+        || msg.message?.conversation?.contextInfo?.externalAdReply
+        || msg.contextInfo?.externalAdReply
+        || data?.contextInfo?.externalAdReply;
+      const _isCTWA = !!_externalAdReply || !!(msg.message?.extendedTextMessage?.contextInfo?.ctwaClid);
+
+      // 0. Se @lid (Click-to-WhatsApp) e NÃO é CTWA, buscar rastreamento pendente do link
+      if (isLid && eraNovaConversa && !_isCTWA) {
         const cincoMinAtras = new Date(Date.now() - 5 * 60 * 1000).toISOString();
         const { data: lidTrack } = await supabase.from("rastreamentos_pendentes")
           .select("*")
@@ -260,26 +272,16 @@ export async function POST(req: NextRequest) {
         if (lidTrack) tracking = lidTrack;
       }
 
-      // 1. Tentar por número do lead
-      if (!tracking) {
+      // 1. Tentar por número do lead (só se não é CTWA)
+      if (!tracking && !_isCTWA) {
         const { data: t1 } = await supabase.from("rastreamentos_pendentes")
           .select("*").eq("wa_numero", numero).single();
         if (t1) tracking = t1;
       }
 
-      // 2. Detectar externalAdReply (CTWA) ANTES do fallback genérico
-      //    Se a mensagem tem externalAdReply, é CTWA e tem prioridade sobre rastreamentos pendentes
+      // 2. Detectar externalAdReply (CTWA) — prioridade máxima
       {
-        const externalAdReply = msg.message?.extendedTextMessage?.contextInfo?.externalAdReply
-          || msg.message?.imageMessage?.contextInfo?.externalAdReply
-          || msg.message?.videoMessage?.contextInfo?.externalAdReply
-          || msg.message?.documentMessage?.contextInfo?.externalAdReply
-          || msg.message?.contactMessage?.contextInfo?.externalAdReply
-          || msg.message?.locationMessage?.contextInfo?.externalAdReply
-          || msg.message?.conversation?.contextInfo?.externalAdReply
-          || msg.contextInfo?.externalAdReply
-          || data?.contextInfo?.externalAdReply;
-
+        const externalAdReply = _externalAdReply;
         const ctwaClid = externalAdReply?.ctwaClid || msg.message?.extendedTextMessage?.contextInfo?.ctwaClid || null;
         const sourceId = externalAdReply?.sourceId || null;
         const sourceUrl = externalAdReply?.sourceUrl || null;
