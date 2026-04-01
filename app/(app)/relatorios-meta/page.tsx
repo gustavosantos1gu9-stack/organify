@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import {
   Plus, Trash2, Edit3, Send, Eye, Pause, Play, Copy, Search,
-  FileText, Check, X, RefreshCw, MessageCircle, AlertCircle,
+  FileText, Check, X, RefreshCw, MessageCircle, AlertCircle, BarChart2,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { supabase, getAgenciaId } from "@/lib/hooks";
 
 interface Relatorio {
@@ -103,6 +104,7 @@ const VARIAVEIS = [
 ];
 
 export default function RelatoriosMetaPage() {
+  const router = useRouter();
   const [relatorios, setRelatorios] = useState<Relatorio[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
@@ -480,6 +482,10 @@ export default function RelatoriosMetaPage() {
                       <button onClick={() => enviarAgora(rel)} disabled={enviando === rel.id} title="Enviar agora"
                         style={{ background: "rgba(41,171,226,0.1)", border: "1px solid rgba(41,171,226,0.2)", borderRadius: "6px", padding: "6px", cursor: "pointer", color: "#29ABE2" }}>
                         {enviando === rel.id ? <RefreshCw size={13} className="spin" /> : <Send size={13} />}
+                      </button>
+                      <button onClick={() => router.push(`/relatorios-meta/dashboard?id=${rel.id}`)} title="Dashboard"
+                        style={{ background: "rgba(41,171,226,0.1)", border: "1px solid rgba(41,171,226,0.2)", borderRadius: "6px", padding: "6px", cursor: "pointer", color: "#29ABE2" }}>
+                        <BarChart2 size={13} />
                       </button>
                       <button onClick={() => abrirModal(rel)} title="Editar"
                         style={{ background: "rgba(160,160,160,0.1)", border: "1px solid #2e2e2e", borderRadius: "6px", padding: "6px", cursor: "pointer", color: "#a0a0a0" }}>
