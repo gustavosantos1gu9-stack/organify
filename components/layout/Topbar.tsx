@@ -36,22 +36,28 @@ export default function Topbar() {
     // Carregar agências filhas (se for admin)
     carregarAgencias();
     verificarWhatsApp();
+    // Polling status WhatsApp a cada 30s
+    const waInterval = setInterval(verificarWhatsApp, 30000);
 
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
       if (selectorRef.current && !selectorRef.current.contains(e.target as Node)) setSelectorOpen(false);
     };
     document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    return () => { document.removeEventListener("mousedown", handler); clearInterval(waInterval); };
   }, []);
 
   async function verificarWhatsApp() {
     try {
       const agId = await getAgenciaId();
       if (!agId) return;
-      const { data: ag } = await supabase.from("agencias").select("evolution_url, evolution_key, whatsapp_instancia, parent_id").eq("id", agId).single();
+      const { data: ag } = await supabase.from("agencias").select("whatsapp_conectado, whatsapp_instancia, evolution_url, evolution_key, parent_id").eq("id", agId).single();
       if (!ag) return;
 
+      // Primeiro: ler do banco (atualizado pelo webhook CONNECTION_UPDATE)
+      if (ag.whatsapp_conectado) { setWaConectado(true); return; }
+
+      // Se banco diz desconectado, confirmar com Evolution API
       let evoUrl = ag.evolution_url || "";
       let evoKey = ag.evolution_key || "";
       if (!evoUrl && ag.parent_id) {
@@ -59,15 +65,17 @@ export default function Topbar() {
         if (parent) { evoUrl = parent.evolution_url || ""; evoKey = parent.evolution_key || ""; }
       }
 
-      if (!evoUrl || !evoKey) { setWaConectado(false); return; }
+      if (!evoUrl || !evoKey || !ag.whatsapp_instancia) { setWaConectado(false); return; }
 
-      const instNome = ag.whatsapp_instancia;
-      if (!instNome) { setWaConectado(false); return; }
-
-      const res = await fetch(`${evoUrl}/instance/connectionState/${instNome}`, { headers: { apikey: evoKey } });
+      const res = await fetch(`${evoUrl}/instance/connectionState/${ag.whatsapp_instancia}`, { headers: { apikey: evoKey } });
       const data = await res.json();
       const state = (data.instance?.state || data.state || "").toLowerCase();
-      setWaConectado(state === "open" || state === "connected");
+      const conectado = state === "open" || state === "connected";
+      setWaConectado(conectado);
+      // Sincronizar banco se Evolution diz conectado mas banco diz não
+      if (conectado) {
+        await supabase.from("agencias").update({ whatsapp_conectado: true }).eq("id", agId);
+      }
     } catch { setWaConectado(false); }
   }
 
