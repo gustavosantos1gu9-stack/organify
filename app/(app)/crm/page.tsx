@@ -477,13 +477,16 @@ function CRMFiltrosAvancados({ filtros, etapas, onChange, onClose }: { filtros: 
       const { data: ag } = await supabase.from("agencias").select("meta_business_token, meta_ad_account_id").eq("id", agId).single();
       if (ag?.meta_business_token && ag?.meta_ad_account_id) {
         try {
-          const [resCamp, resCri] = await Promise.all([
+          const [resCamp, resConj, resCri] = await Promise.all([
             fetch("/api/meta-ads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "campanhas", token: ag.meta_business_token, adAccountId: ag.meta_ad_account_id }) }),
+            fetch("/api/meta-ads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "conjuntos", token: ag.meta_business_token, adAccountId: ag.meta_ad_account_id }) }),
             fetch("/api/meta-ads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "criativos", token: ag.meta_business_token, adAccountId: ag.meta_ad_account_id }) }),
           ]);
           const campData = await resCamp.json();
+          const conjData = await resConj.json();
           const criData = await resCri.json();
           if (Array.isArray(campData)) setCampanhas(campData.map((c:any)=>c.name).filter(Boolean).sort());
+          if (Array.isArray(conjData)) setConjuntos(conjData.map((c:any)=>c.name).filter(Boolean).sort());
           if (Array.isArray(criData)) setCriativos(criData.map((c:any)=>c.name).filter(Boolean).sort());
         } catch {}
       }

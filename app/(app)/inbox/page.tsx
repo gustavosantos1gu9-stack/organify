@@ -488,17 +488,21 @@ function FiltrosAvancados({ conversas, filtros, onChange, onClose }: { conversas
       if (!agId) return;
 
       let metaCamps: string[] = [];
+      let metaConj: string[] = [];
       let metaCriativos: string[] = [];
 
       const { data: ag } = await supabase.from("agencias").select("meta_business_token, meta_ad_account_id").eq("id", agId).single();
       if (ag?.meta_business_token && ag?.meta_ad_account_id) {
         try {
-          const [resCamp, resCri] = await Promise.all([
+          const [resCamp, resConj, resCri] = await Promise.all([
             fetch("/api/meta-ads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "campanhas", token: ag.meta_business_token, adAccountId: ag.meta_ad_account_id }) }),
+            fetch("/api/meta-ads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "conjuntos", token: ag.meta_business_token, adAccountId: ag.meta_ad_account_id }) }),
             fetch("/api/meta-ads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "criativos", token: ag.meta_business_token, adAccountId: ag.meta_ad_account_id }) }),
           ]);
           const campData = await resCamp.json();
           if (Array.isArray(campData)) metaCamps = campData.map((c: any) => c.name).filter(Boolean);
+          const conjData = await resConj.json();
+          if (Array.isArray(conjData)) metaConj = conjData.map((c: any) => c.name).filter(Boolean);
           const criData = await resCri.json();
           if (Array.isArray(criData)) metaCriativos = criData.map((c: any) => c.name).filter(Boolean);
         } catch {}
@@ -517,7 +521,7 @@ function FiltrosAvancados({ conversas, filtros, onChange, onClose }: { conversas
 
       // Mesclar todas as fontes: Meta API + leads + conversas
       setCampanhas(uniq([...metaCamps, ...leadCamps, ...convCampanhas]));
-      setConjuntos(uniq([...leadConj, ...convConjuntos]));
+      setConjuntos(uniq([...metaConj, ...leadConj, ...convConjuntos]));
       setAnuncios(uniq([...metaCriativos, ...leadAnun, ...convAnuncios]));
     }
     loadAds();

@@ -83,6 +83,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(data.data || []);
     }
 
+    if (action === "conjuntos") {
+      if (!adAccountId) {
+        return NextResponse.json({ error: "Ad Account ID não informado" }, { status: 400 });
+      }
+      const acId = adAccountId.startsWith("act_") ? adAccountId : `act_${adAccountId}`;
+      const data = await metaFetch(
+        `${META_API}/${acId}/adsets?fields=id,name,status&limit=100`,
+        accessToken
+      );
+      return NextResponse.json(data.data || []);
+    }
+
     if (action === "criativos") {
       if (!adAccountId) {
         return NextResponse.json({ error: "Ad Account ID não informado" }, { status: 400 });
