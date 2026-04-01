@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     const trintaDiasAtras = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     let query = supabase
       .from("conversas")
-      .select("id, contato_numero, contato_nome, origem, utm_campaign")
+      .select("id, contato_numero, contato_nome, origem, utm_campaign, fbclid")
       .eq("agencia_id", agencia_id);
 
     if (conversa_id) {
@@ -76,6 +76,12 @@ export async function POST(req: NextRequest) {
 
     for (const conv of conversas) {
       if (!conversa_id && conv.origem && conv.origem !== "Não Rastreada") {
+        resultados.push({ id: conv.id, nome: conv.contato_nome, status: "ja_rastreado" });
+        continue;
+      }
+
+      // Não sobrescrever conversas que já vieram do CTWA (Meta Ads direto)
+      if (conv.fbclid) {
         resultados.push({ id: conv.id, nome: conv.contato_nome, status: "ja_rastreado" });
         continue;
       }
@@ -124,10 +130,7 @@ export async function POST(req: NextRequest) {
         if (melhorMatch) break;
       }
 
-      // Se não achou por mensagem e só tem 1 link, assumir esse
-      if (!melhorMatch && links.length === 1) {
-        melhorMatch = links[0];
-      }
+      // Removido: fallback de 1 link. Não assumir link se mensagem não bateu.
 
       if (melhorMatch) {
         // Extrair TODAS as UTMs do link_gerado
