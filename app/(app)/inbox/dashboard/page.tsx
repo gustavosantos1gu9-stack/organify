@@ -64,6 +64,7 @@ export default function InboxDashboardPage() {
   );
   const [conversas, setConversas] = useState<Conversa[]>([]);
   const [etapas, setEtapas] = useState<Etapa[]>([]);
+  const [historico, setHistorico] = useState<{etapa_nova: string; created_at: string}[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -72,7 +73,7 @@ export default function InboxDashboardPage() {
       const agId = await getAgenciaId();
       if (!agId) { setLoading(false); return; }
 
-      const [convRes, etpRes] = await Promise.all([
+      const [convRes, etpRes, histRes] = await Promise.all([
         supabase
           .from("conversas")
           .select("*")
@@ -83,10 +84,15 @@ export default function InboxDashboardPage() {
           .select("*")
           .eq("agencia_id", agId)
           .order("ordem"),
+        supabase
+          .from("etapas_historico")
+          .select("etapa_nova, created_at")
+          .eq("agencia_id", agId),
       ]);
 
       setConversas(convRes.data ?? []);
       setEtapas(etpRes.data ?? []);
+      setHistorico(histRes.data ?? []);
       setLoading(false);
     }
     load();
@@ -98,10 +104,9 @@ export default function InboxDashboardPage() {
     return d >= from && d <= to;
   });
 
-  // Filter by period — conversas com etapa alterada no período (pra funil)
-  const cfEtapa = conversas.filter((c) => {
-    if (!c.etapa_alterada_at) return false;
-    const d = c.etapa_alterada_at.split("T")[0];
+  // Transições de etapa que aconteceram no período (do histórico)
+  const transicoesNoPeriodo = historico.filter((h) => {
+    const d = h.created_at.split("T")[0];
     return d >= from && d <= to;
   });
 
@@ -155,10 +160,10 @@ export default function InboxDashboardPage() {
 
   const getOrdem = (etapa: string) => ordemMap[etapa] ?? 0;
 
-  const totalFunil = cfEtapa.length;
-  const agendados = cfEtapa.filter(c => c.etapa_jornada && isAgendou(c.etapa_jornada)).length;
-  const compareceram = cfEtapa.filter(c => c.etapa_jornada && isCompareceu(c.etapa_jornada)).length;
-  const fecharam = cfEtapa.filter(c => c.etapa_jornada && isFechou(c.etapa_jornada)).length;
+  const totalFunil = transicoesNoPeriodo.length;
+  const agendados = transicoesNoPeriodo.filter(h => isAgendou(h.etapa_nova)).length;
+  const compareceram = transicoesNoPeriodo.filter(h => isCompareceu(h.etapa_nova)).length;
+  const fecharam = transicoesNoPeriodo.filter(h => isFechou(h.etapa_nova)).length;
 
   const pctLeadsAgend = totalFunil > 0 ? ((agendados / totalFunil) * 100).toFixed(1) : "0.0";
   const pctAgendComp = agendados > 0 ? ((compareceram / agendados) * 100).toFixed(1) : "0.0";
@@ -192,12 +197,12 @@ export default function InboxDashboardPage() {
 
   // ── Funil da Jornada ──
   // Incluir etapas reais das conversas que podem não estar na configuração
-  const etapasReais = Array.from(new Set(cfEtapa.map(c => c.etapa_jornada).filter(Boolean) as string[]));
+  const etapasReais = Array.from(new Set(transicoesNoPeriodo.map(h => h.etapa_nova).filter(Boolean)));
   const etapasConfig = etapas.map(e => e.nome);
   const etapasFunil = [...etapasConfig, ...etapasReais.filter(e => !etapasConfig.includes(e))];
   const funilData = etapasFunil.map((nome) => ({
     nome,
-    count: cfEtapa.filter((c) => c.etapa_jornada === nome).length,
+    count: transicoesNoPeriodo.filter((h) => h.etapa_nova === nome).length,
   })).filter(d => d.count > 0);
   const funilMax = Math.max(...funilData.map((d) => d.count), 1);
 
