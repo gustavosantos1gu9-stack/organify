@@ -92,9 +92,16 @@ export default function InboxDashboardPage() {
     load();
   }, []);
 
-  // Filter by period
+  // Filter by period — conversas criadas no período
   const cf = conversas.filter((c) => {
     const d = c.created_at.split("T")[0];
+    return d >= from && d <= to;
+  });
+
+  // Filter by period — conversas com etapa alterada no período (pra funil)
+  const cfEtapa = conversas.filter((c) => {
+    if (!c.etapa_alterada_at) return false;
+    const d = c.etapa_alterada_at.split("T")[0];
     return d >= from && d <= to;
   });
 
@@ -148,10 +155,10 @@ export default function InboxDashboardPage() {
 
   const getOrdem = (etapa: string) => ordemMap[etapa] ?? 0;
 
-  const totalFunil = cf.length;
-  const agendados = cf.filter(c => c.etapa_jornada && (isAgendou(c.etapa_jornada) || isCompareceu(c.etapa_jornada) || isFechou(c.etapa_jornada) || getOrdem(c.etapa_jornada) >= (etapas.find(e => isAgendou(e.nome))?.ordem ?? 999))).length;
-  const compareceram = cf.filter(c => c.etapa_jornada && (isCompareceu(c.etapa_jornada) || isFechou(c.etapa_jornada) || getOrdem(c.etapa_jornada) >= (etapas.find(e => isCompareceu(e.nome))?.ordem ?? 999))).length;
-  const fecharam = cf.filter(c => c.etapa_jornada && (isFechou(c.etapa_jornada) || getOrdem(c.etapa_jornada) >= (etapas.find(e => isFechou(e.nome))?.ordem ?? 999))).length;
+  const totalFunil = cfEtapa.length;
+  const agendados = cfEtapa.filter(c => c.etapa_jornada && (isAgendou(c.etapa_jornada) || isCompareceu(c.etapa_jornada) || isFechou(c.etapa_jornada) || getOrdem(c.etapa_jornada) >= (etapas.find(e => isAgendou(e.nome))?.ordem ?? 999))).length;
+  const compareceram = cfEtapa.filter(c => c.etapa_jornada && (isCompareceu(c.etapa_jornada) || isFechou(c.etapa_jornada) || getOrdem(c.etapa_jornada) >= (etapas.find(e => isCompareceu(e.nome))?.ordem ?? 999))).length;
+  const fecharam = cfEtapa.filter(c => c.etapa_jornada && (isFechou(c.etapa_jornada) || getOrdem(c.etapa_jornada) >= (etapas.find(e => isFechou(e.nome))?.ordem ?? 999))).length;
 
   const pctLeadsAgend = totalFunil > 0 ? ((agendados / totalFunil) * 100).toFixed(1) : "0.0";
   const pctAgendComp = agendados > 0 ? ((compareceram / agendados) * 100).toFixed(1) : "0.0";
@@ -185,12 +192,12 @@ export default function InboxDashboardPage() {
 
   // ── Funil da Jornada ──
   // Incluir etapas reais das conversas que podem não estar na configuração
-  const etapasReais = Array.from(new Set(cf.map(c => c.etapa_jornada).filter(Boolean) as string[]));
+  const etapasReais = Array.from(new Set(cfEtapa.map(c => c.etapa_jornada).filter(Boolean) as string[]));
   const etapasConfig = etapas.map(e => e.nome);
   const etapasFunil = [...etapasConfig, ...etapasReais.filter(e => !etapasConfig.includes(e))];
   const funilData = etapasFunil.map((nome) => ({
     nome,
-    count: cf.filter((c) => c.etapa_jornada === nome).length,
+    count: cfEtapa.filter((c) => c.etapa_jornada === nome).length,
   })).filter(d => d.count > 0);
   const funilMax = Math.max(...funilData.map((d) => d.count), 1);
 
