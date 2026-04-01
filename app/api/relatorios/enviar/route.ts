@@ -217,6 +217,7 @@ export async function POST(req: NextRequest) {
       "{{top_3_creatives_ranking}}": top3Text,
       "<INV>": formatMoney(spend),
       "<SALDO>": formatMoney(balance),
+      "<LINK_DASH>": `${process.env.NEXT_PUBLIC_APP_URL || "https://salxconvert-blond.vercel.app"}/relatorio?id=${relatorio_id}`,
     };
 
     for (const [key, value] of Object.entries(replacements)) {

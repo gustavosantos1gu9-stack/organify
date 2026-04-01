@@ -66,6 +66,9 @@ _Eficiência em transformar visitantes em potenciais clientes._
 *Valor investido*: <INV>
 *Saldo atual*: <SALDO>
 
+📈 *Relatório Completo em Dashboard*
+<LINK_DASH>
+
 💬 *Seu Feedback é Importante*
 1. Como está a qualidade desses leads, qualificados?
 2. Tivemos alguma boa negociação em andamento?`;
@@ -101,6 +104,7 @@ const VARIAVEIS = [
   { var: "{{top_3_creatives_ranking}}", desc: "Top 3 criativos" },
   { var: "<INV>", desc: "Valor investido" },
   { var: "<SALDO>", desc: "Saldo atual" },
+  { var: "<LINK_DASH>", desc: "Link do dashboard visual" },
 ];
 
 export default function RelatoriosMetaPage() {
