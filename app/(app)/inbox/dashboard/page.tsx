@@ -156,9 +156,9 @@ export default function InboxDashboardPage() {
   const getOrdem = (etapa: string) => ordemMap[etapa] ?? 0;
 
   const totalFunil = cfEtapa.length;
-  const agendados = cfEtapa.filter(c => c.etapa_jornada && (isAgendou(c.etapa_jornada) || isCompareceu(c.etapa_jornada) || isFechou(c.etapa_jornada) || getOrdem(c.etapa_jornada) >= (etapas.find(e => isAgendou(e.nome))?.ordem ?? 999))).length;
-  const compareceram = cfEtapa.filter(c => c.etapa_jornada && (isCompareceu(c.etapa_jornada) || isFechou(c.etapa_jornada) || getOrdem(c.etapa_jornada) >= (etapas.find(e => isCompareceu(e.nome))?.ordem ?? 999))).length;
-  const fecharam = cfEtapa.filter(c => c.etapa_jornada && (isFechou(c.etapa_jornada) || getOrdem(c.etapa_jornada) >= (etapas.find(e => isFechou(e.nome))?.ordem ?? 999))).length;
+  const agendados = cfEtapa.filter(c => c.etapa_jornada && isAgendou(c.etapa_jornada)).length;
+  const compareceram = cfEtapa.filter(c => c.etapa_jornada && isCompareceu(c.etapa_jornada)).length;
+  const fecharam = cfEtapa.filter(c => c.etapa_jornada && isFechou(c.etapa_jornada)).length;
 
   const pctLeadsAgend = totalFunil > 0 ? ((agendados / totalFunil) * 100).toFixed(1) : "0.0";
   const pctAgendComp = agendados > 0 ? ((compareceram / agendados) * 100).toFixed(1) : "0.0";
