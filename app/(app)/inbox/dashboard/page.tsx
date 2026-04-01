@@ -124,24 +124,34 @@ export default function InboxDashboardPage() {
   ).size;
 
   // ── Funil de Conversão ──
-  // Mapear etapas da jornada pra funil (usa nomes configurados)
-  const etapaNomes = etapas.map(e => e.nome);
-  // Detectar etapas do funil por posição/nome
-  const agendouNomes = etapaNomes.filter(n => /agend/i.test(n) || /reuni/i.test(n));
-  const compareceuNomes = etapaNomes.filter(n => /comparec/i.test(n) || /realiz/i.test(n));
-  const fechouNomes = etapaNomes.filter(n => /comprou/i.test(n) || /fechou/i.test(n) || /ganho/i.test(n) || /vend/i.test(n));
+  // Detectar etapas do funil diretamente pelo nome da etapa_jornada nas conversas
+  const isAgendou = (e: string) => /agend|reuni/i.test(e);
+  const isCompareceu = (e: string) => /comparec|realiz/i.test(e);
+  const isFechou = (e: string) => /comprou|fechou|ganho|vend/i.test(e);
 
-  // Conversas que passaram por cada estágio (acumulativo - quem está em etapa posterior também conta)
-  const idxOf = (nome: string) => etapaNomes.indexOf(nome);
-  const agendouIdx = agendouNomes.length > 0 ? Math.min(...agendouNomes.map(idxOf)) : -1;
-  const compareceuIdx = compareceuNomes.length > 0 ? Math.min(...compareceuNomes.map(idxOf)) : -1;
-  const fechouIdx = fechouNomes.length > 0 ? Math.min(...fechouNomes.map(idxOf)) : -1;
+  // Todas etapas conhecidas: da jornada configurada + das conversas reais
+  const todasEtapas = [...etapas.map(e => e.nome), ...Array.from(new Set(cf.map(c => c.etapa_jornada).filter(Boolean) as string[]))];
+  const etapasUnicas = Array.from(new Set(todasEtapas));
 
-  const convsComEtapa = cf.filter(c => c.etapa_jornada && etapaNomes.includes(c.etapa_jornada));
+  // Ordenar: usar ordem da jornada se existir, senão por detecção de funil
+  const ordemMap: Record<string, number> = {};
+  etapas.forEach(e => { ordemMap[e.nome] = e.ordem; });
+  // Etapas que existem nas conversas mas não na jornada: mapear pela detecção
+  etapasUnicas.forEach(e => {
+    if (!(e in ordemMap)) {
+      if (isFechou(e)) ordemMap[e] = 100;
+      else if (isCompareceu(e)) ordemMap[e] = 90;
+      else if (isAgendou(e)) ordemMap[e] = 80;
+      else ordemMap[e] = 0;
+    }
+  });
+
+  const getOrdem = (etapa: string) => ordemMap[etapa] ?? 0;
+
   const totalFunil = cf.length;
-  const agendados = agendouIdx >= 0 ? convsComEtapa.filter(c => idxOf(c.etapa_jornada!) >= agendouIdx).length : 0;
-  const compareceram = compareceuIdx >= 0 ? convsComEtapa.filter(c => idxOf(c.etapa_jornada!) >= compareceuIdx).length : 0;
-  const fecharam = fechouIdx >= 0 ? convsComEtapa.filter(c => idxOf(c.etapa_jornada!) >= fechouIdx).length : 0;
+  const agendados = cf.filter(c => c.etapa_jornada && (isAgendou(c.etapa_jornada) || isCompareceu(c.etapa_jornada) || isFechou(c.etapa_jornada) || getOrdem(c.etapa_jornada) >= (etapas.find(e => isAgendou(e.nome))?.ordem ?? 999))).length;
+  const compareceram = cf.filter(c => c.etapa_jornada && (isCompareceu(c.etapa_jornada) || isFechou(c.etapa_jornada) || getOrdem(c.etapa_jornada) >= (etapas.find(e => isCompareceu(e.nome))?.ordem ?? 999))).length;
+  const fecharam = cf.filter(c => c.etapa_jornada && (isFechou(c.etapa_jornada) || getOrdem(c.etapa_jornada) >= (etapas.find(e => isFechou(e.nome))?.ordem ?? 999))).length;
 
   const pctLeadsAgend = totalFunil > 0 ? ((agendados / totalFunil) * 100).toFixed(1) : "0.0";
   const pctAgendComp = agendados > 0 ? ((compareceram / agendados) * 100).toFixed(1) : "0.0";
@@ -174,10 +184,14 @@ export default function InboxDashboardPage() {
   const pieTotal = pieData.reduce((s, d) => s + d.value, 0);
 
   // ── Funil da Jornada ──
-  const funilData = etapas.map((et) => ({
-    nome: et.nome,
-    count: cf.filter((c) => c.etapa_jornada === et.nome).length,
-  }));
+  // Incluir etapas reais das conversas que podem não estar na configuração
+  const etapasReais = Array.from(new Set(cf.map(c => c.etapa_jornada).filter(Boolean) as string[]));
+  const etapasConfig = etapas.map(e => e.nome);
+  const etapasFunil = [...etapasConfig, ...etapasReais.filter(e => !etapasConfig.includes(e))];
+  const funilData = etapasFunil.map((nome) => ({
+    nome,
+    count: cf.filter((c) => c.etapa_jornada === nome).length,
+  })).filter(d => d.count > 0);
   const funilMax = Math.max(...funilData.map((d) => d.count), 1);
 
   // ── Top Campanhas ──
