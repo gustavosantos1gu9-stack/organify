@@ -67,6 +67,7 @@ const navItems: NavItem[] = [
     icon: <Headphones size={16} />,
     children: [
       { href: "/inbox", label: "Inbox WhatsApp" },
+      { href: "/inbox/dashboard", label: "Dashboard Inbox" },
       { href: "/crm", label: "CRM" },
     ],
   },
