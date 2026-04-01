@@ -59,6 +59,46 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { event, data, instance } = body;
 
+    // ── CONNECTION_UPDATE: atualizar status e tentar reconectar ──
+    if (event === "connection.update" || event === "CONNECTION_UPDATE") {
+      const state = (data?.state || data?.status || "").toLowerCase();
+      const instanciaName = instance || body.instanceName || "";
+
+      if (instanciaName) {
+        // Buscar agência por instância
+        const { data: ag } = await supabase.from("agencias")
+          .select("id, parent_id, evolution_url, evolution_key")
+          .eq("whatsapp_instancia", instanciaName).single();
+
+        if (ag) {
+          const conectado = state === "open" || state === "connected";
+          await supabase.from("agencias").update({ whatsapp_conectado: conectado }).eq("id", ag.id);
+
+          // Se desconectou, tentar reconectar automaticamente
+          if (!conectado && (state === "close" || state === "connecting")) {
+            try {
+              // Buscar Evolution URL (da própria agência ou do parent)
+              let evoUrl = ag.evolution_url || "";
+              let evoKey = ag.evolution_key || "";
+              if (!evoUrl && ag.parent_id) {
+                const { data: parent } = await supabase.from("agencias")
+                  .select("evolution_url, evolution_key")
+                  .eq("id", ag.parent_id).single();
+                if (parent) { evoUrl = parent.evolution_url || ""; evoKey = parent.evolution_key || ""; }
+              }
+              if (evoUrl && evoKey) {
+                // Tentar reconectar a instância
+                await fetch(`${evoUrl}/instance/connect/${instanciaName}`, {
+                  headers: { apikey: evoKey },
+                });
+              }
+            } catch {}
+          }
+        }
+      }
+      return NextResponse.json({ ok: true });
+    }
+
     if (event === "messages.upsert" || event === "MESSAGES_UPSERT") {
       const msg = data?.messages?.[0] || data;
       if (!msg) return NextResponse.json({ ok: true });
