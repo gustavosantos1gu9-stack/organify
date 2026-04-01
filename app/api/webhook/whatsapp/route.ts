@@ -336,22 +336,47 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // 6b. Buscar rastreamento pendente genérico (até 24h) — só se CTWA não resolveu
-      if (!tracking) {
-        const vintQuatroHAtras = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      // 6b. Buscar rastreamento pendente genérico — só se CTWA não resolveu e NÃO é @lid
+      //     Se é @lid, já sabemos que é Meta Ads (passo 6 tratou), não associar a link
+      if (!tracking && !isLid) {
+        const trintaMinAtras = new Date(Date.now() - 30 * 60 * 1000).toISOString();
         const { data: recentes } = await supabase.from("rastreamentos_pendentes")
           .select("*")
-          .gt("created_at", vintQuatroHAtras)
+          .gt("created_at", trintaMinAtras)
           .or(`wa_destino.eq.${agencia.whatsapp_numero},wa_destino.is.null`)
           .order("created_at", { ascending: false })
           .limit(30);
 
         if (recentes && recentes.length > 0) {
-          const candidato = recentes.find((r: any) => {
-            if (!r.utm_campaign && !r.link_id && !r.fbclid) return false;
+          // Normalizar mensagem para comparação
+          const msgNorm = (conteudo || "").toLowerCase().replace(/[^\w\sáéíóúâêôãõàçü]/g, "").replace(/\s+/g, " ").trim();
+
+          let candidato = null;
+          for (const r of recentes) {
+            if (!r.utm_campaign && !r.link_id && !r.fbclid) continue;
             const isNumeroReal = /^\d{10,15}$/.test(r.wa_numero || "");
-            return !isNumeroReal;
-          });
+            if (isNumeroReal) continue;
+
+            // Se o candidato veio de link rastreável, validar mensagem antes de associar
+            if (r.link_id && msgNorm) {
+              const { data: linkData } = await supabase.from("links_campanha")
+                .select("wa_mensagem").eq("id", r.link_id).single();
+              if (linkData?.wa_mensagem) {
+                const linkMsgNorm = linkData.wa_mensagem.toLowerCase().replace(/[^\w\sáéíóúâêôãõàçü]/g, "").replace(/\s+/g, " ").trim();
+                if (linkMsgNorm.length >= 5 && (msgNorm === linkMsgNorm || msgNorm.includes(linkMsgNorm) || linkMsgNorm.includes(msgNorm))) {
+                  candidato = r;
+                  break;
+                }
+                // Mensagem não bate com o link — pular este candidato
+                continue;
+              }
+            }
+
+            // Candidato sem link_id (fbclid direto, utm sem link) — aceitar
+            candidato = r;
+            break;
+          }
+
           if (candidato) {
             tracking = candidato;
             await supabase.from("rastreamentos_pendentes")
@@ -362,7 +387,8 @@ export async function POST(req: NextRequest) {
       }
 
       // 7. FALLBACK: tentar match por conteúdo da mensagem com links_campanha
-      if (!tracking && eraNovaConversa && conteudo) {
+      //    Não roda para @lid (já tratado como Meta Ads no passo 6)
+      if (!tracking && !isLid && eraNovaConversa && conteudo) {
         const { data: links } = await supabase.from("links_campanha")
           .select("id, nome, wa_mensagem, utm_campaign, link_gerado")
           .eq("agencia_id", agencia.id);
