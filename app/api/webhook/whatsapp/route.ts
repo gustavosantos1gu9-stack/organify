@@ -227,37 +227,9 @@ export async function POST(req: NextRequest) {
         if (t1) tracking = t1;
       }
 
-      // 2. Buscar rastreamento recente (até 24h) — pelo wa_destino da agência
-      // Sem restrição de isPrimeiraMsg para links (a janela de tempo já filtra)
-      if (!tracking) {
-        const vintQuatroHAtras = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-        const { data: recentes } = await supabase.from("rastreamentos_pendentes")
-          .select("*")
-          .gt("created_at", vintQuatroHAtras)
-          .or(`wa_destino.eq.${agencia.whatsapp_numero},wa_destino.is.null`)
-          .order("created_at", { ascending: false })
-          .limit(30);
-
-        if (recentes && recentes.length > 0) {
-          const candidato = recentes.find((r: any) => {
-            if (!r.utm_campaign && !r.link_id && !r.fbclid) return false;
-            // wa_numero não deve ser número de telefone real (já associado a outro lead)
-            const isNumeroReal = /^\d{10,15}$/.test(r.wa_numero || "");
-            return !isNumeroReal;
-          });
-          if (candidato) {
-            tracking = candidato;
-            // Marcar como usado (gravar o número do lead)
-            await supabase.from("rastreamentos_pendentes")
-              .update({ wa_numero: numero })
-              .eq("wa_numero", candidato.wa_numero);
-          }
-        }
-      }
-
-      // 3. Tentar pelo fbclid/ctwaClid embutido na mensagem do WhatsApp (anúncios Meta)
-      if (!tracking) {
-        // Buscar externalAdReply em TODOS os tipos de mensagem possíveis
+      // 2. Detectar externalAdReply (CTWA) ANTES do fallback genérico
+      //    Se a mensagem tem externalAdReply, é CTWA e tem prioridade sobre rastreamentos pendentes
+      {
         const externalAdReply = msg.message?.extendedTextMessage?.contextInfo?.externalAdReply
           || msg.message?.imageMessage?.contextInfo?.externalAdReply
           || msg.message?.videoMessage?.contextInfo?.externalAdReply
@@ -361,6 +333,31 @@ export async function POST(req: NextRequest) {
             origem: "Meta Ads",
             link_id: null,
           };
+        }
+      }
+
+      // 6b. Buscar rastreamento pendente genérico (até 24h) — só se CTWA não resolveu
+      if (!tracking) {
+        const vintQuatroHAtras = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { data: recentes } = await supabase.from("rastreamentos_pendentes")
+          .select("*")
+          .gt("created_at", vintQuatroHAtras)
+          .or(`wa_destino.eq.${agencia.whatsapp_numero},wa_destino.is.null`)
+          .order("created_at", { ascending: false })
+          .limit(30);
+
+        if (recentes && recentes.length > 0) {
+          const candidato = recentes.find((r: any) => {
+            if (!r.utm_campaign && !r.link_id && !r.fbclid) return false;
+            const isNumeroReal = /^\d{10,15}$/.test(r.wa_numero || "");
+            return !isNumeroReal;
+          });
+          if (candidato) {
+            tracking = candidato;
+            await supabase.from("rastreamentos_pendentes")
+              .update({ wa_numero: numero })
+              .eq("wa_numero", candidato.wa_numero);
+          }
         }
       }
 
