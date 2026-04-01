@@ -339,10 +339,10 @@ export async function POST(req: NextRequest) {
       // 6b. Buscar rastreamento pendente genérico — só se CTWA não resolveu e NÃO é @lid
       //     Se é @lid, já sabemos que é Meta Ads (passo 6 tratou), não associar a link
       if (!tracking && !isLid) {
-        const trintaMinAtras = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+        const cincoMinAtras = new Date(Date.now() - 5 * 60 * 1000).toISOString();
         const { data: recentes } = await supabase.from("rastreamentos_pendentes")
           .select("*")
-          .gt("created_at", trintaMinAtras)
+          .gt("created_at", cincoMinAtras)
           .or(`wa_destino.eq.${agencia.whatsapp_numero},wa_destino.is.null`)
           .order("created_at", { ascending: false })
           .limit(30);
