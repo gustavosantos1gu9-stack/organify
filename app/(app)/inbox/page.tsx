@@ -473,46 +473,52 @@ function FiltrosAvancados({ conversas, filtros, onChange, onClose }: { conversas
   const sources = uniq(conversas.map(c=>c.utm_source));
   const mediums = uniq(conversas.map(c=>c.utm_medium));
 
-  // Campanhas/Conjuntos/Criativos — puxar do Meta Ads + fallback local
-  const [campanhas, setCampanhas] = useState<string[]>([]);
-  const [conjuntos, setConjuntos] = useState<string[]>([]);
-  const [anuncios, setAnuncios] = useState<string[]>([]);
+  // Campanhas/Conjuntos/Criativos — mesclar Meta Ads API + leads + conversas
+  const convCampanhas = uniq(conversas.map(c => c.utm_campaign));
+  const convConjuntos = uniq(conversas.map(c => c.utm_content));
+  const convAnuncios = uniq(conversas.map(c => (c as any).nome_anuncio));
+
+  const [campanhas, setCampanhas] = useState<string[]>(convCampanhas);
+  const [conjuntos, setConjuntos] = useState<string[]>(convConjuntos);
+  const [anuncios, setAnuncios] = useState<string[]>(convAnuncios);
 
   useEffect(() => {
     async function loadAds() {
       const agId = await getAgenciaId();
       if (!agId) return;
-      const { data: ag } = await supabase.from("agencias").select("meta_business_token, meta_ad_account_id").eq("id", agId).single();
 
+      let metaCamps: string[] = [];
+      let metaCriativos: string[] = [];
+
+      const { data: ag } = await supabase.from("agencias").select("meta_business_token, meta_ad_account_id").eq("id", agId).single();
       if (ag?.meta_business_token && ag?.meta_ad_account_id) {
         try {
-          // Campanhas da conta
-          const resCamp = await fetch("/api/meta-ads", {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "campanhas", token: ag.meta_business_token, adAccountId: ag.meta_ad_account_id }),
-          });
+          const [resCamp, resCri] = await Promise.all([
+            fetch("/api/meta-ads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "campanhas", token: ag.meta_business_token, adAccountId: ag.meta_ad_account_id }) }),
+            fetch("/api/meta-ads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "criativos", token: ag.meta_business_token, adAccountId: ag.meta_ad_account_id }) }),
+          ]);
           const campData = await resCamp.json();
-          if (Array.isArray(campData)) setCampanhas(campData.map((c: any) => c.name).filter(Boolean).sort());
-
-          // Criativos
-          const resCri = await fetch("/api/meta-ads", {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "criativos", token: ag.meta_business_token, adAccountId: ag.meta_ad_account_id }),
-          });
+          if (Array.isArray(campData)) metaCamps = campData.map((c: any) => c.name).filter(Boolean);
           const criData = await resCri.json();
-          if (Array.isArray(criData)) setAnuncios(criData.map((c: any) => c.name).filter(Boolean).sort());
+          if (Array.isArray(criData)) metaCriativos = criData.map((c: any) => c.name).filter(Boolean);
         } catch {}
       }
 
-      // Conjuntos: sempre do banco (leads utm_content)
+      // Leads do banco
+      let leadCamps: string[] = [], leadConj: string[] = [], leadAnun: string[] = [];
       const { data: leads } = await supabase
         .from("leads").select("utm_campaign, utm_content, utm_term")
         .eq("agencia_id", agId).not("utm_campaign", "is", null);
       if (leads) {
-        if (!campanhas.length) setCampanhas(uniq(leads.map(l => l.utm_campaign)));
-        setConjuntos(uniq(leads.map(l => l.utm_content)));
-        if (!anuncios.length) setAnuncios(uniq(leads.map(l => l.utm_term)));
+        leadCamps = leads.map(l => l.utm_campaign).filter(Boolean);
+        leadConj = leads.map(l => l.utm_content).filter(Boolean);
+        leadAnun = leads.map(l => l.utm_term).filter(Boolean);
       }
+
+      // Mesclar todas as fontes: Meta API + leads + conversas
+      setCampanhas(uniq([...metaCamps, ...leadCamps, ...convCampanhas]));
+      setConjuntos(uniq([...leadConj, ...convConjuntos]));
+      setAnuncios(uniq([...metaCriativos, ...leadAnun, ...convAnuncios]));
     }
     loadAds();
   }, []);

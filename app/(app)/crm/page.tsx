@@ -487,13 +487,20 @@ function CRMFiltrosAvancados({ filtros, etapas, onChange, onClose }: { filtros: 
           if (Array.isArray(criData)) setCriativos(criData.map((c:any)=>c.name).filter(Boolean).sort());
         } catch {}
       }
-      // Conjuntos do banco
-      const { data: leads } = await supabase.from("leads").select("utm_campaign, utm_content, utm_term").eq("agencia_id", agId).not("utm_campaign", "is", null);
-      if (leads) {
-        if (!campanhas.length) setCampanhas(prev => prev.length ? prev : uniq(leads.map(l => l.utm_campaign)));
-        setConjuntos(uniq(leads.map(l => l.utm_content)));
-        if (!criativos.length) setCriativos(prev => prev.length ? prev : uniq(leads.map(l => l.utm_term)));
-      }
+      // Mesclar leads + conversas do banco
+      const [{ data: leads }, { data: convs }] = await Promise.all([
+        supabase.from("leads").select("utm_campaign, utm_content, utm_term").eq("agencia_id", agId).not("utm_campaign", "is", null),
+        supabase.from("conversas").select("utm_campaign, utm_content, nome_anuncio").eq("agencia_id", agId).not("utm_campaign", "is", null),
+      ]);
+      const leadCamps = leads?.map(l => l.utm_campaign) || [];
+      const leadConj = leads?.map(l => l.utm_content) || [];
+      const leadAnun = leads?.map(l => l.utm_term) || [];
+      const convCamps = convs?.map(c => c.utm_campaign) || [];
+      const convConj = convs?.map(c => c.utm_content) || [];
+      const convAnun = convs?.map(c => c.nome_anuncio) || [];
+      setCampanhas(prev => uniq([...prev, ...leadCamps, ...convCamps]));
+      setConjuntos(uniq([...leadConj, ...convConj]));
+      setCriativos(prev => uniq([...prev, ...leadAnun, ...convAnun]));
     }
     load();
   }, []);
