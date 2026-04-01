@@ -387,13 +387,15 @@ function IntegracoesCliente() {
                 <li>No menu lateral: <strong>Usuarios</strong> → <strong>Usuarios do sistema</strong></li>
                 <li>Se nao tem usuario, clique em <strong>Adicionar</strong> → nome "SALX Convert" → funcao <strong>Admin</strong></li>
                 <li>Clique no usuario criado</li>
-                <li>Clique em <strong>Adicionar ativos</strong> → selecione <strong>Contas de anuncios</strong> → marque a conta → <strong>Controle total</strong> → Salvar</li>
+                <li>Clique em <strong>Adicionar ativos</strong> → selecione <strong>Contas de anuncios</strong> → marque a conta desejada → <strong>Controle total</strong> → Salvar</li>
+                <li>Ainda em Ativos, confirme que a <strong>Conta de anuncios</strong> aparece na lista do usuario (sem isso o token nao consegue acessar as campanhas)</li>
                 <li>Clique em <strong>Gerar novo token</strong></li>
                 <li>Selecione o App (se nao tem, crie um em developers.facebook.com → tipo "API de Marketing")</li>
-                <li>Marque as permissoes <strong>ads_management</strong>, <strong>ads_read</strong> e <strong>business_management</strong></li>
+                <li>Marque as permissoes: <strong>ads_management</strong>, <strong>ads_read</strong> e <strong>business_management</strong></li>
                 <li>Clique em <strong>Gerar</strong> e copie o token</li>
               </ol>
               <p style={{ marginTop: "10px", color: "#f59e0b", fontSize: "11px" }}>Este token nao expira. Gere um por portfolio empresarial do cliente.</p>
+              <p style={{ marginTop: "6px", color: "#ef4444", fontSize: "11px" }}>Importante: se o token foi gerado sem adicionar a conta de anuncios como ativo, as campanhas nao serao listadas nos filtros. Adicione o ativo e gere o token novamente.</p>
             </div>
           </details>
         </div>
@@ -837,6 +839,27 @@ function IntegracoesMaster() {
               <p style={{fontSize:"11px",color:"#606060",marginTop:"4px"}}>Token com permissões ads_management, ads_read e business_management</p>
             </div>
           </div>
+          {/* Passo a passo */}
+          <details style={{marginTop:"12px"}}>
+            <summary style={{fontSize:"12px",color:"#29ABE2",cursor:"pointer",userSelect:"none"}}>Como gerar o Token do Gerenciador?</summary>
+            <div style={{marginTop:"10px",padding:"14px",background:"#1a1a1a",border:"1px solid #2e2e2e",borderRadius:"8px",fontSize:"12px",color:"#a0a0a0",lineHeight:"1.8"}}>
+              <p style={{color:"#f0f0f0",fontWeight:"600",marginBottom:"8px"}}>Passo a passo:</p>
+              <ol style={{margin:0,paddingLeft:"18px"}}>
+                <li>Acesse <strong style={{color:"#29ABE2"}}>business.facebook.com</strong> → Configuracoes do Negocio</li>
+                <li>No menu lateral: <strong>Usuarios</strong> → <strong>Usuarios do sistema</strong></li>
+                <li>Se nao tem usuario, clique em <strong>Adicionar</strong> → nome "SALX Convert" → funcao <strong>Admin</strong></li>
+                <li>Clique no usuario criado</li>
+                <li>Clique em <strong>Adicionar ativos</strong> → selecione <strong>Contas de anuncios</strong> → marque a conta desejada → <strong>Controle total</strong> → Salvar</li>
+                <li>Ainda em Ativos, confirme que a <strong>Conta de anuncios</strong> aparece na lista do usuario (sem isso o token nao consegue acessar as campanhas)</li>
+                <li>Clique em <strong>Gerar novo token</strong></li>
+                <li>Selecione o App (se nao tem, crie um em developers.facebook.com → tipo "API de Marketing")</li>
+                <li>Marque as permissoes: <strong>ads_management</strong>, <strong>ads_read</strong> e <strong>business_management</strong></li>
+                <li>Clique em <strong>Gerar</strong> e copie o token</li>
+              </ol>
+              <p style={{marginTop:"10px",color:"#f59e0b",fontSize:"11px"}}>Este token nao expira. Gere um por portfolio empresarial do cliente.</p>
+              <p style={{marginTop:"6px",color:"#ef4444",fontSize:"11px"}}>Importante: se o token foi gerado sem adicionar a conta de anuncios como ativo, as campanhas nao serao listadas nos filtros. Adicione o ativo e gere o token novamente.</p>
+            </div>
+          </details>
         </div>
         <div style={{display:"flex",justifyContent:"flex-end"}}>
           <button className="btn-primary" onClick={salvarMeta} style={{cursor:"pointer"}}><Check size={14}/> Salvar Meta</button>
