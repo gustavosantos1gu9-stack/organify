@@ -834,7 +834,7 @@ function IntegracoesMaster() {
                   {showBusinessToken?<EyeOff size={14}/>:<Eye size={14}/>}
                 </button>
               </div>
-              <p style={{fontSize:"11px",color:"#606060",marginTop:"4px"}}>Token com permissão ads_read no Meta Business</p>
+              <p style={{fontSize:"11px",color:"#606060",marginTop:"4px"}}>Token com permissões ads_management, ads_read e business_management</p>
             </div>
           </div>
         </div>
