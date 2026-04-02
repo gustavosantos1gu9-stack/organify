@@ -422,7 +422,7 @@ export async function POST(req: NextRequest) {
                 .select("wa_mensagem").eq("id", r.link_id).single();
               if (linkData?.wa_mensagem) {
                 const linkMsgNorm = linkData.wa_mensagem.toLowerCase().replace(/[^\w\sáéíóúâêôãõàçü]/g, "").replace(/\s+/g, " ").trim();
-                if (linkMsgNorm.length >= 5 && (msgNorm === linkMsgNorm || msgNorm.includes(linkMsgNorm) || linkMsgNorm.includes(msgNorm))) {
+                if (linkMsgNorm.length >= 5 && (msgNorm === linkMsgNorm || msgNorm.includes(linkMsgNorm))) {
                   candidato = r;
                   break;
                 }
@@ -458,7 +458,9 @@ export async function POST(req: NextRequest) {
             const linkMsgNorm = (link.wa_mensagem || "").toLowerCase().replace(/[^\w\sáéíóúâêôãõàçü]/g, "").replace(/\s+/g, " ").trim();
             if (!linkMsgNorm || linkMsgNorm.length < 5) continue;
 
-            if (msgNorm === linkMsgNorm || msgNorm.includes(linkMsgNorm) || linkMsgNorm.includes(msgNorm)) {
+            // Match: mensagem deve ser igual ou conter a mensagem do link (não o contrário)
+            // "Oi Gustavo" NÃO deve dar match com "Oi Gustavo, tenho interesse..."
+            if (msgNorm === linkMsgNorm || msgNorm.includes(linkMsgNorm)) {
               // Extrair UTMs do link gerado (suporta URL relativa)
               const params: Record<string, string> = {};
               try {

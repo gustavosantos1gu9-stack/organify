@@ -158,7 +158,8 @@ export async function POST(req: NextRequest) {
           const linkMsgNorm = normalizar(link.wa_mensagem);
           if (!linkMsgNorm) continue;
 
-          if (msgNorm === linkMsgNorm || msgNorm.includes(linkMsgNorm) || linkMsgNorm.includes(msgNorm)) {
+          // Match: mensagem deve ser igual ou conter a mensagem do link (não o contrário)
+          if (msgNorm === linkMsgNorm || msgNorm.includes(linkMsgNorm)) {
             melhorMatch = link;
             break;
           }
