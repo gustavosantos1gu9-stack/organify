@@ -23,9 +23,8 @@ function CaptureContent() {
   const link_id = params.get("link_id") || "";
 
   const isMobile = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-  // intent:// para Android abre o WhatsApp direto (evita bloqueio do WebView)
   const waUrl = isMobile
-    ? `https://api.whatsapp.com/send?phone=${wa}&text=${encodeURIComponent(msg)}`
+    ? `whatsapp://send?phone=${wa}&text=${encodeURIComponent(msg)}`
     : `https://web.whatsapp.com/send?phone=${wa}&text=${encodeURIComponent(msg)}`;
 
   const origem = utm_source
