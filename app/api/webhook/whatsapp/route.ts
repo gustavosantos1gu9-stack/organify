@@ -260,6 +260,7 @@ export async function POST(req: NextRequest) {
       const _isCTWA = !!_externalAdReply || !!(msg.message?.extendedTextMessage?.contextInfo?.ctwaClid);
 
       // 0. Se @lid (Click-to-WhatsApp) e NÃO é CTWA, buscar rastreamento pendente do link
+      //    Valida mensagem contra wa_mensagem do link pra evitar associar CTWA ao link errado
       if (isLid && eraNovaConversa && !_isCTWA) {
         const cincoMinAtras = new Date(Date.now() - 5 * 60 * 1000).toISOString();
         const { data: lidTrack } = await supabase.from("rastreamentos_pendentes")
@@ -269,10 +270,26 @@ export async function POST(req: NextRequest) {
           .order("created_at", { ascending: false })
           .limit(1)
           .single();
-        if (lidTrack) tracking = lidTrack;
+        if (lidTrack && lidTrack.link_id && conteudo) {
+          // Validar: mensagem deve bater com wa_mensagem do link
+          const { data: linkData } = await supabase.from("links_campanha")
+            .select("wa_mensagem").eq("id", lidTrack.link_id).single();
+          if (linkData?.wa_mensagem) {
+            const msgNorm = conteudo.toLowerCase().replace(/[^\w\sáéíóúâêôãõàçü]/g, "").replace(/\s+/g, " ").trim();
+            const linkNorm = linkData.wa_mensagem.toLowerCase().replace(/[^\w\sáéíóúâêôãõàçü]/g, "").replace(/\s+/g, " ").trim();
+            if (linkNorm.length >= 5 && (msgNorm === linkNorm || msgNorm.includes(linkNorm) || linkNorm.includes(msgNorm))) {
+              tracking = lidTrack;
+            }
+            // Mensagem não bate = provavelmente CTWA, não associar ao link
+          } else {
+            tracking = lidTrack; // link sem wa_mensagem, aceitar
+          }
+        } else if (lidTrack && !lidTrack.link_id) {
+          tracking = lidTrack; // rastreamento sem link (fbclid direto), aceitar
+        }
       }
 
-      // 1. Tentar por número do lead (só se não é CTWA)
+      // 1. Tentar por número do lead (só se não é CTWA e sem tracking ainda)
       if (!tracking && !_isCTWA) {
         const { data: t1 } = await supabase.from("rastreamentos_pendentes")
           .select("*").eq("wa_numero", numero).single();
