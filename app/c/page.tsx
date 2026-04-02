@@ -72,13 +72,7 @@ function CaptureContent() {
       setContador(c => {
         if (c <= 1) {
           clearInterval(timer);
-          // Tentar abrir WhatsApp — usar window.open pra não ficar preso no WebView
-          try {
-            const w = window.open(waUrl, "_blank");
-            if (!w) window.location.href = waUrl; // fallback se popup bloqueado
-          } catch {
-            window.location.href = waUrl;
-          }
+          window.location.href = waUrl;
           return 0;
         }
         return c - 1;
