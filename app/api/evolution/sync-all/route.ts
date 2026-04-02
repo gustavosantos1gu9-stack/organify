@@ -32,13 +32,24 @@ function extrairConteudo(msg: any): { tipo: string; conteudo: string } | null {
 }
 
 function resolverNome(chat: any, contact: any, msgs: any[]): string {
-  const campos = [
-    chat?.pushName, chat?.name, contact?.pushName, contact?.name,
-    contact?.notify, contact?.verifiedName, chat?.formattedTitle,
+  // Priorizar contato (é o nome do outro lado, não do remetente)
+  const camposContato = [
+    contact?.pushName, contact?.name, contact?.notify, contact?.verifiedName,
   ];
-  for (const c of campos) {
+  for (const c of camposContato) {
     if (c && typeof c === "string" && c.trim() && !/^\d+$/.test(c.trim())) return c.trim();
   }
+  // chat.pushName pode ser do último remetente (fromMe) — só usar se a última msg NÃO é fromMe
+  if (chat?.lastMessage?.key?.fromMe === false && chat?.pushName) {
+    const pn = chat.pushName.trim();
+    if (pn && !/^\d+$/.test(pn)) return pn;
+  }
+  // chat.name e formattedTitle são mais confiáveis
+  const camposChat = [chat?.name, chat?.formattedTitle];
+  for (const c of camposChat) {
+    if (c && typeof c === "string" && c.trim() && !/^\d+$/.test(c.trim())) return c.trim();
+  }
+  // Último recurso: pushName de mensagens recebidas
   for (const msg of msgs) {
     if (!msg.key?.fromMe && msg.pushName && typeof msg.pushName === "string" && msg.pushName.trim()) {
       return msg.pushName.trim();
