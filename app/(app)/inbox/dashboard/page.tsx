@@ -64,7 +64,7 @@ export default function InboxDashboardPage() {
   );
   const [conversas, setConversas] = useState<Conversa[]>([]);
   const [etapas, setEtapas] = useState<Etapa[]>([]);
-  const [historico, setHistorico] = useState<{etapa_nova: string; created_at: string}[]>([]);
+  const [historico, setHistorico] = useState<{conversa_id: string; etapa_nova: string; created_at: string}[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -86,7 +86,7 @@ export default function InboxDashboardPage() {
           .order("ordem"),
         supabase
           .from("etapas_historico")
-          .select("etapa_nova, created_at")
+          .select("conversa_id, etapa_nova, created_at")
           .eq("agencia_id", agId),
       ]);
 
@@ -105,10 +105,18 @@ export default function InboxDashboardPage() {
   });
 
   // Transições de etapa que aconteceram no período (do histórico)
-  const transicoesNoPeriodo = historico.filter((h) => {
+  // Deduplicar: só 1 transição por conversa por etapa (a mais recente)
+  const transicoesRaw = historico.filter((h) => {
     const d = h.created_at.split("T")[0];
     return d >= from && d <= to;
   });
+  const dedup = new Map<string, typeof transicoesRaw[0]>();
+  transicoesRaw.forEach((h) => {
+    const key = `${h.conversa_id}_${h.etapa_nova}`;
+    const existing = dedup.get(key);
+    if (!existing || h.created_at > existing.created_at) dedup.set(key, h);
+  });
+  const transicoesNoPeriodo = Array.from(dedup.values());
 
   // ── KPI Row 1 ──
   const total = cf.length;
