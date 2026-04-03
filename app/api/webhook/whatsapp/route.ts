@@ -353,15 +353,43 @@ export async function POST(req: NextRequest) {
             } catch {}
           }
 
+          // Validar: se a campanha resolvida tem link rastreável, checar se a mensagem bate
+          // Se não bate, a lead veio pela campanha de mensagem, não pelo link
+          let campanhaFinal = campanha;
+          let conjuntoFinal = conjunto;
+          let criativoFinal = criativo;
+          if (campanha && conteudo) {
+            const { data: links } = await supabase.from("links_campanha")
+              .select("wa_mensagem, utm_campaign")
+              .eq("agencia_id", agencia.id);
+            if (links?.length) {
+              const msgNorm = conteudo.toLowerCase().replace(/[^\w\sáéíóúâêôãõàçü]/g, "").replace(/\s+/g, " ").trim();
+              const linkDaCampanha = links.find(l => {
+                const linkCampNorm = (l.utm_campaign || "").toLowerCase().replace(/[^\w\sáéíóúâêôãõàçü]/g, "").replace(/\s+/g, " ").trim();
+                return campanha.toLowerCase().includes(linkCampNorm) || linkCampNorm.includes(campanha.toLowerCase());
+              });
+              if (linkDaCampanha?.wa_mensagem) {
+                const linkMsgNorm = linkDaCampanha.wa_mensagem.toLowerCase().replace(/[^\w\sáéíóúâêôãõàçü]/g, "").replace(/\s+/g, " ").trim();
+                if (linkMsgNorm.length >= 5 && !msgNorm.includes(linkMsgNorm)) {
+                  // Mensagem não bate com o link dessa campanha — provável campanha de mensagem
+                  // Não usar os dados do sourceId, deixar campanha vazia pra detectar como CTWA genérico
+                  campanhaFinal = "";
+                  conjuntoFinal = "";
+                  criativoFinal = "";
+                }
+              }
+            }
+          }
+
           tracking = {
             utm_source: externalAdReply.mediaType || "meta",
-            utm_campaign: campanha || externalAdReply.title || externalAdReply.body || "",
-            utm_content: conjunto ? `${conjunto}_${criativo}` : sourceId || "",
+            utm_campaign: campanhaFinal || externalAdReply.title || externalAdReply.body || "",
+            utm_content: conjuntoFinal ? `${conjuntoFinal}_${criativoFinal}` : sourceId || "",
             utm_medium: externalAdReply.mediaType || "",
             fbclid: ctwaClid || "",
             origem: "Meta Ads",
             link_id: null,
-            _nome_anuncio: criativo || externalAdReply.title || "",
+            _nome_anuncio: criativoFinal || externalAdReply.title || "",
           };
         }
 
