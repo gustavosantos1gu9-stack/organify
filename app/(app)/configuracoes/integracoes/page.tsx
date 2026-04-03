@@ -444,6 +444,7 @@ function IntegracoesMaster() {
   const [evoKey, setEvoKey] = useState("6656711fd37b4eadc6a9d6a31b84c8648e19708f55e7f09b85b7b61d9660d6ad");
   const [instancias, setInstancias] = useState<Instancia[]>([]);
   const [loadingInst, setLoadingInst] = useState(false);
+  const [minhaInstancia, setMinhaInstancia] = useState("");
   const [qrCode, setQrCode] = useState<string|null>(null);
   const [qrInstancia, setQrInstancia] = useState<string|null>(null);
   const [novaInstancia, setNovaInstancia] = useState("");
@@ -480,6 +481,7 @@ function IntegracoesMaster() {
       if (data) {
         setEvoUrl(data.evolution_url || "https://evolution-api-production-e0b8.up.railway.app");
         setEvoKey(data.evolution_key || "6656711fd37b4eadc6a9d6a31b84c8648e19708f55e7f09b85b7b61d9660d6ad");
+        setMinhaInstancia(data.whatsapp_instancia || "");
         setPixelId(data.meta_pixel_id || "");
         setMetaToken(data.meta_token || "");
         setMetaAtivo(data.meta_ativo || false);
@@ -547,7 +549,15 @@ function IntegracoesMaster() {
     setLoadingInst(true);
     try {
       const data = await evoCall("fetchInstances");
-      setInstancias(Array.isArray(data) ? data : []);
+      const todas = Array.isArray(data) ? data : [];
+      // Filtrar: mostrar só a instância desta agência (se configurada)
+      const filtradas = minhaInstancia
+        ? todas.filter((i: any) => {
+            const nome = i.name || i.instance?.instanceName || "";
+            return nome === minhaInstancia;
+          })
+        : todas;
+      setInstancias(filtradas.length > 0 ? filtradas : todas);
     } catch(e) {
       console.error("Erro ao carregar instâncias:", e);
     } finally { setLoadingInst(false); }
