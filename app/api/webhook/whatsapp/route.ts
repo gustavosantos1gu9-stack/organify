@@ -211,6 +211,7 @@ export async function POST(req: NextRequest) {
 
       if (!conversa) {
         eraNovaConversa = true;
+        // Tentar inserir — se já existe (race condition), buscar a existente
         const { data: nova, error: insertErr } = await supabase.from("conversas").insert({
           agencia_id: agencia.id, instancia: instanciaName,
           contato_numero: numero, contato_nome: nome, contato_foto: foto,
@@ -220,10 +221,19 @@ export async function POST(req: NextRequest) {
           origem: isLid ? "Meta Ads" : "Não Rastreada",
         }).select().single();
         if (insertErr) {
-          console.error("Webhook: erro ao criar conversa:", insertErr.message, { numero, nome });
-          return NextResponse.json({ ok: false, error: insertErr.message }, { status: 500 });
+          // Race condition — conversa foi criada por outro request simultâneo
+          const { data: existente } = await supabase.from("conversas")
+            .select("*").eq("agencia_id", agencia.id).eq("contato_numero", numero).single();
+          if (existente) {
+            conversa = existente;
+            eraNovaConversa = false;
+          } else {
+            console.error("Webhook: erro ao criar conversa:", insertErr.message, { numero, nome });
+            return NextResponse.json({ ok: false, error: insertErr.message }, { status: 500 });
+          }
+        } else {
+          conversa = nova;
         }
-        conversa = nova;
       } else {
         await supabase.from("conversas").update({
           ultima_mensagem: conteudo, ultima_mensagem_at: timestamp,
