@@ -513,10 +513,32 @@ function IntegracoesMaster() {
   }, []);
 
   const evoCall = async (action: string, instanceName?: string, payload?: Record<string,unknown>) => {
+    // Master: chamar Evolution API diretamente (já tem evoUrl e evoKey no estado)
+    if (evoUrl && evoKey) {
+      const endpoints: Record<string, { method: string; path: string }> = {
+        fetchInstances: { method: "GET", path: "/instance/fetchInstances" },
+        status: { method: "GET", path: `/instance/connectionState/${instanceName}` },
+        connect: { method: "GET", path: `/instance/connect/${instanceName}` },
+        create: { method: "POST", path: `/instance/create` },
+        delete: { method: "DELETE", path: `/instance/logout/${instanceName}` },
+        setWebhook: { method: "POST", path: `/webhook/set/${instanceName}` },
+      };
+      const ep = endpoints[action];
+      if (ep) {
+        const res = await fetch(`${evoUrl}${ep.path}`, {
+          method: ep.method,
+          headers: { "Content-Type": "application/json", apikey: evoKey },
+          ...(payload && ep.method === "POST" ? { body: JSON.stringify(payload) } : {}),
+        });
+        return res.json();
+      }
+    }
+    // Fallback: usar API interna
+    const agId = await getAgenciaId();
     const res = await fetch("/api/evolution", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, instanceName, payload }),
+      body: JSON.stringify({ action, instanceName, payload, agencia_id: agId }),
     });
     return res.json();
   };
