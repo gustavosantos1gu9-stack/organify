@@ -38,6 +38,7 @@ function IntegracoesCliente() {
   const [metaBusinessToken, setMetaBusinessToken] = useState("");
   const [showBusinessToken, setShowBusinessToken] = useState(false);
   const [metaAdsAtivo, setMetaAdsAtivo] = useState(false);
+  const [tokenStatus, setTokenStatus] = useState<{valid:boolean;expires?:string;name?:string}|null>(null);
 
   // Helper para chamar Evolution API sempre com agencia_id
   const evoCall = useCallback(async (action: string, instanceName?: string, payload?: Record<string, unknown>) => {
@@ -144,6 +145,23 @@ function IntegracoesCliente() {
         setMetaAdAccountId(data.meta_ad_account_id || "");
         setMetaBusinessToken(data.meta_business_token || "");
         setMetaAdsAtivo(data.meta_ads_ativo || false);
+        // Verificar status do token
+        if (data.meta_business_token) {
+          try {
+            const tRes = await fetch(`https://graph.facebook.com/v21.0/debug_token?input_token=${data.meta_business_token}&access_token=${data.meta_business_token}`);
+            const tData = await tRes.json();
+            if (tData?.data) {
+              const exp = tData.data.expires_at;
+              setTokenStatus({
+                valid: tData.data.is_valid,
+                expires: exp === 0 ? "Nunca expira" : new Date(exp * 1000).toLocaleDateString("pt-BR"),
+                name: tData.data.application || "",
+              });
+            } else {
+              setTokenStatus({ valid: false });
+            }
+          } catch { setTokenStatus({ valid: false }); }
+        }
         // Verificar instância salva desta agência
         const instSalva = data.whatsapp_instancia || "";
         if (evoUrlFinal && evoKeyFinal && instSalva) {
@@ -375,6 +393,18 @@ function IntegracoesCliente() {
                   {showBusinessToken ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
+              {tokenStatus && (
+                <div style={{marginTop:"6px",padding:"6px 10px",borderRadius:"6px",fontSize:"11px",
+                  background: tokenStatus.valid ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.15)",
+                  border: `1px solid ${tokenStatus.valid ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"}`,
+                  color: tokenStatus.valid ? "#22c55e" : "#ef4444",
+                }}>
+                  {tokenStatus.valid
+                    ? `Token válido — ${tokenStatus.expires}${tokenStatus.name ? ` (${tokenStatus.name})` : ""}`
+                    : `Token expirado ou inválido — gere um novo token seguindo o passo a passo abaixo`
+                  }
+                </div>
+              )}
             </div>
           </div>
           {/* Passo a passo */}
@@ -430,6 +460,7 @@ function IntegracoesMaster() {
   const [metaBusinessToken, setMetaBusinessToken] = useState("");
   const [showBusinessToken, setShowBusinessToken] = useState(false);
   const [metaAdsAtivo, setMetaAdsAtivo] = useState(false);
+  const [tokenStatus, setTokenStatus] = useState<{valid:boolean;expires?:string;name?:string}|null>(null);
 
   // OpenAI
   const [openaiKey, setOpenaiKey] = useState("");
@@ -458,6 +489,23 @@ function IntegracoesMaster() {
         setOpenaiKey(data.openai_key || "");
         setOpenaiAtivo(data.openai_ativo || false);
         setAsaasToken(data.asaas_token || "");
+        // Verificar status do token
+        if (data.meta_business_token) {
+          try {
+            const tRes = await fetch(`https://graph.facebook.com/v21.0/debug_token?input_token=${data.meta_business_token}&access_token=${data.meta_business_token}`);
+            const tData = await tRes.json();
+            if (tData?.data) {
+              const exp = tData.data.expires_at;
+              setTokenStatus({
+                valid: tData.data.is_valid,
+                expires: exp === 0 ? "Nunca expira" : new Date(exp * 1000).toLocaleDateString("pt-BR"),
+                name: tData.data.application || "",
+              });
+            } else {
+              setTokenStatus({ valid: false });
+            }
+          } catch { setTokenStatus({ valid: false }); }
+        }
       }
     }
     load();
@@ -837,6 +885,18 @@ function IntegracoesMaster() {
                 </button>
               </div>
               <p style={{fontSize:"11px",color:"#606060",marginTop:"4px"}}>Token com permissões ads_management, ads_read e business_management</p>
+              {tokenStatus && (
+                <div style={{marginTop:"6px",padding:"6px 10px",borderRadius:"6px",fontSize:"11px",
+                  background: tokenStatus.valid ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.15)",
+                  border: `1px solid ${tokenStatus.valid ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"}`,
+                  color: tokenStatus.valid ? "#22c55e" : "#ef4444",
+                }}>
+                  {tokenStatus.valid
+                    ? `Token válido — ${tokenStatus.expires}${tokenStatus.name ? ` (${tokenStatus.name})` : ""}`
+                    : `Token expirado ou inválido — gere um novo token seguindo o passo a passo abaixo`
+                  }
+                </div>
+              )}
             </div>
           </div>
           {/* Passo a passo */}
