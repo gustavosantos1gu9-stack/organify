@@ -352,7 +352,7 @@ export default function ConexoesPage() {
         {!metaConectado ? (
           <>
             <p style={{ fontSize: "13px", color: "#606060", marginBottom: "16px" }}>
-              Cole o token do Facebook para conectar todas as contas de anúncio.
+              Cole o token da sua <strong>conta pessoal</strong> do Facebook para listar todas as contas de anúncio que você gerencia.
             </p>
             <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
               <div style={{ position: "relative", flex: 1 }}>
@@ -369,6 +369,22 @@ export default function ConexoesPage() {
                 <Check size={14} /> {validandoMeta ? "Validando..." : "Conectar"}
               </button>
             </div>
+            <details style={{ marginBottom: "12px" }}>
+              <summary style={{ fontSize: "12px", color: "#29ABE2", cursor: "pointer", userSelect: "none" }}>Como gerar o Token da conta pessoal?</summary>
+              <div style={{ marginTop: "10px", padding: "14px", background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "8px", fontSize: "12px", color: "#a0a0a0", lineHeight: "1.8" }}>
+                <p style={{ color: "#f0f0f0", fontWeight: "600", marginBottom: "8px" }}>Passo a passo:</p>
+                <ol style={{ margin: 0, paddingLeft: "18px" }}>
+                  <li>Acesse <strong style={{ color: "#29ABE2" }}>developers.facebook.com</strong></li>
+                  <li>No menu superior, clique em <strong>Ferramentas</strong> → <strong>Explorador da Graph API</strong></li>
+                  <li>No campo <strong>Aplicativo do Facebook</strong>, selecione seu app (ex: "Salx Digital" ou "API de Marketing")</li>
+                  <li>Clique em <strong>Gerar Token de Acesso</strong> (botão azul)</li>
+                  <li>Faça login com sua <strong>conta pessoal</strong> do Facebook (a que gerencia as contas de anúncio)</li>
+                  <li>Marque as permissoes: <strong>ads_read</strong>, <strong>ads_management</strong> e <strong>business_management</strong></li>
+                  <li>Copie o token gerado e cole acima</li>
+                </ol>
+                <p style={{ marginTop: "10px", color: "#f59e0b", fontSize: "11px" }}>Use o token da conta pessoal para ter acesso a todas as contas de anúncio dos seus clientes. Este token expira — gere um novo quando necessário.</p>
+              </div>
+            </details>
           </>
         ) : (
           <div style={{ borderTop: "1px solid #2e2e2e", paddingTop: "16px" }}>
