@@ -161,12 +161,12 @@ export async function POST(req: NextRequest) {
       ),
       // 5. Placement breakdown
       metaFetch(
-        `${META_API}/${acId}/insights?fields=publisher_platform,platform_position,impressions,clicks,spend,actions,ctr&breakdowns=publisher_platform,platform_position&time_range=${timeRange}&limit=100`,
+        `${META_API}/${acId}/insights?fields=impressions,clicks,spend,actions,ctr&breakdowns=publisher_platform,platform_position&time_range=${timeRange}&limit=100`,
         token
       ),
       // 6. Age breakdown
       metaFetch(
-        `${META_API}/${acId}/insights?fields=age,impressions,clicks,spend,actions&breakdowns=age&time_range=${timeRange}&limit=20`,
+        `${META_API}/${acId}/insights?fields=impressions,clicks,spend,actions&breakdowns=age&time_range=${timeRange}&limit=20`,
         token
       ),
       // 7. Account balance
