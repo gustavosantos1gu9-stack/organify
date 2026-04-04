@@ -441,53 +441,9 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // 7. FALLBACK: tentar match por conteúdo da mensagem com links_campanha
-      //    Não roda para @lid (já tratado como Meta Ads no passo 6)
-      if (!tracking && !isLid && eraNovaConversa && conteudo) {
-        const { data: links } = await supabase.from("links_campanha")
-          .select("id, nome, wa_mensagem, utm_campaign, link_gerado")
-          .eq("agencia_id", agencia.id);
-
-        if (links?.length) {
-          const msgNorm = conteudo.toLowerCase().replace(/[^\w\sáéíóúâêôãõàçü]/g, "").replace(/\s+/g, " ").trim();
-          for (const link of links) {
-            const linkMsgNorm = (link.wa_mensagem || "").toLowerCase().replace(/[^\w\sáéíóúâêôãõàçü]/g, "").replace(/\s+/g, " ").trim();
-            if (!linkMsgNorm || linkMsgNorm.length < 5) continue;
-
-            // Match: mensagem deve ser igual ou conter a mensagem do link (não o contrário)
-            // "Oi Gustavo" NÃO deve dar match com "Oi Gustavo, tenho interesse..."
-            if (msgNorm === linkMsgNorm || msgNorm.includes(linkMsgNorm)) {
-              // Extrair UTMs do link gerado (suporta URL relativa)
-              const params: Record<string, string> = {};
-              try {
-                const url = new URL(link.link_gerado);
-                url.searchParams.forEach((v, k) => { params[k] = v; });
-              } catch {
-                const qIdx = (link.link_gerado || "").indexOf("?");
-                if (qIdx >= 0) {
-                  for (const pair of link.link_gerado.substring(qIdx + 1).split("&")) {
-                    const [k, ...v] = pair.split("=");
-                    if (k) params[decodeURIComponent(k)] = decodeURIComponent(v.join("=") || "");
-                  }
-                }
-              }
-
-              tracking = {
-                utm_source: params.utm_source || "facebook",
-                utm_medium: params.utm_medium || "cpc",
-                utm_campaign: params.utm_campaign || link.utm_campaign || link.nome.toLowerCase().replace(/\s+/g, "-"),
-                utm_content: params.utm_content || "",
-                utm_term: params.utm_term || "",
-                fbclid: "",
-                origem: "Meta Ads",
-                link_id: link.id,
-                _link_nome: params.link_nome || link.nome,
-              };
-              break;
-            }
-          }
-        }
-      }
+      // 7. REMOVIDO: match por conteúdo da mensagem com links_campanha
+      //    Causava falsos positivos — associava ao link pessoas que nunca passaram pela página de 5s.
+      //    Agora só associa ao link quem tem rastreamento pendente (prova que passou pela página).
 
       // ============================================
       // APLICAR RASTREAMENTO
