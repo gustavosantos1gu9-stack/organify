@@ -265,6 +265,12 @@ export async function POST(req: NextRequest) {
       ads,
       placements,
       ageGroups,
+      // Aliases para o dashboard
+      diario: daily,
+      campanhas: campaigns,
+      anuncios: ads,
+      posicionamentos: placements,
+      idade: ageGroups,
     });
   } catch (err: any) {
     console.error("Dashboard API error:", err);
