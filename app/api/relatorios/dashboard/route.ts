@@ -126,7 +126,12 @@ export async function POST(req: NextRequest) {
     }
 
     const acId = adAccountId.startsWith("act_") ? adAccountId : `act_${adAccountId}`;
-    const { since, until } = getPeriodDates(periodo);
+    // Suporte a datas customizadas
+    const customSince = body.date_from;
+    const customUntil = body.date_to;
+    const { since, until } = customSince && customUntil
+      ? { since: customSince, until: customUntil }
+      : getPeriodDates(periodo);
     const timeRange = `{"since":"${since}","until":"${until}"}`;
 
     // Fetch all data in parallel

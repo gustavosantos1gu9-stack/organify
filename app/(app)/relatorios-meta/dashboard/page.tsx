@@ -144,6 +144,11 @@ function DashboardInner() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Período customizável
+  const hoje = new Date();
+  const [dateFrom, setDateFrom] = useState(new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split("T")[0]);
+  const [dateTo, setDateTo] = useState(hoje.toISOString().split("T")[0]);
+
   const [sections, setSections] = useState<Record<SectionKey, boolean>>({
     kpis: true,
     desempenho: true,
@@ -156,30 +161,30 @@ function DashboardInner() {
 
   /* Fetch ---------------------------------------------------------- */
 
-  useEffect(() => {
+  const carregarDados = async () => {
     if (!relatorioId) {
       setError("ID do relatório não informado");
       setLoading(false);
       return;
     }
-    (async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const res = await fetch("/api/relatorios/dashboard", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ relatorio_id: relatorioId }),
-        });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error || "Erro ao carregar dados");
-        setData(json);
-      } catch (err: any) {
-        setError(err.message || "Erro desconhecido");
-      }
-      setLoading(false);
-    })();
-  }, [relatorioId]);
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/relatorios/dashboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ relatorio_id: relatorioId, date_from: dateFrom, date_to: dateTo }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Erro ao carregar dados");
+      setData(json);
+    } catch (err: any) {
+      setError(err.message || "Erro desconhecido");
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { carregarDados(); }, [relatorioId]);
 
   /* Handlers ------------------------------------------------------- */
 
@@ -242,14 +247,24 @@ function DashboardInner() {
       <style>{printCSS}</style>
 
       <div className="dashboard-root" style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 16px" }}>
-        {/* --- Action buttons --- */}
-        <div className="no-print" style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        {/* --- Action buttons + date selector --- */}
+        <div className="no-print" style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
           <button onClick={() => router.push("/relatorios-meta")} style={btnSecondary}>
             <ArrowLeft size={14} /> Voltar
           </button>
           <button onClick={handlePrint} style={btnPrimary}>
             <Printer size={14} /> Exportar PDF
           </button>
+          <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+              style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 6, padding: "6px 10px", color: "#f0f0f0", fontSize: 13 }} />
+            <span style={{ color: "#606060", fontSize: 13 }}>a</span>
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+              style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 6, padding: "6px 10px", color: "#f0f0f0", fontSize: 13 }} />
+            <button onClick={carregarDados} disabled={loading} style={{ ...btnPrimary, padding: "6px 16px" }}>
+              {loading ? "Carregando..." : "Gerar"}
+            </button>
+          </div>
         </div>
 
         {/* --- Metric selector --- */}
