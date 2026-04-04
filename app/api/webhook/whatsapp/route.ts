@@ -492,6 +492,28 @@ export async function POST(req: NextRequest) {
       // ============================================
       // APLICAR RASTREAMENTO
       // ============================================
+
+      // 8. ENRIQUECER: se tem sourceId no externalAdReply, resolver campanha/conjunto/criativo
+      //    Independente de qual passo definiu o tracking
+      if (tracking && _externalAdReply?.sourceId) {
+        const _sourceId = _externalAdReply.sourceId;
+        const _ctwaClid = _externalAdReply.ctwaClid || msg.message?.extendedTextMessage?.contextInfo?.ctwaClid || "";
+        const adsToken = agencia.meta_business_token || agencia.meta_token;
+        if (adsToken) {
+          try {
+            const adRes = await fetch(`https://graph.facebook.com/v21.0/${_sourceId}?fields=name,adset%7Bname%7D,campaign%7Bname%7D&access_token=${adsToken}`);
+            const adData = await adRes.json();
+            if (adData && !adData.error) {
+              tracking.utm_campaign = adData.campaign?.name || tracking.utm_campaign;
+              tracking.utm_content = adData.adset?.name ? `${adData.adset.name}_${adData.name}` : tracking.utm_content;
+              tracking._nome_anuncio = adData.name || tracking._nome_anuncio;
+            }
+          } catch {}
+        }
+        // Garantir fbclid do CTWA
+        if (_ctwaClid && !tracking.fbclid) tracking.fbclid = _ctwaClid;
+      }
+
       if (tracking) {
         const linkIdFromTerm = tracking.utm_term && tracking.utm_term.match(/^[0-9a-f-]{36}$/)
           ? tracking.utm_term : tracking.link_id;
