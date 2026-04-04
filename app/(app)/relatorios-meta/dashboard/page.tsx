@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ArrowLeft, Printer, Loader2 } from "lucide-react";
 import {
@@ -12,6 +12,10 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
+
+/* ------------------------------------------------------------------ */
+/*  Types                                                              */
+/* ------------------------------------------------------------------ */
 
 interface DashboardData {
   nomeCliente: string;
@@ -29,82 +33,109 @@ interface DashboardData {
     balance: number;
     currency: string;
   };
-  daily: {
+  diario: Array<{
     date: string;
     impressions: number;
     clicks: number;
     spend: number;
     mensagens: number;
-  }[];
-  campaigns: {
+  }>;
+  campanhas: Array<{
     name: string;
     impressions: number;
     clicks: number;
     spend: number;
-    ctr: number;
     mensagens: number;
+    ctr: number;
     cpa: number;
-  }[];
-  ads: {
+  }>;
+  anuncios: Array<{
     name: string;
     impressions: number;
     clicks: number;
     spend: number;
-    ctr: number;
     mensagens: number;
+    ctr: number;
     cpa: number;
-  }[];
-  placements: {
+  }>;
+  posicionamentos: Array<{
     platform: string;
     position: string;
     impressions: number;
     clicks: number;
     spend: number;
-    ctr: number;
     mensagens: number;
-  }[];
-  ageGroups: {
+    ctr: number;
+  }>;
+  idade: Array<{
     age: string;
     impressions: number;
     clicks: number;
     spend: number;
     mensagens: number;
-  }[];
+  }>;
 }
 
-function formatNum(n: number): string {
-  if (isNaN(n)) return "0";
-  return n.toLocaleString("pt-BR");
-}
+/* ------------------------------------------------------------------ */
+/*  Formatting helpers                                                 */
+/* ------------------------------------------------------------------ */
 
-function formatMoney(n: number): string {
-  if (isNaN(n)) return "R$ 0,00";
-  return `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+const fmtNum = (n: number) =>
+  isNaN(n) ? "0" : n.toLocaleString("pt-BR");
 
-function formatPercent(n: number): string {
-  if (isNaN(n)) return "0,00%";
-  return `${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
-}
+const fmtMoney = (n: number) =>
+  isNaN(n)
+    ? "R$ 0,00"
+    : `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-function formatDateBR(dateStr: string): string {
-  if (!dateStr) return "";
-  const parts = dateStr.split("-");
-  if (parts.length !== 3) return dateStr;
-  return `${parts[2]}/${parts[1]}/${parts[0]}`;
-}
+const fmtPct = (n: number) =>
+  isNaN(n)
+    ? "0,00%"
+    : `${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
 
-function formatDateShort(dateStr: string): string {
-  if (!dateStr) return "";
-  const parts = dateStr.split("-");
-  if (parts.length !== 3) return dateStr;
-  return `${parts[2]}/${parts[1]}`;
-}
+const fmtDate = (d: string) => {
+  if (!d) return "";
+  const p = d.split("-");
+  return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : d;
+};
 
-const ACCENT = "#29ABE2";
+const fmtDateShort = (d: string) => {
+  if (!d) return "";
+  const p = d.split("-");
+  return p.length === 3 ? `${p[2]}/${p[1]}` : d;
+};
+
+/* ------------------------------------------------------------------ */
+/*  Constants                                                          */
+/* ------------------------------------------------------------------ */
+
+const BLUE = "#29ABE2";
 const AMBER = "#f59e0b";
 
-export default function DashboardPage() {
+type SectionKey =
+  | "kpis"
+  | "desempenho"
+  | "investimento"
+  | "campanhas"
+  | "anuncios"
+  | "posicionamentos"
+  | "idade";
+
+const SECTION_LABELS: Record<SectionKey, string> = {
+  kpis: "KPIs principais",
+  desempenho: "Desempenho diário",
+  investimento: "Investimento diário",
+  campanhas: "Campanhas",
+  anuncios: "Anúncios",
+  posicionamentos: "Posicionamentos",
+  idade: "Idade",
+};
+
+/* ------------------------------------------------------------------ */
+/*  Inner component (uses useSearchParams)                             */
+/* ------------------------------------------------------------------ */
+
+function DashboardInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const relatorioId = searchParams.get("id");
@@ -113,41 +144,65 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const [sections, setSections] = useState<Record<SectionKey, boolean>>({
+    kpis: true,
+    desempenho: true,
+    investimento: true,
+    campanhas: true,
+    anuncios: true,
+    posicionamentos: true,
+    idade: true,
+  });
+
+  /* Fetch ---------------------------------------------------------- */
+
   useEffect(() => {
     if (!relatorioId) {
-      setError("ID do relatorio nao informado");
+      setError("ID do relatório não informado");
       setLoading(false);
       return;
     }
-    fetchDashboard();
+    (async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const res = await fetch("/api/relatorios/dashboard", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ relatorio_id: relatorioId }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || "Erro ao carregar dados");
+        setData(json);
+      } catch (err: any) {
+        setError(err.message || "Erro desconhecido");
+      }
+      setLoading(false);
+    })();
   }, [relatorioId]);
 
-  async function fetchDashboard() {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch("/api/relatorios/dashboard", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ relatorio_id: relatorioId }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Erro ao carregar dados");
-      setData(json);
-    } catch (err: any) {
-      setError(err.message || "Erro desconhecido");
-    }
-    setLoading(false);
-  }
+  /* Handlers ------------------------------------------------------- */
 
-  function handlePrint() {
-    window.print();
-  }
+  const toggle = (key: SectionKey) =>
+    setSections((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  const handlePrint = () => window.print();
+
+  /* Loading / Error ------------------------------------------------ */
 
   if (loading) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "60vh", color: "#a0a0a0" }}>
-        <Loader2 size={32} className="spin" style={{ marginRight: 12 }} />
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "60vh",
+          color: "#a0a0a0",
+          gap: 12,
+        }}
+      >
+        <Loader2 size={28} className="spin" />
         Carregando dashboard...
       </div>
     );
@@ -156,7 +211,9 @@ export default function DashboardPage() {
   if (error || !data) {
     return (
       <div style={{ padding: 40, textAlign: "center" }}>
-        <p style={{ color: "#ef4444", marginBottom: 16 }}>{error || "Nenhum dado encontrado"}</p>
+        <p style={{ color: "#ef4444", marginBottom: 16 }}>
+          {error || "Nenhum dado encontrado"}
+        </p>
         <button onClick={() => router.push("/relatorios-meta")} style={btnSecondary}>
           <ArrowLeft size={14} /> Voltar
         </button>
@@ -164,24 +221,29 @@ export default function DashboardPage() {
     );
   }
 
-  const { resumo, daily, campaigns, ads, placements, ageGroups } = data;
+  /* Derived data --------------------------------------------------- */
+
+  const { resumo, diario, campanhas, anuncios, posicionamentos, idade } = data;
   const cpl = resumo.mensagens > 0 ? resumo.spend / resumo.mensagens : 0;
 
   const kpis = [
-    { label: "Investimento", sublabel: "Investimento total", value: formatMoney(resumo.spend), color: ACCENT },
-    { label: "Cliques", sublabel: "Cliques totais", value: formatNum(resumo.clicks), color: "#22c55e" },
-    { label: "Impressoes", sublabel: "Impressoes totais", value: formatNum(resumo.impressions), color: "#8b5cf6" },
-    { label: "Mensagens", sublabel: "Mensagens recebidas", value: formatNum(resumo.mensagens), color: "#f59e0b" },
-    { label: "CPM", sublabel: "CPM medio", value: formatMoney(resumo.cpm), color: "#ec4899" },
-    { label: "CPL", sublabel: "Custo por mensagem", value: formatMoney(cpl), color: "#14b8a6" },
+    { label: "Investimento", sub: "total", value: fmtMoney(resumo.spend) },
+    { label: "Cliques", sub: "total", value: fmtNum(resumo.clicks) },
+    { label: "Impressões", sub: "total", value: fmtNum(resumo.impressions) },
+    { label: "Mensagens", sub: "total", value: fmtNum(resumo.mensagens) },
+    { label: "CPM", sub: "total", value: fmtMoney(resumo.cpm) },
+    { label: "CPL", sub: "total", value: fmtMoney(cpl) },
   ];
+
+  /* Render --------------------------------------------------------- */
 
   return (
     <>
-      <style>{printStyles}</style>
+      <style>{printCSS}</style>
+
       <div className="dashboard-root" style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 16px" }}>
-        {/* Top buttons */}
-        <div className="no-print" style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+        {/* --- Action buttons --- */}
+        <div className="no-print" style={{ display: "flex", gap: 8, marginBottom: 20 }}>
           <button onClick={() => router.push("/relatorios-meta")} style={btnSecondary}>
             <ArrowLeft size={14} /> Voltar
           </button>
@@ -190,256 +252,414 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* Header */}
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <h1 style={{ fontSize: 28, fontWeight: 700, color: "#f0f0f0", margin: 0 }}>
-            CA {data.nomeCliente}
-          </h1>
-          <p style={{ fontSize: 16, color: "#a0a0a0", margin: "4px 0" }}>
-            Relatorio de Desempenho
-          </p>
-          <p style={{ fontSize: 14, color: "#606060" }}>
-            Periodo: De {formatDateBR(data.periodo.since)} a {formatDateBR(data.periodo.until)}
-          </p>
-        </div>
-
-        {/* KPI Cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 32 }}>
-          {kpis.map((kpi) => (
-            <div key={kpi.label} style={cardStyle}>
-              <div style={{ fontSize: 12, color: "#a0a0a0", marginBottom: 4 }}>{kpi.sublabel}</div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: kpi.color }}>{kpi.value}</div>
-              <div style={{ fontSize: 11, color: "#606060", marginTop: 2 }}>{kpi.label}</div>
-            </div>
+        {/* --- Metric selector --- */}
+        <div
+          className="no-print"
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "8px 20px",
+            marginBottom: 28,
+            padding: "12px 16px",
+            background: "#111",
+            border: "1px solid #2e2e2e",
+            borderRadius: 10,
+          }}
+        >
+          {(Object.keys(SECTION_LABELS) as SectionKey[]).map((key) => (
+            <label
+              key={key}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: 13,
+                color: sections[key] ? "#f0f0f0" : "#606060",
+                cursor: "pointer",
+                userSelect: "none",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={sections[key]}
+                onChange={() => toggle(key)}
+                style={{ accentColor: BLUE, width: 15, height: 15, cursor: "pointer" }}
+              />
+              {SECTION_LABELS[key]}
+            </label>
           ))}
         </div>
 
-        {/* Desempenho diario - Mensagens */}
-        <div style={sectionCard}>
-          <h2 style={sectionTitle}>Desempenho diario</h2>
-          <p style={{ fontSize: 12, color: "#606060", marginBottom: 16 }}>Mensagens recebidas por dia</p>
-          <div style={{ width: "100%", height: 300 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={daily} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={formatDateShort}
-                  tick={{ fill: "#a0a0a0", fontSize: 11 }}
-                  axisLine={{ stroke: "#2e2e2e" }}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fill: "#a0a0a0", fontSize: 11 }}
-                  axisLine={{ stroke: "#2e2e2e" }}
-                  tickLine={false}
-                  allowDecimals={false}
-                />
-                <Tooltip
-                  contentStyle={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 8, color: "#f0f0f0", fontSize: 12 }}
-                  labelFormatter={formatDateBR}
-                  formatter={(value: number) => [formatNum(value), "Mensagens"]}
-                />
-                <Bar dataKey="mensagens" radius={[4, 4, 0, 0]}>
-                  {daily.map((_, i) => (
-                    <Cell key={i} fill={ACCENT} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+        {/* ========================================================= */}
+        {/*  HEADER                                                    */}
+        {/* ========================================================= */}
+        <div style={{ textAlign: "center", marginBottom: 36 }}>
+          <h1 style={{ fontSize: 28, fontWeight: 700, color: "#f0f0f0", margin: 0, letterSpacing: "-0.02em" }}>
+            CA {data.nomeCliente}
+          </h1>
+          <p style={{ fontSize: 16, color: "#a0a0a0", margin: "6px 0 2px" }}>
+            Relatório de Desempenho
+          </p>
+          <p style={{ fontSize: 13, color: "#606060" }}>
+            Período: De {fmtDate(data.periodo.since)} a {fmtDate(data.periodo.until)}
+          </p>
         </div>
 
-        {/* Investimento diario */}
-        <div style={sectionCard}>
-          <h2 style={sectionTitle}>Investimento diario</h2>
-          <p style={{ fontSize: 12, color: "#606060", marginBottom: 16 }}>Valor investido por dia (R$)</p>
-          <div style={{ width: "100%", height: 300 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={daily} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={formatDateShort}
-                  tick={{ fill: "#a0a0a0", fontSize: 11 }}
-                  axisLine={{ stroke: "#2e2e2e" }}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fill: "#a0a0a0", fontSize: 11 }}
-                  axisLine={{ stroke: "#2e2e2e" }}
-                  tickLine={false}
-                  tickFormatter={(v: number) => `R$${v.toFixed(0)}`}
-                />
-                <Tooltip
-                  contentStyle={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 8, color: "#f0f0f0", fontSize: 12 }}
-                  labelFormatter={formatDateBR}
-                  formatter={(value: number) => [formatMoney(value), "Investimento"]}
-                />
-                <Bar dataKey="spend" radius={[4, 4, 0, 0]}>
-                  {daily.map((_, i) => (
-                    <Cell key={i} fill={AMBER} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+        {/* ========================================================= */}
+        {/*  KPI CARDS                                                 */}
+        {/* ========================================================= */}
+        {sections.kpis && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 28 }}>
+            {kpis.map((kpi) => (
+              <div key={kpi.label} style={cardStyle}>
+                <div style={{ fontSize: 26, fontWeight: 700, color: "#f0f0f0", lineHeight: 1.1 }}>
+                  {kpi.value}
+                </div>
+                <div style={{ marginTop: 6 }}>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: "#a0a0a0" }}>
+                    {kpi.label}
+                  </span>
+                  <span style={{ fontSize: 11, color: "#505050", marginLeft: 6 }}>{kpi.sub}</span>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
+        )}
 
-        {/* Desempenho por Campanha */}
-        <div style={sectionCard}>
-          <h2 style={sectionTitle}>Desempenho por Campanha</h2>
-          <div style={{ overflowX: "auto" }}>
-            <table style={tableStyle}>
-              <thead>
-                <tr>
-                  <th style={thStyle}>Nome</th>
-                  <th style={{ ...thStyle, textAlign: "right" }}>Investimento</th>
-                  <th style={{ ...thStyle, textAlign: "right" }}>Resultados</th>
-                  <th style={{ ...thStyle, textAlign: "right" }}>CPA</th>
-                  <th style={{ ...thStyle, textAlign: "right" }}>CTR</th>
-                </tr>
-              </thead>
-              <tbody>
-                {campaigns.length === 0 && (
-                  <tr><td colSpan={5} style={{ ...tdStyle, textAlign: "center", color: "#606060" }}>Sem dados no periodo</td></tr>
-                )}
-                {campaigns.map((c, i) => (
-                  <tr key={i} style={{ borderBottom: "1px solid #2e2e2e" }}>
-                    <td style={{ ...tdStyle, maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</td>
-                    <td style={{ ...tdStyle, textAlign: "right" }}>{formatMoney(c.spend)}</td>
-                    <td style={{ ...tdStyle, textAlign: "right" }}>{formatNum(c.mensagens)}</td>
-                    <td style={{ ...tdStyle, textAlign: "right" }}>{formatMoney(c.cpa)}</td>
-                    <td style={{ ...tdStyle, textAlign: "right" }}>{formatPercent(c.ctr)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Desempenho por Anuncio */}
-        <div style={sectionCard}>
-          <h2 style={sectionTitle}>Desempenho por Anuncio</h2>
-          <div style={{ overflowX: "auto" }}>
-            <table style={tableStyle}>
-              <thead>
-                <tr>
-                  <th style={thStyle}>Anuncio</th>
-                  <th style={{ ...thStyle, textAlign: "right" }}>Investimento</th>
-                  <th style={{ ...thStyle, textAlign: "right" }}>Resultados</th>
-                  <th style={{ ...thStyle, textAlign: "right" }}>CPA</th>
-                  <th style={{ ...thStyle, textAlign: "right" }}>CTR</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ads.length === 0 && (
-                  <tr><td colSpan={5} style={{ ...tdStyle, textAlign: "center", color: "#606060" }}>Sem dados no periodo</td></tr>
-                )}
-                {ads.map((a, i) => (
-                  <tr key={i} style={{ borderBottom: "1px solid #2e2e2e" }}>
-                    <td style={{ ...tdStyle, maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.name}</td>
-                    <td style={{ ...tdStyle, textAlign: "right" }}>{formatMoney(a.spend)}</td>
-                    <td style={{ ...tdStyle, textAlign: "right" }}>{formatNum(a.mensagens)}</td>
-                    <td style={{ ...tdStyle, textAlign: "right" }}>{formatMoney(a.cpa)}</td>
-                    <td style={{ ...tdStyle, textAlign: "right" }}>{formatPercent(a.ctr)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Desempenho por Posicionamento */}
-        <div style={sectionCard}>
-          <h2 style={sectionTitle}>Desempenho por posicionamento</h2>
-          <div style={{ overflowX: "auto" }}>
-            <table style={tableStyle}>
-              <thead>
-                <tr>
-                  <th style={thStyle}>Posicionamento</th>
-                  <th style={{ ...thStyle, textAlign: "right" }}>Valor gasto</th>
-                  <th style={{ ...thStyle, textAlign: "right" }}>Impressoes</th>
-                  <th style={{ ...thStyle, textAlign: "right" }}>Resultados</th>
-                  <th style={{ ...thStyle, textAlign: "right" }}>CTR</th>
-                </tr>
-              </thead>
-              <tbody>
-                {placements.length === 0 && (
-                  <tr><td colSpan={5} style={{ ...tdStyle, textAlign: "center", color: "#606060" }}>Sem dados no periodo</td></tr>
-                )}
-                {placements.map((p, i) => (
-                  <tr key={i} style={{ borderBottom: "1px solid #2e2e2e" }}>
-                    <td style={tdStyle}>{p.platform} - {p.position}</td>
-                    <td style={{ ...tdStyle, textAlign: "right" }}>{formatMoney(p.spend)}</td>
-                    <td style={{ ...tdStyle, textAlign: "right" }}>{formatNum(p.impressions)}</td>
-                    <td style={{ ...tdStyle, textAlign: "right" }}>{formatNum(p.mensagens)}</td>
-                    <td style={{ ...tdStyle, textAlign: "right" }}>{formatPercent(p.ctr)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Desempenho por Idade */}
-        <div style={sectionCard}>
-          <h2 style={sectionTitle}>Desempenho por idade</h2>
-          <p style={{ fontSize: 12, color: "#606060", marginBottom: 16 }}>Distribuicao de resultados por faixa etaria</p>
-          {ageGroups.length === 0 ? (
-            <p style={{ textAlign: "center", color: "#606060", padding: 20 }}>Sem dados no periodo</p>
-          ) : (
-            <div style={{ width: "100%", height: Math.max(200, ageGroups.length * 45) }}>
+        {/* ========================================================= */}
+        {/*  DESEMPENHO DIÁRIO                                         */}
+        {/* ========================================================= */}
+        {sections.desempenho && (
+          <div style={sectionCard}>
+            <div style={sectionHeaderRow}>
+              <h2 style={sectionTitle}>Desempenho diário</h2>
+              <div style={sectionLine} />
+            </div>
+            <p style={{ fontSize: 12, color: "#606060", margin: "0 0 16px" }}>
+              Mensagens recebidas por dia
+            </p>
+            <div style={{ width: "100%", height: 300 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={ageGroups} layout="vertical" margin={{ top: 5, right: 30, left: 60, bottom: 5 }}>
+                <BarChart data={diario} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                   <XAxis
-                    type="number"
+                    dataKey="date"
+                    tickFormatter={fmtDateShort}
+                    tick={{ fill: "#a0a0a0", fontSize: 11 }}
+                    axisLine={{ stroke: "#2e2e2e" }}
+                    tickLine={false}
+                  />
+                  <YAxis
                     tick={{ fill: "#a0a0a0", fontSize: 11 }}
                     axisLine={{ stroke: "#2e2e2e" }}
                     tickLine={false}
                     allowDecimals={false}
                   />
-                  <YAxis
-                    type="category"
-                    dataKey="age"
-                    tick={{ fill: "#a0a0a0", fontSize: 12 }}
-                    axisLine={{ stroke: "#2e2e2e" }}
-                    tickLine={false}
-                    width={50}
-                  />
                   <Tooltip
-                    contentStyle={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 8, color: "#f0f0f0", fontSize: 12 }}
-                    formatter={(value: number, name: string) => {
-                      if (name === "mensagens") return [formatNum(value), "Mensagens"];
-                      if (name === "spend") return [formatMoney(value), "Investimento"];
-                      return [formatNum(value), name];
-                    }}
+                    contentStyle={tooltipStyle}
+                    labelFormatter={fmtDate}
+                    formatter={(value: number) => [fmtNum(value), "Mensagens"]}
                   />
-                  <Bar dataKey="mensagens" radius={[0, 4, 4, 0]}>
-                    {ageGroups.map((_, i) => (
-                      <Cell key={i} fill={ACCENT} />
+                  <Bar dataKey="mensagens" radius={[4, 4, 0, 0]}>
+                    {diario.map((_, i) => (
+                      <Cell key={i} fill={BLUE} />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Footer */}
-        <div style={{ textAlign: "center", padding: "32px 0 16px", color: "#606060", fontSize: 12 }}>
-          Relatorio gerado com SALX Convert
+        {/* ========================================================= */}
+        {/*  INVESTIMENTO DIÁRIO                                       */}
+        {/* ========================================================= */}
+        {sections.investimento && (
+          <div style={sectionCard}>
+            <div style={sectionHeaderRow}>
+              <h2 style={sectionTitle}>Investimento diário</h2>
+              <div style={sectionLine} />
+            </div>
+            <p style={{ fontSize: 12, color: "#606060", margin: "0 0 16px" }}>
+              Valor investido por dia (R$)
+            </p>
+            <div style={{ width: "100%", height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={diario} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                  <XAxis
+                    dataKey="date"
+                    tickFormatter={fmtDateShort}
+                    tick={{ fill: "#a0a0a0", fontSize: 11 }}
+                    axisLine={{ stroke: "#2e2e2e" }}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fill: "#a0a0a0", fontSize: 11 }}
+                    axisLine={{ stroke: "#2e2e2e" }}
+                    tickLine={false}
+                    tickFormatter={(v: number) => `R$${v.toFixed(0)}`}
+                  />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    labelFormatter={fmtDate}
+                    formatter={(value: number) => [fmtMoney(value), "Investimento"]}
+                  />
+                  <Bar dataKey="spend" radius={[4, 4, 0, 0]}>
+                    {diario.map((_, i) => (
+                      <Cell key={i} fill={AMBER} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/*  CAMPANHAS                                                 */}
+        {/* ========================================================= */}
+        {sections.campanhas && (
+          <div style={sectionCard}>
+            <div style={sectionHeaderRow}>
+              <h2 style={sectionTitle}>Campanhas</h2>
+              <div style={sectionLine} />
+            </div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={tableBase}>
+                <thead>
+                  <tr>
+                    <th style={th}>Nome</th>
+                    <th style={thR}>Investimento</th>
+                    <th style={thR}>Resultados</th>
+                    <th style={thR}>CPA</th>
+                    <th style={thR}>CTR</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {campanhas.length === 0 && (
+                    <tr>
+                      <td colSpan={5} style={{ ...td, textAlign: "center", color: "#606060" }}>
+                        Sem dados no período
+                      </td>
+                    </tr>
+                  )}
+                  {campanhas.map((c, i) => (
+                    <tr key={i} style={i % 2 === 1 ? rowAlt : undefined}>
+                      <td style={{ ...td, maxWidth: 320, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {c.name}
+                      </td>
+                      <td style={tdR}>{fmtMoney(c.spend)}</td>
+                      <td style={tdR}>{fmtNum(c.mensagens)}</td>
+                      <td style={tdR}>{fmtMoney(c.cpa)}</td>
+                      <td style={tdR}>{fmtPct(c.ctr)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/*  ANÚNCIOS                                                  */}
+        {/* ========================================================= */}
+        {sections.anuncios && (
+          <div style={sectionCard}>
+            <div style={sectionHeaderRow}>
+              <h2 style={sectionTitle}>Anúncios</h2>
+              <div style={sectionLine} />
+            </div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={tableBase}>
+                <thead>
+                  <tr>
+                    <th style={th}>Anúncio</th>
+                    <th style={thR}>Investimento</th>
+                    <th style={thR}>Resultados</th>
+                    <th style={thR}>CPA</th>
+                    <th style={thR}>CTR</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {anuncios.length === 0 && (
+                    <tr>
+                      <td colSpan={5} style={{ ...td, textAlign: "center", color: "#606060" }}>
+                        Sem dados no período
+                      </td>
+                    </tr>
+                  )}
+                  {anuncios.map((a, i) => (
+                    <tr key={i} style={i % 2 === 1 ? rowAlt : undefined}>
+                      <td style={{ ...td, maxWidth: 320, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {a.name}
+                      </td>
+                      <td style={tdR}>{fmtMoney(a.spend)}</td>
+                      <td style={tdR}>{fmtNum(a.mensagens)}</td>
+                      <td style={tdR}>{fmtMoney(a.cpa)}</td>
+                      <td style={tdR}>{fmtPct(a.ctr)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/*  POSICIONAMENTOS                                           */}
+        {/* ========================================================= */}
+        {sections.posicionamentos && (
+          <div style={sectionCard}>
+            <div style={sectionHeaderRow}>
+              <h2 style={sectionTitle}>Posicionamentos</h2>
+              <div style={sectionLine} />
+            </div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={tableBase}>
+                <thead>
+                  <tr>
+                    <th style={th}>Posicionamento</th>
+                    <th style={thR}>Valor gasto</th>
+                    <th style={thR}>Impressões</th>
+                    <th style={thR}>Resultados</th>
+                    <th style={thR}>CTR</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {posicionamentos.length === 0 && (
+                    <tr>
+                      <td colSpan={5} style={{ ...td, textAlign: "center", color: "#606060" }}>
+                        Sem dados no período
+                      </td>
+                    </tr>
+                  )}
+                  {posicionamentos.map((p, i) => {
+                    const label = `${p.platform} ${p.position}`.toLowerCase().replace(/_/g, " ");
+                    return (
+                      <tr key={i} style={i % 2 === 1 ? rowAlt : undefined}>
+                        <td style={td}>{label}</td>
+                        <td style={tdR}>{fmtMoney(p.spend)}</td>
+                        <td style={tdR}>{fmtNum(p.impressions)}</td>
+                        <td style={tdR}>{fmtNum(p.mensagens)}</td>
+                        <td style={tdR}>{fmtPct(p.ctr)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/*  IDADE                                                     */}
+        {/* ========================================================= */}
+        {sections.idade && (
+          <div style={sectionCard}>
+            <div style={sectionHeaderRow}>
+              <h2 style={sectionTitle}>Idade</h2>
+              <div style={sectionLine} />
+            </div>
+            <p style={{ fontSize: 12, color: "#606060", margin: "0 0 16px" }}>
+              Distribuição de impressões por faixa etária
+            </p>
+            {idade.length === 0 ? (
+              <p style={{ textAlign: "center", color: "#606060", padding: 20 }}>
+                Sem dados no período
+              </p>
+            ) : (
+              <div style={{ width: "100%", height: Math.max(200, idade.length * 48) }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={idade} layout="vertical" margin={{ top: 5, right: 30, left: 60, bottom: 5 }}>
+                    <XAxis
+                      type="number"
+                      tick={{ fill: "#a0a0a0", fontSize: 11 }}
+                      axisLine={{ stroke: "#2e2e2e" }}
+                      tickLine={false}
+                      allowDecimals={false}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="age"
+                      tick={{ fill: "#a0a0a0", fontSize: 12 }}
+                      axisLine={{ stroke: "#2e2e2e" }}
+                      tickLine={false}
+                      width={50}
+                    />
+                    <Tooltip
+                      contentStyle={tooltipStyle}
+                      formatter={(value: number, name: string) => {
+                        if (name === "impressions") return [fmtNum(value), "Impressões"];
+                        return [fmtNum(value), name];
+                      }}
+                    />
+                    <Bar dataKey="impressions" radius={[0, 4, 4, 0]}>
+                      {idade.map((_, i) => (
+                        <Cell key={i} fill={BLUE} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/*  FOOTER                                                    */}
+        {/* ========================================================= */}
+        <div
+          style={{
+            textAlign: "center",
+            padding: "36px 0 20px",
+            color: "#505050",
+            fontSize: 12,
+            letterSpacing: "0.04em",
+          }}
+        >
+          Relatório gerado com SALX Convert
         </div>
       </div>
     </>
   );
 }
 
-// --- Styles ---
+/* ------------------------------------------------------------------ */
+/*  Default export with Suspense wrapper                               */
+/* ------------------------------------------------------------------ */
+
+export default function DashboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "60vh",
+            color: "#a0a0a0",
+            gap: 12,
+          }}
+        >
+          <Loader2 size={28} className="spin" />
+          Carregando...
+        </div>
+      }
+    >
+      <DashboardInner />
+    </Suspense>
+  );
+}
+
+/* ================================================================== */
+/*  STYLES                                                             */
+/* ================================================================== */
 
 const cardStyle: React.CSSProperties = {
   background: "#1a1a1a",
   border: "1px solid #2e2e2e",
   borderRadius: 12,
-  padding: "20px 24px",
+  padding: "22px 24px",
   textAlign: "center",
 };
 
@@ -451,40 +671,75 @@ const sectionCard: React.CSSProperties = {
   marginBottom: 24,
 };
 
+const sectionHeaderRow: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
+  marginBottom: 4,
+};
+
 const sectionTitle: React.CSSProperties = {
   fontSize: 16,
   fontWeight: 600,
   color: "#f0f0f0",
-  margin: "0 0 4px 0",
+  margin: 0,
+  whiteSpace: "nowrap",
 };
 
-const tableStyle: React.CSSProperties = {
+const sectionLine: React.CSSProperties = {
+  flex: 1,
+  height: 1,
+  background: "#2e2e2e",
+};
+
+const tooltipStyle: React.CSSProperties = {
+  background: "#1a1a1a",
+  border: "1px solid #2e2e2e",
+  borderRadius: 8,
+  color: "#f0f0f0",
+  fontSize: 12,
+};
+
+/* --- Table --- */
+
+const tableBase: React.CSSProperties = {
   width: "100%",
   borderCollapse: "collapse",
   fontSize: 13,
 };
 
-const thStyle: React.CSSProperties = {
+const th: React.CSSProperties = {
   padding: "10px 14px",
   textAlign: "left",
-  color: "#a0a0a0",
-  fontWeight: 500,
+  color: "#606060",
+  fontWeight: 600,
   fontSize: 11,
   textTransform: "uppercase",
   borderBottom: "1px solid #2e2e2e",
   whiteSpace: "nowrap",
 };
 
-const tdStyle: React.CSSProperties = {
+const thR: React.CSSProperties = { ...th, textAlign: "right" };
+
+const td: React.CSSProperties = {
   padding: "10px 14px",
   color: "#f0f0f0",
+  borderBottom: "1px solid #1f1f1f",
 };
+
+const tdR: React.CSSProperties = { ...td, textAlign: "right" };
+
+const rowAlt: React.CSSProperties = {
+  background: "rgba(255,255,255,0.02)",
+};
+
+/* --- Buttons --- */
 
 const btnPrimary: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: 6,
-  background: ACCENT,
+  background: BLUE,
   color: "#fff",
   border: "none",
   borderRadius: 8,
@@ -508,75 +763,105 @@ const btnSecondary: React.CSSProperties = {
   cursor: "pointer",
 };
 
-// --- Print CSS ---
+/* ================================================================== */
+/*  PRINT CSS                                                          */
+/* ================================================================== */
 
-const printStyles = `
+const printCSS = `
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.spin {
+  animation: spin 1s linear infinite;
+}
+
 @media print {
   body, html {
-    background: #ffffff !important;
+    background: #fff !important;
     color: #1a1a1a !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  .no-print {
+  /* Hide non-print elements */
+  .no-print,
+  nav,
+  aside,
+  [data-sidebar],
+  header:not(.dashboard-root *) {
     display: none !important;
   }
 
   .dashboard-root {
     max-width: 100% !important;
     padding: 0 !important;
+    margin: 0 !important;
   }
 
-  .dashboard-root h1 {
+  /* Text colors */
+  .dashboard-root h1,
+  .dashboard-root h2 {
     color: #1a1a1a !important;
   }
 
-  .dashboard-root p {
-    color: #555 !important;
+  .dashboard-root p,
+  .dashboard-root span {
+    color: #444 !important;
   }
 
+  /* Cards white bg */
   .dashboard-root div[style*="background: rgb(26, 26, 26)"],
-  .dashboard-root div[style*="background: #1a1a1a"] {
+  .dashboard-root div[style*="background: #1a1a1a"],
+  .dashboard-root div[style*="background: #111"] {
     background: #ffffff !important;
-    border-color: #e0e0e0 !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+    border-color: #ddd !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06) !important;
   }
 
+  /* KPI values */
+  .dashboard-root div[style*="font-weight: 700"][style*="font-size: 26px"] {
+    color: #1a1a1a !important;
+  }
+
+  /* Section lines */
+  .dashboard-root div[style*="background: rgb(46, 46, 46)"],
+  .dashboard-root div[style*="background: #2e2e2e"] {
+    background: #ddd !important;
+  }
+
+  /* Tables */
   .dashboard-root table th {
-    color: #555 !important;
-    border-bottom-color: #e0e0e0 !important;
+    color: #606060 !important;
+    border-bottom-color: #ddd !important;
   }
 
   .dashboard-root table td {
     color: #1a1a1a !important;
-    border-bottom-color: #e0e0e0 !important;
+    border-bottom-color: #eee !important;
   }
 
-  .dashboard-root table tr {
-    border-bottom-color: #e0e0e0 !important;
+  .dashboard-root table tr[style*="background: rgba(255"] {
+    background: #f8f8f8 !important;
   }
 
+  /* Chart axes */
   .recharts-cartesian-axis-tick text {
     fill: #555 !important;
   }
 
   .recharts-cartesian-axis-line {
-    stroke: #e0e0e0 !important;
+    stroke: #ddd !important;
+  }
+
+  /* Footer */
+  .dashboard-root > div:last-child {
+    color: #999 !important;
   }
 
   @page {
     margin: 1cm;
     size: A4;
   }
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.spin {
-  animation: spin 1s linear infinite;
 }
 `;
