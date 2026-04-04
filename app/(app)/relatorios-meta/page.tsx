@@ -202,25 +202,37 @@ export default function RelatoriosMetaPage() {
   async function carregarGrupos(url: string, key: string, instancia: string) {
     setLoadingGrupos(true);
     try {
-      const res = await fetch(`${url}/chat/findChats/${instancia}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", apikey: key },
-        body: JSON.stringify({}),
+      // Buscar grupos direto do WhatsApp (não depende de cache)
+      const res = await fetch(`${url}/group/fetchAllGroups/${instancia}?getParticipants=false`, {
+        headers: { apikey: key },
       });
       const json = await res.json();
-      const allChats = Array.isArray(json) ? json : [];
+      const allGroups = Array.isArray(json) ? json : [];
 
-      // Grupos estão no campo remoteJid com @g.us
-      const gruposFiltrados = allChats
-        .filter((c: any) => (c.remoteJid || c.id || "").includes("@g.us"))
-        .map((c: any) => ({
-          id: c.remoteJid || c.id,
-          subject: c.pushName || c.name || c.subject || c.remoteJid || c.id,
-          size: c.size || 0,
-        }))
-        .sort((a: any, b: any) => a.subject.localeCompare(b.subject));
-
-      setGrupos(gruposFiltrados);
+      if (allGroups.length > 0) {
+        setGrupos(allGroups.map((g: any) => ({
+          id: g.id || g.jid || "",
+          subject: g.subject || g.name || g.id || "",
+          size: g.size || 0,
+        })).sort((a: any, b: any) => a.subject.localeCompare(b.subject)));
+      } else {
+        // Fallback: tentar findChats (cache)
+        const res2 = await fetch(`${url}/chat/findChats/${instancia}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: key },
+          body: JSON.stringify({}),
+        });
+        const chats = await res2.json();
+        const gruposFiltrados = (Array.isArray(chats) ? chats : [])
+          .filter((c: any) => (c.remoteJid || c.id || "").includes("@g.us"))
+          .map((c: any) => ({
+            id: c.remoteJid || c.id,
+            subject: c.pushName || c.name || c.subject || c.remoteJid || c.id,
+            size: c.size || 0,
+          }))
+          .sort((a: any, b: any) => a.subject.localeCompare(b.subject));
+        setGrupos(gruposFiltrados);
+      }
     } catch (e) {
       console.error("Erro ao carregar grupos:", e);
     }
