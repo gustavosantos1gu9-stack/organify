@@ -84,43 +84,10 @@ export async function POST(req: NextRequest) {
         .gte("semana_inicio", desde)
         .lte("semana_inicio", ate);
 
-      // Verificar se agência tem WhatsApp conectado (modo automático)
-      const { data: agencia } = await supabase.from("agencias")
-        .select("whatsapp_conectado, meta_business_token").eq("id", rel.agencia_id).single();
-      const temWhatsApp = agencia?.whatsapp_conectado || false;
-
-      // Buscar dados automáticos do etapas_historico (se tem WhatsApp)
-      let historicoMap: Record<string, { agendamentos: number; comparecimentos: number; vendas: number }> = {};
-      if (temWhatsApp) {
-        const { data: historico } = await supabase.from("etapas_historico")
-          .select("etapa_nova, created_at")
-          .eq("agencia_id", rel.agencia_id)
-          .gte("created_at", desde)
-          .lte("created_at", ate + "T23:59:59");
-
-        if (historico) {
-          for (const h of historico) {
-            const hDate = new Date(h.created_at);
-            // Encontrar a semana correspondente
-            for (const sem of semanas) {
-              if (hDate >= new Date(sem.inicio + "T00:00:00") && hDate <= new Date(sem.fim + "T23:59:59")) {
-                const key = sem.inicio;
-                if (!historicoMap[key]) historicoMap[key] = { agendamentos: 0, comparecimentos: 0, vendas: 0 };
-                if (/agend|reuni/i.test(h.etapa_nova)) historicoMap[key].agendamentos++;
-                else if (/comparec|realiz/i.test(h.etapa_nova)) historicoMap[key].comparecimentos++;
-                else if (/comprou|fechou|ganho|vend/i.test(h.etapa_nova)) historicoMap[key].vendas++;
-                break;
-              }
-            }
-          }
-        }
-      }
-
-      // Buscar dados da Meta por semana (mensagens + investimento)
+      // Tudo manual — dados de agendamentos/comparecimentos/vendas preenchidos pelo usuário
       const resultado = [];
       for (const sem of semanas) {
         const manual = manuais?.find(m => m.semana_inicio === sem.inicio);
-        const autoHist = historicoMap[sem.inicio] || { agendamentos: 0, comparecimentos: 0, vendas: 0 };
 
         // Meta API: mensagens e investimento da semana
         let metaMensagens = 0;
@@ -143,19 +110,19 @@ export async function POST(req: NextRequest) {
         resultado.push({
           semana_inicio: sem.inicio,
           semana_fim: sem.fim,
-          mensagens: metaMensagens,
-          investimento: metaInvestimento,
-          agendamentos: manual?.agendamentos ?? autoHist.agendamentos,
-          comparecimentos: manual?.comparecimentos ?? autoHist.comparecimentos,
-          vendas: manual?.vendas ?? autoHist.vendas,
-          modo: temWhatsApp ? (manual ? "manual" : "auto") : "manual",
+          mensagens: manual?.mensagens ?? metaMensagens,
+          investimento: manual?.investimento ?? metaInvestimento,
+          agendamentos: manual?.agendamentos ?? 0,
+          comparecimentos: manual?.comparecimentos ?? 0,
+          vendas: manual?.vendas ?? 0,
+          modo: "manual",
           id: manual?.id || null,
         });
       }
 
       return NextResponse.json({
         semanas: resultado,
-        temWhatsApp,
+        temWhatsApp: false,
         nomeCliente: rel.nome_cliente,
         periodo: { desde, ate },
       });
