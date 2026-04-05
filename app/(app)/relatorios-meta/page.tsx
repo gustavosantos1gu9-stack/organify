@@ -214,10 +214,24 @@ export default function RelatoriosMetaPage() {
         .filter((c: any) => (c.remoteJid || c.id || "").includes("@g.us"))
         .map((c: any) => ({
           id: c.remoteJid || c.id,
-          subject: c.pushName || c.name || c.subject || c.remoteJid || c.id,
+          subject: c.pushName || c.name || c.subject || "",
           size: c.size || 0,
-        }))
-        .sort((a: any, b: any) => a.subject.localeCompare(b.subject));
+        }));
+
+      // Resolver nomes dos grupos sem subject via API de grupo
+      for (const g of gruposFiltrados) {
+        if (!g.subject && g.id) {
+          try {
+            const gRes = await fetch(`${url}/group/findGroupInfos/${instancia}?groupJid=${g.id}`, {
+              headers: { apikey: key },
+            });
+            const gData = await gRes.json();
+            if (gData?.subject) g.subject = gData.subject;
+          } catch {}
+        }
+        if (!g.subject) g.subject = g.id;
+      }
+      gruposFiltrados.sort((a: any, b: any) => a.subject.localeCompare(b.subject));
 
       // Se não encontrou grupos, tentar fetchAllGroups com timeout curto
       if (gruposFiltrados.length === 0) {
