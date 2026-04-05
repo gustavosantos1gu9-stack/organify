@@ -23,8 +23,9 @@ function CaptureContent() {
   const link_id = params.get("link_id") || "";
 
   const isMobile = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  // Server-side redirect (como Tintim) — evita problemas de encoding no client
   const waUrl = isMobile
-    ? `https://wa.me/${wa}?text=${encodeURIComponent(msg)}`
+    ? `/whatsapp?wa=${wa}&msg=${encodeURIComponent(msg)}`
     : `https://web.whatsapp.com/send?phone=${wa}&text=${encodeURIComponent(msg)}`;
 
   const origem = utm_source
