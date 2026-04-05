@@ -1,18 +1,18 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 export async function GET(req: NextRequest) {
   const wa = req.nextUrl.searchParams.get("wa") || "";
   const msg = req.nextUrl.searchParams.get("msg") || "";
 
   if (!wa) {
-    return NextResponse.json({ error: "wa obrigatório" }, { status: 400 });
+    return new Response("wa obrigatório", { status: 400 });
   }
 
-  // Usar wa.me — formato oficial do WhatsApp
-  // O msg já chega decodificado pelo searchParams.get, re-codificar pra URL
-  const waUrl = `https://wa.me/${wa}?text=${encodeURIComponent(msg)}`;
+  // msg já chega decodificado pelo searchParams.get
+  // Montar URL do wa.me com encoding correto (uma vez só)
+  const textParam = encodeURIComponent(msg);
+  const waUrl = `https://wa.me/${wa}?text=${textParam}`;
 
-  // Redirect 302 — o navegador/iOS trata server-side redirect melhor
   return new Response(null, {
     status: 302,
     headers: { Location: waUrl },
