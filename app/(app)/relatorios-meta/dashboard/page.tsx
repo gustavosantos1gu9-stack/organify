@@ -674,8 +674,22 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
   const [saving, setSaving] = useState(false);
   const [temWhatsApp, setTemWhatsApp] = useState(false);
   const [nomeCliente, setNomeCliente] = useState("");
-  const [editando, setEditando] = useState<Record<string, any>>({});
+  const [editando, setEditando] = useState<Record<string, {
+    mensagens: number; investimento: number; agendamentos: number;
+    realizados: number; vendas: number; valorVendas: number; faturamento: number;
+  }>>({});
+  const [metaExtras, setMetaExtras] = useState<Record<string, boolean>>({
+    impressoes: false, alcance: false, cliques: false, ctr: false, cpm: false, frequencia: false,
+  });
 
+  /* --- helpers ---------------------------------------------------- */
+  const pfmtNum = (n: number) => isNaN(n) ? "0" : n.toLocaleString("pt-BR");
+  const pfmtMoney = (n: number) => isNaN(n) ? "R$ 0,00" : `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const pfmtPct = (n: number) => isNaN(n) || !isFinite(n) ? "0,0%" : `${n.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+  const pfmtDateShort = (d: string) => { if (!d) return ""; const [y, m, day] = d.split("-"); return `${day}/${m}`; };
+  const safe = (a: number, b: number) => b > 0 ? a / b : 0;
+
+  /* --- data loading ----------------------------------------------- */
   const carregar = async () => {
     setLoading(true);
     try {
@@ -691,7 +705,15 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
         setNomeCliente(data.nomeCliente || "");
         const edit: Record<string, any> = {};
         data.semanas.forEach((s: any) => {
-          edit[s.semana_inicio] = { agendamentos: s.agendamentos, comparecimentos: s.comparecimentos, vendas: s.vendas };
+          edit[s.semana_inicio] = {
+            mensagens: s.mensagens ?? 0,
+            investimento: s.investimento ?? 0,
+            agendamentos: s.agendamentos ?? 0,
+            realizados: s.comparecimentos ?? 0,
+            vendas: s.vendas ?? 0,
+            valorVendas: s.valor_vendas ?? 0,
+            faturamento: s.faturamento ?? 0,
+          };
         });
         setEditando(edit);
       }
@@ -701,26 +723,28 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
 
   useEffect(() => { if (relatorioId) carregar(); }, [relatorioId, dateFrom, dateTo]);
 
+  /* --- save ------------------------------------------------------- */
   const salvar = async () => {
     setSaving(true);
-    const semsToSave = semanas.map(s => ({
-      ...s,
-      agendamentos: editando[s.semana_inicio]?.agendamentos ?? s.agendamentos,
-      comparecimentos: editando[s.semana_inicio]?.comparecimentos ?? s.comparecimentos,
-      vendas: editando[s.semana_inicio]?.vendas ?? s.vendas,
-      modo: "manual",
-    }));
-
+    const semsToSave = semanas.map(s => {
+      const ed = editando[s.semana_inicio] || {} as any;
+      return {
+        ...s,
+        mensagens: ed.mensagens ?? s.mensagens,
+        investimento: ed.investimento ?? s.investimento,
+        agendamentos: ed.agendamentos ?? s.agendamentos,
+        comparecimentos: ed.realizados ?? s.comparecimentos,
+        vendas: ed.vendas ?? s.vendas,
+        valor_vendas: ed.valorVendas ?? 0,
+        faturamento: ed.faturamento ?? 0,
+        modo: "manual",
+      };
+    });
     try {
       await fetch("/api/relatorios/performance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "salvar",
-          relatorio_id: relatorioId,
-          agencia_id: "auto",
-          semanas: semsToSave,
-        }),
+        body: JSON.stringify({ action: "salvar", relatorio_id: relatorioId, agencia_id: "auto", semanas: semsToSave }),
       });
       await carregar();
       alert("Dados salvos!");
@@ -728,6 +752,7 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
     setSaving(false);
   };
 
+  /* --- edit handler ----------------------------------------------- */
   const updateEdit = (semInicio: string, campo: string, valor: number) => {
     setEditando(prev => ({
       ...prev,
@@ -735,29 +760,84 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
     }));
   };
 
-  const totalMensagens = semanas.reduce((s, w) => s + (w.mensagens || 0), 0);
-  const totalAgendamentos = semanas.reduce((s, w) => s + (editando[w.semana_inicio]?.agendamentos ?? w.agendamentos ?? 0), 0);
-  const totalComparecimentos = semanas.reduce((s, w) => s + (editando[w.semana_inicio]?.comparecimentos ?? w.comparecimentos ?? 0), 0);
-  const totalVendas = semanas.reduce((s, w) => s + (editando[w.semana_inicio]?.vendas ?? w.vendas ?? 0), 0);
-  const totalInvestimento = semanas.reduce((s, w) => s + (w.investimento || 0), 0);
+  /* --- computed totals -------------------------------------------- */
+  const getVal = (key: string, s: any) => {
+    const ed = editando[s.semana_inicio];
+    if (!ed) return 0;
+    return (ed as any)[key] ?? 0;
+  };
+  const sumField = (key: string) => semanas.reduce((acc, s) => acc + getVal(key, s), 0);
 
-  const taxaAgendamento = totalMensagens > 0 ? ((totalAgendamentos / totalMensagens) * 100) : 0;
-  const taxaComparecimento = totalAgendamentos > 0 ? ((totalComparecimentos / totalAgendamentos) * 100) : 0;
-  const taxaFechamento = totalComparecimentos > 0 ? ((totalVendas / totalComparecimentos) * 100) : 0;
-  const custoAgendamento = totalAgendamentos > 0 ? totalInvestimento / totalAgendamentos : 0;
-  const custoVenda = totalVendas > 0 ? totalInvestimento / totalVendas : 0;
+  const totInvestimento = sumField("investimento");
+  const totMensagens = sumField("mensagens");
+  const totAgendamentos = sumField("agendamentos");
+  const totRealizados = sumField("realizados");
+  const totVendas = sumField("vendas");
+  const totValorVendas = sumField("valorVendas");
+  const totFaturamento = sumField("faturamento");
 
-  const pfmtNum = (n: number) => n.toLocaleString("pt-BR");
-  const pfmtMoney = (n: number) => `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  const pfmtPct = (n: number) => `${n.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
-  const pfmtDateShort = (d: string) => { const [y, m, day] = d.split("-"); return `${day}/${m}`; };
+  const totTicketMedio = safe(totValorVendas, totVendas);
+  const totRoas = safe(totValorVendas, totInvestimento);
+  const totTaxaLeadAgend = safe(totAgendamentos, totMensagens) * 100;
+  const totTaxaAgendRealiz = safe(totRealizados, totAgendamentos) * 100;
+  const totTaxaRealizVenda = safe(totVendas, totRealizados) * 100;
+  const totTaxaLeadVenda = safe(totVendas, totMensagens) * 100;
+  const totCustoLead = safe(totInvestimento, totMensagens);
+  const totCustoAgend = safe(totInvestimento, totAgendamentos);
+  const totCustoRealiz = safe(totInvestimento, totRealizados);
+  const totCustoVenda = safe(totInvestimento, totVendas);
 
-  const inputStyle = { background: "#222", border: "1px solid #333", borderRadius: 4, padding: "4px 8px", color: "#f0f0f0", fontSize: 13, width: 70, textAlign: "center" as const };
+  /* --- styles ----------------------------------------------------- */
+  const inputStyle: React.CSSProperties = { background: "#222", border: "1px solid #333", borderRadius: 4, padding: "4px 8px", color: "#f0f0f0", fontSize: 13, width: 80, textAlign: "center" };
+  const moneyInputStyle: React.CSSProperties = { ...inputStyle, width: 100 };
+  const manualCellBg: React.CSSProperties = { background: "#2a2a1a", border: "1px solid #3a3a2a" };
+  const autoCellStyle: React.CSSProperties = { color: "#a0a0a0", textAlign: "center", padding: "8px 6px", fontSize: 13 };
+  const totalColStyle: React.CSSProperties = { fontWeight: 700, color: "#f0f0f0", background: "rgba(41,171,226,0.05)", textAlign: "center", padding: "8px 6px", fontSize: 13 };
+  const headerCellStyle: React.CSSProperties = { background: "#1e1e1e", fontWeight: 600, textAlign: "center", padding: "10px 6px", fontSize: 11, color: "#a0a0a0", borderBottom: "1px solid #2e2e2e", whiteSpace: "nowrap" };
+  const rowLabelStyle: React.CSSProperties = { fontWeight: 500, color: "#f0f0f0", paddingLeft: 16, padding: "8px 8px 8px 16px", fontSize: 13, whiteSpace: "nowrap", position: "sticky", left: 0, background: "#1a1a1a", zIndex: 1 };
 
-  if (loading) return <div style={{ textAlign: "center", padding: 40, color: "#606060" }}>Carregando performance...</div>;
+  if (loading) return <div style={{ textAlign: "center", padding: 40, color: "#606060" }}><Loader2 size={20} className="spin" style={{ display: "inline-block", marginRight: 8 }} />Carregando performance...</div>;
 
+  /* --- row definitions -------------------------------------------- */
+  type RowDef = {
+    label: string;
+    type: "manual" | "auto";
+    field?: string;
+    money?: boolean;
+    getValue: (ed: any) => number;
+    getTotal: () => number;
+    format: (n: number) => string;
+  };
+
+  const manualRows: RowDef[] = [
+    { label: "Investimento", type: "manual", field: "investimento", money: true, getValue: (ed) => ed.investimento ?? 0, getTotal: () => totInvestimento, format: pfmtMoney },
+    { label: "Mensagens", type: "manual", field: "mensagens", getValue: (ed) => ed.mensagens ?? 0, getTotal: () => totMensagens, format: pfmtNum },
+    { label: "Nº de Agendamentos", type: "manual", field: "agendamentos", getValue: (ed) => ed.agendamentos ?? 0, getTotal: () => totAgendamentos, format: pfmtNum },
+    { label: "Nº de Realizados", type: "manual", field: "realizados", getValue: (ed) => ed.realizados ?? 0, getTotal: () => totRealizados, format: pfmtNum },
+    { label: "Nº de Vendas", type: "manual", field: "vendas", getValue: (ed) => ed.vendas ?? 0, getTotal: () => totVendas, format: pfmtNum },
+    { label: "Valor em Vendas", type: "manual", field: "valorVendas", money: true, getValue: (ed) => ed.valorVendas ?? 0, getTotal: () => totValorVendas, format: pfmtMoney },
+    { label: "Faturamento", type: "manual", field: "faturamento", money: true, getValue: (ed) => ed.faturamento ?? 0, getTotal: () => totFaturamento, format: pfmtMoney },
+  ];
+
+  const autoRows: RowDef[] = [
+    { label: "Ticket Médio", type: "auto", getValue: (ed) => safe(ed.valorVendas, ed.vendas), getTotal: () => totTicketMedio, format: pfmtMoney },
+    { label: "ROAS", type: "auto", getValue: (ed) => safe(ed.valorVendas, ed.investimento), getTotal: () => totRoas, format: (n) => isNaN(n) || !isFinite(n) ? "0,0x" : `${n.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}x` },
+    { label: "Taxa Lead → Agend.", type: "auto", getValue: (ed) => safe(ed.agendamentos, ed.mensagens) * 100, getTotal: () => totTaxaLeadAgend, format: pfmtPct },
+    { label: "Taxa Agend. → Realiz.", type: "auto", getValue: (ed) => safe(ed.realizados, ed.agendamentos) * 100, getTotal: () => totTaxaAgendRealiz, format: pfmtPct },
+    { label: "Taxa Realiz. → Venda", type: "auto", getValue: (ed) => safe(ed.vendas, ed.realizados) * 100, getTotal: () => totTaxaRealizVenda, format: pfmtPct },
+    { label: "Taxa Lead → Venda", type: "auto", getValue: (ed) => safe(ed.vendas, ed.mensagens) * 100, getTotal: () => totTaxaLeadVenda, format: pfmtPct },
+    { label: "Custo por Lead", type: "auto", getValue: (ed) => safe(ed.investimento, ed.mensagens), getTotal: () => totCustoLead, format: pfmtMoney },
+    { label: "Custo por Agend.", type: "auto", getValue: (ed) => safe(ed.investimento, ed.agendamentos), getTotal: () => totCustoAgend, format: pfmtMoney },
+    { label: "Custo por Realiz.", type: "auto", getValue: (ed) => safe(ed.investimento, ed.realizados), getTotal: () => totCustoRealiz, format: pfmtMoney },
+    { label: "Custo por Venda", type: "auto", getValue: (ed) => safe(ed.investimento, ed.vendas), getTotal: () => totCustoVenda, format: pfmtMoney },
+  ];
+
+  const allRows = [...manualRows, ...autoRows];
+
+  /* === RENDER ==================================================== */
   return (
     <div>
+      {/* Header */}
       <div style={{ textAlign: "center", marginBottom: 32 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: "#f0f0f0", marginBottom: 4 }}>Performance — {nomeCliente}</h1>
         <p style={{ fontSize: 13, color: "#606060" }}>
@@ -767,122 +847,257 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
         </p>
       </div>
 
-      <div className="card" style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 12, padding: 24, marginBottom: 24 }}>
-        <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 20, color: "#f0f0f0" }}>Funil de Conversão</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 0, marginBottom: 20, borderBottom: "1px solid #2e2e2e", paddingBottom: 16 }}>
-          {[
-            { label: "Mensagens → Agendamentos", value: pfmtPct(taxaAgendamento) },
-            { label: "Agendamentos → Compareceram", value: pfmtPct(taxaComparecimento) },
-            { label: "Compareceram → Vendas", value: pfmtPct(taxaFechamento) },
-          ].map((item, i) => (
-            <div key={i} style={{ textAlign: "center", padding: "0 16px", borderRight: i < 2 ? "1px solid #2e2e2e" : "none" }}>
-              <p style={{ fontSize: 12, color: "#606060", marginBottom: 6 }}>{item.label}</p>
-              <p style={{ fontSize: 22, fontWeight: 700, color: item.value === "0,0%" ? "#404040" : "#22c55e" }}>{item.value}</p>
-            </div>
-          ))}
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 12 }}>
-          {[
-            { label: "Mensagens", value: pfmtNum(totalMensagens) },
-            { label: "Agendamentos", value: pfmtNum(totalAgendamentos) },
-            { label: "Compareceram", value: pfmtNum(totalComparecimentos) },
-            { label: "Vendas", value: pfmtNum(totalVendas) },
-            { label: "Investimento", value: pfmtMoney(totalInvestimento) },
-          ].map(item => (
-            <div key={item.label} style={{ background: "#141414", borderRadius: 8, padding: "14px 16px" }}>
-              <p style={{ fontSize: 12, color: "#606060", marginBottom: 6 }}>{item.label}</p>
-              <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{item.value}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 24 }}>
-        {[
-          { label: "Custo por Agendamento", value: pfmtMoney(custoAgendamento) },
-          { label: "Custo por Venda", value: pfmtMoney(custoVenda) },
-          { label: "Custo por Mensagem", value: pfmtMoney(totalMensagens > 0 ? totalInvestimento / totalMensagens : 0) },
-          { label: "Taxa Geral (Msg → Venda)", value: pfmtPct(totalMensagens > 0 ? (totalVendas / totalMensagens) * 100 : 0) },
-        ].map(item => (
-          <div key={item.label} style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 12, padding: "16px 20px" }}>
-            <p style={{ fontSize: 11, color: "#606060", marginBottom: 6 }}>{item.label}</p>
-            <p style={{ fontSize: 18, fontWeight: 700, color: "#f0f0f0" }}>{item.value}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="card" style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 12, padding: 0, overflow: "hidden", marginBottom: 24 }}>
+      {/* ============================================================ */}
+      {/* SECTION 1: Weekly Table (horizontal - weeks as columns)      */}
+      {/* ============================================================ */}
+      <div className="card" style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 12, padding: 0, overflow: "hidden", marginBottom: 32 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", borderBottom: "1px solid #2e2e2e" }}>
           <h3 style={{ fontSize: 15, fontWeight: 600, color: "#f0f0f0", margin: 0 }}>Desempenho Semanal</h3>
           <button onClick={salvar} disabled={saving} className="no-print" style={{
             background: "#29ABE2", color: "#fff", border: "none", borderRadius: 6,
             padding: "6px 16px", fontSize: 12, fontWeight: 600, cursor: "pointer",
+            opacity: saving ? 0.6 : 1,
           }}>{saving ? "Salvando..." : "Salvar"}</button>
         </div>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-          <thead>
-            <tr>
-              {["Semana", "Mensagens", "Investimento", "Agendamentos", "Compareceu", "Vendas", "CPL", "CPA"].map(h => (
-                <th key={h} style={{ padding: "10px 14px", textAlign: h === "Semana" ? "left" : "center", fontSize: 11, color: "#606060", fontWeight: 600, borderBottom: "1px solid #2e2e2e" }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {semanas.map((s, i) => {
-              const ed = editando[s.semana_inicio] || {};
-              const ag = ed.agendamentos ?? s.agendamentos ?? 0;
-              const comp = ed.comparecimentos ?? s.comparecimentos ?? 0;
-              const ven = ed.vendas ?? s.vendas ?? 0;
-              const cpl = s.mensagens > 0 ? s.investimento / s.mensagens : 0;
-              const cpa = ag > 0 ? s.investimento / ag : 0;
-              return (
-                <tr key={s.semana_inicio} style={{ borderBottom: "1px solid #1e1e1e", background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.02)" }}>
-                  <td style={{ padding: "10px 14px", fontWeight: 500, color: "#f0f0f0" }}>{pfmtDateShort(s.semana_inicio)} - {pfmtDateShort(s.semana_fim)}</td>
-                  <td style={{ padding: "10px 14px", textAlign: "center", color: "#a0a0a0" }}>{pfmtNum(s.mensagens)}</td>
-                  <td style={{ padding: "10px 14px", textAlign: "center", color: "#a0a0a0" }}>{pfmtMoney(s.investimento)}</td>
-                  <td style={{ padding: "10px 14px", textAlign: "center" }}>
-                    {temWhatsApp && s.modo === "auto" ? (
-                      <span style={{ color: "#22c55e" }}>{pfmtNum(ag)}</span>
-                    ) : (
-                      <input type="number" value={ag} onChange={e => updateEdit(s.semana_inicio, "agendamentos", parseInt(e.target.value) || 0)} style={inputStyle} className="no-print" />
-                    )}
-                    <span className="print-only" style={{ display: "none" }}>{ag}</span>
-                  </td>
-                  <td style={{ padding: "10px 14px", textAlign: "center" }}>
-                    {temWhatsApp && s.modo === "auto" ? (
-                      <span style={{ color: "#22c55e" }}>{pfmtNum(comp)}</span>
-                    ) : (
-                      <input type="number" value={comp} onChange={e => updateEdit(s.semana_inicio, "comparecimentos", parseInt(e.target.value) || 0)} style={inputStyle} className="no-print" />
-                    )}
-                    <span className="print-only" style={{ display: "none" }}>{comp}</span>
-                  </td>
-                  <td style={{ padding: "10px 14px", textAlign: "center" }}>
-                    {temWhatsApp && s.modo === "auto" ? (
-                      <span style={{ color: "#22c55e" }}>{pfmtNum(ven)}</span>
-                    ) : (
-                      <input type="number" value={ven} onChange={e => updateEdit(s.semana_inicio, "vendas", parseInt(e.target.value) || 0)} style={inputStyle} className="no-print" />
-                    )}
-                    <span className="print-only" style={{ display: "none" }}>{ven}</span>
-                  </td>
-                  <td style={{ padding: "10px 14px", textAlign: "center", color: "#a0a0a0" }}>{pfmtMoney(cpl)}</td>
-                  <td style={{ padding: "10px 14px", textAlign: "center", color: "#a0a0a0" }}>{pfmtMoney(cpa)}</td>
-                </tr>
-              );
-            })}
-            <tr style={{ borderTop: "2px solid #2e2e2e", background: "rgba(41,171,226,0.05)" }}>
-              <td style={{ padding: "12px 14px", fontWeight: 700, color: "#f0f0f0" }}>TOTAL</td>
-              <td style={{ padding: "12px 14px", textAlign: "center", fontWeight: 700, color: "#f0f0f0" }}>{pfmtNum(totalMensagens)}</td>
-              <td style={{ padding: "12px 14px", textAlign: "center", fontWeight: 700, color: "#f0f0f0" }}>{pfmtMoney(totalInvestimento)}</td>
-              <td style={{ padding: "12px 14px", textAlign: "center", fontWeight: 700, color: "#29ABE2" }}>{pfmtNum(totalAgendamentos)}</td>
-              <td style={{ padding: "12px 14px", textAlign: "center", fontWeight: 700, color: "#29ABE2" }}>{pfmtNum(totalComparecimentos)}</td>
-              <td style={{ padding: "12px 14px", textAlign: "center", fontWeight: 700, color: "#22c55e" }}>{pfmtNum(totalVendas)}</td>
-              <td style={{ padding: "12px 14px", textAlign: "center", fontWeight: 700, color: "#f0f0f0" }}>{pfmtMoney(totalMensagens > 0 ? totalInvestimento / totalMensagens : 0)}</td>
-              <td style={{ padding: "12px 14px", textAlign: "center", fontWeight: 700, color: "#f0f0f0" }}>{pfmtMoney(custoAgendamento)}</td>
-            </tr>
-          </tbody>
-        </table>
+
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: semanas.length * 100 + 200 }}>
+            <thead>
+              <tr>
+                <th style={{ ...headerCellStyle, textAlign: "left", paddingLeft: 16, position: "sticky", left: 0, background: "#1e1e1e", zIndex: 2 }}>Métrica</th>
+                {semanas.map(s => (
+                  <th key={s.semana_inicio} style={headerCellStyle}>
+                    {pfmtDateShort(s.semana_inicio)} - {pfmtDateShort(s.semana_fim)}
+                  </th>
+                ))}
+                <th style={{ ...headerCellStyle, color: "#f0f0f0", background: "rgba(41,171,226,0.1)" }}>TOTAL</th>
+              </tr>
+            </thead>
+            <tbody>
+              {allRows.map((row, ri) => {
+                const isManual = row.type === "manual";
+                const isSeparator = ri === manualRows.length;
+                return (
+                  <tr key={row.label} style={{
+                    borderTop: isSeparator ? "2px solid #2e2e2e" : ri > 0 ? "1px solid #1e1e1e" : "none",
+                  }}>
+                    <td style={{
+                      ...rowLabelStyle,
+                      background: isManual ? "#1a1a1a" : "#1a1a1a",
+                      color: isManual ? "#f0f0f0" : "#808080",
+                      fontSize: 12,
+                    }}>
+                      {row.label}
+                      {isManual && <span style={{ marginLeft: 4, fontSize: 9, color: "#7a7a3a" }}>●</span>}
+                    </td>
+                    {semanas.map(s => {
+                      const ed = editando[s.semana_inicio] || {} as any;
+                      const val = row.getValue(ed);
+                      if (isManual && row.field) {
+                        return (
+                          <td key={s.semana_inicio} style={{ textAlign: "center", padding: "6px 4px", ...manualCellBg }}>
+                            <input
+                              type="number"
+                              step={row.money ? "0.01" : "1"}
+                              value={val || ""}
+                              onChange={e => updateEdit(s.semana_inicio, row.field!, parseFloat(e.target.value) || 0)}
+                              style={row.money ? moneyInputStyle : inputStyle}
+                              className="no-print"
+                            />
+                            <span className="print-only" style={{ display: "none" }}>{row.format(val)}</span>
+                          </td>
+                        );
+                      }
+                      return (
+                        <td key={s.semana_inicio} style={autoCellStyle}>
+                          {row.format(val)}
+                        </td>
+                      );
+                    })}
+                    <td style={totalColStyle}>{row.format(row.getTotal())}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
+      {/* ============================================================ */}
+      {/* SECTION 2: Dashboard Panel                                    */}
+      {/* ============================================================ */}
+      <div className="card" style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 12, padding: 24, marginBottom: 32 }}>
+        <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 20, color: "#f0f0f0" }}>Painel de Performance</h3>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 32 }}>
+          {/* Left side - KPI grid */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {/* Row 1 */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+              <div style={{ background: "rgba(34,197,94,0.15)", borderRadius: 10, padding: "14px 16px" }}>
+                <p style={{ fontSize: 11, color: "#86efac", marginBottom: 4 }}>Investimento em Ads</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtMoney(totInvestimento)}</p>
+              </div>
+              <div style={{ background: "rgba(59,130,246,0.15)", borderRadius: 10, padding: "14px 16px" }}>
+                <p style={{ fontSize: 11, color: "#93c5fd", marginBottom: 4 }}>Nº de Leads</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtNum(totMensagens)}</p>
+              </div>
+              <div style={{ background: "rgba(245,158,11,0.15)", borderRadius: 10, padding: "14px 16px" }}>
+                <p style={{ fontSize: 11, color: "#fcd34d", marginBottom: 4 }}>Custo por Lead</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtMoney(totCustoLead)}</p>
+              </div>
+            </div>
+            {/* Row 2 */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+              <div style={{ background: "rgba(249,115,22,0.15)", borderRadius: 10, padding: "14px 16px" }}>
+                <p style={{ fontSize: 11, color: "#fdba74", marginBottom: 4 }}>Tx. Conv. p/ Agendamento</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtPct(totTaxaLeadAgend)}</p>
+              </div>
+              <div style={{ background: "rgba(59,130,246,0.15)", borderRadius: 10, padding: "14px 16px" }}>
+                <p style={{ fontSize: 11, color: "#93c5fd", marginBottom: 4 }}>Nº de Agendamentos</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtNum(totAgendamentos)}</p>
+              </div>
+              <div />
+            </div>
+            {/* Row 3 */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+              <div style={{ background: "rgba(249,115,22,0.15)", borderRadius: 10, padding: "14px 16px" }}>
+                <p style={{ fontSize: 11, color: "#fdba74", marginBottom: 4 }}>Tx. Conv. p/ Comparecimento</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtPct(totTaxaAgendRealiz)}</p>
+              </div>
+              <div style={{ background: "rgba(59,130,246,0.15)", borderRadius: 10, padding: "14px 16px" }}>
+                <p style={{ fontSize: 11, color: "#93c5fd", marginBottom: 4 }}>Nº de Realizados</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtNum(totRealizados)}</p>
+              </div>
+              <div />
+            </div>
+            {/* Row 4 */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+              <div style={{ background: "rgba(249,115,22,0.15)", borderRadius: 10, padding: "14px 16px" }}>
+                <p style={{ fontSize: 11, color: "#fdba74", marginBottom: 4 }}>Tx. Conv. p/ Venda</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtPct(totTaxaRealizVenda)}</p>
+              </div>
+              <div style={{ background: "rgba(59,130,246,0.15)", borderRadius: 10, padding: "14px 16px" }}>
+                <p style={{ fontSize: 11, color: "#93c5fd", marginBottom: 4 }}>Nº de Vendas</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtNum(totVendas)}</p>
+              </div>
+              <div />
+            </div>
+            {/* Row 5 */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+              <div style={{ background: "rgba(139,92,246,0.15)", borderRadius: 10, padding: "14px 16px" }}>
+                <p style={{ fontSize: 11, color: "#c4b5fd", marginBottom: 4 }}>TKM</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtMoney(totTicketMedio)}</p>
+              </div>
+              <div style={{ background: "rgba(34,197,94,0.15)", borderRadius: 10, padding: "14px 16px" }}>
+                <p style={{ fontSize: 11, color: "#86efac", marginBottom: 4 }}>Faturamento</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtMoney(totFaturamento)}</p>
+              </div>
+              <div style={{ background: "rgba(239,68,68,0.15)", borderRadius: 10, padding: "14px 16px" }}>
+                <p style={{ fontSize: 11, color: "#fca5a5", marginBottom: 4 }}>ROAS</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{totRoas.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}x</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right side - Funnel */}
+          <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 0 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "#a0a0a0", marginBottom: 16 }}>Funil de Conversão</p>
+            {[
+              { label: "Leads", count: totMensagens, bg: "#ef4444", width: "100%" },
+              { label: "Agendamentos", count: totAgendamentos, bg: "#f59e0b", width: "80%" },
+              { label: "Realizado", count: totRealizados, bg: "#eab308", width: "60%" },
+              { label: "Vendas", count: totVendas, bg: "#22c55e", width: "40%" },
+            ].map((step, i) => (
+              <div key={step.label} style={{
+                width: step.width, background: step.bg, borderRadius: 8,
+                padding: "12px 16px", textAlign: "center", marginBottom: i < 3 ? 4 : 0,
+                transition: "all 0.2s",
+              }}>
+                <p style={{ fontSize: 11, color: "rgba(255,255,255,0.8)", marginBottom: 2 }}>{step.label}</p>
+                <p style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>{pfmtNum(step.count)}</p>
+              </div>
+            ))}
+            <div style={{
+              marginTop: 12, background: "rgba(59,130,246,0.2)", borderRadius: 20,
+              padding: "6px 16px", fontSize: 11, color: "#93c5fd", fontWeight: 600,
+            }}>
+              Tx. de Conversão: {pfmtPct(totTaxaLeadVenda)}
+            </div>
+          </div>
+        </div>
+
+        {/* Meta extras KPI cards */}
+        {Object.values(metaExtras).some(Boolean) && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 20, paddingTop: 16, borderTop: "1px solid #2e2e2e" }}>
+            {metaExtras.impressoes && (
+              <div style={{ background: "rgba(59,130,246,0.1)", borderRadius: 10, padding: "12px 16px", minWidth: 140 }}>
+                <p style={{ fontSize: 11, color: "#93c5fd", marginBottom: 4 }}>Impressões</p>
+                <p style={{ fontSize: 18, fontWeight: 700, color: "#f0f0f0" }}>-</p>
+              </div>
+            )}
+            {metaExtras.alcance && (
+              <div style={{ background: "rgba(59,130,246,0.1)", borderRadius: 10, padding: "12px 16px", minWidth: 140 }}>
+                <p style={{ fontSize: 11, color: "#93c5fd", marginBottom: 4 }}>Alcance</p>
+                <p style={{ fontSize: 18, fontWeight: 700, color: "#f0f0f0" }}>-</p>
+              </div>
+            )}
+            {metaExtras.cliques && (
+              <div style={{ background: "rgba(59,130,246,0.1)", borderRadius: 10, padding: "12px 16px", minWidth: 140 }}>
+                <p style={{ fontSize: 11, color: "#93c5fd", marginBottom: 4 }}>Cliques</p>
+                <p style={{ fontSize: 18, fontWeight: 700, color: "#f0f0f0" }}>-</p>
+              </div>
+            )}
+            {metaExtras.ctr && (
+              <div style={{ background: "rgba(59,130,246,0.1)", borderRadius: 10, padding: "12px 16px", minWidth: 140 }}>
+                <p style={{ fontSize: 11, color: "#93c5fd", marginBottom: 4 }}>CTR</p>
+                <p style={{ fontSize: 18, fontWeight: 700, color: "#f0f0f0" }}>-</p>
+              </div>
+            )}
+            {metaExtras.cpm && (
+              <div style={{ background: "rgba(59,130,246,0.1)", borderRadius: 10, padding: "12px 16px", minWidth: 140 }}>
+                <p style={{ fontSize: 11, color: "#93c5fd", marginBottom: 4 }}>CPM</p>
+                <p style={{ fontSize: 18, fontWeight: 700, color: "#f0f0f0" }}>-</p>
+              </div>
+            )}
+            {metaExtras.frequencia && (
+              <div style={{ background: "rgba(59,130,246,0.1)", borderRadius: 10, padding: "12px 16px", minWidth: 140 }}>
+                <p style={{ fontSize: 11, color: "#93c5fd", marginBottom: 4 }}>Frequência</p>
+                <p style={{ fontSize: 18, fontWeight: 700, color: "#f0f0f0" }}>-</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ============================================================ */}
+      {/* SECTION 3: Meta Metrics selector                              */}
+      {/* ============================================================ */}
+      <div className="no-print card" style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 12, padding: "16px 20px", marginBottom: 32 }}>
+        <h3 style={{ fontSize: 13, fontWeight: 600, color: "#a0a0a0", marginBottom: 12 }}>Métricas Meta (exibir no painel)</h3>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 24px" }}>
+          {[
+            { key: "impressoes", label: "Impressões" },
+            { key: "alcance", label: "Alcance" },
+            { key: "cliques", label: "Cliques" },
+            { key: "ctr", label: "CTR" },
+            { key: "cpm", label: "CPM" },
+            { key: "frequencia", label: "Frequência" },
+          ].map(item => (
+            <label key={item.key} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#c0c0c0", cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={metaExtras[item.key] || false}
+                onChange={() => setMetaExtras(prev => ({ ...prev, [item.key]: !prev[item.key] }))}
+                style={{ accentColor: "#29ABE2" }}
+              />
+              {item.label}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Footer */}
       <div style={{ textAlign: "center", padding: "20px 0", color: "#404040", fontSize: 12 }}>
         Relatório gerado com <strong style={{ color: "#606060" }}>SALX Convert</strong>
       </div>
