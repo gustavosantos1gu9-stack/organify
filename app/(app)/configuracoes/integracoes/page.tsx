@@ -548,16 +548,24 @@ function IntegracoesMaster() {
   const carregarInstancias = async () => {
     setLoadingInst(true);
     try {
+      // Buscar a instância da agência do banco (sempre confiável)
+      const agId = await getAgenciaId();
+      const { data: ag } = await supabase.from("agencias").select("whatsapp_instancia").eq("id", agId!).single();
+      const minha = ag?.whatsapp_instancia || minhaInstancia;
+
       const data = await evoCall("fetchInstances");
       const todas = Array.isArray(data) ? data : [];
-      // Filtrar: mostrar só a instância desta agência (se configurada)
-      const filtradas = minhaInstancia
-        ? todas.filter((i: any) => {
-            const nome = i.name || i.instance?.instanceName || "";
-            return nome === minhaInstancia;
-          })
-        : todas;
-      setInstancias(filtradas.length > 0 ? filtradas : todas);
+
+      // Mostrar APENAS a instância desta agência
+      if (minha) {
+        const filtradas = todas.filter((i: any) => {
+          const nome = i.name || i.instance?.instanceName || "";
+          return nome === minha;
+        });
+        setInstancias(filtradas);
+      } else {
+        setInstancias(todas);
+      }
     } catch(e) {
       console.error("Erro ao carregar instâncias:", e);
     } finally { setLoadingInst(false); }
