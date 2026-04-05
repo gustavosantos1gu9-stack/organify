@@ -44,6 +44,12 @@ export default function ConexoesPage() {
 
   const [conexaoId, setConexaoId] = useState<string | null>(null);
 
+  // Extensão de token
+  const [appId, setAppId] = useState("");
+  const [appSecret, setAppSecret] = useState("");
+  const [showAppSecret, setShowAppSecret] = useState(false);
+  const [estendendo, setEstendendo] = useState(false);
+
   useEffect(() => {
     carregarTudo();
   }, []);
@@ -197,6 +203,28 @@ export default function ConexoesPage() {
     setMetaToken(""); setMetaNome(""); setMetaUserId("");
     setMetaConectado(false); setContas([]);
     await salvarConexao({ meta_token: null, meta_nome: null, meta_user_id: null });
+  }
+
+  async function estenderToken() {
+    if (!metaToken.trim() || !appId.trim() || !appSecret.trim()) {
+      alert("Preencha o App ID e App Secret");
+      return;
+    }
+    setEstendendo(true);
+    try {
+      const res = await fetch(
+        `https://graph.facebook.com/v21.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId.trim()}&client_secret=${appSecret.trim()}&fb_exchange_token=${metaToken.trim()}`
+      );
+      const data = await res.json();
+      if (data.access_token) {
+        setMetaToken(data.access_token);
+        await salvarConexao({ meta_token: data.access_token });
+        alert("Token estendido para 60 dias!");
+      } else {
+        alert(data.error?.message || "Erro ao estender token");
+      }
+    } catch { alert("Erro ao estender token"); }
+    setEstendendo(false);
   }
 
   // ─── WhatsApp ───────────────────────────────────────────────
@@ -369,6 +397,31 @@ export default function ConexoesPage() {
                 <Check size={14} /> {validandoMeta ? "Validando..." : "Conectar"}
               </button>
             </div>
+            {/* Estender token pra 60 dias */}
+            {metaToken.trim() && (
+              <details style={{ marginBottom: "12px" }}>
+                <summary style={{ fontSize: "12px", color: "#22c55e", cursor: "pointer", userSelect: "none" }}>Estender token para 60 dias</summary>
+                <div style={{ marginTop: "10px", padding: "14px", background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "8px", fontSize: "12px", color: "#a0a0a0", lineHeight: "1.8" }}>
+                  <p style={{ fontSize: "11px", color: "#606060", marginBottom: "10px" }}>
+                    Encontre o App ID e App Secret em <strong style={{ color: "#29ABE2" }}>developers.facebook.com</strong> → seu app → Configurações → Básico
+                  </p>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "10px" }}>
+                    <input className="form-input" placeholder="App ID" value={appId} onChange={e => setAppId(e.target.value)} style={{ fontSize: "12px" }} />
+                    <div style={{ position: "relative" }}>
+                      <input className="form-input" placeholder="App Secret" type={showAppSecret ? "text" : "password"} value={appSecret} onChange={e => setAppSecret(e.target.value)} style={{ fontSize: "12px", paddingRight: "32px" }} />
+                      <button onClick={() => setShowAppSecret(!showAppSecret)} style={{ position: "absolute", right: "8px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#606060" }}>
+                        {showAppSecret ? <EyeOff size={12} /> : <Eye size={12} />}
+                      </button>
+                    </div>
+                  </div>
+                  <button onClick={estenderToken} disabled={estendendo} style={{
+                    background: "#22c55e", color: "#fff", border: "none", borderRadius: "6px",
+                    padding: "6px 16px", fontSize: "12px", fontWeight: "600", cursor: "pointer", width: "100%",
+                  }}>{estendendo ? "Estendendo..." : "Estender para 60 dias"}</button>
+                </div>
+              </details>
+            )}
+
             <details style={{ marginBottom: "12px" }}>
               <summary style={{ fontSize: "12px", color: "#29ABE2", cursor: "pointer", userSelect: "none" }}>Como gerar o Token da conta pessoal?</summary>
               <div style={{ marginTop: "10px", padding: "14px", background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "8px", fontSize: "12px", color: "#a0a0a0", lineHeight: "1.8" }}>
