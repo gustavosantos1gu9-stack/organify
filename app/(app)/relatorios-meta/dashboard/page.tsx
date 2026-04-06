@@ -154,25 +154,51 @@ function DashboardInner() {
   const hoje = new Date();
   const [dateFrom, setDateFrom] = useState(new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split("T")[0]);
   const [dateTo, setDateTo] = useState(hoje.toISOString().split("T")[0]);
-  const [periodoTipo, setPeriodoTipo] = useState<"semana" | "mes" | "custom">("mes");
+  type PeriodoTipo = "esta_semana" | "semana_passada" | "14_dias" | "este_mes" | "mes_passado" | "custom";
+  const [periodoTipo, setPeriodoTipo] = useState<PeriodoTipo>("este_mes");
 
   const [activeTab, setActiveTab] = useState<"dashboard" | "performance">("dashboard");
 
   // Helpers de período
   const fmtD = (d: Date | string) => typeof d === "string" ? d : d.toISOString().split("T")[0];
-  const getSegunda = (d: Date) => { const r = new Date(d); r.setDate(r.getDate() - ((r.getDay() + 6) % 7)); return r; };
+  // Domingo da semana (dom-sáb)
+  const getDomingo = (d: Date) => { const r = new Date(d); r.setDate(r.getDate() - r.getDay()); return r; };
 
-  const setPeriodo = (tipo: "semana" | "mes" | "custom") => {
+  const periodoOpcoes: { key: PeriodoTipo; label: string }[] = [
+    { key: "esta_semana", label: "Esta Semana" },
+    { key: "semana_passada", label: "Semana Passada" },
+    { key: "14_dias", label: "14 dias" },
+    { key: "este_mes", label: "Este Mês" },
+    { key: "mes_passado", label: "Mês Passado" },
+    { key: "custom", label: "Personalizado" },
+  ];
+
+  const setPeriodo = (tipo: PeriodoTipo) => {
     setPeriodoTipo(tipo);
     const h = new Date();
-    if (tipo === "semana") {
-      const seg = getSegunda(h);
-      const dom = new Date(seg); dom.setDate(dom.getDate() + 6);
-      setDateFrom(fmtD(seg));
-      setDateTo(fmtD(dom > h ? h : dom));
-    } else if (tipo === "mes") {
+    if (tipo === "esta_semana") {
+      const dom = getDomingo(h);
+      const sab = new Date(dom); sab.setDate(sab.getDate() + 6);
+      setDateFrom(fmtD(dom));
+      setDateTo(fmtD(sab > h ? h : sab));
+    } else if (tipo === "semana_passada") {
+      const domAtual = getDomingo(h);
+      const domPassado = new Date(domAtual); domPassado.setDate(domPassado.getDate() - 7);
+      const sabPassado = new Date(domPassado); sabPassado.setDate(sabPassado.getDate() + 6);
+      setDateFrom(fmtD(domPassado));
+      setDateTo(fmtD(sabPassado));
+    } else if (tipo === "14_dias") {
+      const inicio = new Date(h); inicio.setDate(inicio.getDate() - 13);
+      setDateFrom(fmtD(inicio));
+      setDateTo(fmtD(h));
+    } else if (tipo === "este_mes") {
       setDateFrom(fmtD(new Date(h.getFullYear(), h.getMonth(), 1)));
       setDateTo(fmtD(h));
+    } else if (tipo === "mes_passado") {
+      const primDiaMesPassado = new Date(h.getFullYear(), h.getMonth() - 1, 1);
+      const ultDiaMesPassado = new Date(h.getFullYear(), h.getMonth(), 0);
+      setDateFrom(fmtD(primDiaMesPassado));
+      setDateTo(fmtD(ultDiaMesPassado));
     }
   };
 
@@ -180,15 +206,32 @@ function DashboardInner() {
   const getCompareDates = () => {
     const from = new Date(dateFrom + "T12:00:00");
     const to = new Date(dateTo + "T12:00:00");
-    if (periodoTipo === "semana") {
+    const diffDays = Math.round((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (periodoTipo === "esta_semana" || periodoTipo === "semana_passada" || diffDays <= 7) {
+      // Comparar com semana anterior
       const prevFrom = new Date(from); prevFrom.setDate(prevFrom.getDate() - 7);
       const prevTo = new Date(to); prevTo.setDate(prevTo.getDate() - 7);
       return { compare_from: fmtD(prevFrom), compare_to: fmtD(prevTo) };
     }
-    // Mês anterior
+    if (periodoTipo === "14_dias") {
+      // Comparar com os 14 dias anteriores
+      const prevFrom = new Date(from); prevFrom.setDate(prevFrom.getDate() - 14);
+      const prevTo = new Date(from); prevTo.setDate(prevTo.getDate() - 1);
+      return { compare_from: fmtD(prevFrom), compare_to: fmtD(prevTo) };
+    }
+    // Mês: comparar com mês anterior
     const prevFrom = new Date(from.getFullYear(), from.getMonth() - 1, from.getDate());
     const prevTo = new Date(to.getFullYear(), to.getMonth() - 1, to.getDate());
     return { compare_from: fmtD(prevFrom), compare_to: fmtD(prevTo) };
+  };
+
+  // Label da comparação
+  const getCompareLabel = () => {
+    if (periodoTipo === "esta_semana" || periodoTipo === "semana_passada") return "vs semana anterior";
+    if (periodoTipo === "14_dias") return "vs 14 dias anteriores";
+    if (periodoTipo === "mes_passado") return "vs mês anterior";
+    return "vs período anterior";
   };
 
   const [sections, setSections] = useState<Record<SectionKey, boolean>>({
@@ -280,12 +323,12 @@ function DashboardInner() {
 
   // Para CPM e CPL, menor é melhor (invertido)
   const kpis = [
-    { label: "Investimento", sub: periodoTipo === "semana" ? "vs semana anterior" : "vs mês anterior", value: fmtMoney(resumo.spend), pct: comparacao ? pctChange(resumo.spend, comparacao.spend) : null },
-    { label: "Cliques", sub: periodoTipo === "semana" ? "vs semana anterior" : "vs mês anterior", value: fmtNum(resumo.clicks), pct: comparacao ? pctChange(resumo.clicks, comparacao.clicks) : null },
-    { label: "Impressões", sub: periodoTipo === "semana" ? "vs semana anterior" : "vs mês anterior", value: fmtNum(resumo.impressions), pct: comparacao ? pctChange(resumo.impressions, comparacao.impressions) : null },
-    { label: "Mensagens", sub: periodoTipo === "semana" ? "vs semana anterior" : "vs mês anterior", value: fmtNum(resumo.mensagens), pct: comparacao ? pctChange(resumo.mensagens, comparacao.mensagens) : null },
-    { label: "CPM", sub: periodoTipo === "semana" ? "vs semana anterior" : "vs mês anterior", value: fmtMoney(resumo.cpm), pct: comparacao ? pctChange(resumo.cpm, comparacao.cpm) : null, inverted: true },
-    { label: "CPL", sub: periodoTipo === "semana" ? "vs semana anterior" : "vs mês anterior", value: fmtMoney(cpl), pct: comparacao ? pctChange(cpl, prevCpl) : null, inverted: true },
+    { label: "Investimento", sub: getCompareLabel(), value: fmtMoney(resumo.spend), pct: comparacao ? pctChange(resumo.spend, comparacao.spend) : null },
+    { label: "Cliques", sub: getCompareLabel(), value: fmtNum(resumo.clicks), pct: comparacao ? pctChange(resumo.clicks, comparacao.clicks) : null },
+    { label: "Impressões", sub: getCompareLabel(), value: fmtNum(resumo.impressions), pct: comparacao ? pctChange(resumo.impressions, comparacao.impressions) : null },
+    { label: "Mensagens", sub: getCompareLabel(), value: fmtNum(resumo.mensagens), pct: comparacao ? pctChange(resumo.mensagens, comparacao.mensagens) : null },
+    { label: "CPM", sub: getCompareLabel(), value: fmtMoney(resumo.cpm), pct: comparacao ? pctChange(resumo.cpm, comparacao.cpm) : null, inverted: true },
+    { label: "CPL", sub: getCompareLabel(), value: fmtMoney(cpl), pct: comparacao ? pctChange(cpl, prevCpl) : null, inverted: true },
   ];
 
   /* Render --------------------------------------------------------- */
@@ -304,13 +347,13 @@ function DashboardInner() {
             <Printer size={14} /> Exportar PDF
           </button>
           <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            {(["semana", "mes", "custom"] as const).map(t => (
-              <button key={t} onClick={() => { setPeriodo(t); if (t !== "custom") setTimeout(carregarDados, 50); }}
+            {periodoOpcoes.map(o => (
+              <button key={o.key} onClick={() => { setPeriodo(o.key); if (o.key !== "custom") setTimeout(carregarDados, 50); }}
                 style={{
-                  padding: "6px 14px", fontSize: 12, fontWeight: periodoTipo === t ? 600 : 400, borderRadius: 6, border: "1px solid #2e2e2e", cursor: "pointer",
-                  background: periodoTipo === t ? "#29ABE2" : "#1a1a1a", color: periodoTipo === t ? "#fff" : "#a0a0a0",
+                  padding: "6px 12px", fontSize: 11, fontWeight: periodoTipo === o.key ? 600 : 400, borderRadius: 6, border: "1px solid #2e2e2e", cursor: "pointer",
+                  background: periodoTipo === o.key ? "#29ABE2" : "#1a1a1a", color: periodoTipo === o.key ? "#fff" : "#a0a0a0",
                 }}>
-                {t === "semana" ? "Semana" : t === "mes" ? "Mês" : "Personalizado"}
+                {o.label}
               </button>
             ))}
             <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPeriodoTipo("custom"); }}
