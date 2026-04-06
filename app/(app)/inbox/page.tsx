@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Search, RefreshCw, Eye, Send, X, Filter, MessageCircle, ChevronDown, UserPlus, Upload } from "lucide-react";
 import { supabase, getAgenciaId } from "@/lib/hooks";
 
@@ -700,7 +700,7 @@ export default function InboxPage() {
     finally { setEnviandoCrm(prev => { const s = new Set(prev); s.delete(c.id); return s; }); }
   };
 
-  const carregar = async () => {
+  const carregar = useCallback(async () => {
     const agId = await getAgenciaId();
     const [{ data: convs }, { data: etps }, { data: leadsExistentes }] = await Promise.all([
       supabase.from("conversas").select("*").eq("agencia_id",agId!).order("ultima_mensagem_at",{ascending:false}),
@@ -721,7 +721,7 @@ export default function InboxPage() {
       setEnviadosCrm(jaNoCrm);
     }
     setLoading(false);
-  };
+  }, []);
 
   const autoRastrear = async () => {
     setAutoRastreando(true);
@@ -790,8 +790,35 @@ export default function InboxPage() {
     finally { setSincronizandoTudo(false); }
   };
 
-  useEffect(()=>{carregar();},[]);
-  useEffect(()=>{const i=setInterval(carregar,10000);return()=>clearInterval(i);},[]);
+  // Ref para sempre chamar a versão mais recente de carregar
+  const carregarRef = useRef(carregar);
+  carregarRef.current = carregar;
+
+  // Carregar inicial
+  useEffect(()=>{carregar();},[carregar]);
+
+  // Polling a cada 10s usando ref
+  useEffect(()=>{
+    const i = setInterval(()=>carregarRef.current(), 10000);
+    return()=>clearInterval(i);
+  },[]);
+
+  // Realtime: atualizar inbox quando conversas mudarem
+  useEffect(()=>{
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    (async()=>{
+      const agId = await getAgenciaId();
+      if(!agId) return;
+      channel = supabase
+        .channel(`inbox-conversas-${agId}`)
+        .on("postgres_changes",
+          { event:"*", schema:"public", table:"conversas", filter:`agencia_id=eq.${agId}` },
+          ()=>{ carregarRef.current(); }
+        )
+        .subscribe();
+    })();
+    return()=>{ if(channel) supabase.removeChannel(channel); };
+  },[]);
 
   const filtradas = conversas.filter(c => {
     const matchBusca = c.contato_nome?.toLowerCase().includes(busca.toLowerCase()) || c.contato_numero.includes(busca);
