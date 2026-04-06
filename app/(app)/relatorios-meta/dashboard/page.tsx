@@ -17,9 +17,15 @@ import {
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
+interface ComparacaoData {
+  impressions: number; reach: number; clicks: number; ctr: number;
+  cpm: number; spend: number; frequency: number; mensagens: number; custoMensagem: number;
+}
+
 interface DashboardData {
   nomeCliente: string;
   periodo: { since: string; until: string; label: string };
+  comparacao?: ComparacaoData | null;
   resumo: {
     impressions: number;
     reach: number;
@@ -148,8 +154,42 @@ function DashboardInner() {
   const hoje = new Date();
   const [dateFrom, setDateFrom] = useState(new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split("T")[0]);
   const [dateTo, setDateTo] = useState(hoje.toISOString().split("T")[0]);
+  const [periodoTipo, setPeriodoTipo] = useState<"semana" | "mes" | "custom">("mes");
 
   const [activeTab, setActiveTab] = useState<"dashboard" | "performance">("dashboard");
+
+  // Helpers de período
+  const fmtD = (d: Date | string) => typeof d === "string" ? d : d.toISOString().split("T")[0];
+  const getSegunda = (d: Date) => { const r = new Date(d); r.setDate(r.getDate() - ((r.getDay() + 6) % 7)); return r; };
+
+  const setPeriodo = (tipo: "semana" | "mes" | "custom") => {
+    setPeriodoTipo(tipo);
+    const h = new Date();
+    if (tipo === "semana") {
+      const seg = getSegunda(h);
+      const dom = new Date(seg); dom.setDate(dom.getDate() + 6);
+      setDateFrom(fmtD(seg));
+      setDateTo(fmtD(dom > h ? h : dom));
+    } else if (tipo === "mes") {
+      setDateFrom(fmtD(new Date(h.getFullYear(), h.getMonth(), 1)));
+      setDateTo(fmtD(h));
+    }
+  };
+
+  // Calcular período anterior para comparação
+  const getCompareDates = () => {
+    const from = new Date(dateFrom + "T12:00:00");
+    const to = new Date(dateTo + "T12:00:00");
+    if (periodoTipo === "semana") {
+      const prevFrom = new Date(from); prevFrom.setDate(prevFrom.getDate() - 7);
+      const prevTo = new Date(to); prevTo.setDate(prevTo.getDate() - 7);
+      return { compare_from: fmtD(prevFrom), compare_to: fmtD(prevTo) };
+    }
+    // Mês anterior
+    const prevFrom = new Date(from.getFullYear(), from.getMonth() - 1, from.getDate());
+    const prevTo = new Date(to.getFullYear(), to.getMonth() - 1, to.getDate());
+    return { compare_from: fmtD(prevFrom), compare_to: fmtD(prevTo) };
+  };
 
   const [sections, setSections] = useState<Record<SectionKey, boolean>>({
     kpis: true,
@@ -172,10 +212,11 @@ function DashboardInner() {
     setLoading(true);
     setError("");
     try {
+      const comp = getCompareDates();
       const res = await fetch("/api/relatorios/dashboard", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ relatorio_id: relatorioId, date_from: dateFrom, date_to: dateTo }),
+        body: JSON.stringify({ relatorio_id: relatorioId, date_from: dateFrom, date_to: dateTo, compare: true, ...comp }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Erro ao carregar dados");
@@ -230,16 +271,21 @@ function DashboardInner() {
 
   /* Derived data --------------------------------------------------- */
 
-  const { resumo, diario, campanhas, anuncios, posicionamentos, idade } = data;
+  const { resumo, comparacao, diario, campanhas, anuncios, posicionamentos, idade } = data;
   const cpl = resumo.mensagens > 0 ? resumo.spend / resumo.mensagens : 0;
+  const prevCpl = comparacao && comparacao.mensagens > 0 ? comparacao.spend / comparacao.mensagens : 0;
 
+  // Calcular % de variação (positivo = cresceu, negativo = caiu)
+  const pctChange = (curr: number, prev: number) => prev > 0 ? ((curr - prev) / prev) * 100 : curr > 0 ? 100 : 0;
+
+  // Para CPM e CPL, menor é melhor (invertido)
   const kpis = [
-    { label: "Investimento", sub: "total", value: fmtMoney(resumo.spend) },
-    { label: "Cliques", sub: "total", value: fmtNum(resumo.clicks) },
-    { label: "Impressões", sub: "total", value: fmtNum(resumo.impressions) },
-    { label: "Mensagens", sub: "total", value: fmtNum(resumo.mensagens) },
-    { label: "CPM", sub: "total", value: fmtMoney(resumo.cpm) },
-    { label: "CPL", sub: "total", value: fmtMoney(cpl) },
+    { label: "Investimento", sub: periodoTipo === "semana" ? "vs semana anterior" : "vs mês anterior", value: fmtMoney(resumo.spend), pct: comparacao ? pctChange(resumo.spend, comparacao.spend) : null },
+    { label: "Cliques", sub: periodoTipo === "semana" ? "vs semana anterior" : "vs mês anterior", value: fmtNum(resumo.clicks), pct: comparacao ? pctChange(resumo.clicks, comparacao.clicks) : null },
+    { label: "Impressões", sub: periodoTipo === "semana" ? "vs semana anterior" : "vs mês anterior", value: fmtNum(resumo.impressions), pct: comparacao ? pctChange(resumo.impressions, comparacao.impressions) : null },
+    { label: "Mensagens", sub: periodoTipo === "semana" ? "vs semana anterior" : "vs mês anterior", value: fmtNum(resumo.mensagens), pct: comparacao ? pctChange(resumo.mensagens, comparacao.mensagens) : null },
+    { label: "CPM", sub: periodoTipo === "semana" ? "vs semana anterior" : "vs mês anterior", value: fmtMoney(resumo.cpm), pct: comparacao ? pctChange(resumo.cpm, comparacao.cpm) : null, inverted: true },
+    { label: "CPL", sub: periodoTipo === "semana" ? "vs semana anterior" : "vs mês anterior", value: fmtMoney(cpl), pct: comparacao ? pctChange(cpl, prevCpl) : null, inverted: true },
   ];
 
   /* Render --------------------------------------------------------- */
@@ -257,11 +303,20 @@ function DashboardInner() {
           <button onClick={handlePrint} style={btnPrimary}>
             <Printer size={14} /> Exportar PDF
           </button>
-          <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
-            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+          <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            {(["semana", "mes", "custom"] as const).map(t => (
+              <button key={t} onClick={() => { setPeriodo(t); if (t !== "custom") setTimeout(carregarDados, 50); }}
+                style={{
+                  padding: "6px 14px", fontSize: 12, fontWeight: periodoTipo === t ? 600 : 400, borderRadius: 6, border: "1px solid #2e2e2e", cursor: "pointer",
+                  background: periodoTipo === t ? "#29ABE2" : "#1a1a1a", color: periodoTipo === t ? "#fff" : "#a0a0a0",
+                }}>
+                {t === "semana" ? "Semana" : t === "mes" ? "Mês" : "Personalizado"}
+              </button>
+            ))}
+            <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPeriodoTipo("custom"); }}
               style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 6, padding: "6px 10px", color: "#f0f0f0", fontSize: 13 }} />
             <span style={{ color: "#606060", fontSize: 13 }}>a</span>
-            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+            <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setPeriodoTipo("custom"); }}
               style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 6, padding: "6px 10px", color: "#f0f0f0", fontSize: 13 }} />
             <button onClick={carregarDados} disabled={loading} style={{ ...btnPrimary, padding: "6px 16px" }}>
               {loading ? "Carregando..." : "Gerar"}
@@ -336,7 +391,7 @@ function DashboardInner() {
             Relatório de Desempenho
           </p>
           <p style={{ fontSize: 13, color: "#606060" }}>
-            Período: De {fmtDate(data.periodo.since)} a {fmtDate(data.periodo.until)}
+            Período: De {fmtD(data.periodo.since)} a {fmtD(data.periodo.until)}
           </p>
         </div>
 
@@ -345,19 +400,31 @@ function DashboardInner() {
         {/* ========================================================= */}
         {sections.kpis && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 28 }}>
-            {kpis.map((kpi) => (
-              <div key={kpi.label} style={cardStyle}>
-                <div style={{ fontSize: 26, fontWeight: 700, color: "#f0f0f0", lineHeight: 1.1 }}>
-                  {kpi.value}
+            {kpis.map((kpi: any) => {
+              const hasPct = kpi.pct !== null && kpi.pct !== undefined && isFinite(kpi.pct);
+              const isPositive = kpi.inverted ? kpi.pct < 0 : kpi.pct > 0;
+              const isNeg = kpi.inverted ? kpi.pct > 0 : kpi.pct < 0;
+              return (
+                <div key={kpi.label} style={cardStyle}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 26, fontWeight: 700, color: "#f0f0f0", lineHeight: 1.1 }}>{kpi.value}</span>
+                    {hasPct && Math.abs(kpi.pct) >= 0.1 && (
+                      <span style={{
+                        fontSize: 11, fontWeight: 600, padding: "2px 6px", borderRadius: 6,
+                        background: isPositive ? "rgba(34,197,94,0.15)" : isNeg ? "rgba(239,68,68,0.15)" : "rgba(100,100,100,0.15)",
+                        color: isPositive ? "#22c55e" : isNeg ? "#ef4444" : "#888",
+                      }}>
+                        {kpi.pct > 0 ? "+" : ""}{kpi.pct.toFixed(1)}%
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ marginTop: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: "#a0a0a0" }}>{kpi.label}</span>
+                    <span style={{ fontSize: 11, color: "#505050", marginLeft: 6 }}>{kpi.sub}</span>
+                  </div>
                 </div>
-                <div style={{ marginTop: 6 }}>
-                  <span style={{ fontSize: 12, fontWeight: 500, color: "#a0a0a0" }}>
-                    {kpi.label}
-                  </span>
-                  <span style={{ fontSize: 11, color: "#505050", marginLeft: 6 }}>{kpi.sub}</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -670,6 +737,7 @@ function DashboardInner() {
 
 function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string; dateFrom: string; dateTo: string }) {
   const [semanas, setSemanas] = useState<any[]>([]);
+  const [prevTotals, setPrevTotals] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [temWhatsApp, setTemWhatsApp] = useState(false);
@@ -693,6 +761,7 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
   const carregar = async () => {
     setLoading(true);
     try {
+      // Período atual
       const res = await fetch("/api/relatorios/performance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -717,6 +786,33 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
         });
         setEditando(edit);
       }
+      // Buscar mês anterior para comparação dos totais
+      try {
+        const from = new Date(dateFrom + "T12:00:00");
+        const to = new Date(dateTo + "T12:00:00");
+        const prevFrom = new Date(from.getFullYear(), from.getMonth() - 1, from.getDate());
+        const prevTo = new Date(to.getFullYear(), to.getMonth() - 1, to.getDate());
+        const fmt = (d: Date) => d.toISOString().split("T")[0];
+        const prevRes = await fetch("/api/relatorios/performance", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "carregar", relatorio_id: relatorioId, date_from: fmt(prevFrom), date_to: fmt(prevTo) }),
+        });
+        const prevData = await prevRes.json();
+        if (prevData.semanas) {
+          const totals: any = { investimento: 0, mensagens: 0, agendamentos: 0, realizados: 0, vendas: 0, valorVendas: 0, faturamento: 0 };
+          prevData.semanas.forEach((s: any) => {
+            totals.investimento += s.investimento ?? 0;
+            totals.mensagens += s.mensagens ?? 0;
+            totals.agendamentos += s.agendamentos ?? 0;
+            totals.realizados += s.comparecimentos ?? 0;
+            totals.vendas += s.vendas ?? 0;
+            totals.valorVendas += s.valor_vendas ?? 0;
+            totals.faturamento += s.faturamento ?? 0;
+          });
+          setPrevTotals(totals);
+        }
+      } catch {}
     } catch {}
     setLoading(false);
   };
@@ -776,6 +872,26 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
   const totValorVendas = sumField("valorVendas");
   const totFaturamento = sumField("faturamento");
 
+  // Helper comparação %
+  const pctChg = (curr: number, prev: number) => prev > 0 ? ((curr - prev) / prev) * 100 : curr > 0 ? 100 : 0;
+  const PctBadge = ({ curr, prev, inverted }: { curr: number; prev: number; inverted?: boolean }) => {
+    if (!prevTotals || prev === 0 && curr === 0) return null;
+    const pct = pctChg(curr, prev);
+    if (Math.abs(pct) < 0.1) return null;
+    const isGood = inverted ? pct < 0 : pct > 0;
+    const isBad = inverted ? pct > 0 : pct < 0;
+    return <span style={{ fontSize: 10, fontWeight: 600, marginLeft: 4, padding: "1px 5px", borderRadius: 4, background: isGood ? "rgba(34,197,94,0.15)" : isBad ? "rgba(239,68,68,0.15)" : "rgba(100,100,100,0.15)", color: isGood ? "#22c55e" : isBad ? "#ef4444" : "#888" }}>{pct > 0 ? "+" : ""}{pct.toFixed(1)}%</span>;
+  };
+
+  // Helper comparação semana anterior (dentro da tabela)
+  const getWeekPct = (semIdx: number, field: string) => {
+    if (semIdx === 0) return null;
+    const curr = getVal(field, semanas[semIdx]);
+    const prev = getVal(field, semanas[semIdx - 1]);
+    if (prev === 0 && curr === 0) return null;
+    return pctChg(curr, prev);
+  };
+
   const totTicketMedio = safe(totValorVendas, totVendas);
   const totRoas = safe(totValorVendas, totInvestimento);
   const totTaxaLeadAgend = safe(totAgendamentos, totMensagens) * 100;
@@ -806,30 +922,37 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
     money?: boolean;
     getValue: (ed: any) => number;
     getTotal: () => number;
+    getPrev?: () => number;
+    inverted?: boolean;
     format: (n: number) => string;
   };
 
   const manualRows: RowDef[] = [
-    { label: "Investimento", type: "manual", field: "investimento", money: true, getValue: (ed) => ed.investimento ?? 0, getTotal: () => totInvestimento, format: pfmtMoney },
-    { label: "Mensagens", type: "manual", field: "mensagens", getValue: (ed) => ed.mensagens ?? 0, getTotal: () => totMensagens, format: pfmtNum },
-    { label: "Nº de Agendamentos", type: "manual", field: "agendamentos", getValue: (ed) => ed.agendamentos ?? 0, getTotal: () => totAgendamentos, format: pfmtNum },
-    { label: "Nº de Realizados", type: "manual", field: "realizados", getValue: (ed) => ed.realizados ?? 0, getTotal: () => totRealizados, format: pfmtNum },
-    { label: "Nº de Vendas", type: "manual", field: "vendas", getValue: (ed) => ed.vendas ?? 0, getTotal: () => totVendas, format: pfmtNum },
-    { label: "Valor em Vendas", type: "manual", field: "valorVendas", money: true, getValue: (ed) => ed.valorVendas ?? 0, getTotal: () => totValorVendas, format: pfmtMoney },
-    { label: "Faturamento", type: "manual", field: "faturamento", money: true, getValue: (ed) => ed.faturamento ?? 0, getTotal: () => totFaturamento, format: pfmtMoney },
+    { label: "Investimento", type: "manual", field: "investimento", money: true, getValue: (ed) => ed.investimento ?? 0, getTotal: () => totInvestimento, getPrev: () => prevTotals?.investimento ?? 0, format: pfmtMoney },
+    { label: "Mensagens", type: "manual", field: "mensagens", getValue: (ed) => ed.mensagens ?? 0, getTotal: () => totMensagens, getPrev: () => prevTotals?.mensagens ?? 0, format: pfmtNum },
+    { label: "Nº de Agendamentos", type: "manual", field: "agendamentos", getValue: (ed) => ed.agendamentos ?? 0, getTotal: () => totAgendamentos, getPrev: () => prevTotals?.agendamentos ?? 0, format: pfmtNum },
+    { label: "Nº de Realizados", type: "manual", field: "realizados", getValue: (ed) => ed.realizados ?? 0, getTotal: () => totRealizados, getPrev: () => prevTotals?.realizados ?? 0, format: pfmtNum },
+    { label: "Nº de Vendas", type: "manual", field: "vendas", getValue: (ed) => ed.vendas ?? 0, getTotal: () => totVendas, getPrev: () => prevTotals?.vendas ?? 0, format: pfmtNum },
+    { label: "Valor em Vendas", type: "manual", field: "valorVendas", money: true, getValue: (ed) => ed.valorVendas ?? 0, getTotal: () => totValorVendas, getPrev: () => prevTotals?.valorVendas ?? 0, format: pfmtMoney },
+    { label: "Faturamento", type: "manual", field: "faturamento", money: true, getValue: (ed) => ed.faturamento ?? 0, getTotal: () => totFaturamento, getPrev: () => prevTotals?.faturamento ?? 0, format: pfmtMoney },
   ];
 
+  const prevCL = prevTotals ? safe(prevTotals.investimento, prevTotals.mensagens) : 0;
+  const prevCA = prevTotals ? safe(prevTotals.investimento, prevTotals.agendamentos) : 0;
+  const prevCR = prevTotals ? safe(prevTotals.investimento, prevTotals.realizados) : 0;
+  const prevCV = prevTotals ? safe(prevTotals.investimento, prevTotals.vendas) : 0;
+
   const autoRows: RowDef[] = [
-    { label: "Ticket Médio", type: "auto", getValue: (ed) => safe(ed.valorVendas, ed.vendas), getTotal: () => totTicketMedio, format: pfmtMoney },
-    { label: "ROAS", type: "auto", getValue: (ed) => safe(ed.valorVendas, ed.investimento), getTotal: () => totRoas, format: (n) => isNaN(n) || !isFinite(n) ? "0,0x" : `${n.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}x` },
-    { label: "Taxa Lead → Agend.", type: "auto", getValue: (ed) => safe(ed.agendamentos, ed.mensagens) * 100, getTotal: () => totTaxaLeadAgend, format: pfmtPct },
-    { label: "Taxa Agend. → Realiz.", type: "auto", getValue: (ed) => safe(ed.realizados, ed.agendamentos) * 100, getTotal: () => totTaxaAgendRealiz, format: pfmtPct },
-    { label: "Taxa Realiz. → Venda", type: "auto", getValue: (ed) => safe(ed.vendas, ed.realizados) * 100, getTotal: () => totTaxaRealizVenda, format: pfmtPct },
-    { label: "Taxa Lead → Venda", type: "auto", getValue: (ed) => safe(ed.vendas, ed.mensagens) * 100, getTotal: () => totTaxaLeadVenda, format: pfmtPct },
-    { label: "Custo por Lead", type: "auto", getValue: (ed) => safe(ed.investimento, ed.mensagens), getTotal: () => totCustoLead, format: pfmtMoney },
-    { label: "Custo por Agend.", type: "auto", getValue: (ed) => safe(ed.investimento, ed.agendamentos), getTotal: () => totCustoAgend, format: pfmtMoney },
-    { label: "Custo por Realiz.", type: "auto", getValue: (ed) => safe(ed.investimento, ed.realizados), getTotal: () => totCustoRealiz, format: pfmtMoney },
-    { label: "Custo por Venda", type: "auto", getValue: (ed) => safe(ed.investimento, ed.vendas), getTotal: () => totCustoVenda, format: pfmtMoney },
+    { label: "Ticket Médio", type: "auto", getValue: (ed) => safe(ed.valorVendas, ed.vendas), getTotal: () => totTicketMedio, getPrev: () => prevTotals ? safe(prevTotals.valorVendas, prevTotals.vendas) : 0, format: pfmtMoney },
+    { label: "ROAS", type: "auto", getValue: (ed) => safe(ed.valorVendas, ed.investimento), getTotal: () => totRoas, getPrev: () => prevTotals ? safe(prevTotals.valorVendas, prevTotals.investimento) : 0, format: (n) => isNaN(n) || !isFinite(n) ? "0,0x" : `${n.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}x` },
+    { label: "Taxa Lead → Agend.", type: "auto", getValue: (ed) => safe(ed.agendamentos, ed.mensagens) * 100, getTotal: () => totTaxaLeadAgend, getPrev: () => prevTotals ? safe(prevTotals.agendamentos, prevTotals.mensagens) * 100 : 0, format: pfmtPct },
+    { label: "Taxa Agend. → Realiz.", type: "auto", getValue: (ed) => safe(ed.realizados, ed.agendamentos) * 100, getTotal: () => totTaxaAgendRealiz, getPrev: () => prevTotals ? safe(prevTotals.realizados, prevTotals.agendamentos) * 100 : 0, format: pfmtPct },
+    { label: "Taxa Realiz. → Venda", type: "auto", getValue: (ed) => safe(ed.vendas, ed.realizados) * 100, getTotal: () => totTaxaRealizVenda, getPrev: () => prevTotals ? safe(prevTotals.vendas, prevTotals.realizados) * 100 : 0, format: pfmtPct },
+    { label: "Taxa Lead → Venda", type: "auto", getValue: (ed) => safe(ed.vendas, ed.mensagens) * 100, getTotal: () => totTaxaLeadVenda, getPrev: () => prevTotals ? safe(prevTotals.vendas, prevTotals.mensagens) * 100 : 0, format: pfmtPct },
+    { label: "Custo por Lead", type: "auto", inverted: true, getValue: (ed) => safe(ed.investimento, ed.mensagens), getTotal: () => totCustoLead, getPrev: () => prevCL, format: pfmtMoney },
+    { label: "Custo por Agend.", type: "auto", inverted: true, getValue: (ed) => safe(ed.investimento, ed.agendamentos), getTotal: () => totCustoAgend, getPrev: () => prevCA, format: pfmtMoney },
+    { label: "Custo por Realiz.", type: "auto", inverted: true, getValue: (ed) => safe(ed.investimento, ed.realizados), getTotal: () => totCustoRealiz, getPrev: () => prevCR, format: pfmtMoney },
+    { label: "Custo por Venda", type: "auto", inverted: true, getValue: (ed) => safe(ed.investimento, ed.vendas), getTotal: () => totCustoVenda, getPrev: () => prevCV, format: pfmtMoney },
   ];
 
   const allRows = [...manualRows, ...autoRows];
@@ -914,7 +1037,10 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
                         </td>
                       );
                     })}
-                    <td style={totalColStyle}>{row.format(row.getTotal())}</td>
+                    <td style={totalColStyle}>
+                      {row.format(row.getTotal())}
+                      {row.getPrev && prevTotals && <PctBadge curr={row.getTotal()} prev={row.getPrev()} inverted={row.inverted} />}
+                    </td>
                   </tr>
                 );
               })}
@@ -927,7 +1053,8 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
       {/* SECTION 2: Dashboard Panel                                    */}
       {/* ============================================================ */}
       <div className="card" style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 12, padding: 24, marginBottom: 32 }}>
-        <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 20, color: "#f0f0f0" }}>Painel de Performance</h3>
+        <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 4, color: "#f0f0f0" }}>Painel de Performance</h3>
+        {prevTotals && <p style={{ fontSize: 11, color: "#606060", marginBottom: 20 }}>Comparação com mês anterior</p>}
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 32 }}>
           {/* Left side - KPI grid */}
@@ -936,26 +1063,26 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
               <div style={{ background: "rgba(34,197,94,0.15)", borderRadius: 10, padding: "14px 16px" }}>
                 <p style={{ fontSize: 11, color: "#86efac", marginBottom: 4 }}>Investimento em Ads</p>
-                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtMoney(totInvestimento)}</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtMoney(totInvestimento)} <PctBadge curr={totInvestimento} prev={prevTotals?.investimento ?? 0} /></p>
               </div>
               <div style={{ background: "rgba(59,130,246,0.15)", borderRadius: 10, padding: "14px 16px" }}>
                 <p style={{ fontSize: 11, color: "#93c5fd", marginBottom: 4 }}>Nº de Leads</p>
-                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtNum(totMensagens)}</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtNum(totMensagens)} <PctBadge curr={totMensagens} prev={prevTotals?.mensagens ?? 0} /></p>
               </div>
               <div style={{ background: "rgba(245,158,11,0.15)", borderRadius: 10, padding: "14px 16px" }}>
                 <p style={{ fontSize: 11, color: "#fcd34d", marginBottom: 4 }}>Custo por Lead</p>
-                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtMoney(totCustoLead)}</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtMoney(totCustoLead)} <PctBadge curr={totCustoLead} prev={prevCL} inverted /></p>
               </div>
             </div>
             {/* Row 2 */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
               <div style={{ background: "rgba(249,115,22,0.15)", borderRadius: 10, padding: "14px 16px" }}>
                 <p style={{ fontSize: 11, color: "#fdba74", marginBottom: 4 }}>Tx. Conv. p/ Agendamento</p>
-                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtPct(totTaxaLeadAgend)}</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtPct(totTaxaLeadAgend)} <PctBadge curr={totTaxaLeadAgend} prev={prevTotals ? safe(prevTotals.agendamentos, prevTotals.mensagens) * 100 : 0} /></p>
               </div>
               <div style={{ background: "rgba(59,130,246,0.15)", borderRadius: 10, padding: "14px 16px" }}>
                 <p style={{ fontSize: 11, color: "#93c5fd", marginBottom: 4 }}>Nº de Agendamentos</p>
-                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtNum(totAgendamentos)}</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtNum(totAgendamentos)} <PctBadge curr={totAgendamentos} prev={prevTotals?.agendamentos ?? 0} /></p>
               </div>
               <div />
             </div>
@@ -963,11 +1090,11 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
               <div style={{ background: "rgba(249,115,22,0.15)", borderRadius: 10, padding: "14px 16px" }}>
                 <p style={{ fontSize: 11, color: "#fdba74", marginBottom: 4 }}>Tx. Conv. p/ Comparecimento</p>
-                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtPct(totTaxaAgendRealiz)}</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtPct(totTaxaAgendRealiz)} <PctBadge curr={totTaxaAgendRealiz} prev={prevTotals ? safe(prevTotals.realizados, prevTotals.agendamentos) * 100 : 0} /></p>
               </div>
               <div style={{ background: "rgba(59,130,246,0.15)", borderRadius: 10, padding: "14px 16px" }}>
                 <p style={{ fontSize: 11, color: "#93c5fd", marginBottom: 4 }}>Nº de Realizados</p>
-                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtNum(totRealizados)}</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtNum(totRealizados)} <PctBadge curr={totRealizados} prev={prevTotals?.realizados ?? 0} /></p>
               </div>
               <div />
             </div>
@@ -975,11 +1102,11 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
               <div style={{ background: "rgba(249,115,22,0.15)", borderRadius: 10, padding: "14px 16px" }}>
                 <p style={{ fontSize: 11, color: "#fdba74", marginBottom: 4 }}>Tx. Conv. p/ Venda</p>
-                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtPct(totTaxaRealizVenda)}</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtPct(totTaxaRealizVenda)} <PctBadge curr={totTaxaRealizVenda} prev={prevTotals ? safe(prevTotals.vendas, prevTotals.realizados) * 100 : 0} /></p>
               </div>
               <div style={{ background: "rgba(59,130,246,0.15)", borderRadius: 10, padding: "14px 16px" }}>
                 <p style={{ fontSize: 11, color: "#93c5fd", marginBottom: 4 }}>Nº de Vendas</p>
-                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtNum(totVendas)}</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtNum(totVendas)} <PctBadge curr={totVendas} prev={prevTotals?.vendas ?? 0} /></p>
               </div>
               <div />
             </div>

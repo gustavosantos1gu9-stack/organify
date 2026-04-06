@@ -254,6 +254,35 @@ export async function POST(req: NextRequest) {
     const accountName = accountInfo.name || nomeCliente;
     const currency = accountInfo.currency || "BRL";
 
+    // Comparação com período anterior (mesma duração)
+    let comparacao = null;
+    if (body.compare) {
+      try {
+        const compFrom = body.compare_from;
+        const compTo = body.compare_to;
+        if (compFrom && compTo) {
+          const compTimeRange = `{"since":"${compFrom}","until":"${compTo}"}`;
+          const compInsights = await metaFetch(
+            `${META_API}/${acId}/insights?fields=impressions,reach,clicks,ctr,cpm,spend,actions,cost_per_action_type,frequency&time_range=${compTimeRange}`,
+            token
+          );
+          const compAcc = compInsights.data?.[0] || {};
+          comparacao = {
+            impressions: parseInt(compAcc.impressions || "0"),
+            reach: parseInt(compAcc.reach || "0"),
+            clicks: parseInt(compAcc.clicks || "0"),
+            ctr: parseFloat(compAcc.ctr || "0"),
+            cpm: parseFloat(compAcc.cpm || "0"),
+            spend: parseFloat(compAcc.spend || "0"),
+            frequency: parseFloat(compAcc.frequency || "0"),
+            mensagens: extractMensagens(compAcc.actions),
+            custoMensagem: 0,
+          };
+          comparacao.custoMensagem = comparacao.mensagens > 0 ? comparacao.spend / comparacao.mensagens : 0;
+        }
+      } catch {}
+    }
+
     return NextResponse.json({
       nomeCliente: nomeCliente || accountName,
       periodo: { since, until, label: periodo },
@@ -270,6 +299,7 @@ export async function POST(req: NextRequest) {
         balance,
         currency,
       },
+      comparacao,
       daily,
       campaigns,
       ads,
