@@ -1716,7 +1716,9 @@ const printCSS = `
   .dashboard-root table td[style*="color: rgb(160, 160, 160)"],
   .dashboard-root table td[style*="#a0a0a0"],
   .dashboard-root table td[style*="color: rgb(240, 240, 240)"],
-  .dashboard-root table td[style*="#f0f0f0"] {
+  .dashboard-root table td[style*="#f0f0f0"],
+  .dashboard-root table th[style*="color: rgb(240, 240, 240)"],
+  .dashboard-root table th[style*="#f0f0f0"] {
     color: #000 !important;
   }
 
