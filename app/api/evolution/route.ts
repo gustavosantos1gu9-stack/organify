@@ -70,6 +70,32 @@ export async function POST(req: NextRequest) {
     });
 
     const data = await res.json();
+
+    // Após criar instância, configurar webhook automaticamente
+    if (action === "create" && data && !data.error) {
+      const novaInstancia = data.instance?.instanceName || data.name || payload?.instanceName;
+      if (novaInstancia) {
+        const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://salxconvert-blond.vercel.app";
+        try {
+          await fetch(`${EVO_URL}/webhook/set/${novaInstancia}`, {
+            method: "POST",
+            headers: { "apikey": EVO_KEY, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              webhook: {
+                enabled: true,
+                url: `${APP_URL}/api/webhook/whatsapp`,
+                webhookByEvents: false,
+                webhookBase64: false,
+                events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE"],
+              },
+            }),
+          });
+        } catch (e) {
+          console.error("Erro ao configurar webhook automático:", e);
+        }
+      }
+    }
+
     return NextResponse.json(data);
   } catch(e) {
     console.error("Evolution API erro:", e);
