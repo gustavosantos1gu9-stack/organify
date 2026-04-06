@@ -14,24 +14,45 @@ async function metaFetch(url: string, token: string) {
   return res.json();
 }
 
-// Gerar semanas (seg-dom) que cobrem o período
+// Gerar semanas a partir do dia 1 do mês (1-7, 8-14, 15-21, 22-28, 29-fim)
 function gerarSemanas(desde: string, ate: string): { inicio: string; fim: string }[] {
   const semanas: { inicio: string; fim: string }[] = [];
   const start = new Date(desde + "T12:00:00");
   const end = new Date(ate + "T12:00:00");
+  const fmt = (d: Date) => d.toISOString().split("T")[0];
 
-  // Ir pra segunda-feira anterior ou igual
-  const dia = start.getDay();
-  const diffSeg = dia === 0 ? -6 : 1 - dia;
-  const seg = new Date(start);
-  seg.setDate(seg.getDate() + diffSeg);
+  // Começar do dia 1 do mês do start
+  const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
 
-  while (seg <= end) {
-    const dom = new Date(seg);
-    dom.setDate(dom.getDate() + 6);
-    const fmt = (d: Date) => d.toISOString().split("T")[0];
-    semanas.push({ inicio: fmt(seg), fim: fmt(dom) });
-    seg.setDate(seg.getDate() + 7);
+  while (cursor <= end) {
+    const semInicio = new Date(cursor);
+    const semFim = new Date(cursor);
+    semFim.setDate(semFim.getDate() + 6);
+
+    // Não passar do último dia do mês
+    const ultimoDiaMes = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
+    if (semFim > ultimoDiaMes) semFim.setTime(ultimoDiaMes.getTime());
+
+    // Não passar do end
+    const fimReal = semFim > end ? end : semFim;
+
+    // Só incluir se a semana está dentro do período
+    if (fimReal >= start) {
+      semanas.push({
+        inicio: fmt(semInicio < start ? start : semInicio),
+        fim: fmt(fimReal),
+      });
+    }
+
+    // Próxima semana
+    cursor.setDate(cursor.getDate() + 7);
+
+    // Se cruzou pro próximo mês, reiniciar do dia 1
+    if (cursor.getDate() > 1 && cursor.getDate() <= 7) {
+      // Normal - continua
+    } else if (cursor.getMonth() !== semInicio.getMonth()) {
+      cursor.setDate(1); // Reinicia do dia 1 do novo mês
+    }
   }
 
   return semanas;
