@@ -1712,9 +1712,11 @@ const printCSS = `
     color: #fff !important;
   }
 
-  /* Resultados automáticos (calculados): texto preto */
+  /* Resultados automáticos (calculados) e coluna TOTAL: texto preto */
   .dashboard-root table td[style*="color: rgb(160, 160, 160)"],
-  .dashboard-root table td[style*="#a0a0a0"] {
+  .dashboard-root table td[style*="#a0a0a0"],
+  .dashboard-root table td[style*="color: rgb(240, 240, 240)"],
+  .dashboard-root table td[style*="#f0f0f0"] {
     color: #000 !important;
   }
 
