@@ -463,7 +463,7 @@ function ChatLateral({ conversa, onClose }: { conversa: Conversa; onClose:()=>vo
 }
 
 // Painel de filtros avançados
-function FiltrosAvancados({ conversas, filtros, onChange, onClose }: { conversas: Conversa[]; filtros: any; onChange:(f:any)=>void; onClose:()=>void }) {
+function FiltrosAvancados({ conversas, filtros, onChange, onClose, etapas }: { conversas: Conversa[]; filtros: any; onChange:(f:any)=>void; onClose:()=>void; etapas: EtapaJornada[] }) {
   const [local, setLocal] = useState(filtros);
   const set = (k: string, v: string) => setLocal((f: any) => ({ ...f, [k]: v }));
 
@@ -527,13 +527,7 @@ function FiltrosAvancados({ conversas, filtros, onChange, onClose }: { conversas
     loadAds();
   }, []);
 
-  const etapasInbox = [
-    { key:"em_contato", label:"Em contato" },
-    { key:"reuniao_agendada", label:"Agendou" },
-    { key:"nao_compareceu", label:"Não compareceu" },
-    { key:"ganho", label:"Comprou" },
-    { key:"perdido", label:"Não comprou" },
-  ];
+  const etapasInbox = etapas.map(e => ({ key: e.nome, label: e.nome }));
 
   return (
     <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
@@ -1099,7 +1093,7 @@ export default function InboxPage() {
         )}
       </div>
 
-      {filtrosAbertos && <FiltrosAvancados conversas={conversas} filtros={filtros} onChange={setFiltros} onClose={()=>setFiltrosAbertos(false)}/>}
+      {filtrosAbertos && <FiltrosAvancados conversas={conversas} filtros={filtros} onChange={setFiltros} onClose={()=>setFiltrosAbertos(false)} etapas={etapas}/>}
       {detalhes && <DetalhesModal conversa={detalhes} etapas={etapas} onClose={()=>setDetalhes(null)}
         onEtapaChange={etapa=>setConversas(prev=>prev.map(c=>c.id===detalhes.id?{...c,etapa_jornada:etapa}:c))}
         onConversaUpdate={updates=>{setConversas(prev=>prev.map(c=>c.id===detalhes.id?{...c,...updates}:c));setDetalhes(d=>d?{...d,...updates}:d);}}
