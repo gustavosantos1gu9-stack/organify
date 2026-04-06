@@ -1331,6 +1331,8 @@ function CriativosPanel({ relatorioId, dateFrom, dateTo }: { relatorioId: string
   const cfmtNum = (n: number) => isNaN(n) ? "0" : n.toLocaleString("pt-BR");
   const cfmtPct = (n: number) => isNaN(n) || !isFinite(n) ? "0,0%" : `${n.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 
+  const cKey = (c: any) => `${c.ad_name}|||${c.adset_name || ""}`;
+
   const carregarCriativos = async () => {
     setLoading(true);
     try {
@@ -1343,7 +1345,7 @@ function CriativosPanel({ relatorioId, dateFrom, dateTo }: { relatorioId: string
       if (data.criativos) {
         setCriativos(data.criativos);
         const edit: Record<string, number> = {};
-        data.criativos.forEach((c: any) => { edit[c.ad_name] = c.agendamentos ?? 0; });
+        data.criativos.forEach((c: any) => { edit[cKey(c)] = c.agendamentos ?? 0; });
         setAgendEdit(edit);
       }
     } catch {}
@@ -1352,7 +1354,7 @@ function CriativosPanel({ relatorioId, dateFrom, dateTo }: { relatorioId: string
 
   const salvarCriativos = async () => {
     setSaving(true);
-    const toSave = criativos.map(c => ({ ad_name: c.ad_name, agendamentos: agendEdit[c.ad_name] ?? 0 }));
+    const toSave = criativos.map(c => ({ ad_name: c.ad_name, adset_name: c.adset_name || "", agendamentos: agendEdit[cKey(c)] ?? 0 }));
     try {
       await fetch("/api/relatorios/performance", {
         method: "POST",
@@ -1379,7 +1381,7 @@ function CriativosPanel({ relatorioId, dateFrom, dateTo }: { relatorioId: string
   // Totais para comparação
   const totalMsgs = criativos.reduce((a, c) => a + (c.mensagens || 0), 0);
   const totalSpend = criativos.reduce((a, c) => a + (c.spend || 0), 0);
-  const totalAgend = criativos.reduce((a, c) => a + (agendEdit[c.ad_name] ?? 0), 0);
+  const totalAgend = criativos.reduce((a, c) => a + (agendEdit[cKey(c)] ?? 0), 0);
   const avgCpl = totalMsgs > 0 ? totalSpend / totalMsgs : 0;
   const avgCpa = totalAgend > 0 ? totalSpend / totalAgend : 0;
 
@@ -1423,7 +1425,7 @@ function CriativosPanel({ relatorioId, dateFrom, dateTo }: { relatorioId: string
                           </thead>
                           <tbody>
                             {(ads as any[]).map((ad: any, i: number) => {
-                              const ag = agendEdit[ad.ad_name] ?? 0;
+                              const ag = agendEdit[cKey(ad)] ?? 0;
                               const cplAd = ad.mensagens > 0 ? ad.spend / ad.mensagens : 0;
                               const cpaAd = ag > 0 ? ad.spend / ag : 0;
                               const txConv = ad.mensagens > 0 ? (ag / ad.mensagens) * 100 : 0;
@@ -1440,7 +1442,7 @@ function CriativosPanel({ relatorioId, dateFrom, dateTo }: { relatorioId: string
                                     {cfmtMoney(cplAd)}
                                   </td>
                                   <td style={{ textAlign: "center", padding: "8px" }}>
-                                    <input type="number" min="0" value={ag || ""} onChange={e => setAgendEdit(prev => ({ ...prev, [ad.ad_name]: parseInt(e.target.value) || 0 }))}
+                                    <input type="number" min="0" value={ag || ""} onChange={e => setAgendEdit(prev => ({ ...prev, [cKey(ad)]: parseInt(e.target.value) || 0 }))}
                                       style={{ width: 60, background: "#2a2a1a", border: "1px solid #3a3a2a", borderRadius: 4, padding: "3px 6px", color: "#f0f0f0", fontSize: 12, textAlign: "center" }} />
                                   </td>
                                   <td style={{ textAlign: "center", padding: "8px", fontWeight: 600, color: isGoodCpa ? "#22c55e" : cpaAd > avgCpa * 1.3 ? "#ef4444" : "#a0a0a0" }}>

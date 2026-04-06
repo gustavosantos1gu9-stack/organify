@@ -235,9 +235,9 @@ export async function POST(req: NextRequest) {
         .eq("relatorio_id", relatorio_id)
         .eq("periodo_inicio", desde);
 
-      // Merge
+      // Merge por ad_name + adset_name
       for (const c of criativos) {
-        const manual = manuais?.find(m => m.ad_name === c.ad_name);
+        const manual = manuais?.find(m => m.ad_name === c.ad_name && m.adset_name === (c.adset_name || ""));
         c.agendamentos = manual?.agendamentos ?? 0;
         c.id = manual?.id ?? null;
       }
@@ -263,9 +263,10 @@ export async function POST(req: NextRequest) {
           periodo_inicio: date_from,
           periodo_fim: date_to,
           ad_name: c.ad_name,
+          adset_name: c.adset_name || "",
           agendamentos: c.agendamentos || 0,
           updated_at: new Date().toISOString(),
-        }, { onConflict: "agencia_id,relatorio_id,periodo_inicio,ad_name" });
+        }, { onConflict: "agencia_id,relatorio_id,periodo_inicio,ad_name,adset_name" });
       }
 
       return NextResponse.json({ ok: true });
