@@ -14,45 +14,52 @@ async function metaFetch(url: string, token: string) {
   return res.json();
 }
 
-// Gerar semanas a partir do dia 1 do mês (1-7, 8-14, 15-21, 22-28, 29-fim)
+// Gerar semanas dom-sáb. Primeira semana: dia 1 até primeiro sábado.
 function gerarSemanas(desde: string, ate: string): { inicio: string; fim: string }[] {
   const semanas: { inicio: string; fim: string }[] = [];
   const start = new Date(desde + "T12:00:00");
   const end = new Date(ate + "T12:00:00");
   const fmt = (d: Date) => d.toISOString().split("T")[0];
 
-  // Começar do dia 1 do mês do start
-  const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+  // Começar do dia 1 do mês
+  const primeiroDia = new Date(start.getFullYear(), start.getMonth(), 1);
 
-  while (cursor <= end) {
+  // Primeira semana: dia 1 até o primeiro sábado
+  const primSab = new Date(primeiroDia);
+  const dow = primSab.getDay(); // 0=dom, 6=sab
+  if (dow !== 6) {
+    primSab.setDate(primSab.getDate() + (6 - dow));
+  }
+  const ultimoDiaMes = new Date(primeiroDia.getFullYear(), primeiroDia.getMonth() + 1, 0);
+
+  // Semana 1: dia 1 → primeiro sábado (ou fim do mês se for antes)
+  const fimSem1 = primSab > ultimoDiaMes ? ultimoDiaMes : primSab;
+  if (fimSem1 >= start && primeiroDia <= end) {
+    semanas.push({
+      inicio: fmt(primeiroDia < start ? start : primeiroDia),
+      fim: fmt(fimSem1 > end ? end : fimSem1),
+    });
+  }
+
+  // Semanas seguintes: dom-sáb
+  const cursor = new Date(fimSem1);
+  cursor.setDate(cursor.getDate() + 1); // próximo domingo
+
+  while (cursor <= end && cursor <= ultimoDiaMes) {
     const semInicio = new Date(cursor);
     const semFim = new Date(cursor);
-    semFim.setDate(semFim.getDate() + 6);
+    semFim.setDate(semFim.getDate() + 6); // sábado
 
     // Não passar do último dia do mês
-    const ultimoDiaMes = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
     if (semFim > ultimoDiaMes) semFim.setTime(ultimoDiaMes.getTime());
-
     // Não passar do end
     const fimReal = semFim > end ? end : semFim;
 
-    // Só incluir se a semana está dentro do período
-    if (fimReal >= start) {
-      semanas.push({
-        inicio: fmt(semInicio < start ? start : semInicio),
-        fim: fmt(fimReal),
-      });
+    if (semInicio <= end) {
+      semanas.push({ inicio: fmt(semInicio), fim: fmt(fimReal) });
     }
 
-    // Próxima semana
     cursor.setDate(cursor.getDate() + 7);
-
-    // Se cruzou pro próximo mês, reiniciar do dia 1
-    if (cursor.getDate() > 1 && cursor.getDate() <= 7) {
-      // Normal - continua
-    } else if (cursor.getMonth() !== semInicio.getMonth()) {
-      cursor.setDate(1); // Reinicia do dia 1 do novo mês
-    }
   }
 
   return semanas;
