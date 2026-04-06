@@ -272,11 +272,11 @@ export async function POST(req: NextRequest) {
       // 0. Se @lid (Click-to-WhatsApp) e NÃO é CTWA, buscar rastreamento pendente
       //    Se passou pela página de 5s, tem rastreamento pendente → associar
       if (isLid && eraNovaConversa && !_isCTWA) {
-        const cincoMinAtras = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+        const dezMinAtras = new Date(Date.now() - 10 * 60 * 1000).toISOString();
         const { data: lidTrack } = await supabase.from("rastreamentos_pendentes")
           .select("*")
           .eq("wa_destino", agencia.whatsapp_numero)
-          .gt("created_at", cincoMinAtras)
+          .gt("created_at", dezMinAtras)
           .order("created_at", { ascending: false })
           .limit(1)
           .single();
@@ -394,16 +394,15 @@ export async function POST(req: NextRequest) {
       // 6b. Buscar rastreamento pendente genérico — só se CTWA não resolveu e NÃO é @lid
       //     Se é @lid, já sabemos que é Meta Ads (passo 6 tratou), não associar a link
       if (!tracking && !isLid) {
-        const cincoMinAtras = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+        const dezMinAtras = new Date(Date.now() - 10 * 60 * 1000).toISOString();
         const { data: recentes } = await supabase.from("rastreamentos_pendentes")
           .select("*")
-          .gt("created_at", cincoMinAtras)
+          .gt("created_at", dezMinAtras)
           .or(`wa_destino.eq.${agencia.whatsapp_numero},wa_destino.is.null`)
           .order("created_at", { ascending: false })
           .limit(30);
 
         if (recentes && recentes.length > 0) {
-          // Normalizar mensagem para comparação
           const msgNorm = (conteudo || "").toLowerCase().replace(/[^\w\sáéíóúâêôãõàçü]/g, "").replace(/\s+/g, " ").trim();
 
           let candidato = null;
@@ -412,7 +411,14 @@ export async function POST(req: NextRequest) {
             const isNumeroReal = /^\d{10,15}$/.test(r.wa_numero || "");
             if (isNumeroReal) continue;
 
-            // Se o candidato veio de link rastreável, validar mensagem antes de associar
+            // Se é nova conversa e veio pelo wa_destino correto, aceitar direto
+            // (pessoa clicou no link, mandou msg pro número certo dentro de 5min)
+            if (eraNovaConversa && r.wa_destino === agencia.whatsapp_numero) {
+              candidato = r;
+              break;
+            }
+
+            // Se o candidato veio de link rastreável, tentar validar mensagem (mas não obrigar)
             if (r.link_id && msgNorm) {
               const { data: linkData } = await supabase.from("links_campanha")
                 .select("wa_mensagem").eq("id", r.link_id).single();
@@ -422,7 +428,11 @@ export async function POST(req: NextRequest) {
                   candidato = r;
                   break;
                 }
-                // Mensagem não bate com o link — pular este candidato
+                // Mensagem não bateu, mas se wa_destino bate, ainda aceitar
+                if (r.wa_destino === agencia.whatsapp_numero) {
+                  candidato = r;
+                  break;
+                }
                 continue;
               }
             }
