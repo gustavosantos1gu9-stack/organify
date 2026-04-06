@@ -1707,6 +1707,17 @@ const printCSS = `
     background: #1a1a1a !important;
   }
 
+  /* Resultados manuais (fundo amarelado): texto branco */
+  .dashboard-root .print-only {
+    color: #fff !important;
+  }
+
+  /* Resultados automáticos (calculados): texto preto */
+  .dashboard-root table td[style*="color: rgb(160, 160, 160)"],
+  .dashboard-root table td[style*="#a0a0a0"] {
+    color: #000 !important;
+  }
+
   @page {
     margin: 1cm;
     size: A4;
