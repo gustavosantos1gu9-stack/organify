@@ -1303,10 +1303,181 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
         </div>
       </div>
 
+      {/* ============================================================ */}
+      {/* SECTION 4: Performance por Criativo                            */}
+      {/* ============================================================ */}
+      <CriativosPanel relatorioId={relatorioId} dateFrom={dateFrom} dateTo={dateTo} />
+
       {/* Footer */}
       <div style={{ textAlign: "center", padding: "20px 0", color: "#404040", fontSize: 12 }}>
         Relatório gerado com <strong style={{ color: "#606060" }}>SALX Convert</strong>
       </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Criativos Panel                                                    */
+/* ------------------------------------------------------------------ */
+
+function CriativosPanel({ relatorioId, dateFrom, dateTo }: { relatorioId: string; dateFrom: string; dateTo: string }) {
+  const [criativos, setCriativos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [aberto, setAberto] = useState(false);
+  const [agendEdit, setAgendEdit] = useState<Record<string, number>>({});
+
+  const cfmtMoney = (n: number) => isNaN(n) ? "R$ 0,00" : `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const cfmtNum = (n: number) => isNaN(n) ? "0" : n.toLocaleString("pt-BR");
+  const cfmtPct = (n: number) => isNaN(n) || !isFinite(n) ? "0,0%" : `${n.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+
+  const carregarCriativos = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/relatorios/performance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "criativos_carregar", relatorio_id: relatorioId, date_from: dateFrom, date_to: dateTo }),
+      });
+      const data = await res.json();
+      if (data.criativos) {
+        setCriativos(data.criativos);
+        const edit: Record<string, number> = {};
+        data.criativos.forEach((c: any) => { edit[c.ad_name] = c.agendamentos ?? 0; });
+        setAgendEdit(edit);
+      }
+    } catch {}
+    setLoading(false);
+  };
+
+  const salvarCriativos = async () => {
+    setSaving(true);
+    const toSave = criativos.map(c => ({ ad_name: c.ad_name, agendamentos: agendEdit[c.ad_name] ?? 0 }));
+    try {
+      await fetch("/api/relatorios/performance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "criativos_salvar", relatorio_id: relatorioId, agencia_id: "auto", criativos: toSave, date_from: dateFrom, date_to: dateTo }),
+      });
+      alert("Salvo!");
+    } catch { alert("Erro ao salvar"); }
+    setSaving(false);
+  };
+
+  useEffect(() => { if (aberto && relatorioId) carregarCriativos(); }, [aberto, relatorioId, dateFrom, dateTo]);
+
+  // Agrupar por campanha > conjunto > criativo
+  const campanhas = criativos.reduce((acc: any, c) => {
+    const camp = c.campaign_name || "Sem campanha";
+    const conj = c.adset_name || "Sem conjunto";
+    if (!acc[camp]) acc[camp] = {};
+    if (!acc[camp][conj]) acc[camp][conj] = [];
+    acc[camp][conj].push(c);
+    return acc;
+  }, {});
+
+  // Totais para comparação
+  const totalMsgs = criativos.reduce((a, c) => a + (c.mensagens || 0), 0);
+  const totalSpend = criativos.reduce((a, c) => a + (c.spend || 0), 0);
+  const totalAgend = criativos.reduce((a, c) => a + (agendEdit[c.ad_name] ?? 0), 0);
+  const avgCpl = totalMsgs > 0 ? totalSpend / totalMsgs : 0;
+  const avgCpa = totalAgend > 0 ? totalSpend / totalAgend : 0;
+
+  return (
+    <div className="card" style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 12, marginBottom: 32, overflow: "hidden" }}>
+      <button onClick={() => setAberto(!aberto)} style={{
+        width: "100%", padding: "16px 20px", background: "none", border: "none", cursor: "pointer",
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+      }}>
+        <h3 style={{ fontSize: 15, fontWeight: 600, color: "#f0f0f0", margin: 0 }}>Performance por Criativo</h3>
+        <span style={{ color: "#606060", fontSize: 18 }}>{aberto ? "▲" : "▼"}</span>
+      </button>
+
+      {aberto && (
+        <div style={{ padding: "0 20px 20px" }}>
+          {loading ? (
+            <p style={{ color: "#606060", fontSize: 13, textAlign: "center", padding: 20 }}>Carregando criativos...</p>
+          ) : criativos.length === 0 ? (
+            <p style={{ color: "#606060", fontSize: 13, textAlign: "center", padding: 20 }}>Nenhum criativo encontrado no período</p>
+          ) : (
+            <>
+              {/* Tabela por campanha > conjunto > criativo */}
+              {Object.entries(campanhas).map(([campName, conjuntos]: [string, any]) => (
+                <div key={campName} style={{ marginBottom: 24 }}>
+                  <h4 style={{ fontSize: 13, fontWeight: 600, color: "#29ABE2", marginBottom: 8 }}>{campName}</h4>
+                  {Object.entries(conjuntos).map(([conjName, ads]: [string, any]) => (
+                    <div key={conjName} style={{ marginBottom: 16, marginLeft: 12 }}>
+                      <p style={{ fontSize: 12, fontWeight: 500, color: "#a0a0a0", marginBottom: 8 }}>{conjName}</p>
+                      <div style={{ overflowX: "auto" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                          <thead>
+                            <tr style={{ borderBottom: "1px solid #2e2e2e" }}>
+                              <th style={{ textAlign: "left", padding: "8px", color: "#808080", fontWeight: 600 }}>Criativo</th>
+                              <th style={{ textAlign: "center", padding: "8px", color: "#808080", fontWeight: 600 }}>Investido</th>
+                              <th style={{ textAlign: "center", padding: "8px", color: "#808080", fontWeight: 600 }}>Msgs</th>
+                              <th style={{ textAlign: "center", padding: "8px", color: "#808080", fontWeight: 600 }}>CPL</th>
+                              <th style={{ textAlign: "center", padding: "8px", color: "#808080", fontWeight: 600, minWidth: 90 }}>Agendamentos</th>
+                              <th style={{ textAlign: "center", padding: "8px", color: "#808080", fontWeight: 600 }}>CPA</th>
+                              <th style={{ textAlign: "center", padding: "8px", color: "#808080", fontWeight: 600 }}>Tx. Conv.</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(ads as any[]).map((ad: any, i: number) => {
+                              const ag = agendEdit[ad.ad_name] ?? 0;
+                              const cplAd = ad.mensagens > 0 ? ad.spend / ad.mensagens : 0;
+                              const cpaAd = ag > 0 ? ad.spend / ag : 0;
+                              const txConv = ad.mensagens > 0 ? (ag / ad.mensagens) * 100 : 0;
+                              const isGoodCpl = cplAd > 0 && cplAd < avgCpl;
+                              const isGoodCpa = cpaAd > 0 && cpaAd < avgCpa;
+                              return (
+                                <tr key={i} style={{ borderBottom: "1px solid #1a1a1a" }}>
+                                  <td style={{ padding: "8px", color: "#f0f0f0", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                    {ad.ad_name}
+                                  </td>
+                                  <td style={{ textAlign: "center", padding: "8px", color: "#a0a0a0" }}>{cfmtMoney(ad.spend)}</td>
+                                  <td style={{ textAlign: "center", padding: "8px", color: "#f0f0f0", fontWeight: 600 }}>{cfmtNum(ad.mensagens)}</td>
+                                  <td style={{ textAlign: "center", padding: "8px", fontWeight: 600, color: isGoodCpl ? "#22c55e" : cplAd > avgCpl * 1.3 ? "#ef4444" : "#a0a0a0" }}>
+                                    {cfmtMoney(cplAd)}
+                                  </td>
+                                  <td style={{ textAlign: "center", padding: "8px" }}>
+                                    <input type="number" min="0" value={ag || ""} onChange={e => setAgendEdit(prev => ({ ...prev, [ad.ad_name]: parseInt(e.target.value) || 0 }))}
+                                      style={{ width: 60, background: "#2a2a1a", border: "1px solid #3a3a2a", borderRadius: 4, padding: "3px 6px", color: "#f0f0f0", fontSize: 12, textAlign: "center" }} />
+                                  </td>
+                                  <td style={{ textAlign: "center", padding: "8px", fontWeight: 600, color: isGoodCpa ? "#22c55e" : cpaAd > avgCpa * 1.3 ? "#ef4444" : "#a0a0a0" }}>
+                                    {ag > 0 ? cfmtMoney(cpaAd) : "-"}
+                                  </td>
+                                  <td style={{ textAlign: "center", padding: "8px", color: txConv > 0 ? "#f0f0f0" : "#606060" }}>
+                                    {ag > 0 ? cfmtPct(txConv) : "-"}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+
+              {/* Resumo comparativo + botão salvar */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #2e2e2e", paddingTop: 16, marginTop: 8 }}>
+                <div style={{ display: "flex", gap: 24, fontSize: 12 }}>
+                  <span style={{ color: "#a0a0a0" }}>Total: <strong style={{ color: "#f0f0f0" }}>{cfmtMoney(totalSpend)}</strong> investido</span>
+                  <span style={{ color: "#a0a0a0" }}><strong style={{ color: "#f0f0f0" }}>{cfmtNum(totalMsgs)}</strong> msgs</span>
+                  <span style={{ color: "#a0a0a0" }}><strong style={{ color: "#f0f0f0" }}>{cfmtNum(totalAgend)}</strong> agendamentos</span>
+                  {totalAgend > 0 && <span style={{ color: "#a0a0a0" }}>CPA médio: <strong style={{ color: "#f0f0f0" }}>{cfmtMoney(avgCpa)}</strong></span>}
+                </div>
+                <button onClick={salvarCriativos} disabled={saving} style={{
+                  background: "#29ABE2", color: "#fff", border: "none", borderRadius: 6,
+                  padding: "8px 20px", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                  opacity: saving ? 0.6 : 1,
+                }}>{saving ? "Salvando..." : "Salvar Agendamentos"}</button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

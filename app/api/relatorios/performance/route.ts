@@ -189,6 +189,88 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
+    // ─── Criativos: carregar dados Meta + agendamentos manuais ───
+    if (action === "criativos_carregar") {
+      const { relatorio_id, date_from, date_to } = body;
+      if (!relatorio_id) return NextResponse.json({ error: "relatorio_id obrigatório" }, { status: 400 });
+
+      const { data: rel } = await supabase.from("relatorios")
+        .select("*").eq("id", relatorio_id).single();
+      if (!rel) return NextResponse.json({ error: "Relatório não encontrado" }, { status: 404 });
+
+      const { data: con } = await supabase.from("relatorios_conexoes")
+        .select("meta_token").eq("agencia_id", rel.agencia_id)
+        .order("created_at", { ascending: false }).limit(1).single();
+      const token = rel.meta_token || con?.meta_token;
+
+      const desde = date_from || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0];
+      const ate = date_to || new Date().toISOString().split("T")[0];
+      const acId = rel.ad_account_id.startsWith("act_") ? rel.ad_account_id : `act_${rel.ad_account_id}`;
+
+      // Buscar criativos da Meta com breakdown por campanha
+      let criativos: any[] = [];
+      if (token) {
+        try {
+          const timeRange = `{"since":"${desde}","until":"${ate}"}`;
+          const adRes = await metaFetch(
+            `${META_API}/${acId}/insights?fields=ad_name,campaign_name,adset_name,impressions,clicks,spend,actions,ctr&level=ad&time_range=${timeRange}&limit=200`,
+            token
+          );
+          criativos = (adRes.data || []).map((a: any) => ({
+            ad_name: a.ad_name,
+            campaign_name: a.campaign_name,
+            adset_name: a.adset_name,
+            impressions: parseInt(a.impressions || "0"),
+            clicks: parseInt(a.clicks || "0"),
+            spend: parseFloat(a.spend || "0"),
+            mensagens: extractMensagens(a.actions),
+            ctr: parseFloat(a.ctr || "0"),
+          }));
+        } catch {}
+      }
+
+      // Buscar agendamentos manuais salvos
+      const { data: manuais } = await supabase.from("performance_criativos")
+        .select("*")
+        .eq("relatorio_id", relatorio_id)
+        .eq("periodo_inicio", desde);
+
+      // Merge
+      for (const c of criativos) {
+        const manual = manuais?.find(m => m.ad_name === c.ad_name);
+        c.agendamentos = manual?.agendamentos ?? 0;
+        c.id = manual?.id ?? null;
+      }
+
+      return NextResponse.json({ criativos, periodo: { desde, ate } });
+    }
+
+    // ─── Criativos: salvar agendamentos manuais ───
+    if (action === "criativos_salvar") {
+      const { relatorio_id, criativos, date_from, date_to } = body;
+      let { agencia_id } = body;
+      if (!relatorio_id || !criativos) return NextResponse.json({ error: "Dados incompletos" }, { status: 400 });
+
+      if (!agencia_id || agencia_id === "auto") {
+        const { data: rel } = await supabase.from("relatorios").select("agencia_id").eq("id", relatorio_id).single();
+        agencia_id = rel?.agencia_id;
+      }
+
+      for (const c of criativos) {
+        await supabase.from("performance_criativos").upsert({
+          agencia_id,
+          relatorio_id,
+          periodo_inicio: date_from,
+          periodo_fim: date_to,
+          ad_name: c.ad_name,
+          agendamentos: c.agendamentos || 0,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "agencia_id,relatorio_id,periodo_inicio,ad_name" });
+      }
+
+      return NextResponse.json({ ok: true });
+    }
+
     return NextResponse.json({ error: "action inválida" }, { status: 400 });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
