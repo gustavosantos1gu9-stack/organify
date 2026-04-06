@@ -1695,74 +1695,17 @@ const printCSS = `
     background: #ddd !important;
   }
 
-  /* ALL backgrounds to white */
-  .dashboard-root * {
-    color-adjust: exact !important;
+  /* Preservar cores exatas no print */
+  .dashboard-root *, .dashboard-root *::before, .dashboard-root *::after {
     -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
-  .dashboard-root div, .dashboard-root td, .dashboard-root th {
-    background-color: #fff !important;
-    border-color: #ddd !important;
+  /* Tabela: coluna sticky precisa de background explícito pra não ficar transparente */
+  .dashboard-root table td[style*="sticky"],
+  .dashboard-root table th[style*="sticky"] {
+    background: #1a1a1a !important;
   }
-
-  /* KPI colored cards — keep light tinted backgrounds */
-  .dashboard-root div[style*="rgba(34,197,94"] { background-color: #f0fdf4 !important; }
-  .dashboard-root div[style*="rgba(59,130,246"] { background-color: #eff6ff !important; }
-  .dashboard-root div[style*="rgba(245,158,11"] { background-color: #fffbeb !important; }
-  .dashboard-root div[style*="rgba(249,115,22"] { background-color: #fff7ed !important; }
-  .dashboard-root div[style*="rgba(139,92,246"] { background-color: #f5f3ff !important; }
-  .dashboard-root div[style*="rgba(41,171,226"] { background-color: #f0f9ff !important; }
-
-  /* Manual input cells — light yellow */
-  .dashboard-root td[style*="2a2a1a"], .dashboard-root td[style*="3a3a2a"] {
-    background-color: #fffff0 !important;
-  }
-
-  /* Tables */
-  .dashboard-root table th {
-    color: #444 !important;
-    background-color: #f8f8f8 !important;
-    border-bottom: 1px solid #ddd !important;
-  }
-
-  .dashboard-root table td {
-    color: #1a1a1a !important;
-    border-bottom: 1px solid #eee !important;
-  }
-
-  /* Total column */
-  .dashboard-root td[style*="rgba(41,171,226"] {
-    background-color: #f0f9ff !important;
-  }
-
-  /* Sticky label cells */
-  .dashboard-root td[style*="sticky"] {
-    background-color: #fff !important;
-  }
-
-  /* Text overrides */
-  .dashboard-root h1, .dashboard-root h2, .dashboard-root h3, .dashboard-root h4 { color: #1a1a1a !important; }
-  .dashboard-root p, .dashboard-root span, .dashboard-root label { color: #333 !important; }
-  .dashboard-root div[style*="fontWeight: 700"], .dashboard-root p[style*="fontWeight: 700"] { color: #1a1a1a !important; }
-
-  /* Funnel */
-  .dashboard-root div[style*="linear-gradient"] {
-    background: #3b82f6 !important;
-    -webkit-print-color-adjust: exact !important;
-  }
-  .dashboard-root div[style*="linear-gradient"] p { color: #fff !important; }
-
-  /* Chart axes */
-  .recharts-cartesian-axis-tick text { fill: #555 !important; }
-  .recharts-cartesian-axis-line { stroke: #ddd !important; }
-
-  /* Badge colors keep */
-  .dashboard-root span[style*="rgba(34,197,94"] { background-color: #dcfce7 !important; color: #16a34a !important; }
-  .dashboard-root span[style*="rgba(239,68,68"] { background-color: #fef2f2 !important; color: #dc2626 !important; }
-
-  /* Footer */
-  .dashboard-root > div:last-child { color: #999 !important; }
 
   @page {
     margin: 1cm;
