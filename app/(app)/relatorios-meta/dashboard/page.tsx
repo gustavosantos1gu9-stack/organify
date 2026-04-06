@@ -11,6 +11,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
+  LabelList,
 } from "recharts";
 
 /* ------------------------------------------------------------------ */
@@ -130,7 +131,7 @@ type SectionKey =
 const SECTION_LABELS: Record<SectionKey, string> = {
   kpis: "KPIs principais",
   desempenho: "Desempenho diário",
-  investimento: "Investimento diário",
+  investimento: "Perf. por Criativo",
   campanhas: "Campanhas",
   anuncios: "Anúncios",
   posicionamentos: "Posicionamentos",
@@ -508,6 +509,7 @@ function DashboardInner() {
                     {diario.map((_, i) => (
                       <Cell key={i} fill={BLUE} />
                     ))}
+                    <LabelList dataKey="mensagens" position="top" fill="#a0a0a0" fontSize={11} fontWeight={600} />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -516,48 +518,63 @@ function DashboardInner() {
         )}
 
         {/* ========================================================= */}
-        {/*  INVESTIMENTO DIÁRIO                                       */}
+        {/*  PERFORMANCE POR CRIATIVO                                  */}
         {/* ========================================================= */}
-        {sections.investimento && (
-          <div style={sectionCard}>
-            <div style={sectionHeaderRow}>
-              <h2 style={sectionTitle}>Investimento diário</h2>
-              <div style={sectionLine} />
+        {sections.investimento && anuncios.length > 0 && (() => {
+          const totalMsgs = anuncios.reduce((a, b) => a + b.mensagens, 0);
+          const totalAgendFromKpi = resumo.mensagens > 0 ? (resumo.mensagens * 0.3) : 0; // será substituído pelo real
+          // Ordenar por mensagens desc
+          const sorted = [...anuncios].filter(a => a.mensagens > 0 || a.spend > 0).sort((a, b) => b.mensagens - a.mensagens);
+          return (
+            <div style={sectionCard}>
+              <div style={sectionHeaderRow}>
+                <h2 style={sectionTitle}>Performance por Criativo</h2>
+                <div style={sectionLine} />
+              </div>
+              <p style={{ fontSize: 12, color: "#606060", margin: "0 0 16px" }}>
+                Mensagens, custo e eficiência por anúncio
+              </p>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: "1px solid #2e2e2e" }}>
+                      <th style={{ textAlign: "left", padding: "10px 12px", fontSize: 11, color: "#a0a0a0", fontWeight: 600 }}>Criativo</th>
+                      <th style={{ textAlign: "center", padding: "10px 8px", fontSize: 11, color: "#a0a0a0", fontWeight: 600 }}>Investido</th>
+                      <th style={{ textAlign: "center", padding: "10px 8px", fontSize: 11, color: "#a0a0a0", fontWeight: 600 }}>Msgs</th>
+                      <th style={{ textAlign: "center", padding: "10px 8px", fontSize: 11, color: "#a0a0a0", fontWeight: 600 }}>CPL</th>
+                      <th style={{ textAlign: "center", padding: "10px 8px", fontSize: 11, color: "#a0a0a0", fontWeight: 600 }}>% Msgs</th>
+                      <th style={{ textAlign: "center", padding: "10px 8px", fontSize: 11, color: "#a0a0a0", fontWeight: 600 }}>CTR</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sorted.map((ad, i) => {
+                      const cplAd = ad.mensagens > 0 ? ad.spend / ad.mensagens : 0;
+                      const pctMsgs = totalMsgs > 0 ? (ad.mensagens / totalMsgs) * 100 : 0;
+                      // Eficiência: CPL mais baixo = melhor
+                      const avgCpl = totalMsgs > 0 ? sorted.reduce((a, b) => a + b.spend, 0) / totalMsgs : 0;
+                      const isEfficient = cplAd > 0 && cplAd < avgCpl;
+                      return (
+                        <tr key={i} style={{ borderBottom: "1px solid #1e1e1e" }}>
+                          <td style={{ padding: "10px 12px", color: "#f0f0f0", maxWidth: 250, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {ad.name}
+                            {isEfficient && <span style={{ marginLeft: 6, fontSize: 9, padding: "1px 5px", borderRadius: 4, background: "rgba(34,197,94,0.15)", color: "#22c55e", fontWeight: 600 }}>Eficiente</span>}
+                          </td>
+                          <td style={{ textAlign: "center", padding: "10px 8px", color: "#a0a0a0" }}>{fmtMoney(ad.spend)}</td>
+                          <td style={{ textAlign: "center", padding: "10px 8px", color: "#f0f0f0", fontWeight: 600 }}>{fmtNum(ad.mensagens)}</td>
+                          <td style={{ textAlign: "center", padding: "10px 8px", color: cplAd > 0 && cplAd < avgCpl ? "#22c55e" : cplAd > avgCpl * 1.3 ? "#ef4444" : "#a0a0a0", fontWeight: 600 }}>
+                            {fmtMoney(cplAd)}
+                          </td>
+                          <td style={{ textAlign: "center", padding: "10px 8px", color: "#a0a0a0" }}>{pctMsgs.toFixed(1)}%</td>
+                          <td style={{ textAlign: "center", padding: "10px 8px", color: "#a0a0a0" }}>{ad.ctr?.toFixed(2)}%</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
-            <p style={{ fontSize: 12, color: "#606060", margin: "0 0 16px" }}>
-              Valor investido por dia (R$)
-            </p>
-            <div style={{ width: "100%", height: 300 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={diario} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                  <XAxis
-                    dataKey="date"
-                    tickFormatter={fmtDateShort}
-                    tick={{ fill: "#a0a0a0", fontSize: 11 }}
-                    axisLine={{ stroke: "#2e2e2e" }}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    tick={{ fill: "#a0a0a0", fontSize: 11 }}
-                    axisLine={{ stroke: "#2e2e2e" }}
-                    tickLine={false}
-                    tickFormatter={(v: number) => `R$${v.toFixed(0)}`}
-                  />
-                  <Tooltip
-                    contentStyle={tooltipStyle}
-                    labelFormatter={fmtDate}
-                    formatter={(value: number) => [fmtMoney(value), "Investimento"]}
-                  />
-                  <Bar dataKey="spend" radius={[4, 4, 0, 0]}>
-                    {diario.map((_, i) => (
-                      <Cell key={i} fill={AMBER} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ========================================================= */}
         {/*  CAMPANHAS                                                 */}
