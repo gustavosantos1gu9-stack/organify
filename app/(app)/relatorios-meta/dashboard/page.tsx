@@ -1013,9 +1013,15 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
                       {row.label}
                       {isManual && <span style={{ marginLeft: 4, fontSize: 9, color: "#7a7a3a" }}>●</span>}
                     </td>
-                    {semanas.map(s => {
+                    {semanas.map((s, si) => {
                       const ed = editando[s.semana_inicio] || {} as any;
                       const val = row.getValue(ed);
+                      const weekPct = si > 0 && row.field ? getWeekPct(si, row.field) : null;
+                      const weekBadge = weekPct !== null && isFinite(weekPct) && Math.abs(weekPct) >= 0.1 ? (
+                        <div style={{ fontSize: 9, fontWeight: 600, marginTop: 2, color: (row.inverted ? weekPct < 0 : weekPct > 0) ? "#22c55e" : (row.inverted ? weekPct > 0 : weekPct < 0) ? "#ef4444" : "#888" }}>
+                          {weekPct > 0 ? "+" : ""}{weekPct.toFixed(0)}%
+                        </div>
+                      ) : null;
                       if (isManual && row.field) {
                         return (
                           <td key={s.semana_inicio} style={{ textAlign: "center", padding: "6px 4px", ...manualCellBg }}>
@@ -1028,12 +1034,25 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
                               className="no-print"
                             />
                             <span className="print-only" style={{ display: "none" }}>{row.format(val)}</span>
+                            {weekBadge}
                           </td>
                         );
                       }
+                      // Auto rows: calcular % comparando com semana anterior
+                      const autoWeekPct = si > 0 ? (() => {
+                        const prevEd = editando[semanas[si - 1].semana_inicio] || {} as any;
+                        const prevVal = row.getValue(prevEd);
+                        return prevVal > 0 ? ((val - prevVal) / prevVal) * 100 : val > 0 ? 100 : 0;
+                      })() : null;
+                      const autoBadge = autoWeekPct !== null && isFinite(autoWeekPct) && Math.abs(autoWeekPct) >= 0.1 ? (
+                        <div style={{ fontSize: 9, fontWeight: 600, marginTop: 2, color: (row.inverted ? autoWeekPct < 0 : autoWeekPct > 0) ? "#22c55e" : (row.inverted ? autoWeekPct > 0 : autoWeekPct < 0) ? "#ef4444" : "#888" }}>
+                          {autoWeekPct > 0 ? "+" : ""}{autoWeekPct.toFixed(0)}%
+                        </div>
+                      ) : null;
                       return (
                         <td key={s.semana_inicio} style={autoCellStyle}>
                           {row.format(val)}
+                          {autoBadge}
                         </td>
                       );
                     })}
