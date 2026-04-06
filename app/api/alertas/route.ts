@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     if (action === "check_account") {
       const acId = ad_account_id.startsWith("act_") ? ad_account_id : `act_${ad_account_id}`;
       const res = await fetch(
-        `${META_API}/${acId}?fields=name,balance,currency,account_status,funding_source_details{type,display_string}`,
+        `${META_API}/${acId}?fields=name,spend_cap,amount_spent,balance,currency,account_status,funding_source_details{type,display_string}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (!res.ok) {
@@ -25,7 +25,13 @@ export async function POST(req: NextRequest) {
       }
       const data = await res.json();
 
-      const balance = data.balance ? parseFloat(data.balance) / 100 : 0;
+      // Saldo disponível = spend_cap - amount_spent (fundos restantes)
+      // Se não tem spend_cap, usar balance (valor absoluto para prepaid)
+      const spendCap = data.spend_cap ? parseFloat(data.spend_cap) / 100 : 0;
+      const amountSpent = data.amount_spent ? parseFloat(data.amount_spent) / 100 : 0;
+      const balance = spendCap > 0
+        ? spendCap - amountSpent
+        : Math.abs(data.balance ? parseFloat(data.balance) / 100 : 0);
       const statusMap: Record<number, string> = {
         1: "Ativa", 2: "Desativada", 3: "Não liquidada", 7: "Em revisão",
         8: "Liquidação pendente", 9: "Em período de carência", 100: "Fechamento pendente", 101: "Fechada",

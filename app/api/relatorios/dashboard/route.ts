@@ -176,7 +176,7 @@ export async function POST(req: NextRequest) {
       ),
       // 7. Account balance
       metaFetch(
-        `${META_API}/${acId}?fields=balance,currency,name`,
+        `${META_API}/${acId}?fields=spend_cap,amount_spent,balance,currency,name`,
         token
       ),
     ]);
@@ -245,7 +245,12 @@ export async function POST(req: NextRequest) {
     }));
 
     // Account info
-    const balance = accountInfo.balance ? (parseFloat(accountInfo.balance) / 100) : 0;
+    // Saldo disponível = spend_cap - amount_spent (fundos restantes)
+    const spendCap = accountInfo.spend_cap ? parseFloat(accountInfo.spend_cap) / 100 : 0;
+    const amountSpent2 = accountInfo.amount_spent ? parseFloat(accountInfo.amount_spent) / 100 : 0;
+    const balance = spendCap > 0
+      ? spendCap - amountSpent2
+      : Math.abs(accountInfo.balance ? parseFloat(accountInfo.balance) / 100 : 0);
     const accountName = accountInfo.name || nomeCliente;
     const currency = accountInfo.currency || "BRL";
 

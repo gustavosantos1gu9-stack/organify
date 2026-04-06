@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
         token
       ),
       metaFetch(
-        `${META_API}/${acId}?fields=balance,currency,name`,
+        `${META_API}/${acId}?fields=spend_cap,amount_spent,balance,currency,name`,
         token
       ),
     ]);
@@ -155,7 +155,12 @@ export async function POST(req: NextRequest) {
     const convClickMsg = clicks > 0 ? ((parseInt(String(conversas)) / parseInt(String(clicks))) * 100) : 0;
 
     // Saldo
-    const balance = saldoRes.balance ? (parseFloat(saldoRes.balance) / 100) : 0;
+    // Saldo disponível = spend_cap - amount_spent (fundos restantes)
+    const spendCap = saldoRes.spend_cap ? parseFloat(saldoRes.spend_cap) / 100 : 0;
+    const amountSpent2 = saldoRes.amount_spent ? parseFloat(saldoRes.amount_spent) / 100 : 0;
+    const balance = spendCap > 0
+      ? spendCap - amountSpent2
+      : Math.abs(saldoRes.balance ? parseFloat(saldoRes.balance) / 100 : 0);
 
     // Top 3 criativos
     let top3Text = "";

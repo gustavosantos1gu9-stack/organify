@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
         // Checar saldo na Meta
         const acId = alerta.ad_account_id.startsWith("act_") ? alerta.ad_account_id : `act_${alerta.ad_account_id}`;
         const res = await fetch(
-          `${META_API}/${acId}?fields=balance,account_status,name`,
+          `${META_API}/${acId}?fields=spend_cap,amount_spent,balance,account_status,name`,
           { headers: { Authorization: `Bearer ${con.meta_token}` } }
         );
 
@@ -58,7 +58,13 @@ export async function GET(req: NextRequest) {
         }
 
         const meta = await res.json();
-        const balance = meta.balance ? parseFloat(meta.balance) / 100 : 0;
+        // Saldo disponível = spend_cap - amount_spent (fundos restantes)
+        // Se não tem spend_cap, usar balance (valor absoluto para prepaid)
+        const spendCap = meta.spend_cap ? parseFloat(meta.spend_cap) / 100 : 0;
+        const amountSpent = meta.amount_spent ? parseFloat(meta.amount_spent) / 100 : 0;
+        const balance = spendCap > 0
+          ? spendCap - amountSpent
+          : Math.abs(meta.balance ? parseFloat(meta.balance) / 100 : 0);
 
         // Verificar status da conta
         const statusMap: Record<number, string> = {
