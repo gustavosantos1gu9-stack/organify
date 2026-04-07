@@ -17,6 +17,12 @@ interface ContratoPayload {
   data_vencimento: string;
 }
 
+// Remove emojis e caracteres fora do WinAnsi (Latin-1) que o pdf-lib não suporta
+function sanitizarTexto(texto: string): string {
+  // eslint-disable-next-line no-control-regex
+  return texto.replace(/[^\x00-\xFF]/g, "").trim();
+}
+
 function gerarClausulaSexta(modalidade: string, valor: string, dataVencimento: string): string {
   const valorFormatado = valor;
   if (modalidade === "trimestral") {
@@ -332,7 +338,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Nome e valor são obrigatórios" }, { status: 400 });
     }
 
-    const texto = gerarTextoContrato(body);
+    // Sanitizar campos para remover emojis que WinAnsi não suporta
+    const sanitized: ContratoPayload = {
+      ...body,
+      nome: sanitizarTexto(body.nome),
+      email: body.email,
+      cnpj: sanitizarTexto(body.cnpj),
+      cpf: sanitizarTexto(body.cpf),
+      rg: sanitizarTexto(body.rg),
+      endereco_empresa: sanitizarTexto(body.endereco_empresa),
+      endereco_pessoal: sanitizarTexto(body.endereco_pessoal),
+      valor: sanitizarTexto(body.valor),
+      data_vencimento: sanitizarTexto(body.data_vencimento),
+    };
+
+    const texto = gerarTextoContrato(sanitized);
     const pdfBytes = await gerarPDF(texto);
 
     const nomeDoc = `Contrato - ${body.nome}`;
