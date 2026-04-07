@@ -65,13 +65,22 @@ export async function dispararEventoMeta(data: MetaEventData): Promise<{ ok: boo
     if (utm_campaign) customData.utm_campaign = utm_campaign;
     if (utm_content) customData.utm_content = utm_content;
 
+    // Se tem fbclid de CTWA (Click-to-WhatsApp), usar action_source "messaging"
+    const isMessaging = !!fbclid;
     const eventData: Record<string, any> = {
       event_name,
       event_time: Math.floor(Date.now() / 1000),
-      action_source: "website",
-      event_source_url: source_url || "https://salxconvert-blond.vercel.app/",
+      action_source: isMessaging ? "messaging" : "website",
       user_data: userData,
     };
+    // event_source_url só é necessário para action_source "website"
+    if (!isMessaging) {
+      eventData.event_source_url = source_url || "https://salxconvert-blond.vercel.app/";
+    }
+    // messaging_channel obrigatório para action_source "messaging"
+    if (isMessaging) {
+      eventData.messaging_channel = "whatsapp";
+    }
 
     if (Object.keys(customData).length > 0) {
       eventData.custom_data = customData;
