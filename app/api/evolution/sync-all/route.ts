@@ -232,7 +232,7 @@ async function syncConversa(agencia: any, jid: string, info: any) {
   if (primeiraMsgAt || info.primeiraAt) conversaData.primeira_mensagem_at = primeiraMsgAt || info.primeiraAt;
 
   if (!conversa) {
-    const { data: nova } = await supabase.from("conversas").insert({
+    const { data: nova, error: insertErr } = await supabase.from("conversas").insert({
       agencia_id: agencia.id, instancia: INST,
       contato_numero: numeroFinal, contato_nome: nome || numeroFinal,
       contato_foto: info.foto, contato_jid: jid,
@@ -241,7 +241,14 @@ async function syncConversa(agencia: any, jid: string, info: any) {
       primeira_mensagem_at: primeiraMsgAt || info.primeiraAt,
       nao_lidas: info.naoLidas || 0,
     }).select("id").single();
-    conversa = nova;
+    if (insertErr) {
+      // Duplicata (race condition) — buscar existente
+      const { data: existente } = await supabase.from("conversas")
+        .select("id").eq("agencia_id", agencia.id).eq("contato_numero", numeroFinal).single();
+      conversa = existente;
+    } else {
+      conversa = nova;
+    }
   } else {
     await supabase.from("conversas").update(conversaData).eq("id", conversa.id);
   }

@@ -98,16 +98,22 @@ export default function InboxDashboardPage() {
     load();
   }, []);
 
+  // Converter timestamp para data local YYYY-MM-DD
+  const toLocalDate = (iso: string) => {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  };
+
   // Filter by period — conversas criadas no período
   const cf = conversas.filter((c) => {
-    const d = c.created_at.split("T")[0];
+    const d = toLocalDate(c.created_at);
     return d >= from && d <= to;
   });
 
   // Transições de etapa que aconteceram no período (do histórico)
   // Deduplicar: só 1 transição por conversa por etapa (a mais recente)
   const transicoesRaw = historico.filter((h) => {
-    const d = h.created_at.split("T")[0];
+    const d = toLocalDate(h.created_at);
     return d >= from && d <= to;
   });
   const dedup = new Map<string, typeof transicoesRaw[0]>();
