@@ -120,7 +120,7 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, eta
     try {
       const pixelRes = await fetch("/api/pixel", {
         method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ agencia_id:agId, conversa_id:conversa.id, etapa_nome:novaEtapa, phone:conversa.contato_numero, fbclid:editDados.fbclid||conversa.fbclid, utm_campaign:editDados.utm_campaign||conversa.utm_campaign, utm_content:editDados.utm_content||conversa.utm_content }),
+        body: JSON.stringify({ agencia_id:agId, conversa_id:conversa.id, etapa_nome:novaEtapa, phone:conversa.contato_numero, fbclid:editDados.fbclid||conversa.fbclid, utm_campaign:editDados.utm_campaign||conversa.utm_campaign, utm_content:editDados.utm_content||conversa.utm_content, is_ctwa: conversa.contato_jid?.includes("@lid") || false }),
       });
       const pixelData = await pixelRes.json();
       if (!pixelData.ok) console.warn("Pixel:", pixelData.motivo || pixelData.error);

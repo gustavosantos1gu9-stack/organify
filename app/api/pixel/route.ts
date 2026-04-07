@@ -9,7 +9,7 @@ const supabase = createClient(
 
 export async function POST(req: NextRequest) {
   try {
-    const { agencia_id, conversa_id, etapa_nome, phone, fbclid, utm_campaign, utm_content, valor } = await req.json();
+    const { agencia_id, conversa_id, etapa_nome, phone, fbclid, utm_campaign, utm_content, valor, is_ctwa } = await req.json();
 
     if (!agencia_id || !etapa_nome) {
       return NextResponse.json({ ok: false, motivo: "agencia_id e etapa_nome são obrigatórios" });
@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
       utm_content,
       valor: valor || etapa.valor_padrao || undefined,
       external_id: conversa_id ? `${conversa_id}_${etapa.evento_conversao}` : undefined,
+      is_ctwa: is_ctwa || false,
     });
 
     // Salvar log do disparo com mais detalhes

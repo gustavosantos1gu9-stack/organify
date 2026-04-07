@@ -8,7 +8,7 @@ const supabase = createClient(
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://salxconvert-blond.vercel.app";
 
-async function verificarTermoChave(agenciaId: string, conversaId: string, conteudo: string, numero: string, fbclid?: string, utmCampaign?: string, utmContent?: string) {
+async function verificarTermoChave(agenciaId: string, conversaId: string, conteudo: string, numero: string, fbclid?: string, utmCampaign?: string, utmContent?: string, isCTWA?: boolean) {
   const { data: etapas } = await supabase.from("jornada_etapas")
     .select("nome, termo_chave, evento_conversao")
     .eq("agencia_id", agenciaId)
@@ -49,6 +49,7 @@ async function verificarTermoChave(agenciaId: string, conversaId: string, conteu
         etapa_nome: etapaEncontrada.nome,
         phone: numero,
         fbclid, utm_campaign: utmCampaign, utm_content: utmContent,
+        is_ctwa: isCTWA || false,
       }),
     }).catch(() => {});
   }
@@ -138,7 +139,7 @@ export async function POST(req: NextRequest) {
           .select("id").eq("whatsapp_instancia", instanciaName).single();
         if (ag) {
           const { data: conv } = await supabase.from("conversas")
-            .select("id, fbclid, utm_campaign, utm_content")
+            .select("id, fbclid, utm_campaign, utm_content, contato_jid, origem")
             .eq("agencia_id", ag.id).eq("contato_numero", numero).single();
           if (conv) {
             if (msgId && conteudo) {
@@ -151,7 +152,8 @@ export async function POST(req: NextRequest) {
               }).eq("id", conv.id);
             }
             if (conteudo) {
-              await verificarTermoChave(ag.id, conv.id, conteudo, numero, conv.fbclid, conv.utm_campaign, conv.utm_content);
+              const convIsCTWA = conv.contato_jid?.includes("@lid") || false;
+              await verificarTermoChave(ag.id, conv.id, conteudo, numero, conv.fbclid, conv.utm_campaign, conv.utm_content, convIsCTWA);
             }
           }
         }
@@ -563,7 +565,8 @@ export async function POST(req: NextRequest) {
       // Verificar termo-chave na mensagem do lead
       await verificarTermoChave(
         agencia.id, conversa.id, conteudo, numero,
-        conversa.fbclid || tracking?.fbclid, conversa.utm_campaign || tracking?.utm_campaign, conversa.utm_content || tracking?.utm_content
+        conversa.fbclid || tracking?.fbclid, conversa.utm_campaign || tracking?.utm_campaign, conversa.utm_content || tracking?.utm_content,
+        _isCTWA || isLid
       );
 
       // Disparar pixel se veio de anúncio (SOMENTE na primeira mensagem da conversa)
@@ -585,6 +588,7 @@ export async function POST(req: NextRequest) {
             fbclid: tracking?.fbclid,
             utm_campaign: tracking?.utm_campaign,
             utm_content: tracking?.utm_content,
+            is_ctwa: _isCTWA || isLid,
           }),
         }).catch(() => {});
       }

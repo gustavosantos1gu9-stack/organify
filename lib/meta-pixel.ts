@@ -12,6 +12,7 @@ interface MetaEventData {
   valor?: number;
   moeda?: string;
   external_id?: string;
+  is_ctwa?: boolean; // true = Click-to-WhatsApp (campanha de mensagens), false = website/conversão
 }
 
 async function sha256(text: string): Promise<string> {
@@ -23,7 +24,7 @@ async function sha256(text: string): Promise<string> {
 
 export async function dispararEventoMeta(data: MetaEventData): Promise<{ ok: boolean; error?: string; response?: any }> {
   try {
-    const { pixel_id, access_token, event_name, phone, email, fbclid, utm_campaign, utm_content, source_url, valor, moeda, external_id } = data;
+    const { pixel_id, access_token, event_name, phone, email, fbclid, utm_campaign, utm_content, source_url, valor, moeda, external_id, is_ctwa } = data;
 
     if (!pixel_id || !access_token) return { ok: false, error: "Pixel ID ou token não configurado" };
 
@@ -65,21 +66,18 @@ export async function dispararEventoMeta(data: MetaEventData): Promise<{ ok: boo
     if (utm_campaign) customData.utm_campaign = utm_campaign;
     if (utm_content) customData.utm_content = utm_content;
 
-    // Se tem fbclid de CTWA (Click-to-WhatsApp), usar action_source "messaging"
-    const isMessaging = !!fbclid;
+    // CTWA (Click-to-WhatsApp) = action_source "messaging"
+    // Website/Conversão = action_source "website"
     const eventData: Record<string, any> = {
       event_name,
       event_time: Math.floor(Date.now() / 1000),
-      action_source: isMessaging ? "messaging" : "website",
+      action_source: is_ctwa ? "messaging" : "website",
       user_data: userData,
     };
-    // event_source_url só é necessário para action_source "website"
-    if (!isMessaging) {
-      eventData.event_source_url = source_url || "https://salxconvert-blond.vercel.app/";
-    }
-    // messaging_channel obrigatório para action_source "messaging"
-    if (isMessaging) {
+    if (is_ctwa) {
       eventData.messaging_channel = "whatsapp";
+    } else {
+      eventData.event_source_url = source_url || "https://salxconvert-blond.vercel.app/";
     }
 
     if (Object.keys(customData).length > 0) {
