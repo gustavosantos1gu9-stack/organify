@@ -302,6 +302,86 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, eta
   );
 }
 
+// Componente de mídia (imagem/áudio/vídeo/documento)
+function MidiaMsg({ msg, conversa }: { msg: Mensagem; conversa: Conversa }) {
+  const [media, setMedia] = useState<string|null>(null);
+  const [mime, setMime] = useState<string>("");
+  const [loading, setLoading] = useState(false);
+  const [erro, setErro] = useState(false);
+
+  const carregar = async () => {
+    if (media || loading) return;
+    setLoading(true);
+    try {
+      const agId = await getAgenciaId();
+      const { data: ag } = await supabase.from("agencias").select("whatsapp_instancia").eq("id", agId!).single();
+      const res = await fetch("/api/evolution/midia", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mensagem_id: msg.mensagem_id, instancia: ag?.whatsapp_instancia, agencia_id: agId }),
+      });
+      const data = await res.json();
+      if (data?.base64) {
+        setMedia(data.base64);
+        setMime(data.mimetype || data.mimeType || "");
+      } else { setErro(true); }
+    } catch { setErro(true); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { carregar(); }, []);
+
+  const corTexto = msg.de_mim ? "#000" : "#f0f0f0";
+
+  if (erro) return <p style={{ fontSize:"12px", color:"#606060", margin:0, fontStyle:"italic" }}>{msg.conteudo}</p>;
+  if (loading) return <p style={{ fontSize:"12px", color:"#606060", margin:0 }}>Carregando mídia...</p>;
+
+  if (msg.tipo === "image" && media) {
+    const src = media.startsWith("data:") ? media : `data:${mime || "image/jpeg"};base64,${media}`;
+    return (
+      <div>
+        <img src={src} alt="imagem" style={{ maxWidth:"100%", maxHeight:"280px", borderRadius:"8px", cursor:"pointer" }}
+          onClick={() => window.open(src, "_blank")} />
+        {msg.conteudo && msg.conteudo !== "📷 Imagem" && (
+          <p style={{ fontSize:"13px", color:corTexto, margin:"6px 0 0", whiteSpace:"pre-wrap" }}>{msg.conteudo}</p>
+        )}
+      </div>
+    );
+  }
+
+  if (msg.tipo === "audio" && media) {
+    const src = media.startsWith("data:") ? media : `data:${mime || "audio/ogg"};base64,${media}`;
+    return <audio controls src={src} style={{ maxWidth:"100%" }} />;
+  }
+
+  if (msg.tipo === "video" && media) {
+    const src = media.startsWith("data:") ? media : `data:${mime || "video/mp4"};base64,${media}`;
+    return (
+      <div>
+        <video controls src={src} style={{ maxWidth:"100%", maxHeight:"280px", borderRadius:"8px" }} />
+        {msg.conteudo && msg.conteudo !== "🎥 Vídeo" && (
+          <p style={{ fontSize:"13px", color:corTexto, margin:"6px 0 0", whiteSpace:"pre-wrap" }}>{msg.conteudo}</p>
+        )}
+      </div>
+    );
+  }
+
+  if (msg.tipo === "sticker" && media) {
+    const src = media.startsWith("data:") ? media : `data:${mime || "image/webp"};base64,${media}`;
+    return <img src={src} alt="sticker" style={{ maxWidth:"150px", maxHeight:"150px" }} />;
+  }
+
+  if (msg.tipo === "document" && media) {
+    const src = media.startsWith("data:") ? media : `data:${mime || "application/pdf"};base64,${media}`;
+    return (
+      <a href={src} download={msg.conteudo || "documento"} style={{ color:"#29ABE2", fontSize:"13px", textDecoration:"underline" }}>
+        📄 {msg.conteudo || "Documento"}
+      </a>
+    );
+  }
+
+  return <p style={{ fontSize:"13px", color:corTexto, margin:0, whiteSpace:"pre-wrap" }}>{msg.conteudo}</p>;
+}
+
 // Chat lateral
 function ChatLateral({ conversa, onClose }: { conversa: Conversa; onClose:()=>void }) {
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
@@ -441,7 +521,11 @@ function ChatLateral({ conversa, onClose }: { conversa: Conversa; onClose:()=>vo
                 {group.msgs.map(m=>(
                   <div key={m.id} style={{ display:"flex",justifyContent:m.de_mim?"flex-end":"flex-start" }}>
                     <div style={{ maxWidth:"80%",background:m.de_mim?"#29ABE2":"#1e1e1e",borderRadius:m.de_mim?"12px 12px 2px 12px":"12px 12px 12px 2px",padding:"8px 12px" }}>
-                      <p style={{ fontSize:"13px",color:m.de_mim?"#000":"#f0f0f0",margin:0,whiteSpace:"pre-wrap" }}>{m.conteudo}</p>
+                      {m.tipo && m.tipo !== "text" ? (
+                        <MidiaMsg msg={m} conversa={conversa} />
+                      ) : (
+                        <p style={{ fontSize:"13px",color:m.de_mim?"#000":"#f0f0f0",margin:0,whiteSpace:"pre-wrap" }}>{m.conteudo}</p>
+                      )}
                       <p style={{ fontSize:"10px",color:m.de_mim?"rgba(0,0,0,0.5)":"#606060",margin:"3px 0 0",textAlign:"right" }}>
                         {new Date(m.created_at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}
                       </p>
