@@ -43,12 +43,15 @@ export async function POST(req: NextRequest) {
     // ─── Ações ─────────────────────────────────────────────────
 
     if (action === "listar_contas") {
-      // Listar todas as contas de anúncio acessíveis pelo token
-      const data = await metaFetch(
-        `${META_API}/me/adaccounts?fields=id,name,account_status,currency,balance,spend_cap,amount_spent&limit=100`,
-        accessToken
-      );
-      return NextResponse.json(data.data || []);
+      // Listar todas as contas de anúncio acessíveis pelo token (com paginação)
+      const todas: any[] = [];
+      let url: string | null = `${META_API}/me/adaccounts?fields=id,name,account_status,currency,balance,spend_cap,amount_spent&limit=500`;
+      while (url) {
+        const data = await metaFetch(url, accessToken);
+        if (data.data) todas.push(...data.data);
+        url = data.paging?.next || null;
+      }
+      return NextResponse.json(todas);
     }
 
     if (action === "insights") {
