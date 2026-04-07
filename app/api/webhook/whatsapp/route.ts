@@ -566,11 +566,11 @@ export async function POST(req: NextRequest) {
         conversa.fbclid || tracking?.fbclid, conversa.utm_campaign || tracking?.utm_campaign, conversa.utm_content || tracking?.utm_content
       );
 
-      // Disparar pixel se veio de anúncio
+      // Disparar pixel se veio de anúncio (SOMENTE na primeira mensagem da conversa)
       const veioDeAnuncio = tracking?.fbclid || tracking?.utm_source ||
         tracking?.origem === "Meta Ads" || tracking?.origem === "Google Ads";
 
-      if (veioDeAnuncio) {
+      if (veioDeAnuncio && eraNovaConversa) {
         const { data: etapaPrimeiro } = await supabase.from("jornada_etapas")
           .select("nome").eq("agencia_id", agencia.id).eq("eh_primeiro_contato", true).single();
         const nomeEtapa = etapaPrimeiro?.nome || "Entrou em contato";
