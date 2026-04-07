@@ -139,6 +139,8 @@ export default function RelatoriosMetaPage() {
   const [horarioEnvio, setHorarioEnvio] = useState("17:30");
   const [diaSemana, setDiaSemana] = useState(1);
   const [destinoTipo, setDestinoTipo] = useState<"grupo" | "contato">("grupo");
+  const [buscaConta, setBuscaConta] = useState("");
+  const [buscaGrupo, setBuscaGrupo] = useState("");
   const [salvando, setSalvando] = useState(false);
 
   // Preview
@@ -587,19 +589,23 @@ export default function RelatoriosMetaPage() {
                   <p style={{ fontSize: "11px", color: "#606060", marginTop: "4px" }}>Nenhuma conta encontrada. Verifique a conexão em <a href="/relatorios-meta/conexoes" style={{ color: "#29ABE2" }}>Conexões</a>.</p>
                 </div>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px", maxHeight: "180px", overflowY: "auto" }}>
-                  {contas.map(c => (
-                    <button key={c.id} onClick={() => setAdAccountId(c.id)}
-                      style={{
-                        display: "flex", justifyContent: "space-between", alignItems: "center",
-                        padding: "10px 14px", background: adAccountId === c.id ? "rgba(41,171,226,0.1)" : "#1a1a1a",
-                        border: `1px solid ${adAccountId === c.id ? "#29ABE2" : "#2e2e2e"}`,
-                        borderRadius: "8px", cursor: "pointer", textAlign: "left", color: "#f0f0f0", fontSize: "12px",
-                      }}>
-                      <span style={{ fontWeight: adAccountId === c.id ? "600" : "400" }}>{c.name}</span>
-                      <span style={{ color: "#606060", fontSize: "11px" }}>{c.id}</span>
-                    </button>
-                  ))}
+                <div>
+                  <input className="form-input" placeholder="Pesquisar conta..." value={buscaConta} onChange={e => setBuscaConta(e.target.value)}
+                    style={{ marginBottom: "8px" }} />
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px", maxHeight: "180px", overflowY: "auto" }}>
+                    {contas.filter(c => c.name.toLowerCase().includes(buscaConta.toLowerCase()) || c.id.includes(buscaConta)).map(c => (
+                      <button key={c.id} onClick={() => setAdAccountId(c.id)}
+                        style={{
+                          display: "flex", justifyContent: "space-between", alignItems: "center",
+                          padding: "10px 14px", background: adAccountId === c.id ? "rgba(41,171,226,0.1)" : "#1a1a1a",
+                          border: `1px solid ${adAccountId === c.id ? "#29ABE2" : "#2e2e2e"}`,
+                          borderRadius: "8px", cursor: "pointer", textAlign: "left", color: "#f0f0f0", fontSize: "12px",
+                        }}>
+                        <span style={{ fontWeight: adAccountId === c.id ? "600" : "400" }}>{c.name}</span>
+                        <span style={{ color: "#606060", fontSize: "11px" }}>{c.id}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -637,19 +643,23 @@ export default function RelatoriosMetaPage() {
                     )}
                   </div>
                 ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "4px", maxHeight: "180px", overflowY: "auto" }}>
-                    {grupos.map(g => (
-                      <button key={g.id} onClick={() => { setGrupoId(g.id); setGrupoNome(g.subject); }}
-                        style={{
-                          display: "flex", justifyContent: "space-between", padding: "10px 14px",
-                          background: grupoId === g.id ? "rgba(41,171,226,0.1)" : "#1a1a1a",
-                          border: `1px solid ${grupoId === g.id ? "#29ABE2" : "#2e2e2e"}`,
-                          borderRadius: "8px", cursor: "pointer", textAlign: "left", color: "#f0f0f0", fontSize: "12px",
-                        }}>
-                        <span style={{ fontWeight: grupoId === g.id ? "600" : "400" }}>{g.subject}</span>
-                        <span style={{ color: "#606060", fontSize: "11px" }}>{g.size} membros</span>
-                      </button>
-                    ))}
+                  <div>
+                    <input className="form-input" placeholder="Pesquisar grupo..." value={buscaGrupo} onChange={e => setBuscaGrupo(e.target.value)}
+                      style={{ marginBottom: "8px" }} />
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px", maxHeight: "180px", overflowY: "auto" }}>
+                      {grupos.filter(g => g.subject.toLowerCase().includes(buscaGrupo.toLowerCase())).map(g => (
+                        <button key={g.id} onClick={() => { setGrupoId(g.id); setGrupoNome(g.subject); }}
+                          style={{
+                            display: "flex", justifyContent: "space-between", padding: "10px 14px",
+                            background: grupoId === g.id ? "rgba(41,171,226,0.1)" : "#1a1a1a",
+                            border: `1px solid ${grupoId === g.id ? "#29ABE2" : "#2e2e2e"}`,
+                            borderRadius: "8px", cursor: "pointer", textAlign: "left", color: "#f0f0f0", fontSize: "12px",
+                          }}>
+                          <span style={{ fontWeight: grupoId === g.id ? "600" : "400" }}>{g.subject}</span>
+                          <span style={{ color: "#606060", fontSize: "11px" }}>{g.size} membros</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )
               ) : (
