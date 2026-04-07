@@ -50,10 +50,15 @@ export default function ModalNovoCliente({ agId, cadastros, onClose, onSave }: P
     setSalvando(true);
     setErro("");
     try {
+      // Descobrir próxima ordem (sempre no final da lista)
+      const { data: maxOrdem } = await supabase.from("controle_clientes").select("ordem").eq("agencia_id", agId).order("ordem", { ascending: false }).limit(1).single();
+      const proximaOrdem = (maxOrdem?.ordem || 0) + 1;
+
       const { error } = await supabase.from("controle_clientes").insert({
         agencia_id: agId,
         nome: nome.trim(),
         status: "entrada",
+        ordem: proximaOrdem,
         data_entrada: dataEntrada,
         faturamento_medio: faturamento,
         investimento_mensal: Number(investimento.replace(/\D/g,"")) || 0,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, RefreshCw, ChevronDown, ChevronRight, MessageSquare, X, Send, Check, UserCircle2, Pencil, Trash2, Plus, FileText } from "lucide-react";
+import { Search, RefreshCw, ChevronDown, ChevronRight, ChevronUp, MessageSquare, X, Send, Check, UserCircle2, Pencil, Trash2, Plus, FileText, ArrowUp, ArrowDown } from "lucide-react";
 import ModalContrato from "@/components/controle/ModalContrato";
 import ModalNovoCliente from "@/components/controle/ModalNovoCliente";
 import { supabase, getAgenciaId } from "@/lib/hooks";
@@ -14,7 +14,7 @@ interface ControleCliente {
   consultor: string; gestor: string; squad: string; investimento_mensal: number;
   ultimo_aumento: string; acao: string; acao_feita: string; otimizacoes: string;
   tarefas: string; datas_otimizacoes: string; motivo: string; razao_nome: string;
-  grupo: string; created_at: string; cadastro_id?: string;
+  grupo: string; created_at: string; cadastro_id?: string; ordem?: number;
 }
 interface Subitem { id: string; cliente_id: string; texto: string; feito: boolean; created_at: string; }
 interface Anotacao { id: string; cliente_id: string; usuario: string; conteudo: string; created_at: string; tipo: string; }
@@ -68,6 +68,7 @@ const COLUNAS_PADRAO = [
 ];
 
 const SORT_OPTS = [
+  { value:"ordem", label:"Manual (Arrastar)" },
   { value:"data_entrada", label:"Data de Entrada" },
   { value:"nome", label:"Nome A-Z" },
   { value:"investimento_mensal", label:"Investimento" },
@@ -389,7 +390,7 @@ export default function ControleClientesPage() {
   const [clientes, setClientes] = useState<ControleCliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
-  const [sort, setSort] = useState("data_entrada");
+  const [sort, setSort] = useState("ordem");
   const [sortDir, setSortDir] = useState<"asc"|"desc">("asc");
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
   const [subitens, setSubitens] = useState<Record<string,Subitem[]>>({});
@@ -548,6 +549,26 @@ export default function ControleClientesPage() {
     setSubitens(prev=>({...prev,[clienteId]:prev[clienteId].map(s=>s.id===subId?{...s,feito:!feito}:s)}));
   };
 
+  const moverCliente = async (idx: number, direcao: "up"|"down") => {
+    const lista = [...filtrados];
+    const targetIdx = direcao === "up" ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= lista.length) return;
+    const clienteA = lista[idx];
+    const clienteB = lista[targetIdx];
+    const ordemA = clienteA.ordem ?? idx;
+    const ordemB = clienteB.ordem ?? targetIdx;
+    // Swap ordens
+    await Promise.all([
+      supabase.from("controle_clientes").update({ ordem: ordemB }).eq("id", clienteA.id),
+      supabase.from("controle_clientes").update({ ordem: ordemA }).eq("id", clienteB.id),
+    ]);
+    setClientes(prev => prev.map(c => {
+      if (c.id === clienteA.id) return { ...c, ordem: ordemB };
+      if (c.id === clienteB.id) return { ...c, ordem: ordemA };
+      return c;
+    }));
+  };
+
   const startResize = (key: string, e: React.MouseEvent) => {
     e.preventDefault();
     resizing.current = { key, startX: e.clientX, startW: colWidths[key] || 120 };
@@ -567,7 +588,7 @@ export default function ControleClientesPage() {
     .filter(c=>c.nome?.toLowerCase().includes(busca.toLowerCase()))
     .sort((a,b) => {
       let va=(a as any)[sort]||""; let vb=(b as any)[sort]||"";
-      if (sort==="investimento_mensal"){va=Number(va);vb=Number(vb);}
+      if (sort==="investimento_mensal"||sort==="ordem"){va=Number(va)||0;vb=Number(vb)||0;}
       if (sortDir==="asc") return va>vb?1:-1;
       return va<vb?1:-1;
     });
@@ -755,6 +776,7 @@ export default function ControleClientesPage() {
           <thead>
             <tr style={{ background:"#1a1a1a", borderBottom:"1px solid #2e2e2e" }}>
               <th style={{ width:"30px", padding:"10px 6px" }}></th>
+              {sort==="ordem" && <th style={{ width:"50px", padding:"10px 4px", textAlign:"center", fontSize:"11px", color:"#606060", fontWeight:"600" }}>↕</th>}
               <th style={{ padding:"10px 12px", textAlign:"left", fontSize:"11px", color:"#606060", fontWeight:"600", position:"sticky", left:0, background:"#1a1a1a", zIndex:2, width:"160px", whiteSpace:"nowrap" }}>NOME</th>
               {/* Coluna Info. Cliente */}
               <th style={{ padding:"10px 8px", textAlign:"center", fontSize:"11px", color:"#606060", fontWeight:"600", width:"60px", whiteSpace:"nowrap" }}>INFO.</th>
@@ -785,9 +807,9 @@ export default function ControleClientesPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={colunas.length+4} style={{ textAlign:"center", color:"#606060", padding:"48px" }}>Carregando...</td></tr>
+              <tr><td colSpan={colunas.length+5} style={{ textAlign:"center", color:"#606060", padding:"48px" }}>Carregando...</td></tr>
             ) : !filtrados.length ? (
-              <tr><td colSpan={colunas.length+4} style={{ textAlign:"center", color:"#606060", padding:"48px" }}>Nenhum cliente encontrado.</td></tr>
+              <tr><td colSpan={colunas.length+5} style={{ textAlign:"center", color:"#606060", padding:"48px" }}>Nenhum cliente encontrado.</td></tr>
             ) : filtrados.map((c,idx)=>(
               <>
               <tr key={c.id} style={{ borderBottom:"1px solid #29ABE230", background:idx%2===0?"transparent":"#0a0a0a" }}>
@@ -796,6 +818,20 @@ export default function ControleClientesPage() {
                     {expandidos.has(c.id)?<ChevronDown size={14}/>:<ChevronRight size={14}/>}
                   </button>
                 </td>
+                {sort==="ordem" && (
+                  <td style={{ padding:"2px 4px", textAlign:"center", width:"50px" }}>
+                    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"1px" }}>
+                      <button onClick={()=>moverCliente(idx,"up")} disabled={idx===0}
+                        style={{ background:"none", border:"none", cursor:idx===0?"default":"pointer", color:idx===0?"#2a2a2a":"#606060", padding:"1px" }} title="Subir">
+                        <ArrowUp size={13}/>
+                      </button>
+                      <button onClick={()=>moverCliente(idx,"down")} disabled={idx===filtrados.length-1}
+                        style={{ background:"none", border:"none", cursor:idx===filtrados.length-1?"default":"pointer", color:idx===filtrados.length-1?"#2a2a2a":"#606060", padding:"1px" }} title="Descer">
+                        <ArrowDown size={13}/>
+                      </button>
+                    </div>
+                  </td>
+                )}
                 <td style={{ padding:"4px 8px 4px 12px", position:"sticky", left:0, background:idx%2===0?"#141414":"#111", zIndex:1, whiteSpace:"nowrap", width:"200px" }}>
                   <div style={{ display:"flex", alignItems:"center", gap:"6px" }}>
                     <span style={{ fontWeight:"600", color:"#f0f0f0", overflow:"hidden", textOverflow:"ellipsis", flex:1 }}>{c.nome}</span>

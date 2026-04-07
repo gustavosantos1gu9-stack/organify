@@ -30,9 +30,14 @@ export async function POST(req: NextRequest) {
   const dataEntrada = new Date(cadastro.criado_em)
     .toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
+  // Descobrir próxima ordem (sempre no final da lista)
+  const { data: maxOrdem } = await supabase.from('controle_clientes').select('ordem').eq('agencia_id', AGENCIA_ID).order('ordem', { ascending: false }).limit(1).single()
+  const proximaOrdem = (maxOrdem?.ordem || 0) + 1
+
   // Criar em controle_clientes
   const { error: insertError } = await supabase.from('controle_clientes').insert({
     agencia_id: AGENCIA_ID,
+    ordem: proximaOrdem,
     nome: cadastro.nome,
     status: 'entrada',
     data_entrada: dataEntrada,
