@@ -187,8 +187,11 @@ export default function RelatoriosMetaPage() {
     setLoading(false);
   }
 
+  const [erroContas, setErroContas] = useState("");
+
   async function carregarContas(token: string) {
     setLoadingContas(true);
+    setErroContas("");
     try {
       const res = await fetch("/api/meta-ads", {
         method: "POST",
@@ -196,8 +199,14 @@ export default function RelatoriosMetaPage() {
         body: JSON.stringify({ action: "listar_contas", token }),
       });
       const data = await res.json();
-      if (Array.isArray(data)) setContas(data);
-    } catch {}
+      if (Array.isArray(data)) {
+        setContas(data);
+      } else {
+        setErroContas(data.error || "Token expirado ou inválido. Reconecte em Conexões.");
+      }
+    } catch (err: any) {
+      setErroContas("Erro ao carregar contas: " + (err.message || "falha na requisição"));
+    }
     setLoadingContas(false);
   }
 
@@ -583,6 +592,14 @@ export default function RelatoriosMetaPage() {
               <label className="form-label">Conta de Anúncio</label>
               {loadingContas ? (
                 <p style={{ fontSize: "12px", color: "#606060" }}>Carregando contas do Facebook...</p>
+              ) : erroContas ? (
+                <div>
+                  <div style={{ padding: "12px 14px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "8px", marginBottom: "8px" }}>
+                    <p style={{ fontSize: "12px", color: "#ef4444", marginBottom: "6px" }}>{erroContas}</p>
+                    <a href="/relatorios-meta/conexoes" style={{ fontSize: "12px", color: "#29ABE2", textDecoration: "underline" }}>Ir para Conexões e reconectar</a>
+                  </div>
+                  <input className="form-input" placeholder="act_1234567890 (manual)" value={adAccountId} onChange={e => setAdAccountId(e.target.value)} />
+                </div>
               ) : contas.length === 0 ? (
                 <div>
                   <input className="form-input" placeholder="act_1234567890" value={adAccountId} onChange={e => setAdAccountId(e.target.value)} />

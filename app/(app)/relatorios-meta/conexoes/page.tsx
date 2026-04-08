@@ -184,8 +184,11 @@ export default function ConexoesPage() {
     setValidandoMeta(false);
   }
 
+  const [erroContas, setErroContas] = useState("");
+
   async function carregarContasAnuncio(token: string) {
     setLoadingContas(true);
+    setErroContas("");
     try {
       const res = await fetch("/api/meta-ads", {
         method: "POST",
@@ -193,8 +196,14 @@ export default function ConexoesPage() {
         body: JSON.stringify({ action: "listar_contas", token }),
       });
       const data = await res.json();
-      if (Array.isArray(data)) setContas(data);
-    } catch {}
+      if (Array.isArray(data)) {
+        setContas(data);
+      } else {
+        setErroContas(data.error || "Token expirado ou inválido. Reconecte abaixo.");
+      }
+    } catch (err: any) {
+      setErroContas("Erro ao carregar contas: " + (err.message || "falha na requisição"));
+    }
     setLoadingContas(false);
   }
 
@@ -451,6 +460,11 @@ export default function ConexoesPage() {
             </div>
             {loadingContas ? (
               <p style={{ fontSize: "12px", color: "#606060" }}>Carregando contas...</p>
+            ) : erroContas ? (
+              <div style={{ padding: "12px 14px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "8px" }}>
+                <p style={{ fontSize: "12px", color: "#ef4444", marginBottom: "6px" }}>{erroContas}</p>
+                <p style={{ fontSize: "11px", color: "#f59e0b" }}>Desconecte e reconecte com um novo token.</p>
+              </div>
             ) : contas.length === 0 ? (
               <p style={{ fontSize: "12px", color: "#606060" }}>Nenhuma conta encontrada.</p>
             ) : (
