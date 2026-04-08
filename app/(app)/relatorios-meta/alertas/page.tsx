@@ -7,7 +7,6 @@ import { supabase, getAgenciaId } from "@/lib/hooks";
 const TEMPLATE_PADRAO = `Boa tarde! Passando para informar que estamos com saldo baixo na conta e os anúncios podem pausar!
 
 O saldo da conta de anúncios *<CA>* está em *<SALDO>*
-Limite configurado: <LIMITE>
 
 Podemos abastecer?`;
 
