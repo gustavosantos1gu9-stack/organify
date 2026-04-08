@@ -45,6 +45,7 @@ interface Conversa {
   ultima_mensagem_at: string | null;
   primeira_mensagem_at: string | null;
   etapa_alterada_at: string | null;
+  agendou_at: string | null;
   nao_lidas: number | null;
 }
 
@@ -104,14 +105,21 @@ export default function InboxDashboardPage() {
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
   };
 
-  // Filter by period — conversas criadas no período
-  const cf = conversas.filter((c) => {
-    const d = toLocalDate(c.created_at);
+  const isAgendou = (e: string) => /agend|reuni/i.test(e);
+  const isCompareceu = (e: string) => /comparec|realiz/i.test(e);
+  const isFechou = (e: string) => /comprou|fechou|ganho|vend/i.test(e);
+
+  // ── NOVOS CONTATOS: primeira mensagem dentro do período ──
+  const novos = conversas.filter((c) => {
+    const ref = c.primeira_mensagem_at || c.created_at;
+    const d = toLocalDate(ref);
     return d >= from && d <= to;
   });
 
-  // Transições de etapa que aconteceram no período (do histórico)
-  // Deduplicar: só 1 transição por conversa por etapa (a mais recente)
+  // IDs dos novos para lookup rápido
+  const novosIds = new Set(novos.map(c => c.id));
+
+  // ── Transições de etapa no período (deduplicadas) ──
   const transicoesRaw = historico.filter((h) => {
     const d = toLocalDate(h.created_at);
     return d >= from && d <= to;
@@ -124,69 +132,65 @@ export default function InboxDashboardPage() {
   });
   const transicoesNoPeriodo = Array.from(dedup.values());
 
-  // ── KPI Row 1 ──
-  const total = cf.length;
-  const rastreadas = cf.filter(
-    (c) => c.origem && c.origem !== "Não Rastreada"
-  ).length;
-  const naoRastreadas = total - rastreadas;
-  const taxaRastreamento = total > 0 ? ((rastreadas / total) * 100).toFixed(1) : "0.0";
+  // ── RETORNOS: contatos antigos que avançaram no funil NESTE período ──
+  const retornoIds = new Set<string>();
+  transicoesNoPeriodo.forEach((h) => {
+    if (!novosIds.has(h.conversa_id) && (isAgendou(h.etapa_nova) || isCompareceu(h.etapa_nova) || isFechou(h.etapa_nova))) {
+      retornoIds.add(h.conversa_id);
+    }
+  });
+  const retornos = conversas.filter((c) => retornoIds.has(c.id));
 
-  // ── KPI Row 2 ──
-  const metaAds = cf.filter((c) => c.origem === "Meta Ads").length;
-  const googleAds = cf.filter((c) => c.origem === "Google Ads").length;
-  const linkRastreavel = cf.filter((c) => c.link_nome && c.link_nome.trim() !== "").length;
-  const organicas = cf.filter(
-    (c) => (!c.origem || c.origem === "Não Rastreada") && !c.fbclid
-  ).length;
+  // ── Helpers de KPI por lista ──
+  const calcKPIs = (lista: Conversa[]) => {
+    const total = lista.length;
+    const rastreadas = lista.filter(c => c.origem && c.origem !== "Não Rastreada").length;
+    const naoRastreadas = total - rastreadas;
+    const metaAds = lista.filter(c => c.origem === "Meta Ads").length;
+    const googleAds = lista.filter(c => c.origem === "Google Ads").length;
+    const linkRastreavel = lista.filter(c => c.link_nome && c.link_nome.trim() !== "").length;
+    const organicas = lista.filter(c => (!c.origem || c.origem === "Não Rastreada") && !c.fbclid).length;
+    return { total, rastreadas, naoRastreadas, metaAds, googleAds, linkRastreavel, organicas };
+  };
+
+  const kpiNovos = calcKPIs(novos);
+  const kpiRetornos = calcKPIs(retornos);
+
+  // ── Funil separado: novos vs retornos ──
+  const transicoesNovos = transicoesNoPeriodo.filter(h => novosIds.has(h.conversa_id));
+  const transicoesRetornos = transicoesNoPeriodo.filter(h => retornoIds.has(h.conversa_id));
+
+  const calcFunil = (transicoes: typeof transicoesNoPeriodo, totalBase: number) => {
+    const agendados = transicoes.filter(h => isAgendou(h.etapa_nova)).length;
+    const compareceram = transicoes.filter(h => isCompareceu(h.etapa_nova)).length;
+    const fecharam = transicoes.filter(h => isFechou(h.etapa_nova)).length;
+    const pctAgend = totalBase > 0 ? ((agendados / totalBase) * 100).toFixed(1) : "0.0";
+    const pctComp = agendados > 0 ? ((compareceram / agendados) * 100).toFixed(1) : "0.0";
+    const pctVenda = compareceram > 0 ? ((fecharam / compareceram) * 100).toFixed(1) : "0.0";
+    return { agendados, compareceram, fecharam, pctAgend, pctComp, pctVenda, total: totalBase };
+  };
+
+  const funilNovos = calcFunil(transicoesNovos, kpiNovos.total);
+  const funilRetornos = calcFunil(transicoesRetornos, kpiRetornos.total);
+  const funilTotal = calcFunil(transicoesNoPeriodo, kpiNovos.total + kpiRetornos.total);
+
+  // Total combinado
+  const totalGeral = kpiNovos.total + kpiRetornos.total;
 
   // ── KPI Row 3 ──
-  const naoLidas = cf.reduce((sum, c) => sum + (c.nao_lidas || 0), 0);
-  const naJornada = cf.filter(
+  const naoLidas = novos.reduce((sum, c) => sum + (c.nao_lidas || 0), 0);
+  const naJornada = novos.filter(
     (c) => c.etapa_jornada && c.etapa_jornada.trim() !== ""
   ).length;
   const campanhasAtivas = new Set(
-    cf.filter((c) => c.utm_campaign).map((c) => c.utm_campaign)
+    novos.filter((c) => c.utm_campaign).map((c) => c.utm_campaign)
   ).size;
 
-  // ── Funil de Conversão ──
-  // Detectar etapas do funil diretamente pelo nome da etapa_jornada nas conversas
-  const isAgendou = (e: string) => /agend|reuni/i.test(e);
-  const isCompareceu = (e: string) => /comparec|realiz/i.test(e);
-  const isFechou = (e: string) => /comprou|fechou|ganho|vend/i.test(e);
-
-  // Todas etapas conhecidas: da jornada configurada + das conversas reais
-  const todasEtapas = [...etapas.map(e => e.nome), ...Array.from(new Set(cf.map(c => c.etapa_jornada).filter(Boolean) as string[]))];
-  const etapasUnicas = Array.from(new Set(todasEtapas));
-
-  // Ordenar: usar ordem da jornada se existir, senão por detecção de funil
-  const ordemMap: Record<string, number> = {};
-  etapas.forEach(e => { ordemMap[e.nome] = e.ordem; });
-  // Etapas que existem nas conversas mas não na jornada: mapear pela detecção
-  etapasUnicas.forEach(e => {
-    if (!(e in ordemMap)) {
-      if (isFechou(e)) ordemMap[e] = 100;
-      else if (isCompareceu(e)) ordemMap[e] = 90;
-      else if (isAgendou(e)) ordemMap[e] = 80;
-      else ordemMap[e] = 0;
-    }
-  });
-
-  const getOrdem = (etapa: string) => ordemMap[etapa] ?? 0;
-
-  const totalFunil = cf.length;
-  const agendados = transicoesNoPeriodo.filter(h => isAgendou(h.etapa_nova)).length;
-  const compareceram = transicoesNoPeriodo.filter(h => isCompareceu(h.etapa_nova)).length;
-  const fecharam = transicoesNoPeriodo.filter(h => isFechou(h.etapa_nova)).length;
-
-  const pctLeadsAgend = totalFunil > 0 ? ((agendados / totalFunil) * 100).toFixed(1) : "0.0";
-  const pctAgendComp = agendados > 0 ? ((compareceram / agendados) * 100).toFixed(1) : "0.0";
-  const pctCompVenda = compareceram > 0 ? ((fecharam / compareceram) * 100).toFixed(1) : "0.0";
-
-  // ── Chart: Conversas por dia (stacked) ──
+  // ── Chart: Novos por dia (stacked) ──
   const dayMap: Record<string, Record<string, number>> = {};
-  cf.forEach((c) => {
-    const day = c.created_at.split("T")[0];
+  novos.forEach((c) => {
+    const ref = c.primeira_mensagem_at || c.created_at;
+    const day = ref.split("T")[0];
     if (!dayMap[day]) dayMap[day] = { "Meta Ads": 0, "Google Ads": 0, Link: 0, "Não Rastreada": 0 };
     if (c.origem === "Meta Ads") dayMap[day]["Meta Ads"]++;
     else if (c.origem === "Google Ads") dayMap[day]["Google Ads"]++;
@@ -200,29 +204,29 @@ export default function InboxDashboardPage() {
       ...counts,
     }));
 
-  // ── Chart: Origem (pie) ──
+  // ── Chart: Origem (pie) — novos ──
   const pieData = [
-    { name: "Meta Ads", value: metaAds },
-    { name: "Google Ads", value: googleAds },
-    { name: "Link Rastreável", value: linkRastreavel },
-    { name: "Não Rastreada", value: naoRastreadas },
+    { name: "Meta Ads", value: kpiNovos.metaAds },
+    { name: "Google Ads", value: kpiNovos.googleAds },
+    { name: "Link Rastreável", value: kpiNovos.linkRastreavel },
+    { name: "Não Rastreada", value: kpiNovos.naoRastreadas },
   ].filter((d) => d.value > 0);
   const pieTotal = pieData.reduce((s, d) => s + d.value, 0);
 
   // ── Funil da Jornada ──
-  // Incluir etapas reais das conversas que podem não estar na configuração
   const etapasReais = Array.from(new Set(transicoesNoPeriodo.map(h => h.etapa_nova).filter(Boolean)));
   const etapasConfig = etapas.map(e => e.nome);
   const etapasFunil = [...etapasConfig, ...etapasReais.filter(e => !etapasConfig.includes(e))];
-  const funilData = etapasFunil.map((nome) => ({
-    nome,
-    count: transicoesNoPeriodo.filter((h) => h.etapa_nova === nome).length,
-  })).filter(d => d.count > 0);
+  const funilData = etapasFunil.map((nome) => {
+    const novosCount = transicoesNovos.filter(h => h.etapa_nova === nome).length;
+    const retornosCount = transicoesRetornos.filter(h => h.etapa_nova === nome).length;
+    return { nome, novos: novosCount, retornos: retornosCount, count: novosCount + retornosCount };
+  }).filter(d => d.count > 0);
   const funilMax = Math.max(...funilData.map((d) => d.count), 1);
 
-  // ── Top Campanhas ──
+  // ── Top Campanhas (novos) ──
   const campMap: Record<string, number> = {};
-  cf.forEach((c) => {
+  novos.forEach((c) => {
     const key = c.utm_campaign || "";
     if (key) campMap[key] = (campMap[key] || 0) + 1;
   });
@@ -231,9 +235,9 @@ export default function InboxDashboardPage() {
     .slice(0, 10)
     .map(([name, value]) => ({ name, value }));
 
-  // ── Top Anúncios ──
+  // ── Top Anúncios (novos) ──
   const anuncioMap: Record<string, number> = {};
-  cf.forEach((c) => {
+  novos.forEach((c) => {
     const key = c.nome_anuncio || "";
     if (key) anuncioMap[key] = (anuncioMap[key] || 0) + 1;
   });
@@ -242,9 +246,9 @@ export default function InboxDashboardPage() {
     .slice(0, 10)
     .map(([name, value]) => ({ name, value }));
 
-  // ── Tabela Campanha x Etapa ──
+  // ── Tabela Campanha x Etapa (novos) ──
   const distinctCampaigns = Array.from(
-    new Set(cf.map((c) => c.utm_campaign || "Sem campanha"))
+    new Set(novos.map((c) => c.utm_campaign || "Sem campanha"))
   ).sort((a, b) => {
     if (a === "Sem campanha") return 1;
     if (b === "Sem campanha") return -1;
@@ -252,7 +256,7 @@ export default function InboxDashboardPage() {
   });
 
   const tabelaData = distinctCampaigns.map((camp) => {
-    const rows = cf.filter(
+    const rows = novos.filter(
       (c) => (c.utm_campaign || "Sem campanha") === camp
     );
     const porEtapa = etapas.map(
@@ -284,23 +288,133 @@ export default function InboxDashboardPage() {
 
       <PeriodSelector onChange={(_, f, t) => { setFrom(f); setTo(t); }} />
 
-      {/* ── KPI Row 1 ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "16px", marginBottom: "16px" }}>
-        <KPICard label="Total de Conversas" value={total} icon={<MessageCircle size={16} />} iconBg="blue" />
-        <KPICard label="Conversas Rastreadas" value={rastreadas} icon={<Eye size={16} />} iconBg="green" />
-        <KPICard label="Não Rastreadas" value={naoRastreadas} icon={<EyeOff size={16} />} iconBg="red" />
-        <KPICard label="Taxa de Rastreamento" value={`${taxaRastreamento}%`} icon={<Percent size={16} />} iconBg="amber" />
+      {/* ══════════════════════════════════════════════════ */}
+      {/* ── SEÇÃO 1: NOVOS CONTATOS DO PERÍODO ── */}
+      {/* ══════════════════════════════════════════════════ */}
+      <div style={{ marginBottom: "32px" }}>
+        <h2 style={{ fontSize: "16px", fontWeight: "600", marginBottom: "16px", color: "#29ABE2", display: "flex", alignItems: "center", gap: "8px" }}>
+          <MessageCircle size={18} /> Novos Contatos no Período
+          <span style={{ fontSize: "12px", fontWeight: "400", color: "#606060" }}>(primeira mensagem no período)</span>
+        </h2>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "16px", marginBottom: "16px" }}>
+          <KPICard label="Novos Contatos" value={kpiNovos.total} icon={<MessageCircle size={16} />} iconBg="blue" />
+          <KPICard label="Rastreados" value={kpiNovos.rastreadas} icon={<Eye size={16} />} iconBg="green" />
+          <KPICard label="Não Rastreados" value={kpiNovos.naoRastreadas} icon={<EyeOff size={16} />} iconBg="red" />
+          <KPICard label="Taxa Rastreamento" value={`${kpiNovos.total > 0 ? ((kpiNovos.rastreadas / kpiNovos.total) * 100).toFixed(1) : "0.0"}%`} icon={<Percent size={16} />} iconBg="amber" />
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "16px", marginBottom: "16px" }}>
+          <KPICard label="Meta Ads" value={kpiNovos.metaAds} icon={<TrendingUp size={16} />} iconBg="blue" />
+          <KPICard label="Google Ads" value={kpiNovos.googleAds} icon={<TrendingUp size={16} />} iconBg="green" />
+          <KPICard label="Link Rastreável" value={kpiNovos.linkRastreavel} icon={<Link size={16} />} iconBg="amber" />
+          <KPICard label="Orgânicas" value={kpiNovos.organicas} icon={<Users size={16} />} iconBg="red" />
+        </div>
+
+        {/* Funil dos Novos */}
+        <div className="card" style={{ marginBottom: "16px" }}>
+          <h3 style={{ fontSize: "14px", fontWeight: "500", marginBottom: "16px" }}>Funil dos Novos Contatos</h3>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 0, marginBottom: "16px", borderBottom: "1px solid #2e2e2e", paddingBottom: "16px" }}>
+            {[
+              { label: "Leads → Agendamentos", value: `${funilNovos.pctAgend}%` },
+              { label: "Agendados → Compareceram", value: `${funilNovos.pctComp}%` },
+              { label: "Compareceram → Vendas", value: `${funilNovos.pctVenda}%` },
+            ].map((item, i) => (
+              <div key={i} style={{ textAlign: "center", padding: "0 16px", borderRight: i < 2 ? "1px solid #2e2e2e" : "none" }}>
+                <p style={{ fontSize: "12px", color: "#606060", marginBottom: "6px" }}>{item.label}</p>
+                <p style={{ fontSize: "22px", fontWeight: "700", color: item.value === "0.0%" ? "#404040" : "#22c55e" }}>{item.value}</p>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "12px" }}>
+            {[
+              { label: "Novos Contatos", value: funilNovos.total },
+              { label: "Agendados", value: funilNovos.agendados },
+              { label: "Compareceram", value: funilNovos.compareceram },
+              { label: "Fechadas", value: funilNovos.fecharam },
+            ].map((item) => (
+              <div key={item.label} style={{ background: "#1a1a1a", borderRadius: "8px", padding: "14px 16px" }}>
+                <p style={{ fontSize: "12px", color: "#606060", marginBottom: "6px" }}>{item.label}</p>
+                <p style={{ fontSize: "20px", fontWeight: "700", color: item.value > 0 ? "#f0f0f0" : "#404040" }}>{item.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* ── KPI Row 2 ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "16px", marginBottom: "16px" }}>
-        <KPICard label="Meta Ads" value={metaAds} icon={<TrendingUp size={16} />} iconBg="blue" />
-        <KPICard label="Google Ads" value={googleAds} icon={<TrendingUp size={16} />} iconBg="green" />
-        <KPICard label="Link Rastreável" value={linkRastreavel} icon={<Link size={16} />} iconBg="amber" />
-        <KPICard label="Orgânicas" value={organicas} icon={<Users size={16} />} iconBg="red" />
+      {/* ══════════════════════════════════════════════════ */}
+      {/* ── SEÇÃO 2: RETORNOS (contatos antigos que avançaram) ── */}
+      {/* ══════════════════════════════════════════════════ */}
+      {retornos.length > 0 && (
+        <div style={{ marginBottom: "32px" }}>
+          <h2 style={{ fontSize: "16px", fontWeight: "600", marginBottom: "16px", color: "#f59e0b", display: "flex", alignItems: "center", gap: "8px" }}>
+            <TrendingUp size={18} /> Retornos de Meses Anteriores
+            <span style={{ fontSize: "12px", fontWeight: "400", color: "#606060" }}>(contatos antigos que agendaram/compareceram/fecharam neste período)</span>
+          </h2>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "16px", marginBottom: "16px" }}>
+            <KPICard label="Retornos" value={kpiRetornos.total} icon={<TrendingUp size={16} />} iconBg="amber" />
+            <KPICard label="Agendados" value={funilRetornos.agendados} icon={<Star size={16} />} iconBg="blue" />
+            <KPICard label="Compareceram" value={funilRetornos.compareceram} icon={<Eye size={16} />} iconBg="green" />
+            <KPICard label="Fecharam" value={funilRetornos.fecharam} icon={<Flame size={16} />} iconBg="red" />
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "16px", marginBottom: "16px" }}>
+            <KPICard label="Meta Ads" value={kpiRetornos.metaAds} icon={<TrendingUp size={16} />} iconBg="blue" />
+            <KPICard label="Google Ads" value={kpiRetornos.googleAds} icon={<TrendingUp size={16} />} iconBg="green" />
+            <KPICard label="Link Rastreável" value={kpiRetornos.linkRastreavel} icon={<Link size={16} />} iconBg="amber" />
+            <KPICard label="Orgânicas" value={kpiRetornos.organicas} icon={<Users size={16} />} iconBg="red" />
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════ */}
+      {/* ── SEÇÃO 3: TOTAL GERAL ── */}
+      {/* ══════════════════════════════════════════════════ */}
+      <div style={{ marginBottom: "32px" }}>
+        <h2 style={{ fontSize: "16px", fontWeight: "600", marginBottom: "16px", color: "#22c55e", display: "flex", alignItems: "center", gap: "8px" }}>
+          <Flame size={18} /> Total Geral do Período
+        </h2>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "16px", marginBottom: "16px" }}>
+          <KPICard label="Total (Novos + Retornos)" value={totalGeral} icon={<MessageCircle size={16} />} iconBg="green" />
+          <KPICard label="Agendados (Total)" value={funilTotal.agendados} icon={<Star size={16} />} iconBg="blue" />
+          <KPICard label="Compareceram (Total)" value={funilTotal.compareceram} icon={<Eye size={16} />} iconBg="green" />
+          <KPICard label="Fecharam (Total)" value={funilTotal.fecharam} icon={<Flame size={16} />} iconBg="amber" />
+        </div>
+
+        {/* Funil Total */}
+        <div className="card" style={{ marginBottom: "16px" }}>
+          <h3 style={{ fontSize: "14px", fontWeight: "500", marginBottom: "16px" }}>Funil Total (Novos + Retornos)</h3>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 0, marginBottom: "16px", borderBottom: "1px solid #2e2e2e", paddingBottom: "16px" }}>
+            {[
+              { label: "Leads → Agendamentos", value: `${funilTotal.pctAgend}%` },
+              { label: "Agendados → Compareceram", value: `${funilTotal.pctComp}%` },
+              { label: "Compareceram → Vendas", value: `${funilTotal.pctVenda}%` },
+            ].map((item, i) => (
+              <div key={i} style={{ textAlign: "center", padding: "0 16px", borderRight: i < 2 ? "1px solid #2e2e2e" : "none" }}>
+                <p style={{ fontSize: "12px", color: "#606060", marginBottom: "6px" }}>{item.label}</p>
+                <p style={{ fontSize: "22px", fontWeight: "700", color: item.value === "0.0%" ? "#404040" : "#22c55e" }}>{item.value}</p>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "12px" }}>
+            {[
+              { label: "Total Conversas", value: totalGeral },
+              { label: "Agendados", value: funilTotal.agendados },
+              { label: "Compareceram", value: funilTotal.compareceram },
+              { label: "Fechadas", value: funilTotal.fecharam },
+            ].map((item) => (
+              <div key={item.label} style={{ background: "#1a1a1a", borderRadius: "8px", padding: "14px 16px" }}>
+                <p style={{ fontSize: "12px", color: "#606060", marginBottom: "6px" }}>{item.label}</p>
+                <p style={{ fontSize: "20px", fontWeight: "700", color: item.value > 0 ? "#f0f0f0" : "#404040" }}>{item.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* ── KPI Row 3 ── */}
+      {/* ── KPI extras ── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "16px", marginBottom: "28px" }}>
         <KPICard label="Mensagens não lidas" value={naoLidas} icon={<Mail size={16} />} iconBg="red" />
         <KPICard label="Tempo médio resposta" value="—" icon={<Clock size={16} />} iconBg="blue" />
@@ -308,38 +422,8 @@ export default function InboxDashboardPage() {
         <KPICard label="Campanhas ativas" value={campanhasAtivas} icon={<Flame size={16} />} iconBg="amber" />
       </div>
 
-      {/* ── Funil de Conversão ── */}
-      <div className="card" style={{ marginBottom: "20px" }}>
-        <h2 style={{ fontSize: "15px", fontWeight: "600", marginBottom: "20px" }}>Funil de Conversão</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 0, marginBottom: "20px", borderBottom: "1px solid #2e2e2e", paddingBottom: "16px" }}>
-          {[
-            { label: "Leads → Agendamentos", value: `${pctLeadsAgend}%` },
-            { label: "Agendados → Compareceram", value: `${pctAgendComp}%` },
-            { label: "Compareceram → Vendas", value: `${pctCompVenda}%` },
-          ].map((item, i) => (
-            <div key={i} style={{ textAlign: "center", padding: "0 16px", borderRight: i < 2 ? "1px solid #2e2e2e" : "none" }}>
-              <p style={{ fontSize: "12px", color: "#606060", marginBottom: "6px" }}>{item.label}</p>
-              <p style={{ fontSize: "22px", fontWeight: "700", color: item.value === "0.0%" ? "#404040" : "#22c55e" }}>{item.value}</p>
-            </div>
-          ))}
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "12px" }}>
-          {[
-            { label: "Total Conversas", value: totalFunil },
-            { label: "Agendados", value: agendados },
-            { label: "Compareceram", value: compareceram },
-            { label: "Fechadas", value: fecharam },
-          ].map((item) => (
-            <div key={item.label} style={{ background: "#1a1a1a", borderRadius: "8px", padding: "14px 16px" }}>
-              <p style={{ fontSize: "12px", color: "#606060", marginBottom: "6px" }}>{item.label}</p>
-              <p style={{ fontSize: "20px", fontWeight: "700", color: item.value > 0 ? "#f0f0f0" : "#404040" }}>{item.value}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* ── Sem dados ── */}
-      {total === 0 && (
+      {totalGeral === 0 && (
         <div style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "12px", padding: "32px", textAlign: "center", marginBottom: "20px" }}>
           <p style={{ color: "#606060", fontSize: "14px" }}>Nenhuma conversa encontrada no período selecionado.</p>
         </div>
@@ -413,11 +497,11 @@ export default function InboxDashboardPage() {
       {/* ── Funil da Jornada ── */}
       {etapas.length > 0 && (
         <div className="card" style={{ marginBottom: "20px" }}>
-          <h3 style={{ fontSize: "14px", fontWeight: "500", marginBottom: "20px" }}>Funil da Jornada</h3>
+          <h3 style={{ fontSize: "14px", fontWeight: "500", marginBottom: "20px" }}>Funil da Jornada (Novos + Retornos)</h3>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {funilData.map((item, idx) => {
               const widthPct = funilMax > 0 ? Math.max((item.count / funilMax) * 100, 4) : 4;
-              const opacity = 1 - idx * (0.6 / Math.max(funilData.length - 1, 1));
+              const novosPct = item.count > 0 ? (item.novos / item.count) * 100 : 100;
               return (
                 <div key={item.nome} style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                   <span style={{ fontSize: "12px", color: "#a0a0a0", width: "140px", textAlign: "right", flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -428,23 +512,39 @@ export default function InboxDashboardPage() {
                       style={{
                         height: "32px",
                         width: `${widthPct}%`,
-                        background: `rgba(41,171,226,${opacity})`,
+                        background: `linear-gradient(to right, #29ABE2 ${novosPct}%, #f59e0b ${novosPct}%)`,
                         borderRadius: "6px",
                         display: "flex",
                         alignItems: "center",
                         paddingLeft: "12px",
                         transition: "width 0.4s ease",
                         minWidth: "40px",
+                        gap: "6px",
                       }}
                     >
                       <span style={{ fontSize: "12px", fontWeight: "600", color: "#f0f0f0" }}>
                         {item.count}
                       </span>
+                      {item.retornos > 0 && (
+                        <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.7)" }}>
+                          ({item.novos}N + {item.retornos}R)
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
               );
             })}
+          </div>
+          <div style={{ display: "flex", gap: "16px", justifyContent: "center", marginTop: "12px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <div style={{ width: "10px", height: "10px", borderRadius: "2px", background: "#29ABE2" }} />
+              <span style={{ fontSize: "11px", color: "#a0a0a0" }}>Novos</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <div style={{ width: "10px", height: "10px", borderRadius: "2px", background: "#f59e0b" }} />
+              <span style={{ fontSize: "11px", color: "#a0a0a0" }}>Retornos</span>
+            </div>
           </div>
         </div>
       )}
