@@ -95,12 +95,13 @@ export default function AlertasPage() {
       if (Array.isArray(data)) {
         const todas = data.map((c: any) => {
           const id = (c.id || c.account_id || "").replace("act_", "");
-          const balance = Math.max(c.balance ? parseFloat(c.balance) / 100 : 0, 0);
           const spendCap = c.spend_cap ? parseFloat(c.spend_cap) / 100 : 0;
+          const amountSpent = c.amount_spent ? parseFloat(c.amount_spent) / 100 : 0;
+          const balance = spendCap > 0 ? spendCap - amountSpent : 0;
           return { id, name: c.name, balance, spendCap, account_status: c.account_status };
         });
-        // Pré-pagas: tem saldo ou spend_cap definido
-        const prePagas = todas.filter((c: any) => c.spendCap > 0 || c.balance > 0);
+        // Pré-pagas: tem spend_cap (saldo disponível)
+        const prePagas = todas.filter((c: any) => c.spendCap > 0);
         setContas(prePagas.length > 0 ? prePagas : todas);
       } else {
         setErroContas(data.error || "Token expirado ou inválido");

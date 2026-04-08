@@ -58,8 +58,10 @@ export async function GET(req: NextRequest) {
         }
 
         const meta = await res.json();
-        // Saldo pré-pago: balance da Meta já é o saldo restante (em centavos)
-        const balance = Math.max(meta.balance ? parseFloat(meta.balance) / 100 : 0, 0);
+        // Saldo disponível = spend_cap - amount_spent (o que aparece no Meta Ads Manager)
+        const spendCap = meta.spend_cap ? parseFloat(meta.spend_cap) / 100 : 0;
+        const amountSpent = meta.amount_spent ? parseFloat(meta.amount_spent) / 100 : 0;
+        const balance = spendCap > 0 ? spendCap - amountSpent : 0;
 
         // Verificar status da conta
         const statusMap: Record<number, string> = {

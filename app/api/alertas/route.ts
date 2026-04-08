@@ -25,17 +25,11 @@ export async function POST(req: NextRequest) {
       }
       const data = await res.json();
 
-      // Para contas pré-pagas (PIX/Boleto): balance da Meta já é o saldo restante
-      // Valores da API vêm em centavos
-      const rawBalance = data.balance ? parseFloat(data.balance) / 100 : 0;
+      // Saldo disponível = spend_cap - amount_spent (valores em centavos na API)
+      // Esse é o saldo que aparece no Meta Ads Manager e de onde as campanhas descontam
       const spendCap = data.spend_cap ? parseFloat(data.spend_cap) / 100 : 0;
       const amountSpent = data.amount_spent ? parseFloat(data.amount_spent) / 100 : 0;
-
-      // Usar balance direto (saldo restante pré-pago)
-      // Se balance for negativo (pós-pago/devendo), mostrar como 0
-      const balance = Math.max(rawBalance, 0);
-
-      console.log(`[alertas] Conta ${acId}: balance_raw=${rawBalance}, spend_cap=${spendCap}, amount_spent=${amountSpent}, saldo_final=${balance}`);
+      const balance = spendCap > 0 ? spendCap - amountSpent : 0;
       const statusMap: Record<number, string> = {
         1: "Ativa", 2: "Desativada", 3: "Não liquidada", 7: "Em revisão",
         8: "Liquidação pendente", 9: "Em período de carência", 100: "Fechamento pendente", 101: "Fechada",
