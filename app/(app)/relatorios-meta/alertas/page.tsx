@@ -95,13 +95,22 @@ export default function AlertasPage() {
       if (Array.isArray(data)) {
         const todas = data.map((c: any) => {
           const id = (c.id || c.account_id || "").replace("act_", "");
+          // Extrair saldo do funding_source_details.display_string (valor real)
+          const displayStr = c.funding_source_details?.display_string || "";
+          const matchSaldo = displayStr.match(/[\d.,]+/);
+          let balance = 0;
+          if (matchSaldo) {
+            balance = parseFloat(matchSaldo[0].replace(/\./g, "").replace(",", "."));
+          }
           const spendCap = c.spend_cap ? parseFloat(c.spend_cap) / 100 : 0;
-          const amountSpent = c.amount_spent ? parseFloat(c.amount_spent) / 100 : 0;
-          const balance = spendCap > 0 ? spendCap - amountSpent : 0;
-          return { id, name: c.name, balance, spendCap, account_status: c.account_status };
+          if ((!balance || isNaN(balance)) && spendCap > 0) {
+            const amountSpent = c.amount_spent ? parseFloat(c.amount_spent) / 100 : 0;
+            balance = spendCap - amountSpent;
+          }
+          return { id, name: c.name, balance: balance || 0, spendCap, account_status: c.account_status };
         });
-        // Pré-pagas: tem spend_cap (saldo disponível)
-        const prePagas = todas.filter((c: any) => c.spendCap > 0);
+        // Pré-pagas: tem saldo disponível ou spend_cap
+        const prePagas = todas.filter((c: any) => c.spendCap > 0 || c.balance > 0);
         setContas(prePagas.length > 0 ? prePagas : todas);
       } else {
         setErroContas(data.error || "Token expirado ou inválido");
