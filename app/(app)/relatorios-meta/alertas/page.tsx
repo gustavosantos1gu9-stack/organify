@@ -61,6 +61,10 @@ export default function AlertasPage() {
   const [contaInfo, setContaInfo] = useState<Record<string, ContaInfo>>({});
   const [token, setToken] = useState("");
   const [conConfig, setConConfig] = useState<any>(null);
+  const [buscaConta, setBuscaConta] = useState("");
+  const [buscaGrupo, setBuscaGrupo] = useState("");
+  const [loadingContas, setLoadingContas] = useState(false);
+  const [erroContas, setErroContas] = useState("");
 
   const carregar = async () => {
     const agId = await getAgenciaId();
@@ -80,14 +84,33 @@ export default function AlertasPage() {
 
   const carregarContas = async () => {
     if (!token) return;
+    setLoadingContas(true);
+    setErroContas("");
     try {
       const res = await fetch("/api/meta-ads", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "listar_contas", token }),
       });
       const data = await res.json();
-      if (Array.isArray(data)) setContas(data.map((c: any) => ({ id: (c.id || c.account_id || "").replace("act_", ""), name: c.name })));
-    } catch {}
+      if (Array.isArray(data)) {
+        // Filtrar apenas contas pré-pagas (tem spend_cap > 0 ou balance > 0)
+        const todas = data.map((c: any) => {
+          const id = (c.id || c.account_id || "").replace("act_", "");
+          const spendCap = c.spend_cap ? parseFloat(c.spend_cap) / 100 : 0;
+          const amountSpent = c.amount_spent ? parseFloat(c.amount_spent) / 100 : 0;
+          const balance = spendCap > 0 ? spendCap - amountSpent : Math.abs(c.balance ? parseFloat(c.balance) / 100 : 0);
+          return { id, name: c.name, balance, spendCap, account_status: c.account_status };
+        });
+        // Pré-pagas: tem spend_cap definido (ou balance > 0 sem spend_cap)
+        const prePagas = todas.filter((c: any) => c.spendCap > 0 || c.balance > 0);
+        setContas(prePagas.length > 0 ? prePagas : todas);
+      } else {
+        setErroContas(data.error || "Token expirado ou inválido");
+      }
+    } catch (err: any) {
+      setErroContas("Erro ao carregar contas: " + (err.message || ""));
+    }
+    setLoadingContas(false);
   };
 
   const carregarGrupos = async () => {
@@ -134,6 +157,8 @@ export default function AlertasPage() {
         template_saldo: TEMPLATE_PADRAO, template_status: "", forma_pagamento: "", ativo: true,
       });
     }
+    setBuscaConta("");
+    setBuscaGrupo("");
     setModal(true);
   };
 
@@ -262,13 +287,43 @@ export default function AlertasPage() {
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              {/* Conta de Anúncio */}
+              {/* Conta de Anúncio (pesquisável) */}
               <div>
-                <label className="form-label">Conta de Anúncio</label>
-                <select className="form-input" value={form.ad_account_id} onChange={e => { const c = contas.find(c => c.id === e.target.value); setForm(f => ({ ...f, ad_account_id: e.target.value, nome_cliente: f.nome_cliente || c?.name || "" })); if (e.target.value) verificarConta(e.target.value); }}>
-                  <option value="">Selecione...</option>
-                  {contas.map(c => <option key={c.id} value={c.id}>{c.name} ({c.id})</option>)}
-                </select>
+                <label className="form-label">Conta de Anúncio (Pré-pago)</label>
+                {loadingContas ? (
+                  <p style={{ fontSize: "12px", color: "#606060" }}>Carregando contas...</p>
+                ) : erroContas ? (
+                  <div style={{ padding: "10px 14px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "8px" }}>
+                    <p style={{ fontSize: "12px", color: "#ef4444" }}>{erroContas}</p>
+                    <a href="/relatorios-meta/conexoes" style={{ fontSize: "11px", color: "#29ABE2" }}>Reconectar</a>
+                  </div>
+                ) : (
+                  <>
+                    <input className="form-input" placeholder="Pesquisar conta..." value={buscaConta} onChange={e => setBuscaConta(e.target.value)} style={{ marginBottom: "8px" }} />
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px", maxHeight: "160px", overflowY: "auto" }}>
+                      {contas.filter(c => c.name.toLowerCase().includes(buscaConta.toLowerCase()) || c.id.includes(buscaConta)).map(c => (
+                        <button key={c.id} onClick={() => { setForm(f => ({ ...f, ad_account_id: c.id, nome_cliente: f.nome_cliente || c.name || "" })); verificarConta(c.id); }}
+                          style={{
+                            display: "flex", justifyContent: "space-between", alignItems: "center",
+                            padding: "10px 14px", background: form.ad_account_id === c.id ? "rgba(41,171,226,0.1)" : "#1a1a1a",
+                            border: `1px solid ${form.ad_account_id === c.id ? "#29ABE2" : "#2e2e2e"}`,
+                            borderRadius: "8px", cursor: "pointer", textAlign: "left", color: "#f0f0f0", fontSize: "12px", width: "100%",
+                          }}>
+                          <div>
+                            <span style={{ fontWeight: form.ad_account_id === c.id ? "600" : "400" }}>{c.name}</span>
+                            {(c as any).balance > 0 && (
+                              <span style={{ marginLeft: "8px", fontSize: "11px", color: "#22c55e" }}>{formatMoney((c as any).balance)}</span>
+                            )}
+                          </div>
+                          <span style={{ color: "#606060", fontSize: "11px" }}>act_{c.id}</span>
+                        </button>
+                      ))}
+                      {contas.filter(c => c.name.toLowerCase().includes(buscaConta.toLowerCase()) || c.id.includes(buscaConta)).length === 0 && (
+                        <p style={{ fontSize: "12px", color: "#606060", textAlign: "center", padding: "12px" }}>Nenhuma conta encontrada.</p>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Info da conta */}
@@ -293,13 +348,28 @@ export default function AlertasPage() {
                 <input className="form-input" type="number" step="10" min="0" value={form.saldo_alerta} onChange={e => setForm(f => ({ ...f, saldo_alerta: parseFloat(e.target.value) || 0 }))} />
               </div>
 
-              {/* Grupo WhatsApp */}
+              {/* Grupo WhatsApp (pesquisável) */}
               <div>
                 <label className="form-label">Grupo WhatsApp</label>
-                <select className="form-input" value={form.grupo_id} onChange={e => { const g = grupos.find(g => g.id === e.target.value); setForm(f => ({ ...f, grupo_id: e.target.value, grupo_nome: g?.subject || "" })); }}>
-                  <option value="">Selecione o grupo...</option>
-                  {grupos.map(g => <option key={g.id} value={g.id}>{g.subject}</option>)}
-                </select>
+                <input className="form-input" placeholder="Pesquisar grupo..." value={buscaGrupo} onChange={e => setBuscaGrupo(e.target.value)} style={{ marginBottom: "8px" }} />
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px", maxHeight: "160px", overflowY: "auto" }}>
+                  {grupos.filter(g => g.subject.toLowerCase().includes(buscaGrupo.toLowerCase())).map(g => (
+                    <button key={g.id} onClick={() => setForm(f => ({ ...f, grupo_id: g.id, grupo_nome: g.subject }))}
+                      style={{
+                        display: "flex", alignItems: "center", gap: "8px",
+                        padding: "10px 14px", background: form.grupo_id === g.id ? "rgba(41,171,226,0.1)" : "#1a1a1a",
+                        border: `1px solid ${form.grupo_id === g.id ? "#29ABE2" : "#2e2e2e"}`,
+                        borderRadius: "8px", cursor: "pointer", textAlign: "left", color: "#f0f0f0", fontSize: "12px", width: "100%",
+                      }}>
+                      <span style={{ fontWeight: form.grupo_id === g.id ? "600" : "400" }}>{g.subject}</span>
+                    </button>
+                  ))}
+                  {grupos.filter(g => g.subject.toLowerCase().includes(buscaGrupo.toLowerCase())).length === 0 && (
+                    <p style={{ fontSize: "12px", color: "#606060", textAlign: "center", padding: "12px" }}>
+                      {grupos.length === 0 ? "Nenhum grupo encontrado. Conecte o WhatsApp em Conexões." : "Nenhum grupo encontrado."}
+                    </p>
+                  )}
+                </div>
               </div>
 
               {/* Template da mensagem */}
