@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     if (action === "listar_contas") {
       // Listar todas as contas de anúncio acessíveis pelo token (com paginação)
       const todas: any[] = [];
-      let url: string | null = `${META_API}/me/adaccounts?fields=id,name,account_status,currency,balance,spend_cap,amount_spent,funding_source_details{type,display_string}&limit=500`;
+      let url: string | null = `${META_API}/me/adaccounts?fields=id,name,account_status,currency,balance,spend_cap,amount_spent&limit=500`;
       while (url) {
         const data = await metaFetch(url, accessToken);
         if (data.data) todas.push(...data.data);
