@@ -244,13 +244,8 @@ export async function POST(req: NextRequest) {
       mensagens: extractMensagens(a.actions),
     }));
 
-    // Account info
-    // Saldo disponível = spend_cap - amount_spent (fundos restantes)
-    const spendCap = accountInfo.spend_cap ? parseFloat(accountInfo.spend_cap) / 100 : 0;
-    const amountSpent2 = accountInfo.amount_spent ? parseFloat(accountInfo.amount_spent) / 100 : 0;
-    const balance = spendCap > 0
-      ? spendCap - amountSpent2
-      : Math.abs(accountInfo.balance ? parseFloat(accountInfo.balance) / 100 : 0);
+    // Account info — balance da Meta já é saldo restante (centavos)
+    const balance = Math.max(accountInfo.balance ? parseFloat(accountInfo.balance) / 100 : 0, 0);
     const accountName = accountInfo.name || nomeCliente;
     const currency = accountInfo.currency || "BRL";
 

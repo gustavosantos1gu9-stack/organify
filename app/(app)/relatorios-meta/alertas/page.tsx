@@ -93,15 +93,13 @@ export default function AlertasPage() {
       });
       const data = await res.json();
       if (Array.isArray(data)) {
-        // Filtrar apenas contas pré-pagas (tem spend_cap > 0 ou balance > 0)
         const todas = data.map((c: any) => {
           const id = (c.id || c.account_id || "").replace("act_", "");
+          const balance = Math.max(c.balance ? parseFloat(c.balance) / 100 : 0, 0);
           const spendCap = c.spend_cap ? parseFloat(c.spend_cap) / 100 : 0;
-          const amountSpent = c.amount_spent ? parseFloat(c.amount_spent) / 100 : 0;
-          const balance = spendCap > 0 ? spendCap - amountSpent : Math.abs(c.balance ? parseFloat(c.balance) / 100 : 0);
           return { id, name: c.name, balance, spendCap, account_status: c.account_status };
         });
-        // Pré-pagas: tem spend_cap definido (ou balance > 0 sem spend_cap)
+        // Pré-pagas: tem saldo ou spend_cap definido
         const prePagas = todas.filter((c: any) => c.spendCap > 0 || c.balance > 0);
         setContas(prePagas.length > 0 ? prePagas : todas);
       } else {
