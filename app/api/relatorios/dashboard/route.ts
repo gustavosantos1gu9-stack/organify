@@ -176,7 +176,7 @@ export async function POST(req: NextRequest) {
       ),
       // 7. Account balance
       metaFetch(
-        `${META_API}/${acId}?fields=spend_cap,amount_spent,balance,currency,name`,
+        `${META_API}/${acId}?fields=spend_cap,amount_spent,balance,currency,name,funding_source_details{type,display_string}`,
         token
       ),
     ]);
@@ -244,10 +244,18 @@ export async function POST(req: NextRequest) {
       mensagens: extractMensagens(a.actions),
     }));
 
-    // Saldo disponível = spend_cap - amount_spent
-    const spendCap = accountInfo.spend_cap ? parseFloat(accountInfo.spend_cap) / 100 : 0;
-    const amountSpent2 = accountInfo.amount_spent ? parseFloat(accountInfo.amount_spent) / 100 : 0;
-    const balance = spendCap > 0 ? spendCap - amountSpent2 : 0;
+    // Saldo disponível real vem em funding_source_details.display_string
+    const dsDisplay = accountInfo.funding_source_details?.display_string || "";
+    const dsMatch = dsDisplay.match(/[\d.,]+/);
+    let balance = 0;
+    if (dsMatch) {
+      balance = parseFloat(dsMatch[0].replace(/\./g, "").replace(",", "."));
+    }
+    if (!balance || isNaN(balance)) {
+      const spendCap = accountInfo.spend_cap ? parseFloat(accountInfo.spend_cap) / 100 : 0;
+      const amountSpent2 = accountInfo.amount_spent ? parseFloat(accountInfo.amount_spent) / 100 : 0;
+      balance = spendCap > 0 ? spendCap - amountSpent2 : 0;
+    }
     const accountName = accountInfo.name || nomeCliente;
     const currency = accountInfo.currency || "BRL";
 

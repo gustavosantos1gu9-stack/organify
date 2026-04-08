@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
         // Checar saldo na Meta
         const acId = alerta.ad_account_id.startsWith("act_") ? alerta.ad_account_id : `act_${alerta.ad_account_id}`;
         const res = await fetch(
-          `${META_API}/${acId}?fields=spend_cap,amount_spent,balance,account_status,name`,
+          `${META_API}/${acId}?fields=spend_cap,amount_spent,balance,account_status,name,funding_source_details{type,display_string}`,
           { headers: { Authorization: `Bearer ${con.meta_token}` } }
         );
 
@@ -58,10 +58,18 @@ export async function GET(req: NextRequest) {
         }
 
         const meta = await res.json();
-        // Saldo disponível = spend_cap - amount_spent (o que aparece no Meta Ads Manager)
-        const spendCap = meta.spend_cap ? parseFloat(meta.spend_cap) / 100 : 0;
-        const amountSpent = meta.amount_spent ? parseFloat(meta.amount_spent) / 100 : 0;
-        const balance = spendCap > 0 ? spendCap - amountSpent : 0;
+        // Saldo disponível real vem em funding_source_details.display_string
+        const displayStr = meta.funding_source_details?.display_string || "";
+        const matchSaldo = displayStr.match(/[\d.,]+/);
+        let balance = 0;
+        if (matchSaldo) {
+          balance = parseFloat(matchSaldo[0].replace(/\./g, "").replace(",", "."));
+        }
+        if (!balance || isNaN(balance)) {
+          const spendCap = meta.spend_cap ? parseFloat(meta.spend_cap) / 100 : 0;
+          const amountSpent = meta.amount_spent ? parseFloat(meta.amount_spent) / 100 : 0;
+          balance = spendCap > 0 ? spendCap - amountSpent : 0;
+        }
 
         // Verificar status da conta
         const statusMap: Record<number, string> = {

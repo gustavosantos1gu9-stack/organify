@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
         token
       ),
       metaFetch(
-        `${META_API}/${acId}?fields=spend_cap,amount_spent,balance,currency,name`,
+        `${META_API}/${acId}?fields=spend_cap,amount_spent,balance,currency,name,funding_source_details{type,display_string}`,
         token
       ),
     ]);
@@ -154,10 +154,18 @@ export async function POST(req: NextRequest) {
 
     const convClickMsg = clicks > 0 ? ((parseInt(String(conversas)) / parseInt(String(clicks))) * 100) : 0;
 
-    // Saldo disponível = spend_cap - amount_spent
-    const spendCap = saldoRes.spend_cap ? parseFloat(saldoRes.spend_cap) / 100 : 0;
-    const amountSpent2 = saldoRes.amount_spent ? parseFloat(saldoRes.amount_spent) / 100 : 0;
-    const balance = spendCap > 0 ? spendCap - amountSpent2 : 0;
+    // Saldo disponível real vem em funding_source_details.display_string
+    const envDisplay = saldoRes.funding_source_details?.display_string || "";
+    const envMatch = envDisplay.match(/[\d.,]+/);
+    let balance = 0;
+    if (envMatch) {
+      balance = parseFloat(envMatch[0].replace(/\./g, "").replace(",", "."));
+    }
+    if (!balance || isNaN(balance)) {
+      const spendCap = saldoRes.spend_cap ? parseFloat(saldoRes.spend_cap) / 100 : 0;
+      const amountSpent2 = saldoRes.amount_spent ? parseFloat(saldoRes.amount_spent) / 100 : 0;
+      balance = spendCap > 0 ? spendCap - amountSpent2 : 0;
+    }
 
     // Top 3 criativos
     let top3Text = "";
