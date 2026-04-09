@@ -63,13 +63,12 @@ export async function GET(req: NextRequest) {
     for (const rel of relatorios) {
       const horario = rel.horario_envio || "17:30";
 
-      // Checar se está na janela de 30min (cron roda a cada 30min via cron-job.org)
+      // Checar se está na janela de 5min (cron roda a cada 5min via cron-job.org)
       const [hRel, mRel] = horario.split(":").map(Number);
       const [hAgora, mAgora] = horaAtual.split(":").map(Number);
       const minRel = hRel * 60 + mRel;
       const minAgora = hAgora * 60 + mAgora;
-      // Dispara se o horário do relatório cai na janela atual de 30min
-      if (minRel < minAgora || minRel >= minAgora + 30) continue;
+      if (minRel < minAgora || minRel >= minAgora + 5) continue;
 
       // Checar frequência
       if (rel.frequencia === "semanal") {
