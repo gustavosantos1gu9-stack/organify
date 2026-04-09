@@ -40,7 +40,9 @@ interface Conexao {
 interface ContaAnuncio { id: string; name: string; }
 interface GrupoWA { id: string; subject: string; size: number; }
 
-const TEMPLATE_PADRAO = `📊 *Relatório de Campanhas — Meta ADS*
+const TEMPLATE_PADRAO = `Boa tarde <PRIMEIRO_NOME>, tudo bem? Passando aqui para lhe encaminhar o seu relatório diário.
+
+📊 *Relatório de Campanhas — Meta ADS*
 Cliente: <CA>
 Período analisado: <DATA>
 
@@ -89,6 +91,7 @@ const FREQUENCIAS = [
 const DIAS_SEMANA = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
 const VARIAVEIS = [
+  { var: "<PRIMEIRO_NOME>", desc: "Primeiro nome da cliente" },
   { var: "<CA>", desc: "Nome do cliente" },
   { var: "<DATA>", desc: "Período analisado" },
   { var: "<IMP>", desc: "Impressões" },

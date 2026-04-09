@@ -213,6 +213,7 @@ export async function POST(req: NextRequest) {
     // Montar mensagem a partir do template
     let mensagem = rel.template || "";
     const replacements: Record<string, string> = {
+      "<PRIMEIRO_NOME>": (rel.nome_cliente || "").split(/\s+/)[0] || "",
       "<CA>": rel.nome_cliente || "",
       "<DATA>": periodoFormatado,
       "<IMP>": formatNum(impressions),
