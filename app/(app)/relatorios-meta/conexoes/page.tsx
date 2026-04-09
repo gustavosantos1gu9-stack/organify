@@ -42,6 +42,13 @@ export default function ConexoesPage() {
   const [qrTimer, setQrTimer] = useState(30);
   const [qrRefreshing, setQrRefreshing] = useState(false);
 
+  // Múltiplas instâncias WhatsApp
+  const [waInstancias, setWaInstancias] = useState<any[]>([]);
+  const [novaInstNome, setNovaInstNome] = useState("");
+  const [adicionandoInst, setAdicionandoInst] = useState(false);
+  const [qrNovaInst, setQrNovaInst] = useState<string | null>(null);
+  const [qrNovaInstNome, setQrNovaInstNome] = useState("");
+
   const [conexaoId, setConexaoId] = useState<string | null>(null);
 
   // Extensão de token
@@ -358,6 +365,138 @@ export default function ConexoesPage() {
     }
   }
 
+  // ─── Múltiplas instâncias WhatsApp ──────────────────────────
+
+  async function carregarInstancias() {
+    const agId = await getAgenciaId();
+    const { data } = await supabase.from("whatsapp_instancias").select("*").eq("agencia_id", agId!).order("created_at");
+    if (data) {
+      // Verificar status de cada instância
+      for (const inst of data) {
+        const url = inst.evolution_url || evoUrl;
+        const key = inst.evolution_key || evoKey;
+        if (url && key) {
+          try {
+            const res = await fetch(`${url}/instance/connectionState/${inst.instancia}`, { headers: { apikey: key } });
+            const d = await res.json();
+            const state = (d.instance?.state || d.state || "").toLowerCase();
+            inst.conectado = state === "open" || state === "connected";
+          } catch { inst.conectado = false; }
+        }
+      }
+      setWaInstancias(data);
+    }
+  }
+
+  async function adicionarInstancia() {
+    if (!novaInstNome.trim()) { alert("Digite um nome para a instância"); return; }
+    if (!evoUrl || !evoKey) { alert("Evolution API não configurada"); return; }
+    setAdicionandoInst(true);
+    const nomeInst = novaInstNome.trim().toLowerCase().replace(/\s+/g, "-");
+
+    try {
+      // Tentar conectar instância existente ou criar nova
+      let qr: string | null = null;
+      try {
+        const connectRes = await fetch(`${evoUrl}/instance/connect/${nomeInst}`, { headers: { apikey: evoKey } });
+        const connectData = await connectRes.json();
+        qr = connectData.base64 || connectData.qrcode?.base64 || null;
+      } catch {}
+
+      if (!qr) {
+        // Criar nova instância
+        const createRes = await fetch(`${evoUrl}/instance/create`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: evoKey },
+          body: JSON.stringify({ instanceName: nomeInst, token: nomeInst, qrcode: true, integration: "WHATSAPP-BAILEYS" }),
+        });
+        const createData = await createRes.json();
+        qr = createData.qrcode?.base64 || createData.base64 || null;
+      }
+
+      // Configurar webhook
+      try {
+        const webhookSecret = "60efd4060d088e27af797cb1b2e8cdc198d34ee3a7260ebbe1d2160e9ab2453c";
+        await fetch(`${evoUrl}/webhook/set/${nomeInst}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: evoKey },
+          body: JSON.stringify({ webhook: { url: `https://salxconvert-blond.vercel.app/api/webhook/whatsapp?secret=${webhookSecret}`, enabled: true, events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE"] } }),
+        });
+      } catch {}
+
+      // Salvar no banco
+      const agId = await getAgenciaId();
+      await supabase.from("whatsapp_instancias").insert({
+        agencia_id: agId, nome: novaInstNome.trim(), instancia: nomeInst,
+        evolution_url: evoUrl, evolution_key: evoKey, conectado: false,
+      });
+
+      if (qr) { setQrNovaInst(qr); setQrNovaInstNome(nomeInst); }
+      setNovaInstNome("");
+      carregarInstancias();
+    } catch { alert("Erro ao criar instância"); }
+    setAdicionandoInst(false);
+  }
+
+  async function verificarInstancia(inst: any) {
+    const url = inst.evolution_url || evoUrl;
+    const key = inst.evolution_key || evoKey;
+    try {
+      const res = await fetch(`${url}/instance/connectionState/${inst.instancia}`, { headers: { apikey: key } });
+      const d = await res.json();
+      const state = (d.instance?.state || d.state || "").toLowerCase();
+      const conectado = state === "open" || state === "connected";
+      await supabase.from("whatsapp_instancias").update({ conectado, updated_at: new Date().toISOString() }).eq("id", inst.id);
+      carregarInstancias();
+    } catch {}
+  }
+
+  async function conectarInstancia(inst: any) {
+    const url = inst.evolution_url || evoUrl;
+    const key = inst.evolution_key || evoKey;
+    try {
+      const res = await fetch(`${url}/instance/connect/${inst.instancia}`, { headers: { apikey: key } });
+      const d = await res.json();
+      const qr = d.base64 || d.qrcode?.base64;
+      if (qr) { setQrNovaInst(qr); setQrNovaInstNome(inst.instancia); }
+    } catch { alert("Erro ao conectar"); }
+  }
+
+  async function desconectarInstancia(inst: any) {
+    if (!confirm(`Desconectar ${inst.nome}?`)) return;
+    const url = inst.evolution_url || evoUrl;
+    const key = inst.evolution_key || evoKey;
+    try { await fetch(`${url}/instance/logout/${inst.instancia}`, { method: "DELETE", headers: { apikey: key } }); } catch {}
+    await supabase.from("whatsapp_instancias").update({ conectado: false }).eq("id", inst.id);
+    carregarInstancias();
+  }
+
+  async function removerInstancia(inst: any) {
+    if (!confirm(`Remover instância ${inst.nome}? Isso não apaga a instância da Evolution, apenas do sistema.`)) return;
+    await supabase.from("whatsapp_instancias").delete().eq("id", inst.id);
+    carregarInstancias();
+  }
+
+  useEffect(() => { carregarInstancias(); }, [evoUrl]);
+
+  // Auto-check QR nova instância
+  useEffect(() => {
+    if (!qrNovaInst || !qrNovaInstNome) return;
+    const check = setInterval(async () => {
+      try {
+        const res = await fetch(`${evoUrl}/instance/connectionState/${qrNovaInstNome}`, { headers: { apikey: evoKey } });
+        const d = await res.json();
+        const state = (d.instance?.state || d.state || "").toLowerCase();
+        if (state === "open" || state === "connected") {
+          setQrNovaInst(null); setQrNovaInstNome("");
+          await supabase.from("whatsapp_instancias").update({ conectado: true, updated_at: new Date().toISOString() }).eq("instancia", qrNovaInstNome);
+          carregarInstancias();
+        }
+      } catch {}
+    }, 5000);
+    return () => clearInterval(check);
+  }, [qrNovaInst, qrNovaInstNome]);
+
   return (
     <div className="animate-in">
       <div className="breadcrumb">
@@ -604,6 +743,100 @@ export default function ConexoesPage() {
               </p>
             )}
           </div>
+        )}
+      </div>
+
+      {/* ─── Instâncias WhatsApp Adicionais ──────────────────────────── */}
+      <div className="card" style={{ marginTop: "20px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <Plus size={18} color="#25d366" />
+            <h2 style={{ fontSize: "16px", fontWeight: "600" }}>Instâncias WhatsApp</h2>
+          </div>
+          <span style={{ fontSize: "12px", color: "#606060" }}>{waInstancias.length} instância(s)</span>
+        </div>
+
+        {/* Lista de instâncias */}
+        {waInstancias.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px" }}>
+            {waInstancias.map((inst) => (
+              <div key={inst.id} style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "12px 16px",
+                background: inst.conectado ? "rgba(37,211,102,0.05)" : "#1a1a1a",
+                border: `1px solid ${inst.conectado ? "rgba(37,211,102,0.2)" : "#2e2e2e"}`,
+                borderRadius: "10px",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: inst.conectado ? "#22c55e" : "#ef4444" }} />
+                  <div>
+                    <p style={{ fontSize: "13px", fontWeight: "600", color: "#f0f0f0", margin: 0 }}>{inst.nome}</p>
+                    <p style={{ fontSize: "11px", color: "#606060", margin: 0 }}>{inst.instancia}</p>
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: "6px" }}>
+                  <button onClick={() => verificarInstancia(inst)} className="btn-ghost" style={{ cursor: "pointer", padding: "4px" }}>
+                    <RefreshCw size={13} />
+                  </button>
+                  {!inst.conectado && (
+                    <button onClick={() => conectarInstancia(inst)} style={{
+                      background: "rgba(37,211,102,0.1)", border: "1px solid rgba(37,211,102,0.2)",
+                      borderRadius: "6px", padding: "4px 10px", cursor: "pointer", color: "#25d366", fontSize: "11px",
+                    }}>Conectar</button>
+                  )}
+                  {inst.conectado && (
+                    <button onClick={() => desconectarInstancia(inst)} style={{
+                      background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)",
+                      borderRadius: "6px", padding: "4px 10px", cursor: "pointer", color: "#ef4444", fontSize: "11px",
+                    }}>Desconectar</button>
+                  )}
+                  <button onClick={() => removerInstancia(inst)} style={{
+                    background: "none", border: "1px solid #2e2e2e",
+                    borderRadius: "6px", padding: "4px 8px", cursor: "pointer", color: "#606060",
+                  }}><Trash2 size={12} /></button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* QR Code de nova instância */}
+        {qrNovaInst && (
+          <div style={{ background: "#1a1a1a", border: "1px solid rgba(37,211,102,0.3)", borderRadius: "10px", padding: "24px", textAlign: "center", marginBottom: "16px" }}>
+            <p style={{ fontSize: "14px", fontWeight: "600", color: "#f0f0f0", marginBottom: "4px" }}>
+              Escaneie o QR Code — {qrNovaInstNome}
+            </p>
+            <p style={{ fontSize: "12px", color: "#606060", marginBottom: "16px" }}>
+              Abra o WhatsApp → Aparelhos conectados → Conectar
+            </p>
+            {qrNovaInst.startsWith("data:image") ? (
+              <img src={qrNovaInst} alt="QR" style={{ width: "220px", height: "220px", borderRadius: "8px" }} />
+            ) : (
+              <div style={{ background: "#fff", padding: "20px", borderRadius: "8px", display: "inline-block" }}>
+                <p style={{ fontSize: "11px", color: "#000", fontFamily: "monospace", wordBreak: "break-all", maxWidth: "220px" }}>
+                  {qrNovaInst.replace("qr:", "")}
+                </p>
+              </div>
+            )}
+            <p style={{ fontSize: "11px", color: "#25d366", marginTop: "12px" }}>Verificando conexão automaticamente...</p>
+            <button className="btn-ghost" style={{ cursor: "pointer", marginTop: "8px" }} onClick={() => { setQrNovaInst(null); setQrNovaInstNome(""); }}>
+              Cancelar
+            </button>
+          </div>
+        )}
+
+        {/* Adicionar nova instância */}
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <input className="form-input" placeholder="Nome da instância (ex: whatsapp-lays)" value={novaInstNome}
+            onChange={e => setNovaInstNome(e.target.value)} style={{ flex: 1 }} />
+          <button className="btn-primary" onClick={adicionarInstancia} disabled={adicionandoInst} style={{ cursor: "pointer", whiteSpace: "nowrap" }}>
+            <Plus size={14} /> {adicionandoInst ? "Criando..." : "Adicionar"}
+          </button>
+        </div>
+        {!evoUrl && (
+          <p style={{ fontSize: "11px", color: "#ef4444", marginTop: "8px" }}>
+            Evolution API não configurada. Configure em Configurações → Integrações.
+          </p>
         )}
       </div>
     </div>

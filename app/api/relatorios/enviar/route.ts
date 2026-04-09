@@ -237,8 +237,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ mensagem, dados: { impressions, reach, clicks, ctr, cpm, spend, conversas, custoConversa, balance } });
     }
 
-    // Enviar via Evolution API
-    if (!ag.evolution_url || !ag.evolution_key || !ag.whatsapp_instancia) {
+    // Determinar qual instância WhatsApp usar
+    let evoUrl = ag.evolution_url;
+    let evoKey = ag.evolution_key;
+    let evoInst = ag.whatsapp_instancia;
+
+    // Se relatório tem instância específica, usar ela
+    if (rel.whatsapp_instancia_id) {
+      const { data: waInst } = await supabase.from("whatsapp_instancias")
+        .select("instancia, evolution_url, evolution_key")
+        .eq("id", rel.whatsapp_instancia_id).single();
+      if (waInst) {
+        evoInst = waInst.instancia;
+        if (waInst.evolution_url) evoUrl = waInst.evolution_url;
+        if (waInst.evolution_key) evoKey = waInst.evolution_key;
+      }
+    }
+
+    if (!evoUrl || !evoKey || !evoInst) {
       return NextResponse.json({ error: "WhatsApp não configurado", mensagem }, { status: 400 });
     }
 
@@ -248,12 +264,12 @@ export async function POST(req: NextRequest) {
     }
 
     const evoRes = await fetch(
-      `${ag.evolution_url}/message/sendText/${ag.whatsapp_instancia}`,
+      `${evoUrl}/message/sendText/${evoInst}`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          apikey: ag.evolution_key,
+          apikey: evoKey,
         },
         body: JSON.stringify({
           number: destino,

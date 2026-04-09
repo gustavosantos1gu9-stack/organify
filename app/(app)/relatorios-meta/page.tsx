@@ -142,6 +142,8 @@ export default function RelatoriosMetaPage() {
   const [diaSemana, setDiaSemana] = useState(1);
   const [destinoTipo, setDestinoTipo] = useState<"grupo" | "contato">("grupo");
   const [buscaConta, setBuscaConta] = useState("");
+  const [waInstancias, setWaInstancias] = useState<{id:string;nome:string;instancia:string;conectado:boolean}[]>([]);
+  const [waInstanciaId, setWaInstanciaId] = useState("");
   const [buscaGrupo, setBuscaGrupo] = useState("");
   const [salvando, setSalvando] = useState(false);
 
@@ -178,6 +180,14 @@ export default function RelatoriosMetaPage() {
         carregarGrupos(con.evolution_url, con.evolution_key, con.whatsapp_instancia);
       }
     }
+
+    // Carregar instâncias WhatsApp
+    const { data: instancias } = await supabase
+      .from("whatsapp_instancias")
+      .select("id, nome, instancia, conectado")
+      .eq("agencia_id", agId!)
+      .order("created_at");
+    setWaInstancias(instancias || []);
 
     // Carregar relatórios
     const { data } = await supabase
@@ -289,9 +299,11 @@ export default function RelatoriosMetaPage() {
       setHorarioEnvio(rel.horario_envio || "17:30");
       setDiaSemana(rel.dia_semana ?? 1);
       setDestinoTipo(rel.grupo_id ? "grupo" : "contato");
+      setWaInstanciaId((rel as any).whatsapp_instancia_id || "");
     } else {
       setEditando(null);
       setNome("");
+      setWaInstanciaId("");
       setNomeCliente("");
       setAdAccountId("");
       setGrupoId("");
@@ -332,6 +344,7 @@ export default function RelatoriosMetaPage() {
       frequencia,
       horario_envio: horarioEnvio,
       dia_semana: frequencia === "semanal" ? diaSemana : null,
+      whatsapp_instancia_id: waInstanciaId || null,
       ativo: true,
     };
 
@@ -628,6 +641,30 @@ export default function RelatoriosMetaPage() {
                 </div>
               )}
             </div>
+
+            {/* Instância WhatsApp */}
+            {waInstancias.length > 0 && (
+              <div className="form-group" style={{ marginBottom: "20px" }}>
+                <label className="form-label">WhatsApp (instância)</label>
+                <select className="form-input" value={waInstanciaId} onChange={e => {
+                  setWaInstanciaId(e.target.value);
+                  // Recarregar grupos da instância selecionada
+                  const inst = waInstancias.find(i => i.id === e.target.value);
+                  if (inst && conexao) {
+                    const url = (conexao as any).evolution_url;
+                    const key = (conexao as any).evolution_key;
+                    if (url && key) carregarGrupos(url, key, inst.instancia);
+                  }
+                }}>
+                  <option value="">Padrão (conexão principal)</option>
+                  {waInstancias.map(inst => (
+                    <option key={inst.id} value={inst.id}>
+                      {inst.nome} {inst.conectado ? "● Conectado" : "○ Desconectado"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Destino WhatsApp — puxa grupos da conexão */}
             <div style={{ marginBottom: "20px" }}>
