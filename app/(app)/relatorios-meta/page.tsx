@@ -64,7 +64,6 @@ _Eficiência em transformar visitantes em potenciais clientes._
 
 💰 *Investimento*
 *Valor investido*: <INV>
-*Saldo atual*: <SALDO>
 
 📈 *Relatório Completo em Dashboard*
 <LINK_DASH>
