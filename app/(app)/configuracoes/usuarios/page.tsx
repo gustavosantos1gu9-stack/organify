@@ -5,9 +5,10 @@ import { Plus, Edit2, Trash2, Search, Check, X } from "lucide-react";
 import { supabase, getAgenciaId } from "@/lib/hooks";
 
 interface Time { id: string; nome: string; }
+interface AgenciaFilha { id: string; nome: string; }
 interface Usuario { id: string; nome: string; cpf?: string; email: string; time_id?: string; ativo: boolean; times?: { nome: string }; }
 
-function UsuarioModal({ item, times, onClose, onSave }: { item?: Usuario; times: Time[]; onClose:()=>void; onSave:()=>void }) {
+function UsuarioModal({ item, times, agenciasFilhas, onClose, onSave }: { item?: Usuario; times: Time[]; agenciasFilhas: AgenciaFilha[]; onClose:()=>void; onSave:()=>void }) {
   const isEdit = !!item;
   const [form, setForm] = useState({
     nome: item?.nome || "",
@@ -16,8 +17,17 @@ function UsuarioModal({ item, times, onClose, onSave }: { item?: Usuario; times:
     time_id: item?.time_id || "",
     ativo: item?.ativo ?? true,
   });
+  const [acessoFilhas, setAcessoFilhas] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const set = (k: string, v: string|boolean) => setForm(f=>({...f,[k]:v}));
+
+  // Carregar acessos existentes ao editar
+  useEffect(() => {
+    if (isEdit && item) {
+      supabase.from("usuarios_agencias").select("agencia_id").eq("usuario_id", item.id)
+        .then(({ data }) => setAcessoFilhas((data || []).map(d => d.agencia_id)));
+    }
+  }, [item]);
 
   const [erro, setErro] = useState("");
 
@@ -28,6 +38,7 @@ function UsuarioModal({ item, times, onClose, onSave }: { item?: Usuario; times:
     try {
       const agId = await getAgenciaId();
       const payload = { nome:form.nome, cpf:form.cpf||undefined, email:form.email, time_id:form.time_id||undefined, ativo:form.ativo };
+      let userId = item?.id;
       if (isEdit) {
         await supabase.from("usuarios").update(payload).eq("id", item!.id);
       } else {
@@ -38,6 +49,16 @@ function UsuarioModal({ item, times, onClose, onSave }: { item?: Usuario; times:
         });
         const data = await res.json();
         if (!res.ok) { setErro(data.error || "Erro ao criar usuário"); setLoading(false); return; }
+        userId = data.id;
+      }
+      // Salvar acessos a agências filhas
+      if (userId) {
+        await supabase.from("usuarios_agencias").delete().eq("usuario_id", userId);
+        if (acessoFilhas.length > 0) {
+          await supabase.from("usuarios_agencias").insert(
+            acessoFilhas.map(agId => ({ usuario_id: userId, agencia_id: agId }))
+          );
+        }
       }
       onSave(); onClose();
     } catch(e: any) { console.error(e); setErro(e.message || "Erro ao salvar"); }
@@ -86,6 +107,27 @@ function UsuarioModal({ item, times, onClose, onSave }: { item?: Usuario; times:
               ))}
             </div>
           </div>
+          {agenciasFilhas.length > 0 && (
+            <div className="form-group">
+              <label className="form-label">Acesso a Agências (clientes)</label>
+              <div style={{display:"flex",flexDirection:"column",gap:"6px",maxHeight:"160px",overflowY:"auto"}}>
+                {agenciasFilhas.map(ag => (
+                  <button key={ag.id} onClick={() => setAcessoFilhas(prev => prev.includes(ag.id) ? prev.filter(x=>x!==ag.id) : [...prev, ag.id])}
+                    style={{
+                      display:"flex",alignItems:"center",gap:"10px",padding:"10px 14px",
+                      background: acessoFilhas.includes(ag.id) ? "rgba(41,171,226,0.1)" : "#1a1a1a",
+                      border: `1px solid ${acessoFilhas.includes(ag.id) ? "#29ABE2" : "#2e2e2e"}`,
+                      borderRadius:"8px",cursor:"pointer",textAlign:"left",color:"#f0f0f0",fontSize:"13px",width:"100%",
+                    }}>
+                    <div style={{width:"18px",height:"18px",borderRadius:"4px",border:`2px solid ${acessoFilhas.includes(ag.id)?"#29ABE2":"#606060"}`,display:"flex",alignItems:"center",justifyContent:"center",background:acessoFilhas.includes(ag.id)?"#29ABE2":"transparent",flexShrink:0}}>
+                      {acessoFilhas.includes(ag.id) && <Check size={12} color="#fff"/>}
+                    </div>
+                    {ag.nome}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         {erro && (
           <div style={{ background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.25)", borderRadius:"8px", padding:"10px 14px", fontSize:"13px", color:"#ef4444", marginTop:"12px" }}>{erro}</div>
@@ -107,6 +149,7 @@ function UsuarioModal({ item, times, onClose, onSave }: { item?: Usuario; times:
 export default function UsuariosPage() {
   const [items, setItems] = useState<Usuario[]>([]);
   const [times, setTimes] = useState<Time[]>([]);
+  const [agenciasFilhas, setAgenciasFilhas] = useState<AgenciaFilha[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -115,12 +158,14 @@ export default function UsuariosPage() {
     setLoading(true);
     try {
       const agId = await getAgenciaId();
-      const [{ data: usuarios }, { data: ts }] = await Promise.all([
+      const [{ data: usuarios }, { data: ts }, { data: filhas }] = await Promise.all([
         supabase.from("usuarios").select("*, times!usuarios_time_id_fkey(nome)").eq("agencia_id", agId!).order("nome"),
         supabase.from("times").select("id,nome").eq("agencia_id", agId!).order("nome"),
+        supabase.from("agencias").select("id,nome").eq("parent_id", agId!).order("nome"),
       ]);
       setItems(usuarios || []);
       setTimes(ts || []);
+      setAgenciasFilhas(filhas || []);
     } finally { setLoading(false); }
   };
 
@@ -186,8 +231,8 @@ export default function UsuariosPage() {
           </tbody>
         </table>
       </div>
-      {showModal && <UsuarioModal times={times} onClose={()=>setShowModal(false)} onSave={carregar}/>}
-      {editando && <UsuarioModal item={editando} times={times} onClose={()=>setEditando(null)} onSave={carregar}/>}
+      {showModal && <UsuarioModal times={times} agenciasFilhas={agenciasFilhas} onClose={()=>setShowModal(false)} onSave={carregar}/>}
+      {editando && <UsuarioModal item={editando} times={times} agenciasFilhas={agenciasFilhas} onClose={()=>setEditando(null)} onSave={carregar}/>}
     </div>
   );
 }

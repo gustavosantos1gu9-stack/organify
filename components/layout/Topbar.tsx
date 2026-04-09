@@ -114,6 +114,45 @@ export default function Topbar() {
         if (ag) masterId = ag.id;
       }
 
+      if (!masterId && usuario) {
+        // Usuário da equipe — verificar se tem acesso a agências filhas
+        const { data: acessos } = await supabase
+          .from("usuarios_agencias")
+          .select("agencia_id")
+          .eq("usuario_id", usuario.agencia_id ? undefined! : ""); // placeholder
+
+        // Buscar por auth_user_id via query direta
+        const { data: userRow } = await supabase
+          .from("usuarios")
+          .select("id")
+          .eq("auth_user_id", user.id)
+          .single();
+
+        if (userRow) {
+          const { data: acessosFilhas } = await supabase
+            .from("usuarios_agencias")
+            .select("agencia_id, agencias!usuarios_agencias_agencia_id_fkey(nome)")
+            .eq("usuario_id", userRow.id);
+
+          if (acessosFilhas && acessosFilhas.length > 0) {
+            const agPrincipal: AgenciaOption = { id: usuario.agencia_id, nome: "Minha Agência", parent_id: null };
+            const filhasAcesso = acessosFilhas.map((a: any) => ({
+              id: a.agencia_id,
+              nome: (a.agencias as any)?.nome || a.agencia_id,
+              parent_id: usuario.agencia_id,
+            }));
+            setAgencias([agPrincipal, ...filhasAcesso]);
+            setIsMaster(true);
+
+            const savedId = sessionStorage.getItem("agencia_selecionada");
+            const saved = [agPrincipal, ...filhasAcesso].find(a => a.id === savedId);
+            setAgenciaAtual(saved || agPrincipal);
+            return;
+          }
+        }
+        return;
+      }
+
       if (!masterId) return;
       setIsMaster(true);
 
