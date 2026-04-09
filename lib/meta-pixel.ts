@@ -54,30 +54,48 @@ export async function dispararEventoMeta(data: MetaEventData): Promise<{ ok: boo
 
     // Dados customizados
     const customData: Record<string, any> = {};
-    // Purchase exige value + currency obrigatoriamente
-    const valorNumerico = typeof valor === "number" ? valor : (typeof valor === "object" ? 0 : Number(valor) || 0);
+    // Extrair valor numérico (valor_padrao pode vir como objeto do Supabase)
+    let valorNumerico = 0;
+    if (typeof valor === "number") {
+      valorNumerico = valor;
+    } else if (typeof valor === "string") {
+      valorNumerico = parseFloat(valor) || 0;
+    } else if (valor && typeof valor === "object") {
+      const obj = valor as Record<string, any>;
+      if ("Int" in obj) valorNumerico = Number(obj.Int) || 0;
+    }
+    // Purchase e AddToCart exigem value + currency
     if (valorNumerico > 0) {
       customData.value = valorNumerico;
       customData.currency = moeda || "BRL";
-    } else if (event_name === "Purchase") {
+    } else if (event_name === "Purchase" || event_name === "AddToCart") {
       customData.value = 0;
       customData.currency = moeda || "BRL";
     }
     if (utm_campaign) customData.utm_campaign = utm_campaign;
     if (utm_content) customData.utm_content = utm_content;
 
-    // CTWA (Click-to-WhatsApp) = action_source "messaging"
-    // Website/Conversão = action_source "website"
+    // Determinar action_source:
+    // - CTWA ou contato via WhatsApp = "messaging" + messaging_channel "whatsapp"
+    // - Se tem source_url real (veio de website) = "website"
+    // - Senão (disparo manual do inbox/CRM) = "system_generated"
+    let actionSource = "system_generated";
+    if (is_ctwa) {
+      actionSource = "messaging";
+    } else if (source_url && source_url !== "https://salxconvert-blond.vercel.app/") {
+      actionSource = "website";
+    }
+
     const eventData: Record<string, any> = {
       event_name,
       event_time: Math.floor(Date.now() / 1000),
-      action_source: is_ctwa ? "messaging" : "website",
+      action_source: actionSource,
       user_data: userData,
     };
-    if (is_ctwa) {
+    if (actionSource === "messaging") {
       eventData.messaging_channel = "whatsapp";
-    } else {
-      eventData.event_source_url = source_url || "https://salxconvert-blond.vercel.app/";
+    } else if (actionSource === "website") {
+      eventData.event_source_url = source_url;
     }
 
     if (Object.keys(customData).length > 0) {
