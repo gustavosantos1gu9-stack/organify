@@ -118,13 +118,28 @@ export async function GET(req: NextRequest) {
           mensagem = mensagem.replaceAll(key, value);
         }
 
+        // Determinar instância WhatsApp
+        let evoUrl = con.evolution_url;
+        let evoKey = con.evolution_key;
+        let evoInst = con.whatsapp_instancia;
+        if (alerta.whatsapp_instancia_id) {
+          const { data: waInst } = await supabase.from("whatsapp_instancias")
+            .select("instancia, evolution_url, evolution_key")
+            .eq("id", alerta.whatsapp_instancia_id).single();
+          if (waInst) {
+            evoInst = waInst.instancia;
+            if (waInst.evolution_url) evoUrl = waInst.evolution_url;
+            if (waInst.evolution_key) evoKey = waInst.evolution_key;
+          }
+        }
+
         // Enviar via WhatsApp (Evolution API)
-        if (mensagem && alerta.grupo_id && con.evolution_url && con.evolution_key && con.whatsapp_instancia) {
+        if (mensagem && alerta.grupo_id && evoUrl && evoKey && evoInst) {
           const evoRes = await fetch(
-            `${con.evolution_url}/message/sendText/${con.whatsapp_instancia}`,
+            `${evoUrl}/message/sendText/${evoInst}`,
             {
               method: "POST",
-              headers: { "Content-Type": "application/json", apikey: con.evolution_key },
+              headers: { "Content-Type": "application/json", apikey: evoKey },
               body: JSON.stringify({ number: alerta.grupo_id, text: mensagem }),
             }
           );

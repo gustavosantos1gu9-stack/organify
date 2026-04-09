@@ -64,6 +64,8 @@ export default function AlertasPage() {
   const [buscaGrupo, setBuscaGrupo] = useState("");
   const [loadingContas, setLoadingContas] = useState(false);
   const [erroContas, setErroContas] = useState("");
+  const [waInstancias, setWaInstancias] = useState<{id:string;nome:string;conectado:boolean;instancia:string}[]>([]);
+  const [waInstanciaId, setWaInstanciaId] = useState("");
 
   const carregar = async () => {
     const agId = await getAgenciaId();
@@ -78,6 +80,10 @@ export default function AlertasPage() {
       .select("meta_token, evolution_url, evolution_key, whatsapp_instancia")
       .eq("agencia_id", agId!).order("created_at", { ascending: false }).limit(1).single();
     if (con) { setToken(con.meta_token || ""); setConConfig(con); }
+
+    const { data: instancias } = await supabase.from("whatsapp_instancias")
+      .select("id, nome, instancia, conectado").eq("agencia_id", agId!).order("created_at");
+    setWaInstancias(instancias || []);
     setLoading(false);
   };
 
@@ -147,9 +153,11 @@ export default function AlertasPage() {
     if (alerta) {
       setEditando(alerta);
       setForm({ ...alerta });
+      setWaInstanciaId((alerta as any).whatsapp_instancia_id || "");
       if (alerta.ad_account_id) verificarConta(alerta.ad_account_id);
     } else {
       setEditando(null);
+      setWaInstanciaId("");
       setForm({
         ad_account_id: "", nome_cliente: "", saldo_alerta: 50, grupo_id: "", grupo_nome: "",
         template_saldo: TEMPLATE_PADRAO, template_status: "", forma_pagamento: "", ativo: true,
@@ -167,7 +175,7 @@ export default function AlertasPage() {
     try {
       const agId = await getAgenciaId();
       const info = contaInfo[form.ad_account_id];
-      const alerta = { ...form, forma_pagamento: info?.forma_pagamento || form.forma_pagamento || "" };
+      const alerta = { ...form, forma_pagamento: info?.forma_pagamento || form.forma_pagamento || "", whatsapp_instancia_id: waInstanciaId || null };
       if (editando?.id) alerta.id = editando.id;
 
       await fetch("/api/alertas", {
@@ -345,6 +353,21 @@ export default function AlertasPage() {
                 <label className="form-label">Saldo mínimo para alerta (R$)</label>
                 <input className="form-input" type="number" step="10" min="0" value={form.saldo_alerta} onChange={e => setForm(f => ({ ...f, saldo_alerta: parseFloat(e.target.value) || 0 }))} />
               </div>
+
+              {/* Instância WhatsApp */}
+              {waInstancias.length > 0 && (
+                <div>
+                  <label className="form-label">WhatsApp (instância)</label>
+                  <select className="form-input" value={waInstanciaId} onChange={e => setWaInstanciaId(e.target.value)}>
+                    <option value="">Padrão (conexão principal)</option>
+                    {waInstancias.map(inst => (
+                      <option key={inst.id} value={inst.id}>
+                        {inst.nome} {inst.conectado ? "● Conectado" : "○ Desconectado"}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Grupo WhatsApp (pesquisável) */}
               <div>
