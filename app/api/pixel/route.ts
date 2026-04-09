@@ -37,14 +37,18 @@ export async function POST(req: NextRequest) {
 
     // Buscar dados extras da conversa pra enriquecer o pixel
     let nomeContato = contato_nome;
-    let emailContato: string | undefined;
     let fbpContato: string | undefined = fbp;
+    let isCTWA = is_ctwa || false;
     if (conversa_id) {
       const { data: conv } = await supabase.from("conversas")
-        .select("contato_nome, contato_numero, fbclid, origem")
+        .select("contato_nome, contato_numero, fbclid, origem, contato_jid")
         .eq("id", conversa_id).single();
       if (conv) {
         if (!nomeContato) nomeContato = conv.contato_nome;
+        // Detectar CTWA: origem Meta Ads, tem fbclid, ou JID é @lid
+        if (!isCTWA && (conv.origem === "Meta Ads" || conv.fbclid || conv.contato_jid?.includes("@lid"))) {
+          isCTWA = true;
+        }
       }
     }
 
@@ -72,7 +76,7 @@ export async function POST(req: NextRequest) {
       utm_content,
       valor: valor || etapa.valor_padrao || undefined,
       external_id: conversa_id ? `${conversa_id}_${etapa.evento_conversao}` : undefined,
-      is_ctwa: is_ctwa || false,
+      is_ctwa: isCTWA,
       event_id: eventId,
     });
 

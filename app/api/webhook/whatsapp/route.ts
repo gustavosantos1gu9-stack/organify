@@ -600,7 +600,7 @@ export async function POST(req: NextRequest) {
             fbclid: tracking?.fbclid,
             utm_campaign: tracking?.utm_campaign,
             utm_content: tracking?.utm_content,
-            is_ctwa: _isCTWA || isLid,
+            is_ctwa: _isCTWA || isLid || tracking?.origem === "Meta Ads" || !!tracking?.fbclid,
           }),
         }).catch(() => {});
       }
