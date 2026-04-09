@@ -61,7 +61,16 @@ export async function GET(req: NextRequest) {
     const resultados: { id: string; status: string; error?: string }[] = [];
 
     for (const rel of relatorios) {
-      // Plano Hobby: cron roda 1x/dia — envia todos que ainda não foram enviados hoje
+      const horario = rel.horario_envio || "17:30";
+
+      // Checar se está na janela de 30min (cron roda a cada 30min via cron-job.org)
+      const [hRel, mRel] = horario.split(":").map(Number);
+      const [hAgora, mAgora] = horaAtual.split(":").map(Number);
+      const minRel = hRel * 60 + mRel;
+      const minAgora = hAgora * 60 + mAgora;
+      // Dispara se o horário do relatório cai na janela atual de 30min
+      if (minRel < minAgora || minRel >= minAgora + 30) continue;
+
       // Checar frequência
       if (rel.frequencia === "semanal") {
         if (rel.dia_semana !== null && rel.dia_semana !== diaAtual) continue;
