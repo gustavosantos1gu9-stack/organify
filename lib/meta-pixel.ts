@@ -75,16 +75,11 @@ export async function dispararEventoMeta(data: MetaEventData): Promise<{ ok: boo
     if (utm_campaign) customData.utm_campaign = utm_campaign;
     if (utm_content) customData.utm_content = utm_content;
 
-    // Determinar action_source:
-    // - CTWA ou contato via WhatsApp = "messaging" + messaging_channel "whatsapp"
-    // - Se tem source_url real (veio de website) = "website"
-    // - Senão (disparo manual do inbox/CRM) = "system_generated"
-    let actionSource = "system_generated";
-    if (is_ctwa) {
-      actionSource = "messaging";
-    } else if (source_url && source_url !== "https://salxconvert-blond.vercel.app/") {
-      actionSource = "website";
-    }
+    // Purchase e AddToCart: Meta exige action_source "website"
+    // Eventos de lead/contato via CTWA: "messaging" + whatsapp
+    // Demais: "website" como fallback seguro
+    const isConversaoWebsite = event_name === "Purchase" || event_name === "AddToCart";
+    const actionSource = (is_ctwa && !isConversaoWebsite) ? "messaging" : "website";
 
     const eventData: Record<string, any> = {
       event_name,
@@ -94,8 +89,8 @@ export async function dispararEventoMeta(data: MetaEventData): Promise<{ ok: boo
     };
     if (actionSource === "messaging") {
       eventData.messaging_channel = "whatsapp";
-    } else if (actionSource === "website") {
-      eventData.event_source_url = source_url;
+    } else {
+      eventData.event_source_url = source_url || "https://salxconvert-blond.vercel.app/";
     }
 
     if (Object.keys(customData).length > 0) {
