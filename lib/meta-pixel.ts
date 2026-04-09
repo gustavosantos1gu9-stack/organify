@@ -114,11 +114,10 @@ export async function dispararEventoMeta(data: MetaEventData): Promise<{ ok: boo
     if (utm_content) customData.utm_content = utm_content;
 
     // ── Action source ──
-    // CTWA (Click-to-WhatsApp): contatos que vieram de anúncios Meta via WhatsApp
-    // Purchase/AddToCart: Meta exige "website" (não aceita "messaging")
-    // Demais eventos de CTWA: usar "messaging" + "whatsapp" pra atribuição correta
-    const isConversaoWebsite = event_name === "Purchase" || event_name === "AddToCart";
-    const actionSource = (is_ctwa && !isConversaoWebsite) ? "messaging" : "website";
+    // Meta só aceita "messaging" pra evento Contact
+    // Todos os outros (ViewContent, Lead, AddToCart, Purchase) exigem "website"
+    const aceitaMessaging = event_name === "Contact";
+    const actionSource = (is_ctwa && aceitaMessaging) ? "messaging" : "website";
 
     const eventData: Record<string, any> = {
       event_name,
