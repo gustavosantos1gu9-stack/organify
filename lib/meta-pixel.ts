@@ -6,13 +6,18 @@ interface MetaEventData {
   phone?: string;
   email?: string;
   fbclid?: string;
+  fbp?: string;
+  contato_nome?: string;
+  client_ip?: string;
+  client_user_agent?: string;
   utm_campaign?: string;
   utm_content?: string;
   source_url?: string;
   valor?: number;
   moeda?: string;
   external_id?: string;
-  is_ctwa?: boolean; // true = Click-to-WhatsApp (campanha de mensagens), false = website/conversão
+  is_ctwa?: boolean;
+  event_id?: string;
 }
 
 async function sha256(text: string): Promise<string> {
@@ -24,37 +29,71 @@ async function sha256(text: string): Promise<string> {
 
 export async function dispararEventoMeta(data: MetaEventData): Promise<{ ok: boolean; error?: string; response?: any }> {
   try {
-    const { pixel_id, access_token, event_name, phone, email, fbclid, utm_campaign, utm_content, source_url, valor, moeda, external_id, is_ctwa } = data;
+    const {
+      pixel_id, access_token, event_name, phone, email, fbclid, fbp,
+      contato_nome, client_ip, client_user_agent,
+      utm_campaign, utm_content, source_url, valor, moeda,
+      external_id, is_ctwa, event_id,
+    } = data;
 
     if (!pixel_id || !access_token) return { ok: false, error: "Pixel ID ou token não configurado" };
 
-    // User data com hashes SHA-256 (requisito da Meta)
+    // ── User data com hashes SHA-256 ──
     const userData: Record<string, any> = {};
 
+    // Telefone (maior impacto depois de email) — +3.0 pts
     if (phone) {
       const numeroLimpo = phone.replace(/\D/g, "");
-      // Meta pede formato E.164 sem +, com código do país
       const numero164 = numeroLimpo.startsWith("55") ? numeroLimpo : `55${numeroLimpo}`;
       userData.ph = [await sha256(numero164)];
     }
 
+    // Email — +4.0 pts
     if (email) {
       userData.em = [await sha256(email.toLowerCase().trim())];
     }
 
-    // fbc: formato fb.{subdomain_index}.{creation_time}.{fbclid}
+    // Nome e sobrenome do contato — +1.5 pts
+    if (contato_nome) {
+      const partes = contato_nome.trim().toLowerCase().split(/\s+/);
+      if (partes[0]) {
+        userData.fn = [await sha256(partes[0])];
+      }
+      if (partes.length > 1) {
+        userData.ln = [await sha256(partes[partes.length - 1])];
+      }
+    }
+
+    // País — sempre Brasil — +0.25 pts
+    userData.country = [await sha256("br")];
+
+    // fbc: formato fb.{subdomain_index}.{creation_time}.{fbclid} — +1.0 pt
     if (fbclid) {
       userData.fbc = `fb.1.${Date.now()}.${fbclid}`;
     }
 
-    // external_id para deduplicação
-    if (external_id) {
-      userData.external_id = await sha256(external_id);
+    // fbp: cookie do browser — +1.0 pt
+    if (fbp) {
+      userData.fbp = fbp;
     }
 
-    // Dados customizados
+    // external_id para matching — +0.5 pts
+    if (external_id) {
+      userData.external_id = [await sha256(external_id)];
+    }
+
+    // IP do cliente — +0.5 pts
+    if (client_ip) {
+      userData.client_ip_address = client_ip;
+    }
+
+    // User agent — +0.5 pts
+    if (client_user_agent) {
+      userData.client_user_agent = client_user_agent;
+    }
+
+    // ── Dados customizados ──
     const customData: Record<string, any> = {};
-    // Extrair valor numérico (valor_padrao pode vir como objeto do Supabase)
     let valorNumerico = 0;
     if (typeof valor === "number") {
       valorNumerico = valor;
@@ -64,7 +103,6 @@ export async function dispararEventoMeta(data: MetaEventData): Promise<{ ok: boo
       const obj = valor as Record<string, any>;
       if ("Int" in obj) valorNumerico = Number(obj.Int) || 0;
     }
-    // Purchase e AddToCart exigem value + currency
     if (valorNumerico > 0) {
       customData.value = valorNumerico;
       customData.currency = moeda || "BRL";
@@ -75,9 +113,7 @@ export async function dispararEventoMeta(data: MetaEventData): Promise<{ ok: boo
     if (utm_campaign) customData.utm_campaign = utm_campaign;
     if (utm_content) customData.utm_content = utm_content;
 
-    // Purchase e AddToCart: Meta exige action_source "website"
-    // Eventos de lead/contato via CTWA: "messaging" + whatsapp
-    // Demais: "website" como fallback seguro
+    // ── Action source ──
     const isConversaoWebsite = event_name === "Purchase" || event_name === "AddToCart";
     const actionSource = (is_ctwa && !isConversaoWebsite) ? "messaging" : "website";
 
@@ -87,6 +123,12 @@ export async function dispararEventoMeta(data: MetaEventData): Promise<{ ok: boo
       action_source: actionSource,
       user_data: userData,
     };
+
+    // Event ID para deduplicação
+    if (event_id) {
+      eventData.event_id = event_id;
+    }
+
     if (actionSource === "messaging") {
       eventData.messaging_channel = "whatsapp";
     } else {
@@ -97,9 +139,7 @@ export async function dispararEventoMeta(data: MetaEventData): Promise<{ ok: boo
       eventData.custom_data = customData;
     }
 
-    const payload = {
-      data: [eventData],
-    };
+    const payload = { data: [eventData] };
 
     const res = await fetch(
       `https://graph.facebook.com/v21.0/${pixel_id}/events?access_token=${access_token}`,

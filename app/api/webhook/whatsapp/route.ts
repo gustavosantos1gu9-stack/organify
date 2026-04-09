@@ -585,6 +585,7 @@ export async function POST(req: NextRequest) {
             conversa_id: conversa.id,
             etapa_nome: nomeEtapa,
             phone: numero,
+            contato_nome: conversa.contato_nome || nome,
             fbclid: tracking?.fbclid,
             utm_campaign: tracking?.utm_campaign,
             utm_content: tracking?.utm_content,
