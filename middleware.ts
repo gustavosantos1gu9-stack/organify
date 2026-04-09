@@ -1,20 +1,19 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { createServerClient } from "@supabase/ssr";
 
 // Rotas públicas que NÃO precisam de autenticação
 const PUBLIC_PATHS = [
   "/login",
   "/nova-senha",
   "/redefinir-senha",
-  "/c/",              // página de captura pública
+  "/c/",
   "/whatsapp",
-  "/api/webhook/",    // webhooks externos
-  "/api/captura",     // captura de tracking pública
-  "/api/pixel-id",    // lookup público de pixel
-  "/api/cron/",       // protegido por CRON_SECRET próprio
-  "/api/cadastro",    // cadastro público de clientes
-  "/api/pixel",       // disparado internamente pelo webhook
+  "/api/webhook/",
+  "/api/captura",
+  "/api/pixel-id",
+  "/api/cron/",
+  "/api/cadastro",
+  "/api/pixel",
 ];
 
 function isPublicPath(pathname: string): boolean {
@@ -24,7 +23,7 @@ function isPublicPath(pathname: string): boolean {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Assets estáticos — passar direto
+  // Assets estáticos
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon") ||
@@ -33,54 +32,32 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Rotas públicas — passar direto
+  // Rotas públicas
   if (isPublicPath(pathname)) {
     return NextResponse.next();
   }
 
-  // Criar resposta mutável para o Supabase gerenciar cookies
-  let response = NextResponse.next({
-    request: { headers: req.headers },
-  });
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return req.cookies.getAll();
-        },
-        setAll(cookiesToSet: { name: string; value: string; options?: any }[]) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            req.cookies.set(name, value);
-            response.cookies.set(name, value, options);
-          });
-        },
-      },
-    }
+  // Verificar se tem cookie de sessão do Supabase
+  // O Supabase armazena a sessão em cookies com prefixo sb-{ref}-auth-token
+  const cookies = req.cookies.getAll();
+  const hasSession = cookies.some(c =>
+    c.name.includes("auth-token") ||
+    c.name.includes("access-token") ||
+    c.name.includes("sb-") && c.name.includes("-auth")
   );
 
-  // Refresh da sessão (importante pra manter tokens atualizados)
-  const { data: { session } } = await supabase.auth.getSession();
-
-  // Sem sessão válida
-  if (!session) {
-    // API routes: retornar 401
+  if (!hasSession) {
+    // API routes: 401
     if (pathname.startsWith("/api/")) {
-      return NextResponse.json(
-        { error: "Não autenticado" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
-
-    // Páginas protegidas: redirecionar para login
+    // Páginas: redirecionar pro login
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {
