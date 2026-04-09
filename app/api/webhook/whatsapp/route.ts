@@ -57,6 +57,17 @@ async function verificarTermoChave(agenciaId: string, conversaId: string, conteu
 
 export async function POST(req: NextRequest) {
   try {
+    // Validar webhook secret (query param ou header)
+    const webhookSecret = process.env.WEBHOOK_SECRET;
+    if (webhookSecret) {
+      const url = new URL(req.url);
+      const secretParam = url.searchParams.get("secret");
+      const secretHeader = req.headers.get("x-webhook-secret");
+      if (secretParam !== webhookSecret && secretHeader !== webhookSecret) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+    }
+
     const body = await req.json();
     const { event, data, instance } = body;
 
