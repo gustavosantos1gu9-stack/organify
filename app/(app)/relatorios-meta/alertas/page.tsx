@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Plus, Trash2, RefreshCw, X, Edit2, AlertTriangle } from "lucide-react";
 import { supabase, getAgenciaId } from "@/lib/hooks";
 
-const TEMPLATE_PADRAO = `Boa tarde! Passando para informar que estamos com saldo baixo na conta e os anúncios podem pausar!
+const TEMPLATE_PADRAO = `Olá, tudo bem? Passando para informar que estamos com saldo baixo na conta e os anúncios podem pausar!
 
 O saldo da conta de anúncios *<CA>* está em *<SALDO>*
 
