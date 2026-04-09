@@ -240,7 +240,8 @@ export async function POST(req: NextRequest) {
       const { data: manuais } = await supabase.from("performance_criativos")
         .select("*")
         .eq("relatorio_id", relatorio_id)
-        .eq("periodo_inicio", desde);
+        .gte("periodo_inicio", desde)
+        .lte("periodo_inicio", desde + "T23:59:59Z");
 
       // Merge por ad_name + adset_name
       for (const c of criativos) {
