@@ -67,12 +67,19 @@ function gerarSemanas(desde: string, ate: string): { inicio: string; fim: string
 
 function extractMensagens(actions: any[]): number {
   if (!Array.isArray(actions)) return 0;
-  const found = actions.find((a: any) =>
-    a.action_type === "onsite_conversion.messaging_conversation_started_7d" ||
-    a.action_type === "offsite_conversion.fb_pixel_lead" ||
-    a.action_type === "lead"
-  );
-  return found ? parseInt(found.value || "0") : 0;
+  // Prioridade: conversas iniciadas (CTWA) > total_messaging_connection > lead
+  const prioridade = [
+    "onsite_conversion.messaging_conversation_started_7d",
+    "onsite_conversion.total_messaging_connection",
+    "onsite_conversion.messaging_first_reply",
+    "offsite_conversion.fb_pixel_lead",
+    "lead",
+  ];
+  for (const tipo of prioridade) {
+    const found = actions.find((a: any) => a.action_type === tipo);
+    if (found) return parseInt(found.value || "0");
+  }
+  return 0;
 }
 
 export async function POST(req: NextRequest) {

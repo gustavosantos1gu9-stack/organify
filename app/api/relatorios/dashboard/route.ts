@@ -59,12 +59,18 @@ function getPeriodDates(periodo: string): { since: string; until: string } {
 
 function extractMensagens(actions: any[]): number {
   if (!actions || !Array.isArray(actions)) return 0;
-  const action = actions.find((a: any) =>
-    a.action_type === "onsite_conversion.messaging_conversation_started_7d" ||
-    a.action_type === "offsite_conversion.fb_pixel_lead" ||
-    a.action_type === "lead"
-  );
-  return action ? parseInt(String(action.value)) || 0 : 0;
+  const prioridade = [
+    "onsite_conversion.messaging_conversation_started_7d",
+    "onsite_conversion.total_messaging_connection",
+    "onsite_conversion.messaging_first_reply",
+    "offsite_conversion.fb_pixel_lead",
+    "lead",
+  ];
+  for (const tipo of prioridade) {
+    const found = actions.find((a: any) => a.action_type === tipo);
+    if (found) return parseInt(String(found.value)) || 0;
+  }
+  return 0;
 }
 
 function extractCustoMensagem(costPerAction: any[]): number {

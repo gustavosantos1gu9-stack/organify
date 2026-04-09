@@ -137,20 +137,25 @@ export async function POST(req: NextRequest) {
     const cpm = ins.cpm || 0;
     const spend = ins.spend || 0;
 
-    // Extrair conversas/leads das actions
+    // Extrair conversas/leads das actions (prioridade: conversas CTWA > lead)
     const actions = ins.actions || [];
     const costPerAction = ins.cost_per_action_type || [];
-    const conversas = actions.find((a: any) =>
-      a.action_type === "onsite_conversion.messaging_conversation_started_7d" ||
-      a.action_type === "offsite_conversion.fb_pixel_lead" ||
-      a.action_type === "lead"
-    )?.value || 0;
-
-    const custoConversa = costPerAction.find((a: any) =>
-      a.action_type === "onsite_conversion.messaging_conversation_started_7d" ||
-      a.action_type === "offsite_conversion.fb_pixel_lead" ||
-      a.action_type === "lead"
-    )?.value || 0;
+    const prioridadeActions = [
+      "onsite_conversion.messaging_conversation_started_7d",
+      "onsite_conversion.total_messaging_connection",
+      "onsite_conversion.messaging_first_reply",
+      "offsite_conversion.fb_pixel_lead",
+      "lead",
+    ];
+    const findByPrio = (arr: any[]) => {
+      for (const tipo of prioridadeActions) {
+        const found = arr.find((a: any) => a.action_type === tipo);
+        if (found) return found.value || 0;
+      }
+      return 0;
+    };
+    const conversas = findByPrio(actions);
+    const custoConversa = findByPrio(costPerAction);
 
     const convClickMsg = clicks > 0 ? ((parseInt(String(conversas)) / parseInt(String(clicks))) * 100) : 0;
 
@@ -178,16 +183,8 @@ export async function POST(req: NextRequest) {
         .filter((ad: any) => ad.insights?.data?.[0])
         .map((ad: any) => {
           const adIns = ad.insights.data[0];
-          const adConversas = (adIns.actions || []).find((a: any) =>
-            a.action_type === "onsite_conversion.messaging_conversation_started_7d" ||
-            a.action_type === "offsite_conversion.fb_pixel_lead" ||
-            a.action_type === "lead"
-          )?.value || 0;
-          const adCusto = (adIns.cost_per_action_type || []).find((a: any) =>
-            a.action_type === "onsite_conversion.messaging_conversation_started_7d" ||
-            a.action_type === "offsite_conversion.fb_pixel_lead" ||
-            a.action_type === "lead"
-          )?.value || 0;
+          const adConversas = findByPrio(adIns.actions || []);
+          const adCusto = findByPrio(adIns.cost_per_action_type || []);
           return {
             name: ad.name,
             conversas: parseInt(String(adConversas)),
