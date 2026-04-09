@@ -211,10 +211,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Montar mensagem a partir do template
-    let mensagem = rel.template || "";
+    const nomeCliente = rel.nome_cliente || "";
+    const primeiroNome = nomeCliente.trim().split(/\s+/)[0] || nomeCliente;
+    let mensagem = (rel.template || "").split("<PRIMEIRO_NOME>").join(primeiroNome);
     const replacements: Record<string, string> = {
-      "<PRIMEIRO_NOME>": (rel.nome_cliente || "").split(/\s+/)[0] || "",
-      "<CA>": rel.nome_cliente || "",
+      "<CA>": nomeCliente,
       "<DATA>": periodoFormatado,
       "<IMP>": formatNum(impressions),
       "<ALCAN>": formatNum(reach),
@@ -234,10 +235,6 @@ export async function POST(req: NextRequest) {
     for (const [key, value] of Object.entries(replacements)) {
       mensagem = mensagem.replaceAll(key, value);
     }
-    // Primeiro nome da cliente
-    const primeiroNome = (rel.nome_cliente || "").trim().split(/\s+/)[0] || "";
-    mensagem = mensagem.replace(/<PRIMEIRO_NOME>/g, primeiroNome);
-
     // Se é preview, retorna mensagem sem enviar
     if (preview) {
       return NextResponse.json({ mensagem, dados: { impressions, reach, clicks, ctr, cpm, spend, conversas, custoConversa, balance } });
