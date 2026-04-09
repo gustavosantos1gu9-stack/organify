@@ -234,6 +234,9 @@ export async function POST(req: NextRequest) {
     for (const [key, value] of Object.entries(replacements)) {
       mensagem = mensagem.replaceAll(key, value);
     }
+    // Primeiro nome da cliente (processado por último pra garantir)
+    const primeiroNome = (rel.nome_cliente || "").trim().split(/\s+/)[0] || "";
+    mensagem = mensagem.replaceAll("<PRIMEIRO_NOME>", primeiroNome);
 
     // Se é preview, retorna mensagem sem enviar
     if (preview) {
