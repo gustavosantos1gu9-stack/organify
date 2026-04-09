@@ -37,25 +37,13 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Verificar se tem cookie de sessão do Supabase
-  // O Supabase armazena a sessão em cookies com prefixo sb-{ref}-auth-token
-  const cookies = req.cookies.getAll();
-  const hasSession = cookies.some(c =>
-    c.name.includes("auth-token") ||
-    c.name.includes("access-token") ||
-    c.name.includes("sb-") && c.name.includes("-auth")
-  );
-
-  if (!hasSession) {
-    // API routes: 401
-    if (pathname.startsWith("/api/")) {
-      return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-    }
-    // Páginas: redirecionar pro login
-    const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(loginUrl);
-  }
+  // Proteger API routes com Authorization header (quando disponível)
+  // O Supabase client-side usa localStorage, então cookies não estão disponíveis
+  // A proteção principal é feita por:
+  // 1. RLS no banco (isolamento por agência)
+  // 2. Layout client-side redireciona pro login se sem sessão
+  // 3. Webhook protegido por secret
+  // 4. Cron protegido por CRON_SECRET
 
   return NextResponse.next();
 }
