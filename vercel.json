@@ -3,14 +3,6 @@
     {
       "path": "/api/cron/churn",
       "schedule": "0 3 28-31 * *"
-    },
-    {
-      "path": "/api/cron/relatorios",
-      "schedule": "0 20 * * *"
-    },
-    {
-      "path": "/api/cron/alertas",
-      "schedule": "0 12 * * *"
     }
   ]
 }
