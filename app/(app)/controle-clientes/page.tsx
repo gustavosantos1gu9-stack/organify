@@ -43,6 +43,7 @@ function mesAtualStr() {
 
 const COLUNAS_PADRAO = [
   { key:"status", label:"Status", w:110 },
+  { key:"regiao_anunciar", label:"Região", w:140 },
   { key:"data_entrada", label:"Data Entrada", w:120 },
   { key:"data_inicio_campanha", label:"Início Camp.", w:120 },
   { key:"agendamentos", label:"Agendamentos", w:120 },
@@ -443,7 +444,7 @@ export default function ControleClientesPage() {
     const resSnap = await fetch(`/api/snapshots?agencia_id=${id}`);
     const jsonSnap = await resSnap.json();
     setSnapsMensais(jsonSnap.data||[]);
-    const { data: users } = await supabase.from("configuracoes_usuarios").select("nome").eq("agencia_id",id!);
+    const { data: users } = await supabase.from("usuarios").select("nome").eq("agencia_id",id!).order("nome");
     const { data: tms } = await supabase.from("times").select("nome").eq("agencia_id",id!);
     setUsuarios(users?.map((u:any)=>u.nome)||[]);
     setTimes(tms?.map((t:any)=>t.nome)||[]);
@@ -854,6 +855,10 @@ export default function ControleClientesPage() {
                   <td key={col.key} style={{ padding:"2px 6px", overflow:"hidden", width:colWidths[col.key]||col.w, borderLeft:"1px solid #29ABE215", whiteSpace:"nowrap", maxWidth:colWidths[col.key]||col.w, height:"36px" }}>
                     {col.key==="status" ? (
                       <StatusSelect valor={c.status} onSave={v=>atualizar(c.id,"status",v,c.nome)}/>
+                    ) : col.key==="regiao_anunciar" ? (
+                      <span style={{ fontSize:"12px", color:"#a0a0a0", display:"block", overflow:"hidden", textOverflow:"ellipsis" }} title={c.cadastro_id ? cadastrosMap[c.cadastro_id]?.regiao_anunciar || "—" : "—"}>
+                        {c.cadastro_id ? cadastrosMap[c.cadastro_id]?.regiao_anunciar || "—" : "—"}
+                      </span>
                     ) : col.key==="head_squad"||col.key==="consultor"||col.key==="gestor" ? (
                       <select value={(c as any)[col.key]||""} onChange={e=>atualizar(c.id,col.key,e.target.value,c.nome)}
                         style={{ background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"4px", padding:"3px 6px", color:"#f0f0f0", fontSize:"12px", cursor:"pointer", width:"100%" }}>
