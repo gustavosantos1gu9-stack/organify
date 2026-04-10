@@ -40,18 +40,24 @@ async function verificarTermoChave(agenciaId: string, conversaId: string, conteu
   });
 
   if (etapaEncontrada.evento_conversao) {
-    fetch(`${APP_URL}/api/pixel`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        agencia_id: agenciaId,
-        conversa_id: conversaId,
-        etapa_nome: etapaEncontrada.nome,
-        phone: numero,
-        fbclid, utm_campaign: utmCampaign, utm_content: utmContent,
-        is_ctwa: isCTWA || false,
-      }),
-    }).catch(() => {});
+    try {
+      const pixelRes = await fetch(`${APP_URL}/api/pixel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agencia_id: agenciaId,
+          conversa_id: conversaId,
+          etapa_nome: etapaEncontrada.nome,
+          phone: numero,
+          fbclid, utm_campaign: utmCampaign, utm_content: utmContent,
+          is_ctwa: isCTWA || !!fbclid,
+        }),
+      });
+      const pixelData = await pixelRes.json();
+      if (!pixelData.ok) console.error("[pixel] Erro no termo-chave:", etapaEncontrada.nome, pixelData.error || pixelData.motivo);
+    } catch (e) {
+      console.error("[pixel] Exceção no termo-chave:", etapaEncontrada.nome, e);
+    }
   }
 }
 
@@ -588,21 +594,27 @@ export async function POST(req: NextRequest) {
         const { data: etapaPrimeiro } = await supabase.from("jornada_etapas")
           .select("nome").eq("agencia_id", agencia.id).eq("eh_primeiro_contato", true).single();
         const nomeEtapa = etapaPrimeiro?.nome || "Entrou em contato";
-        fetch(`${APP_URL}/api/pixel`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            agencia_id: agencia.id,
-            conversa_id: conversa.id,
-            etapa_nome: nomeEtapa,
-            phone: numero,
-            contato_nome: conversa.contato_nome || nome,
-            fbclid: tracking?.fbclid,
-            utm_campaign: tracking?.utm_campaign,
-            utm_content: tracking?.utm_content,
-            is_ctwa: _isCTWA || isLid || tracking?.origem === "Meta Ads" || !!tracking?.fbclid,
-          }),
-        }).catch(() => {});
+        try {
+          const pixelRes = await fetch(`${APP_URL}/api/pixel`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              agencia_id: agencia.id,
+              conversa_id: conversa.id,
+              etapa_nome: nomeEtapa,
+              phone: numero,
+              contato_nome: conversa.contato_nome || nome,
+              fbclid: tracking?.fbclid,
+              utm_campaign: tracking?.utm_campaign,
+              utm_content: tracking?.utm_content,
+              is_ctwa: _isCTWA || isLid || tracking?.origem === "Meta Ads" || !!tracking?.fbclid,
+            }),
+          });
+          const pixelData = await pixelRes.json();
+          if (!pixelData.ok) console.error("[pixel] Erro primeiro contato:", pixelData.error || pixelData.motivo);
+        } catch (e) {
+          console.error("[pixel] Exceção primeiro contato:", e);
+        }
       }
     }
 
