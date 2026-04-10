@@ -82,6 +82,21 @@ export default function EmbeddedSignup({ onSuccess }: Props) {
     };
     window.addEventListener("message", msgListener);
 
+    const loginOptions: any = {
+      scope: "whatsapp_business_management,whatsapp_business_messaging,business_management",
+      response_type: "code",
+      override_default_response_type: true,
+      extras: {
+        setup: {},
+        featureType: "",
+        sessionInfoVersion: "3",
+      },
+    };
+
+    // Se tiver config_id, usa (mais customizado)
+    const configId = process.env.NEXT_PUBLIC_META_CONFIG_ID;
+    if (configId) loginOptions.config_id = configId;
+
     window.FB.login(
       async (response: any) => {
         window.removeEventListener("message", msgListener);
@@ -121,16 +136,7 @@ export default function EmbeddedSignup({ onSuccess }: Props) {
         }
         setLoading(false);
       },
-      {
-        config_id: process.env.NEXT_PUBLIC_META_CONFIG_ID || undefined,
-        response_type: "code",
-        override_default_response_type: true,
-        extras: {
-          setup: {},
-          featureType: "",
-          sessionInfoVersion: "3",
-        },
-      }
+      loginOptions
     );
   };
 
