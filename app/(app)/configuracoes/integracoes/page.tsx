@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { MessageCircle, Bot, CreditCard, Target, Check, Eye, EyeOff, Plus, Trash2, RefreshCw, Wifi, WifiOff } from "lucide-react";
 import { supabase, getAgenciaId } from "@/lib/hooks";
+import EmbeddedSignup from "@/components/EmbeddedSignup";
 
 interface Instancia {
   id: string;
@@ -327,15 +328,35 @@ function IntegracoesCliente() {
             </div>
           </div>
         ) : (
-          <div style={{ textAlign: "center", padding: "24px" }}>
-            <p style={{ fontSize: "13px", color: "#606060", marginBottom: "16px" }}>Conecte um WhatsApp para rastrear conversas e disparar eventos.</p>
-            <button className="btn-primary" onClick={conectarWA} disabled={criando} style={{ cursor: "pointer", padding: "10px 24px" }}>
-              <MessageCircle size={16} style={{ marginRight: "6px" }} />
-              {criando ? "Gerando QR Code..." : "Conectar WhatsApp"}
-            </button>
-            {!evoUrl && (
-              <p style={{ fontSize: "11px", color: "#f59e0b", marginTop: "8px" }}>Evolution API não configurada para esta conta.</p>
-            )}
+          <div style={{ padding: "20px" }}>
+            <p style={{ fontSize: "13px", color: "#606060", marginBottom: "16px", textAlign: "center" }}>Conecte um WhatsApp para rastrear conversas e disparar eventos.</p>
+
+            {/* Cloud API (Meta Oficial) */}
+            <div style={{ marginBottom: "16px" }}>
+              <EmbeddedSignup onSuccess={() => window.location.reload()} />
+              <p style={{ fontSize: "11px", color: "#606060", marginTop: "6px", textAlign: "center" }}>
+                Oficial Meta • Sem risco de ban • Recomendado
+              </p>
+            </div>
+
+            <div style={{ textAlign: "center", fontSize: "11px", color: "#606060", margin: "16px 0", position: "relative" }}>
+              <span style={{ background: "#141414", padding: "0 12px", position: "relative", zIndex: 1 }}>ou método alternativo</span>
+              <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: "1px", background: "#2e2e2e" }} />
+            </div>
+
+            {/* QR Code (Evolution) */}
+            <div style={{ textAlign: "center" }}>
+              <button className="btn-secondary" onClick={conectarWA} disabled={criando} style={{ cursor: "pointer", padding: "10px 24px" }}>
+                <MessageCircle size={16} style={{ marginRight: "6px" }} />
+                {criando ? "Gerando QR Code..." : "Conectar via QR Code"}
+              </button>
+              <p style={{ fontSize: "11px", color: "#606060", marginTop: "6px" }}>
+                Use se já tiver outro CRM ou bot conectado
+              </p>
+              {!evoUrl && (
+                <p style={{ fontSize: "11px", color: "#f59e0b", marginTop: "8px" }}>Evolution API não configurada para esta conta.</p>
+              )}
+            </div>
           </div>
         )}
       </div>
