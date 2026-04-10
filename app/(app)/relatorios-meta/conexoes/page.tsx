@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import EmbeddedSignup from "@/components/EmbeddedSignup";
 import {
   Check, Eye, EyeOff, RefreshCw, Wifi, WifiOff, Plus, Trash2,
   Target, MessageCircle,
@@ -927,6 +928,18 @@ export default function ConexoesPage() {
         <p style={{ fontSize: "12px", color: "#606060", marginBottom: "16px" }}>
           Adicione números da WhatsApp Business API oficial da Meta. Sem risco de ban, histórico de 30 dias, grátis até 1.000 conversas/mês por número.
         </p>
+
+        {/* Embedded Signup — conectar com 1 clique */}
+        <div style={{ marginBottom: "16px" }}>
+          <EmbeddedSignup onSuccess={() => carregarInstancias()} />
+          <p style={{ fontSize: "11px", color: "#606060", marginTop: "8px", textAlign: "center" }}>
+            Conecte seu número do WhatsApp Business diretamente pelo Facebook. Método recomendado.
+          </p>
+        </div>
+
+        <div style={{ textAlign: "center", fontSize: "11px", color: "#606060", margin: "12px 0" }}>
+          ou adicione manualmente
+        </div>
 
         {/* Lista de números Cloud API */}
         {waInstancias.filter(i => i.tipo === "cloud").length > 0 && (
