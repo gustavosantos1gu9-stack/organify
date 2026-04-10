@@ -72,6 +72,11 @@ function getPeriodDates(periodo: string): { since: string; until: string } {
     const inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
     return { since: fmt(inicio), until: fmt(hoje) };
   }
+  if (periodo === "mes_anterior") {
+    const inicio = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+    const fim = new Date(hoje.getFullYear(), hoje.getMonth(), 0);
+    return { since: fmt(inicio), until: fmt(fim) };
+  }
   // default: hoje
   return { since: fmt(hoje), until: fmt(hoje) };
 }

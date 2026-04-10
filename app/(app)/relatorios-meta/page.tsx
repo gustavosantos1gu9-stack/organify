@@ -80,6 +80,7 @@ const PERIODOS = [
   { value: "ultima_semana", label: "Última semana (Dom - Sab)" },
   { value: "ultimos_7_dias", label: "Últimos 7 dias" },
   { value: "mes_atual", label: "Mês atual" },
+  { value: "mes_anterior", label: "Mês anterior" },
 ];
 
 const FREQUENCIAS = [
