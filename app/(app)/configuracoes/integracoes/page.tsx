@@ -41,6 +41,14 @@ function IntegracoesCliente() {
   const [metaAdsAtivo, setMetaAdsAtivo] = useState(false);
   const [tokenStatus, setTokenStatus] = useState<{valid:boolean;expires?:string;name?:string}|null>(null);
 
+  // Modal de seleção pós-OAuth
+  const [showSelector, setShowSelector] = useState(false);
+  const [contasDisponiveis, setContasDisponiveis] = useState<any[]>([]);
+  const [pixelsDisponiveis, setPixelsDisponiveis] = useState<any[]>([]);
+  const [contaSelecionada, setContaSelecionada] = useState("");
+  const [pixelSelecionado, setPixelSelecionado] = useState("");
+  const [carregandoMeta, setCarregandoMeta] = useState(false);
+
   // Helper para chamar Evolution API sempre com agencia_id
   const evoCall = useCallback(async (action: string, instanceName?: string, payload?: Record<string, unknown>) => {
     const res = await fetch("/api/evolution", {
@@ -146,6 +154,26 @@ function IntegracoesCliente() {
         setMetaAdAccountId(data.meta_ad_account_id || "");
         setMetaBusinessToken(data.meta_business_token || "");
         setMetaAdsAtivo(data.meta_ads_ativo || false);
+
+        // Detectar retorno do OAuth Meta — abrir seletor
+        if (typeof window !== "undefined") {
+          const params = new URLSearchParams(window.location.search);
+          if (params.get("meta_success") === "true" && data.meta_business_token) {
+            setCarregandoMeta(true);
+            try {
+              const resContas = await fetch("/api/meta-ads/contas-pixels", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ token: data.meta_business_token }),
+              });
+              const { contas } = await resContas.json();
+              setContasDisponiveis(contas || []);
+              setShowSelector(true);
+              window.history.replaceState({}, "", "/configuracoes/integracoes");
+            } catch {}
+            setCarregandoMeta(false);
+          }
+        }
+
         // Verificar status do token
         if (data.meta_business_token) {
           try {
@@ -275,6 +303,49 @@ function IntegracoesCliente() {
     alert("Meta Ads salvo!");
   };
 
+  // Carregar pixels quando seleciona conta de anúncio
+  const selecionarConta = async (contaId: string) => {
+    setContaSelecionada(contaId);
+    setPixelSelecionado("");
+    setPixelsDisponiveis([]);
+    if (!contaId || !metaBusinessToken) return;
+    setCarregandoMeta(true);
+    try {
+      const res = await fetch("/api/meta-ads/pixels", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: metaBusinessToken, ad_account_id: contaId }),
+      });
+      const { pixels } = await res.json();
+      setPixelsDisponiveis(pixels || []);
+      if (pixels?.length === 1) setPixelSelecionado(pixels[0].id);
+    } catch {}
+    setCarregandoMeta(false);
+  };
+
+  // Salvar seleção final
+  const salvarSelecao = async () => {
+    if (!contaSelecionada || !agenciaId) return alert("Selecione uma conta de anúncio");
+    setCarregandoMeta(true);
+    try {
+      await supabase.from("agencias").update({
+        meta_ad_account_id: contaSelecionada,
+        meta_pixel_id: pixelSelecionado || null,
+        meta_ativo: true,
+        meta_ads_ativo: true,
+      }).eq("id", agenciaId);
+
+      setMetaAdAccountId(contaSelecionada);
+      setPixelId(pixelSelecionado || "");
+      setMetaAtivo(true);
+      setMetaAdsAtivo(true);
+      setShowSelector(false);
+      alert("Meta Ads conectado com sucesso!");
+    } catch (e: any) {
+      alert("Erro ao salvar: " + e.message);
+    }
+    setCarregandoMeta(false);
+  };
+
   if (loading) return <div style={{ textAlign: "center", padding: "60px", color: "#606060" }}>Carregando...</div>;
 
   return (
@@ -284,6 +355,64 @@ function IntegracoesCliente() {
         <span className="current">Integrações</span>
       </div>
       <h1 style={{ fontSize: "22px", fontWeight: "600", marginBottom: "28px" }}>Integrações</h1>
+
+      {/* Modal de seleção pós-OAuth */}
+      {showSelector && (
+        <>
+          <div onClick={() => setShowSelector(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 100 }} />
+          <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "90%", maxWidth: "560px", maxHeight: "90vh", overflowY: "auto", background: "#141414", border: "1px solid #2e2e2e", borderRadius: "12px", zIndex: 101, padding: "28px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+              <Target size={20} color="#1877f2" />
+              <h2 style={{ fontSize: "18px", fontWeight: "600", margin: 0 }}>Conectar Meta Ads</h2>
+            </div>
+            <p style={{ fontSize: "13px", color: "#606060", marginBottom: "20px" }}>
+              Selecione a conta de anúncio e o pixel que deseja usar.
+            </p>
+
+            {/* Conta de anúncio */}
+            <div className="form-group" style={{ marginBottom: "16px" }}>
+              <label className="form-label">Conta de Anúncio *</label>
+              <select className="form-input" value={contaSelecionada} onChange={e => selecionarConta(e.target.value)}>
+                <option value="">Selecione uma conta...</option>
+                {contasDisponiveis.map((c: any) => (
+                  <option key={c.id} value={c.id_clean}>
+                    {c.name} {c.business ? `(${c.business})` : ""} — {c.currency}
+                  </option>
+                ))}
+              </select>
+              {contasDisponiveis.length === 0 && !carregandoMeta && (
+                <p style={{ fontSize: "11px", color: "#ef4444", marginTop: "6px" }}>Nenhuma conta de anúncio disponível.</p>
+              )}
+            </div>
+
+            {/* Pixel */}
+            {contaSelecionada && (
+              <div className="form-group" style={{ marginBottom: "20px" }}>
+                <label className="form-label">Pixel de Conversão</label>
+                {carregandoMeta ? (
+                  <p style={{ fontSize: "12px", color: "#606060" }}>Carregando pixels...</p>
+                ) : pixelsDisponiveis.length === 0 ? (
+                  <p style={{ fontSize: "12px", color: "#f59e0b" }}>Nenhum pixel encontrado. Você pode criar um no Gerenciador de Eventos.</p>
+                ) : (
+                  <select className="form-input" value={pixelSelecionado} onChange={e => setPixelSelecionado(e.target.value)}>
+                    <option value="">Sem pixel (opcional)</option>
+                    {pixelsDisponiveis.map((p: any) => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.id})</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+              <button className="btn-ghost" onClick={() => setShowSelector(false)} style={{ cursor: "pointer" }}>Cancelar</button>
+              <button className="btn-primary" onClick={salvarSelecao} disabled={!contaSelecionada || carregandoMeta} style={{ cursor: "pointer" }}>
+                <Check size={14} /> {carregandoMeta ? "Salvando..." : "Salvar"}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* WhatsApp */}
       <div className="card" style={{ marginBottom: "20px" }}>
