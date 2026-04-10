@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Check, Eye, EyeOff, RefreshCw, Wifi, WifiOff, Plus, Trash2,
   Target, MessageCircle,
@@ -18,6 +19,11 @@ interface Instancia {
 }
 
 export default function ConexoesPage() {
+  const searchParams = useSearchParams();
+  const metaSuccess = searchParams.get("meta_success");
+  const metaError = searchParams.get("meta_error");
+  const metaNomeParam = searchParams.get("meta_nome");
+
   // Facebook
   const [metaToken, setMetaToken] = useState("");
   const [showToken, setShowToken] = useState(false);
@@ -59,6 +65,14 @@ export default function ConexoesPage() {
 
   useEffect(() => {
     carregarTudo();
+    // Tratar retorno do OAuth
+    if (metaSuccess && metaNomeParam) {
+      setMetaConectado(true);
+      setMetaNome(metaNomeParam);
+    }
+    if (metaError) {
+      alert("Erro ao conectar Facebook: " + metaError);
+    }
   }, []);
 
   // Auto-refresh QR Code a cada 30s + verificar se conectou a cada 5s
@@ -527,6 +541,21 @@ export default function ConexoesPage() {
 
         {!metaConectado ? (
           <>
+            {/* Botão OAuth — conectar com 1 clique */}
+            <button onClick={async () => {
+              const agId = await getAgenciaId();
+              window.location.href = `/api/auth/meta?agencia_id=${agId}`;
+            }} style={{
+              width: "100%", padding: "14px", borderRadius: "10px", cursor: "pointer",
+              background: "#1877f2", color: "#fff", border: "none",
+              fontSize: "15px", fontWeight: "600", marginBottom: "16px",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
+            }}>
+              <Target size={18} /> Conectar com Facebook
+            </button>
+
+            <div style={{ textAlign: "center", fontSize: "12px", color: "#606060", marginBottom: "16px" }}>ou cole o token manualmente</div>
+
             <p style={{ fontSize: "13px", color: "#606060", marginBottom: "16px" }}>
               Cole o token da sua <strong>conta pessoal</strong> do Facebook para listar todas as contas de anúncio que você gerencia.
             </p>

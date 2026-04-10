@@ -14,6 +14,7 @@ const PUBLIC_PATHS = [
   "/api/cron/",
   "/api/cadastro",
   "/api/pixel",
+  "/api/auth/",
 ];
 
 function isPublicPath(pathname: string): boolean {
