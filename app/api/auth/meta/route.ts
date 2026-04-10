@@ -9,10 +9,11 @@ export async function GET(req: NextRequest) {
 
   const url = new URL(req.url);
   const agenciaId = url.searchParams.get("agencia_id");
+  const returnTo = url.searchParams.get("return_to") || "/relatorios-meta/conexoes";
   const redirectUri = `${url.origin}/api/auth/meta/callback`;
 
-  // State: agencia_id pra saber onde salvar o token no callback
-  const state = JSON.stringify({ agencia_id: agenciaId });
+  // State: agencia_id pra saber onde salvar + return_to
+  const state = JSON.stringify({ agencia_id: agenciaId, return_to: returnTo });
   const stateEncoded = Buffer.from(state).toString("base64url");
 
   // Permissões necessárias

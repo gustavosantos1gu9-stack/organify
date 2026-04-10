@@ -93,14 +93,50 @@ export async function GET(req: NextRequest) {
         });
       }
 
-      // Também salvar na agência (pra uso no pixel/inbox)
-      await supabase.from("agencias").update({
+      // Buscar a primeira conta de anúncio do usuário pra pré-selecionar
+      let adAccountId: string | null = null;
+      let pixelId: string | null = null;
+      try {
+        const adAccountsRes = await fetch(
+          `${META_API}/me/adaccounts?fields=id,name,account_status&limit=5`,
+          { headers: { Authorization: `Bearer ${longToken}` } }
+        );
+        const adAccountsData = await adAccountsRes.json();
+        const activeAccount = (adAccountsData.data || []).find((a: any) => a.account_status === 1) || (adAccountsData.data || [])[0];
+        if (activeAccount) {
+          adAccountId = activeAccount.id.replace("act_", "");
+
+          // Buscar pixel da conta
+          const pixelRes = await fetch(
+            `${META_API}/${activeAccount.id}/adspixels?fields=id,name&limit=1`,
+            { headers: { Authorization: `Bearer ${longToken}` } }
+          );
+          const pixelData = await pixelRes.json();
+          if (pixelData.data?.[0]) pixelId = pixelData.data[0].id;
+        }
+      } catch {}
+
+      // Salvar tudo na agência
+      const updateFields: Record<string, any> = {
         meta_business_token: longToken,
-      }).eq("id", agenciaId);
+        meta_token: longToken,
+        meta_ativo: true,
+      };
+      if (adAccountId) updateFields.meta_ad_account_id = adAccountId;
+      if (pixelId) updateFields.meta_pixel_id = pixelId;
+
+      await supabase.from("agencias").update(updateFields).eq("id", agenciaId);
     }
 
-    // 5. Redirecionar de volta com sucesso
-    return NextResponse.redirect(`${url.origin}/relatorios-meta/conexoes?meta_success=true&meta_nome=${encodeURIComponent(meData.name)}`);
+    // 5. Redirecionar de volta. Voltar pra Integrações se veio de lá, senão pra Conexões
+    const returnTo = stateParam ? (() => {
+      try {
+        const state = JSON.parse(Buffer.from(stateParam, "base64url").toString());
+        return state.return_to || "/relatorios-meta/conexoes";
+      } catch { return "/relatorios-meta/conexoes"; }
+    })() : "/relatorios-meta/conexoes";
+
+    return NextResponse.redirect(`${url.origin}${returnTo}?meta_success=true&meta_nome=${encodeURIComponent(meData.name)}`);
 
   } catch (e: any) {
     return NextResponse.redirect(`${url.origin}/relatorios-meta/conexoes?meta_error=${encodeURIComponent(e.message || "Erro na autenticação")}`);

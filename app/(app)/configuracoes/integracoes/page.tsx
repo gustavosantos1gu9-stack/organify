@@ -369,6 +369,28 @@ function IntegracoesCliente() {
           <h2 style={{ fontSize: "16px", fontWeight: "600" }}>Meta Ads</h2>
         </div>
         <p style={{ fontSize: "13px", color: "#606060", marginBottom: "20px" }}>Pixel e Conversions API para rastrear e otimizar campanhas</p>
+
+        {/* Botão OAuth — conectar com 1 clique */}
+        {!metaAtivo && (
+          <>
+            <button onClick={async () => {
+              const agId = agenciaId;
+              window.location.href = `/api/auth/meta?agencia_id=${agId}&return_to=/configuracoes/integracoes`;
+            }} style={{
+              width: "100%", padding: "14px", borderRadius: "10px", cursor: "pointer",
+              background: "#1877f2", color: "#fff", border: "none",
+              fontSize: "15px", fontWeight: "600", marginBottom: "16px",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
+            }}>
+              <Target size={18} /> Conectar com Facebook
+            </button>
+            <div style={{ textAlign: "center", fontSize: "11px", color: "#606060", margin: "16px 0", position: "relative" }}>
+              <span style={{ background: "#141414", padding: "0 12px", position: "relative", zIndex: 1 }}>ou preencha manualmente</span>
+              <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: "1px", background: "#2e2e2e" }} />
+            </div>
+          </>
+        )}
+
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
           <div className="form-group">
             <label className="form-label">Pixel ID</label>
