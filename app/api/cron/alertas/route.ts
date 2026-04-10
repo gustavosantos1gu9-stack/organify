@@ -100,6 +100,7 @@ export async function GET(req: NextRequest) {
         // Montar mensagem a partir do template configurado
         let mensagem = "";
         const replacements: Record<string, string> = {
+          "<CA>": alerta.nome_cliente || "",
           "<CLIENTE>": alerta.nome_cliente || "",
           "<CONTA>": meta.name || acId,
           "<SALDO>": formatMoney(balance),
