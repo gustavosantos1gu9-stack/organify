@@ -144,8 +144,9 @@ export async function POST(req: NextRequest) {
           } else {
             // Criar nova conversa
             eraNovaConversa = true;
-            const { data: novaConv } = await supabase.from("conversas").insert({
+            const { data: novaConv, error: convErr } = await supabase.from("conversas").insert({
               agencia_id: agencia.id,
+              instancia: `cloud-${phoneNumberId}`,
               contato_numero: numero,
               contato_nome: nome,
               contato_jid: `${from}@s.whatsapp.net`,
@@ -161,6 +162,10 @@ export async function POST(req: NextRequest) {
               nome_anuncio: nomeAnuncio,
             }).select("id").single();
 
+            if (convErr) {
+              console.error("[cloud-webhook] Erro ao criar conversa:", convErr.message);
+              continue;
+            }
             if (!novaConv) continue;
             conversaId = novaConv.id;
           }
