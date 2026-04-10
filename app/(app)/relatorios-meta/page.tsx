@@ -648,7 +648,6 @@ export default function RelatoriosMetaPage() {
                 <label className="form-label">WhatsApp (instância)</label>
                 <select className="form-input" value={waInstanciaId} onChange={e => {
                   setWaInstanciaId(e.target.value);
-                  // Recarregar grupos da instância selecionada
                   const inst = waInstancias.find(i => i.id === e.target.value);
                   if (inst && conexao) {
                     const url = (conexao as any).evolution_url;
@@ -656,7 +655,7 @@ export default function RelatoriosMetaPage() {
                     if (url && key) carregarGrupos(url, key, inst.instancia);
                   }
                 }}>
-                  <option value="">Padrão (conexão principal)</option>
+                  <option value="">Selecione uma instância...</option>
                   {waInstancias.map(inst => (
                     <option key={inst.id} value={inst.id}>
                       {inst.nome} {inst.conectado ? "● Conectado" : "○ Desconectado"}

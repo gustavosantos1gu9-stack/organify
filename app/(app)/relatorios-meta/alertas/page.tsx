@@ -359,7 +359,7 @@ export default function AlertasPage() {
                 <div>
                   <label className="form-label">WhatsApp (instância)</label>
                   <select className="form-input" value={waInstanciaId} onChange={e => setWaInstanciaId(e.target.value)}>
-                    <option value="">Padrão (conexão principal)</option>
+                    <option value="">Selecione uma instância...</option>
                     {waInstancias.map(inst => (
                       <option key={inst.id} value={inst.id}>
                         {inst.nome} {inst.conectado ? "● Conectado" : "○ Desconectado"}
