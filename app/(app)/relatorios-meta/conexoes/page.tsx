@@ -55,6 +55,13 @@ export default function ConexoesPage() {
   const [qrNovaInst, setQrNovaInst] = useState<string | null>(null);
   const [qrNovaInstNome, setQrNovaInstNome] = useState("");
 
+  // Cloud API (Meta oficial)
+  const [cloudNome, setCloudNome] = useState("");
+  const [cloudPhoneId, setCloudPhoneId] = useState("");
+  const [cloudToken, setCloudToken] = useState("");
+  const [cloudWabaId, setCloudWabaId] = useState("");
+  const [adicionandoCloud, setAdicionandoCloud] = useState(false);
+
   const [conexaoId, setConexaoId] = useState<string | null>(null);
 
   // Extensão de token
@@ -491,6 +498,46 @@ export default function ConexoesPage() {
     carregarInstancias();
   }
 
+  async function adicionarCloud() {
+    if (!cloudNome.trim() || !cloudPhoneId.trim() || !cloudToken.trim()) {
+      alert("Preencha nome, Phone Number ID e Token");
+      return;
+    }
+    setAdicionandoCloud(true);
+    try {
+      // Validar token e buscar info do número
+      const res = await fetch(`https://graph.facebook.com/v21.0/${cloudPhoneId.trim()}?fields=display_phone_number,verified_name`, {
+        headers: { Authorization: `Bearer ${cloudToken.trim()}` },
+      });
+      const data = await res.json();
+      if (data.error) {
+        alert("Erro: " + data.error.message);
+        setAdicionandoCloud(false);
+        return;
+      }
+
+      const agId = await getAgenciaId();
+      await supabase.from("whatsapp_instancias").insert({
+        agencia_id: agId,
+        nome: cloudNome.trim(),
+        instancia: `cloud-${cloudPhoneId.trim()}`,
+        tipo: "cloud",
+        cloud_phone_id: cloudPhoneId.trim(),
+        cloud_token: cloudToken.trim(),
+        cloud_waba_id: cloudWabaId.trim() || null,
+        cloud_display_phone: data.display_phone_number || null,
+        conectado: true,
+      });
+
+      setCloudNome(""); setCloudPhoneId(""); setCloudToken(""); setCloudWabaId("");
+      carregarInstancias();
+      alert("Número Cloud API adicionado!");
+    } catch (e: any) {
+      alert("Erro ao adicionar: " + e.message);
+    }
+    setAdicionandoCloud(false);
+  }
+
   useEffect(() => { carregarInstancias(); }, [evoUrl]);
 
   // Auto-check QR nova instância
@@ -782,13 +829,13 @@ export default function ConexoesPage() {
             <Plus size={18} color="#25d366" />
             <h2 style={{ fontSize: "16px", fontWeight: "600" }}>Instâncias WhatsApp</h2>
           </div>
-          <span style={{ fontSize: "12px", color: "#606060" }}>{waInstancias.length} instância(s)</span>
+          <span style={{ fontSize: "12px", color: "#606060" }}>{waInstancias.filter(i => i.tipo !== "cloud").length} instância(s)</span>
         </div>
 
         {/* Lista de instâncias */}
-        {waInstancias.length > 0 && (
+        {waInstancias.filter(i => i.tipo !== "cloud").length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px" }}>
-            {waInstancias.map((inst) => (
+            {waInstancias.filter(i => i.tipo !== "cloud").map((inst) => (
               <div key={inst.id} style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 padding: "12px 16px",
@@ -867,6 +914,75 @@ export default function ConexoesPage() {
             Evolution API não configurada. Configure em Configurações → Integrações.
           </p>
         )}
+      </div>
+
+      {/* ─── WhatsApp Cloud API (Meta Oficial) ──────────────────────────── */}
+      <div className="card" style={{ marginTop: "20px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
+          <Target size={18} color="#25d366" />
+          <h2 style={{ fontSize: "16px", fontWeight: "600" }}>WhatsApp Cloud API (Oficial)</h2>
+          <span style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "10px", background: "rgba(37,211,102,0.15)", color: "#25d366", fontWeight: "600" }}>OFICIAL</span>
+        </div>
+
+        <p style={{ fontSize: "12px", color: "#606060", marginBottom: "16px" }}>
+          Adicione números da WhatsApp Business API oficial da Meta. Sem risco de ban, histórico de 30 dias, grátis até 1.000 conversas/mês por número.
+        </p>
+
+        {/* Lista de números Cloud API */}
+        {waInstancias.filter(i => i.tipo === "cloud").length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px" }}>
+            {waInstancias.filter(i => i.tipo === "cloud").map((inst) => (
+              <div key={inst.id} style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "12px 16px",
+                background: "rgba(37,211,102,0.05)",
+                border: "1px solid rgba(37,211,102,0.2)",
+                borderRadius: "10px",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#22c55e" }} />
+                  <div>
+                    <p style={{ fontSize: "13px", fontWeight: "600", color: "#f0f0f0", margin: 0 }}>{inst.nome}</p>
+                    <p style={{ fontSize: "11px", color: "#606060", margin: 0 }}>
+                      {inst.cloud_display_phone || inst.cloud_phone_id} • Cloud API
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => removerInstancia(inst)} style={{
+                  background: "none", border: "1px solid #2e2e2e",
+                  borderRadius: "6px", padding: "4px 8px", cursor: "pointer", color: "#606060",
+                }}><Trash2 size={12} /></button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Adicionar novo */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "8px" }}>
+          <input className="form-input" placeholder="Nome da conta (ex: Cliente X)" value={cloudNome} onChange={e => setCloudNome(e.target.value)} />
+          <input className="form-input" placeholder="Phone Number ID" value={cloudPhoneId} onChange={e => setCloudPhoneId(e.target.value)} />
+        </div>
+        <input className="form-input" placeholder="Access Token (System User)" value={cloudToken} onChange={e => setCloudToken(e.target.value)} style={{ marginBottom: "8px" }} />
+        <input className="form-input" placeholder="WABA ID (opcional)" value={cloudWabaId} onChange={e => setCloudWabaId(e.target.value)} style={{ marginBottom: "8px" }} />
+        <button className="btn-primary" onClick={adicionarCloud} disabled={adicionandoCloud} style={{ cursor: "pointer", width: "100%" }}>
+          <Plus size={14} /> {adicionandoCloud ? "Adicionando..." : "Adicionar Cloud API"}
+        </button>
+
+        <details style={{ marginTop: "12px" }}>
+          <summary style={{ fontSize: "12px", color: "#29ABE2", cursor: "pointer", userSelect: "none" }}>Como obter Phone Number ID e Token?</summary>
+          <div style={{ marginTop: "10px", padding: "14px", background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "8px", fontSize: "12px", color: "#a0a0a0", lineHeight: "1.8" }}>
+            <p><strong style={{ color: "#f0f0f0" }}>Phone Number ID:</strong></p>
+            <ol style={{ margin: "4px 0 12px", paddingLeft: "18px" }}>
+              <li>developers.facebook.com → seu app → WhatsApp → <strong>API Setup</strong></li>
+              <li>Copie o <strong>Phone number ID</strong> (número grande, não confundir com o telefone)</li>
+            </ol>
+            <p><strong style={{ color: "#f0f0f0" }}>Access Token:</strong></p>
+            <ol style={{ margin: "4px 0", paddingLeft: "18px" }}>
+              <li>Mesma tela → gere um token permanente via <strong>System User</strong> no Business Manager</li>
+              <li>Permissões: <strong>whatsapp_business_messaging, whatsapp_business_management</strong></li>
+            </ol>
+          </div>
+        </details>
       </div>
     </div>
   );

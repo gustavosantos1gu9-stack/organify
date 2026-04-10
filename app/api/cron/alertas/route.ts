@@ -123,36 +123,55 @@ export async function GET(req: NextRequest) {
         let evoUrl = con.evolution_url;
         let evoKey = con.evolution_key;
         let evoInst = con.whatsapp_instancia;
+        let cloudInst: any = null;
         if (alerta.whatsapp_instancia_id) {
           const { data: waInst } = await supabase.from("whatsapp_instancias")
-            .select("instancia, evolution_url, evolution_key")
+            .select("instancia, tipo, evolution_url, evolution_key, cloud_phone_id, cloud_token")
             .eq("id", alerta.whatsapp_instancia_id).single();
           if (waInst) {
-            evoInst = waInst.instancia;
-            if (waInst.evolution_url) evoUrl = waInst.evolution_url;
-            if (waInst.evolution_key) evoKey = waInst.evolution_key;
+            if (waInst.tipo === "cloud") {
+              cloudInst = waInst;
+            } else {
+              evoInst = waInst.instancia;
+              if (waInst.evolution_url) evoUrl = waInst.evolution_url;
+              if (waInst.evolution_key) evoKey = waInst.evolution_key;
+            }
           }
         }
 
-        // Enviar via WhatsApp (Evolution API)
-        if (mensagem && alerta.grupo_id && evoUrl && evoKey && evoInst) {
-          const evoRes = await fetch(
-            `${evoUrl}/message/sendText/${evoInst}`,
-            {
+        // Enviar via WhatsApp (Cloud API ou Evolution)
+        if (mensagem && alerta.grupo_id) {
+          let sucesso = false;
+          let erroMsg = "";
+          if (cloudInst) {
+            const numeroLimpo = String(alerta.grupo_id).replace(/\D/g, "");
+            const cloudRes = await fetch(`https://graph.facebook.com/v21.0/${cloudInst.cloud_phone_id}/messages`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${cloudInst.cloud_token}` },
+              body: JSON.stringify({ messaging_product: "whatsapp", to: numeroLimpo, type: "text", text: { body: mensagem } }),
+            });
+            const cloudData = await cloudRes.json();
+            if (cloudData.error) erroMsg = cloudData.error.message;
+            else sucesso = true;
+          } else if (evoUrl && evoKey && evoInst) {
+            const evoRes = await fetch(`${evoUrl}/message/sendText/${evoInst}`, {
               method: "POST",
               headers: { "Content-Type": "application/json", apikey: evoKey },
               body: JSON.stringify({ number: alerta.grupo_id, text: mensagem }),
-            }
-          );
+            });
+            if (evoRes.ok) sucesso = true;
+            else erroMsg = await evoRes.text();
+          } else {
+            erroMsg = "WhatsApp não configurado";
+          }
 
-          if (evoRes.ok) {
+          if (sucesso) {
             await supabase.from("alertas_saldo").update({
               ultimo_alerta: new Date().toISOString(),
             }).eq("id", alerta.id);
-
             resultados.push({ id: alerta.id, nome: alerta.nome_cliente, status: "alerta_enviado", saldo: balance });
           } else {
-            resultados.push({ id: alerta.id, nome: alerta.nome_cliente, status: "erro_envio", saldo: balance, error: await evoRes.text() });
+            resultados.push({ id: alerta.id, nome: alerta.nome_cliente, status: "erro_envio", saldo: balance, error: erroMsg });
           }
         } else {
           resultados.push({ id: alerta.id, nome: alerta.nome_cliente, status: "sem_destino", saldo: balance });

@@ -241,21 +241,22 @@ export async function POST(req: NextRequest) {
     let evoUrl = ag.evolution_url;
     let evoKey = ag.evolution_key;
     let evoInst = ag.whatsapp_instancia;
+    let cloudInst: any = null;
 
     // Se relatório tem instância específica, usar ela
     if (rel.whatsapp_instancia_id) {
       const { data: waInst } = await supabase.from("whatsapp_instancias")
-        .select("instancia, evolution_url, evolution_key")
+        .select("instancia, tipo, evolution_url, evolution_key, cloud_phone_id, cloud_token")
         .eq("id", rel.whatsapp_instancia_id).single();
       if (waInst) {
-        evoInst = waInst.instancia;
-        if (waInst.evolution_url) evoUrl = waInst.evolution_url;
-        if (waInst.evolution_key) evoKey = waInst.evolution_key;
+        if (waInst.tipo === "cloud") {
+          cloudInst = waInst;
+        } else {
+          evoInst = waInst.instancia;
+          if (waInst.evolution_url) evoUrl = waInst.evolution_url;
+          if (waInst.evolution_key) evoKey = waInst.evolution_key;
+        }
       }
-    }
-
-    if (!evoUrl || !evoKey || !evoInst) {
-      return NextResponse.json({ error: "WhatsApp não configurado", mensagem }, { status: 400 });
     }
 
     const destino = rel.grupo_id || rel.contato_numero;
@@ -263,24 +264,44 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Destinatário não configurado", mensagem }, { status: 400 });
     }
 
-    const evoRes = await fetch(
-      `${evoUrl}/message/sendText/${evoInst}`,
-      {
+    // Enviar via Cloud API ou Evolution
+    if (cloudInst) {
+      // WhatsApp Cloud API
+      const numeroLimpo = destino.replace(/\D/g, "");
+      const cloudRes = await fetch(`https://graph.facebook.com/v21.0/${cloudInst.cloud_phone_id}/messages`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          apikey: evoKey,
+          Authorization: `Bearer ${cloudInst.cloud_token}`,
         },
         body: JSON.stringify({
-          number: destino,
-          text: mensagem,
+          messaging_product: "whatsapp",
+          to: numeroLimpo,
+          type: "text",
+          text: { body: mensagem },
         }),
+      });
+      const cloudData = await cloudRes.json();
+      if (cloudData.error) {
+        return NextResponse.json({ error: `Erro Cloud API: ${cloudData.error.message}`, mensagem }, { status: 500 });
       }
-    );
-
-    if (!evoRes.ok) {
-      const evoErr = await evoRes.text();
-      return NextResponse.json({ error: `Erro ao enviar: ${evoErr}`, mensagem }, { status: 500 });
+    } else {
+      // Evolution API (fallback)
+      if (!evoUrl || !evoKey || !evoInst) {
+        return NextResponse.json({ error: "WhatsApp não configurado", mensagem }, { status: 400 });
+      }
+      const evoRes = await fetch(
+        `${evoUrl}/message/sendText/${evoInst}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: evoKey },
+          body: JSON.stringify({ number: destino, text: mensagem }),
+        }
+      );
+      if (!evoRes.ok) {
+        const evoErr = await evoRes.text();
+        return NextResponse.json({ error: `Erro ao enviar: ${evoErr}`, mensagem }, { status: 500 });
+      }
     }
 
     // Registrar envio
