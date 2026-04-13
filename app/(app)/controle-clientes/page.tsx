@@ -167,71 +167,6 @@ function PainelPerfil({ cliente, cadastro, todos_cadastros, onClose, onVincular 
   const [buscaCadastro, setBuscaCadastro] = useState("");
   const [mostraBusca, setMostraBusca] = useState(false);
   const [modalContrato, setModalContrato] = useState(false);
-  const [mostraRecorrencia, setMostraRecorrencia] = useState(false);
-  const [recValor, setRecValor] = useState("");
-  const [recDia, setRecDia] = useState("");
-  const [recFreq, setRecFreq] = useState("mensal");
-  const [recDesc, setRecDesc] = useState("");
-  const [recMeses, setRecMeses] = useState(12);
-  const [salvandoRec, setSalvandoRec] = useState(false);
-  const [recSucesso, setRecSucesso] = useState("");
-  const [recorrencias, setRecorrencias] = useState<any[]>([]);
-
-  useEffect(() => {
-    async function loadRec() {
-      const agId = await getAgenciaId();
-      if (!agId) return;
-      const { data } = await supabase.from("recorrencias").select("*").eq("agencia_id", agId).eq("cliente_id", cliente.id).eq("ativo", true).order("created_at", { ascending: false });
-      setRecorrencias(data || []);
-    }
-    loadRec();
-  }, [cliente.id]);
-
-  async function criarRecorrencia() {
-    const valor = parseFloat(recValor.replace(",","."));
-    const dia = parseInt(recDia);
-    if (!valor || !dia || dia < 1 || dia > 31) return;
-    setSalvandoRec(true);
-    try {
-      const agId = await getAgenciaId();
-      if (!agId) return;
-      const desc = recDesc || `Recorrência - ${cliente.nome}`;
-      const hoje = new Date();
-      let proximo = new Date(hoje.getFullYear(), hoje.getMonth(), dia);
-      if (proximo <= hoje) {
-        if (recFreq === "quinzenal") proximo.setDate(proximo.getDate() + 15);
-        else if (recFreq === "trimestral") proximo.setMonth(proximo.getMonth() + 3);
-        else proximo.setMonth(proximo.getMonth() + 1);
-      }
-      const { data: rec } = await supabase.from("recorrencias").insert({
-        agencia_id: agId, tipo: "receita", descricao: desc, valor, periodicidade: recFreq,
-        dia_vencimento: dia, cliente_id: cliente.id, ativo: true,
-        proximo_vencimento: proximo.toISOString().split("T")[0],
-      }).select().single();
-
-      // Gerar lançamentos futuros
-      const lancamentos: any[] = [];
-      let dataAtual = new Date(proximo);
-      const totalLanc = recFreq === "quinzenal" ? recMeses * 2 : recFreq === "trimestral" ? Math.ceil(recMeses / 3) : recMeses;
-      for (let i = 0; i < totalLanc; i++) {
-        lancamentos.push({
-          agencia_id: agId, tipo: "receita", descricao: desc, valor,
-          data_vencimento: dataAtual.toISOString().split("T")[0],
-          cliente_id: cliente.id, pago: false, despesa: false,
-        });
-        if (recFreq === "quinzenal") dataAtual.setDate(dataAtual.getDate() + 15);
-        else if (recFreq === "trimestral") dataAtual = new Date(dataAtual.getFullYear(), dataAtual.getMonth() + 3, dia);
-        else dataAtual = new Date(dataAtual.getFullYear(), dataAtual.getMonth() + 1, dia);
-      }
-      if (lancamentos.length) await supabase.from("lancamentos_futuros").insert(lancamentos);
-
-      setRecorrencias(prev => [rec, ...prev].filter(Boolean));
-      setRecSucesso(`${lancamentos.length} lançamentos criados`);
-      setRecValor(""); setRecDia(""); setRecDesc("");
-      setTimeout(() => setRecSucesso(""), 3000);
-    } catch (e) { console.error(e); }
-    setSalvandoRec(false);
-  }
   const filtrados = todos_cadastros.filter(c =>
     c.nome.toLowerCase().includes(buscaCadastro.toLowerCase())
   );
@@ -325,60 +260,6 @@ function PainelPerfil({ cliente, cadastro, todos_cadastros, onClose, onVincular 
           </div>
         )}
 
-        {/* Recorrência de Pagamento */}
-        <div style={{ borderTop:"1px solid #2e2e2e", marginTop:"16px", paddingTop:"16px" }}>
-          <button onClick={()=>setMostraRecorrencia(v=>!v)}
-            style={{ display:"flex", alignItems:"center", gap:"6px", background:"none", border:"none", cursor:"pointer", color:"#29ABE2", fontSize:"12px", fontWeight:"600", padding:0, marginBottom: mostraRecorrencia ? "12px" : 0 }}>
-            {mostraRecorrencia ? <ChevronDown size={14}/> : <ChevronRight size={14}/>} Recorrência de Pagamento
-          </button>
-
-          {mostraRecorrencia && (
-            <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
-              <input placeholder="Descrição (ex: Assessoria)" value={recDesc} onChange={e=>setRecDesc(e.target.value)}
-                style={{ background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"6px", padding:"7px 10px", color:"#f0f0f0", fontSize:"12px" }}/>
-              <div style={{ display:"flex", gap:"8px" }}>
-                <input placeholder="Valor (R$)" value={recValor} onChange={e=>setRecValor(e.target.value)} type="number" step="0.01"
-                  style={{ flex:1, background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"6px", padding:"7px 10px", color:"#f0f0f0", fontSize:"12px" }}/>
-                <input placeholder="Dia" value={recDia} onChange={e=>setRecDia(e.target.value)} type="number" min="1" max="31"
-                  style={{ width:"60px", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"6px", padding:"7px 10px", color:"#f0f0f0", fontSize:"12px", textAlign:"center" }}/>
-              </div>
-              <div style={{ display:"flex", gap:"8px" }}>
-                <select value={recFreq} onChange={e=>setRecFreq(e.target.value)}
-                  style={{ flex:1, background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"6px", padding:"7px 10px", color:"#f0f0f0", fontSize:"12px", cursor:"pointer" }}>
-                  <option value="quinzenal">Quinzenal</option>
-                  <option value="mensal">Mensal</option>
-                  <option value="trimestral">Trimestral</option>
-                </select>
-                <select value={recMeses} onChange={e=>setRecMeses(Number(e.target.value))}
-                  style={{ width:"90px", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"6px", padding:"7px 10px", color:"#f0f0f0", fontSize:"12px", cursor:"pointer" }}>
-                  <option value={6}>6 meses</option>
-                  <option value={12}>12 meses</option>
-                  <option value={24}>24 meses</option>
-                </select>
-              </div>
-              <button onClick={criarRecorrencia} disabled={salvandoRec || !recValor || !recDia}
-                style={{ background: (!recValor||!recDia) ? "#2e2e2e" : "#29ABE2", border:"none", borderRadius:"6px", padding:"8px", cursor: (!recValor||!recDia) ? "default" : "pointer", color: (!recValor||!recDia) ? "#606060" : "#000", fontWeight:"600", fontSize:"12px" }}>
-                {salvandoRec ? "Criando..." : "Criar Recorrência"}
-              </button>
-              {recSucesso && <p style={{ color:"#22c55e", fontSize:"11px", margin:0 }}>{recSucesso}</p>}
-
-              {recorrencias.length > 0 && (
-                <div style={{ marginTop:"8px" }}>
-                  <p style={{ fontSize:"10px", color:"#606060", margin:"0 0 6px", textTransform:"uppercase" }}>Recorrências ativas</p>
-                  {recorrencias.map(r => (
-                    <div key={r.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"6px 8px", background:"#1a1a1a", borderRadius:"6px", marginBottom:"4px", border:"1px solid #2e2e2e" }}>
-                      <div>
-                        <p style={{ fontSize:"12px", color:"#f0f0f0", margin:0 }}>{r.descricao}</p>
-                        <p style={{ fontSize:"10px", color:"#606060", margin:0 }}>Dia {r.dia_vencimento} • {r.periodicidade}</p>
-                      </div>
-                      <span style={{ fontSize:"12px", color:"#22c55e", fontWeight:"600" }}>R$ {Number(r.valor).toFixed(2)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
       </div>
       {modalContrato && (
         <ModalContrato

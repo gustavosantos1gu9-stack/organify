@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Search, Plus, Edit2, Trash2, RefreshCw, Users, UserX, UserMinus, DollarSign, ChevronUp, ChevronDown, ChevronsUpDown, Eye } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Search, Plus, Edit2, Trash2, RefreshCw, Users, UserX, UserMinus, DollarSign, ChevronUp, ChevronDown, ChevronsUpDown, Eye, Repeat, X } from "lucide-react";
 import KPICard from "@/components/ui/KPICard";
 import Filtros from "@/components/ui/Filtros";
 import CadastrarClienteModal from "@/components/clientes/CadastrarClienteModal";
 import EditarClienteModal from "@/components/clientes/EditarClienteModal";
-import { useClientes, criarCliente, removerCliente, Cliente, useMovimentacoes, atualizarCliente, supabase, gerarLancamentosRecorrencia } from "@/lib/hooks";
+import { useClientes, criarCliente, removerCliente, Cliente, useMovimentacoes, atualizarCliente, supabase, gerarLancamentosRecorrencia, getAgenciaId } from "@/lib/hooks";
 import { formatCurrency } from "@/lib/utils";
 
 const FILTROS_GRUPOS = [
@@ -117,9 +117,134 @@ function StatusSelect({ cliente, onRefresh }: { cliente: Cliente; onRefresh: () 
   );
 }
 
+function ModalRecorrencia({ cliente, onClose, onSucesso }: { cliente: Cliente; onClose: () => void; onSucesso: () => void }) {
+  const [desc, setDesc] = useState(`Assessoria - ${cliente.nome}`);
+  const [valor, setValor] = useState(cliente.valor_oportunidade ? String(cliente.valor_oportunidade) : "");
+  const [dia, setDia] = useState("");
+  const [freq, setFreq] = useState(cliente.frequencia || "mensal");
+  const [meses, setMeses] = useState(12);
+  const [salvando, setSalvando] = useState(false);
+  const [sucesso, setSucesso] = useState("");
+  const [recorrencias, setRecorrencias] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function load() {
+      const agId = await getAgenciaId();
+      if (!agId) return;
+      const { data } = await supabase.from("recorrencias").select("*").eq("agencia_id", agId).eq("cliente_id", cliente.id).eq("ativo", true).order("created_at", { ascending: false });
+      setRecorrencias(data || []);
+    }
+    load();
+  }, [cliente.id]);
+
+  async function criar() {
+    const v = parseFloat(valor.replace(",", "."));
+    const d = parseInt(dia);
+    if (!v || !d || d < 1 || d > 31) return;
+    setSalvando(true);
+    try {
+      const agId = await getAgenciaId();
+      if (!agId) return;
+      const hoje = new Date();
+      let proximo = new Date(hoje.getFullYear(), hoje.getMonth(), d);
+      if (proximo <= hoje) {
+        if (freq === "quinzenal") proximo.setDate(proximo.getDate() + 15);
+        else if (freq === "trimestral") proximo.setMonth(proximo.getMonth() + 3);
+        else proximo.setMonth(proximo.getMonth() + 1);
+      }
+      const { data: rec } = await supabase.from("recorrencias").insert({
+        agencia_id: agId, tipo: "receita", descricao: desc, valor: v, periodicidade: freq,
+        dia_vencimento: d, cliente_id: cliente.id, ativo: true,
+        proximo_vencimento: proximo.toISOString().split("T")[0],
+      }).select().single();
+
+      const lancamentos: any[] = [];
+      let dataAtual = new Date(proximo);
+      const totalLanc = freq === "quinzenal" ? meses * 2 : freq === "trimestral" ? Math.ceil(meses / 3) : meses;
+      for (let i = 0; i < totalLanc; i++) {
+        lancamentos.push({
+          agencia_id: agId, tipo: "receita", descricao: desc, valor: v,
+          data_vencimento: dataAtual.toISOString().split("T")[0],
+          cliente_id: cliente.id, pago: false, despesa: false,
+        });
+        if (freq === "quinzenal") dataAtual.setDate(dataAtual.getDate() + 15);
+        else if (freq === "trimestral") dataAtual = new Date(dataAtual.getFullYear(), dataAtual.getMonth() + 3, d);
+        else dataAtual = new Date(dataAtual.getFullYear(), dataAtual.getMonth() + 1, d);
+      }
+      if (lancamentos.length) await supabase.from("lancamentos_futuros").insert(lancamentos);
+
+      setRecorrencias(prev => [rec, ...prev].filter(Boolean));
+      setSucesso(`${lancamentos.length} lançamentos criados`);
+      setValor(""); setDia("");
+      onSucesso();
+      setTimeout(() => setSucesso(""), 3000);
+    } catch (e) { console.error(e); }
+    setSalvando(false);
+  }
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.7)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background:"#141414", border:"1px solid #2e2e2e", borderRadius:"12px", width:"440px", maxHeight:"80vh", overflow:"auto", boxShadow:"0 20px 60px rgba(0,0,0,0.5)" }}>
+        <div style={{ padding:"16px 20px", borderBottom:"1px solid #2e2e2e", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          <div>
+            <h3 style={{ margin:0, fontSize:"15px", fontWeight:"600", color:"#f0f0f0" }}>Recorrência de Pagamento</h3>
+            <p style={{ margin:"2px 0 0", fontSize:"12px", color:"#606060" }}>{cliente.nome}</p>
+          </div>
+          <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", color:"#606060" }}><X size={16}/></button>
+        </div>
+        <div style={{ padding:"20px", display:"flex", flexDirection:"column", gap:"10px" }}>
+          <input placeholder="Descrição (ex: Assessoria)" value={desc} onChange={e => setDesc(e.target.value)}
+            style={{ background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", padding:"9px 12px", color:"#f0f0f0", fontSize:"13px" }}/>
+          <div style={{ display:"flex", gap:"10px" }}>
+            <input placeholder="Valor (R$)" value={valor} onChange={e => setValor(e.target.value)} type="number" step="0.01"
+              style={{ flex:1, background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", padding:"9px 12px", color:"#f0f0f0", fontSize:"13px" }}/>
+            <input placeholder="Dia" value={dia} onChange={e => setDia(e.target.value)} type="number" min="1" max="31"
+              style={{ width:"70px", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", padding:"9px 12px", color:"#f0f0f0", fontSize:"13px", textAlign:"center" }}/>
+          </div>
+          <div style={{ display:"flex", gap:"10px" }}>
+            <select value={freq} onChange={e => setFreq(e.target.value)}
+              style={{ flex:1, background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", padding:"9px 12px", color:"#f0f0f0", fontSize:"13px", cursor:"pointer" }}>
+              <option value="quinzenal">Quinzenal</option>
+              <option value="mensal">Mensal</option>
+              <option value="trimestral">Trimestral</option>
+            </select>
+            <select value={meses} onChange={e => setMeses(Number(e.target.value))}
+              style={{ width:"100px", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", padding:"9px 12px", color:"#f0f0f0", fontSize:"13px", cursor:"pointer" }}>
+              <option value={6}>6 meses</option>
+              <option value={12}>12 meses</option>
+              <option value={24}>24 meses</option>
+            </select>
+          </div>
+          <button onClick={criar} disabled={salvando || !valor || !dia}
+            style={{ background:(!valor||!dia)?"#2e2e2e":"#29ABE2", border:"none", borderRadius:"8px", padding:"10px", cursor:(!valor||!dia)?"default":"pointer", color:(!valor||!dia)?"#606060":"#000", fontWeight:"600", fontSize:"13px", marginTop:"4px" }}>
+            {salvando ? "Criando..." : "Criar Recorrência e Lançamentos"}
+          </button>
+          {sucesso && <p style={{ color:"#22c55e", fontSize:"12px", margin:0, textAlign:"center" }}>{sucesso}</p>}
+
+          {recorrencias.length > 0 && (
+            <div style={{ marginTop:"8px", borderTop:"1px solid #2e2e2e", paddingTop:"12px" }}>
+              <p style={{ fontSize:"11px", color:"#606060", margin:"0 0 8px", textTransform:"uppercase", fontWeight:"600" }}>Recorrências ativas</p>
+              {recorrencias.map(r => (
+                <div key={r.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 10px", background:"#1a1a1a", borderRadius:"8px", marginBottom:"6px", border:"1px solid #2e2e2e" }}>
+                  <div>
+                    <p style={{ fontSize:"13px", color:"#f0f0f0", margin:0 }}>{r.descricao}</p>
+                    <p style={{ fontSize:"11px", color:"#606060", margin:0 }}>Dia {r.dia_vencimento} • {r.periodicidade}</p>
+                  </div>
+                  <span style={{ fontSize:"13px", color:"#22c55e", fontWeight:"600" }}>R$ {Number(r.valor).toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ClientesPage() {
   const [showModal, setShowModal] = useState(false);
   const [editando, setEditando] = useState<Cliente | null>(null);
+  const [recCliente, setRecCliente] = useState<Cliente | null>(null);
   const [busca, setBusca] = useState("");
   const [filtros, setFiltros] = useState<Record<string, string>>({});
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
@@ -367,7 +492,9 @@ export default function ClientesPage() {
                   <td style={{ color:"#a0a0a0" }}>{new Date(c.created_at).toLocaleDateString("pt-BR")}</td>
                   <td>
                     <div style={{ display:"flex",gap:"6px" }}>
-                      <button className="btn-ghost" style={{ padding:"5px 8px" }} title="Sincronizar"><RefreshCw size={13}/></button>
+                      <button className="btn-ghost" style={{ padding:"5px 8px" }} title="Recorrência" onClick={() => setRecCliente(c)}>
+                        <Repeat size={13}/>
+                      </button>
                       <a href={`/clientes/${c.id}`} className="btn-ghost" style={{ padding:"5px 8px", textDecoration:"none", display:"flex", alignItems:"center", gap:"4px", fontSize:"12px" }} title="Ver detalhes">
                         <Eye size={12}/>
                       </a>
@@ -388,6 +515,7 @@ export default function ClientesPage() {
 
       {showModal && <CadastrarClienteModal onClose={() => setShowModal(false)} onSave={handleSalvar}/>}
       {editando && <EditarClienteModal cliente={editando} onClose={() => setEditando(null)} onSave={refresh}/>}
+      {recCliente && <ModalRecorrencia cliente={recCliente} onClose={() => setRecCliente(null)} onSucesso={refresh}/>}
     </div>
   );
 }
