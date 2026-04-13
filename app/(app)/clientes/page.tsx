@@ -140,11 +140,11 @@ function ModalRecorrencia({ cliente, onClose, onSucesso }: { cliente: Cliente; o
   async function criar() {
     const v = parseFloat(valor.replace(",", "."));
     const d = parseInt(dia);
-    if (!v || !d || d < 1 || d > 31) return;
+    if (!v || !d || d < 1 || d > 31) { alert("Preencha valor e dia (1-31)"); return; }
     setSalvando(true);
     try {
       const agId = await getAgenciaId();
-      if (!agId) return;
+      if (!agId) { alert("Erro: agência não encontrada"); setSalvando(false); return; }
       const hoje = new Date();
       let proximo = new Date(hoje.getFullYear(), hoje.getMonth(), d);
       if (proximo <= hoje) {
@@ -152,11 +152,12 @@ function ModalRecorrencia({ cliente, onClose, onSucesso }: { cliente: Cliente; o
         else if (freq === "trimestral") proximo.setMonth(proximo.getMonth() + 3);
         else proximo.setMonth(proximo.getMonth() + 1);
       }
-      const { data: rec } = await supabase.from("recorrencias").insert({
+      const { data: rec, error: errRec } = await supabase.from("recorrencias").insert({
         agencia_id: agId, tipo: "receita", descricao: desc, valor: v, periodicidade: freq,
         dia_vencimento: d, cliente_id: cliente.id, ativo: true,
         proximo_vencimento: proximo.toISOString().split("T")[0],
       }).select().single();
+      if (errRec) { console.error("Erro recorrencia:", errRec); alert("Erro ao criar recorrência: " + errRec.message); setSalvando(false); return; }
 
       const lancamentos: any[] = [];
       let dataAtual = new Date(proximo);
@@ -171,14 +172,17 @@ function ModalRecorrencia({ cliente, onClose, onSucesso }: { cliente: Cliente; o
         else if (freq === "trimestral") dataAtual = new Date(dataAtual.getFullYear(), dataAtual.getMonth() + 3, d);
         else dataAtual = new Date(dataAtual.getFullYear(), dataAtual.getMonth() + 1, d);
       }
-      if (lancamentos.length) await supabase.from("lancamentos_futuros").insert(lancamentos);
+      if (lancamentos.length) {
+        const { error: errLanc } = await supabase.from("lancamentos_futuros").insert(lancamentos);
+        if (errLanc) { console.error("Erro lancamentos:", errLanc); alert("Recorrência criada, mas erro nos lançamentos: " + errLanc.message); }
+      }
 
       setRecorrencias(prev => [rec, ...prev].filter(Boolean));
-      setSucesso(`${lancamentos.length} lançamentos criados`);
+      setSucesso(`Recorrência criada + ${lancamentos.length} lançamentos`);
       setValor(""); setDia("");
       onSucesso();
-      setTimeout(() => setSucesso(""), 3000);
-    } catch (e) { console.error(e); }
+      setTimeout(() => setSucesso(""), 4000);
+    } catch (e: any) { console.error("Erro geral:", e); alert("Erro: " + (e?.message || e)); }
     setSalvando(false);
   }
 
