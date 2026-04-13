@@ -222,11 +222,12 @@ export default function RecorrenciasPage() {
   const remover = async (id: string) => {
     if (!confirm("Remover esta recorrência e os lançamentos futuros não pagos?")) return;
     const rec = recs.find(r => r.id === id);
-    if (rec?.cliente_id) {
-      await supabase.from("lancamentos_futuros").delete()
-        .eq("cliente_id", rec.cliente_id)
-        .eq("descricao", rec.descricao)
-        .eq("pago", false);
+    if (rec) {
+      const agId = await getAgenciaId();
+      let q = supabase.from("lancamentos_futuros").delete().eq("descricao", rec.descricao).eq("pago", false);
+      if (rec.cliente_id) q = q.eq("cliente_id", rec.cliente_id);
+      else if (agId) q = q.eq("agencia_id", agId);
+      await q;
     }
     await supabase.from("recorrencias").delete().eq("id", id);
     carregar();
