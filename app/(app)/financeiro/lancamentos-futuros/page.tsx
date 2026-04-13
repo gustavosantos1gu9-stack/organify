@@ -282,6 +282,17 @@ export default function LancamentosFuturosPage() {
   const totalEntradas = filtrados.filter(l=>l.tipo==="entrada"&&!l.pago).reduce((a,b)=>a+b.valor,0);
   const totalSaidas = filtrados.filter(l=>l.tipo==="saida"&&!l.pago).reduce((a,b)=>a+b.valor,0);
 
+  // Agrupar por mês
+  const MESES_NOMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const porMes = filtrados.reduce<Record<string, typeof filtrados>>((acc, l) => {
+    const [ano, mes] = l.data_vencimento.split("-");
+    const chave = `${ano}-${mes}`;
+    if (!acc[chave]) acc[chave] = [];
+    acc[chave].push(l);
+    return acc;
+  }, {});
+  const mesesOrdenados = Object.keys(porMes).sort();
+
   const handleSalvar = async (data: Record<string,unknown>) => {
     try {
       const valor = parsearValorBR(data.valor as string);
@@ -384,71 +395,83 @@ export default function LancamentosFuturosPage() {
           </button>
         </div>
 
-        <table>
-          <thead>
-            <tr>
-              <th><input type="checkbox" style={{width:"14px",height:"14px"}}/></th>
-              <th></th>
-              <th>CATEGORIA</th>
-              <th>CLIENTE/FORNECEDOR</th>
-              <th>VENCIMENTO</th>
-              <th>DESCRIÇÃO</th>
-              <th>VALOR</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={8} style={{textAlign:"center",color:"#606060",padding:"40px"}}>Carregando...</td></tr>
-            ) : !filtrados.length ? (
-              <tr><td colSpan={8} style={{textAlign:"center",color:"#606060",padding:"48px"}}>Nenhuma conta encontrada.</td></tr>
-            ) : filtrados.map(l=>(
-              <tr key={l.id}>
-                <td><input type="checkbox" style={{width:"14px",height:"14px"}}/></td>
-                <td>
-                  {l.pago ? (
-                    <span title="Lançado" style={{fontSize:"10px",background:"rgba(34,197,94,0.1)",color:"#22c55e",padding:"2px 6px",borderRadius:"4px"}}>✓</span>
-                  ) : (
-                    <span title="Pendente" style={{fontSize:"10px",background:"rgba(245,158,11,0.1)",color:"#f59e0b",padding:"2px 6px",borderRadius:"4px"}}>⏳</span>
-                  )}
-                </td>
-                <td style={{color:"#a0a0a0",fontSize:"12px"}}>{l.categorias_financeiras?.nome||"—"}</td>
-                <td style={{fontWeight:"500"}}>{l.clientes?.nome||"—"}</td>
-                <td style={{color:"#a0a0a0"}}>{new Date(l.data_vencimento+"T12:00:00").toLocaleDateString("pt-BR")}</td>
-                <td style={{color:"#a0a0a0",fontSize:"12px"}}>{l.descricao||"—"}</td>
-                <td style={{color:l.tipo==="entrada"?"#22c55e":"#ef4444",fontWeight:"600"}}>
-                  {formatCurrency(l.valor)}
-                </td>
-                <td>
-                  <div style={{display:"flex",gap:"6px",alignItems:"center"}}>
-                    {!l.pago && (
-                      <button
-                        onClick={()=>setLancando({id:l.id,valor:l.valor,descricao:l.descricao})}
-                        style={{display:"flex",alignItems:"center",gap:"5px",padding:"5px 10px",borderRadius:"6px",border:"1px solid rgba(34,197,94,0.3)",background:"rgba(34,197,94,0.08)",color:"#22c55e",cursor:"pointer",fontSize:"12px"}}
-                      >
-                        <ExternalLink size={12}/> Lançar
-                      </button>
-                    )}
-                    <button
-                      className="btn-secondary"
-                      style={{padding:"5px 10px",fontSize:"12px"}}
-                      onClick={()=>setEditando(l)}
-                    >
-                      <Edit2 size={12}/> Editar
-                    </button>
-                    <button
-                      className="btn-danger"
-                      style={{padding:"5px 10px",fontSize:"12px"}}
-                      onClick={async()=>{ if(confirm("Remover?")){ await removerLancamento(l.id); refresh(); }}}
-                    >
-                      Remover
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {loading ? (
+          <div style={{textAlign:"center",color:"#606060",padding:"40px"}}>Carregando...</div>
+        ) : !filtrados.length ? (
+          <div style={{textAlign:"center",color:"#606060",padding:"48px"}}>Nenhuma conta encontrada.</div>
+        ) : mesesOrdenados.map(chave => {
+          const [ano, mes] = chave.split("-");
+          const mesIdx = parseInt(mes) - 1;
+          const items = porMes[chave];
+          const entMes = items.filter(l=>l.tipo==="entrada"&&!l.pago).reduce((a,b)=>a+b.valor,0);
+          const saiMes = items.filter(l=>l.tipo==="saida"&&!l.pago).reduce((a,b)=>a+b.valor,0);
+          return (
+            <div key={chave}>
+              <div style={{padding:"12px 16px",background:"#0d0d0d",borderBottom:"1px solid #2e2e2e",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <span style={{fontSize:"14px",fontWeight:"600",color:"#f0f0f0"}}>{MESES_NOMES[mesIdx]} {ano}</span>
+                <div style={{display:"flex",gap:"16px",fontSize:"12px"}}>
+                  {entMes > 0 && <span style={{color:"#22c55e"}}>Entradas: {formatCurrency(entMes)}</span>}
+                  {saiMes > 0 && <span style={{color:"#ef4444"}}>Saídas: {formatCurrency(saiMes)}</span>}
+                  <span style={{color:entMes-saiMes>=0?"#29ABE2":"#f59e0b",fontWeight:"600"}}>Saldo: {formatCurrency(entMes - saiMes)}</span>
+                </div>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th style={{width:"30px"}}><input type="checkbox" style={{width:"14px",height:"14px"}}/></th>
+                    <th style={{width:"30px"}}></th>
+                    <th>CATEGORIA</th>
+                    <th>CLIENTE/FORNECEDOR</th>
+                    <th>VENCIMENTO</th>
+                    <th>DESCRIÇÃO</th>
+                    <th>VALOR</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map(l=>(
+                    <tr key={l.id}>
+                      <td><input type="checkbox" style={{width:"14px",height:"14px"}}/></td>
+                      <td>
+                        {l.pago ? (
+                          <span title="Lançado" style={{fontSize:"10px",background:"rgba(34,197,94,0.1)",color:"#22c55e",padding:"2px 6px",borderRadius:"4px"}}>✓</span>
+                        ) : (
+                          <span title="Pendente" style={{fontSize:"10px",background:"rgba(245,158,11,0.1)",color:"#f59e0b",padding:"2px 6px",borderRadius:"4px"}}>⏳</span>
+                        )}
+                      </td>
+                      <td style={{color:"#a0a0a0",fontSize:"12px"}}>{l.categorias_financeiras?.nome||"—"}</td>
+                      <td style={{fontWeight:"500"}}>{l.clientes?.nome||"—"}</td>
+                      <td style={{color:"#a0a0a0"}}>{new Date(l.data_vencimento+"T12:00:00").toLocaleDateString("pt-BR")}</td>
+                      <td style={{color:"#a0a0a0",fontSize:"12px"}}>{l.descricao||"—"}</td>
+                      <td style={{color:l.tipo==="entrada"?"#22c55e":"#ef4444",fontWeight:"600"}}>
+                        {formatCurrency(l.valor)}
+                      </td>
+                      <td>
+                        <div style={{display:"flex",gap:"6px",alignItems:"center"}}>
+                          {!l.pago && (
+                            <button
+                              onClick={()=>setLancando({id:l.id,valor:l.valor,descricao:l.descricao})}
+                              style={{display:"flex",alignItems:"center",gap:"5px",padding:"5px 10px",borderRadius:"6px",border:"1px solid rgba(34,197,94,0.3)",background:"rgba(34,197,94,0.08)",color:"#22c55e",cursor:"pointer",fontSize:"12px"}}
+                            >
+                              <ExternalLink size={12}/> Lançar
+                            </button>
+                          )}
+                          <button className="btn-secondary" style={{padding:"5px 10px",fontSize:"12px"}} onClick={()=>setEditando(l)}>
+                            <Edit2 size={12}/> Editar
+                          </button>
+                          <button className="btn-danger" style={{padding:"5px 10px",fontSize:"12px"}}
+                            onClick={async()=>{ if(confirm("Remover?")){ await removerLancamento(l.id); refresh(); }}}>
+                            Remover
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        })}
       </div>
 
       {showEntrada && <ModalEntrada onClose={()=>setShowEntrada(false)} onSave={handleSalvar} clientes={clientes?.map(c=>({id:c.id,nome:c.nome}))||[]}/>}
