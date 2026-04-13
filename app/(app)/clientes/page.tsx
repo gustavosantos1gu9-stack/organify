@@ -153,7 +153,7 @@ function ModalRecorrencia({ cliente, onClose, onSucesso }: { cliente: Cliente; o
         else proximo.setMonth(proximo.getMonth() + 1);
       }
       const { data: rec, error: errRec } = await supabase.from("recorrencias").insert({
-        agencia_id: agId, tipo: "receita", descricao: desc, valor: v, periodicidade: freq,
+        agencia_id: agId, tipo: "entrada", descricao: desc, valor: v, periodicidade: freq,
         dia_vencimento: d, cliente_id: cliente.id, ativo: true,
         proximo_vencimento: proximo.toISOString().split("T")[0],
       }).select().single();
@@ -164,7 +164,7 @@ function ModalRecorrencia({ cliente, onClose, onSucesso }: { cliente: Cliente; o
       const totalLanc = freq === "quinzenal" ? meses * 2 : freq === "trimestral" ? Math.ceil(meses / 3) : meses;
       for (let i = 0; i < totalLanc; i++) {
         lancamentos.push({
-          agencia_id: agId, tipo: "receita", descricao: desc, valor: v,
+          agencia_id: agId, tipo: "entrada", descricao: desc, valor: v,
           data_vencimento: dataAtual.toISOString().split("T")[0],
           cliente_id: cliente.id, pago: false, despesa: false,
         });
