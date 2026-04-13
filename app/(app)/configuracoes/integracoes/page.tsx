@@ -86,7 +86,7 @@ function IntegracoesCliente() {
 
           // Configurar webhook automaticamente pra receber mensagens em tempo real
           try {
-            const webhookUrl = `${window.location.origin}/api/webhook/whatsapp`;
+            const webhookUrl = `${window.location.origin}/api/webhook/whatsapp?secret=60efd4060d088e27af797cb1b2e8cdc198d34ee3a7260ebbe1d2160e9ab2453c`;
             await evoCall("setWebhook", instancia, {
               url: webhookUrl,
               webhook_by_events: false,
@@ -213,7 +213,7 @@ function IntegracoesCliente() {
                 // Garantir webhook configurado em toda visita
                 if (conectado) {
                   try {
-                    const webhookUrl = `${window.location.origin}/api/webhook/whatsapp`;
+                    const webhookUrl = `${window.location.origin}/api/webhook/whatsapp?secret=60efd4060d088e27af797cb1b2e8cdc198d34ee3a7260ebbe1d2160e9ab2453c`;
                     await fetch("/api/evolution", {
                       method: "POST", headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({
@@ -771,7 +771,7 @@ function IntegracoesMaster() {
       }
       // Configurar webhook automaticamente
       try {
-        const webhookUrl = `${window.location.origin}/api/webhook/whatsapp`;
+        const webhookUrl = `${window.location.origin}/api/webhook/whatsapp?secret=60efd4060d088e27af797cb1b2e8cdc198d34ee3a7260ebbe1d2160e9ab2453c`;
         await evoCall("setWebhook", novaInstancia, {
           url: webhookUrl,
           webhook_by_events: false,

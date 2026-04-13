@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
             body: JSON.stringify({
               webhook: {
                 enabled: true,
-                url: `${APP_URL}/api/webhook/whatsapp`,
+                url: `${APP_URL}/api/webhook/whatsapp?secret=${process.env.WEBHOOK_SECRET || ""}`,
                 webhookByEvents: false,
                 webhookBase64: false,
                 events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE"],
