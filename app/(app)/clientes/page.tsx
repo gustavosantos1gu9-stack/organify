@@ -121,6 +121,7 @@ function ModalRecorrencia({ cliente, onClose, onSucesso }: { cliente: Cliente; o
   const [desc, setDesc] = useState(`Assessoria - ${cliente.nome}`);
   const [valor, setValor] = useState(cliente.valor_oportunidade ? String(cliente.valor_oportunidade) : "");
   const [dia, setDia] = useState("");
+  const [dia2, setDia2] = useState("");
   const [freq, setFreq] = useState(cliente.frequencia || "mensal");
   const [meses, setMeses] = useState(12);
   const [salvando, setSalvando] = useState(false);
@@ -139,39 +140,62 @@ function ModalRecorrencia({ cliente, onClose, onSucesso }: { cliente: Cliente; o
 
   async function criar() {
     const v = parseFloat(valor.replace(",", "."));
-    const d = parseInt(dia);
-    if (!v || !d || d < 1 || d > 31) { alert("Preencha valor e dia (1-31)"); return; }
+    const d1 = parseInt(dia);
+    const d2 = freq === "quinzenal" ? parseInt(dia2) : 0;
+    if (!v || !d1 || d1 < 1 || d1 > 31) { alert("Preencha valor e dia (1-31)"); return; }
+    if (freq === "quinzenal" && (!d2 || d2 < 1 || d2 > 31)) { alert("Preencha o 2º dia para quinzenal"); return; }
     setSalvando(true);
     try {
       const agId = await getAgenciaId();
       if (!agId) { alert("Erro: agência não encontrada"); setSalvando(false); return; }
       const hoje = new Date();
-      let proximo = new Date(hoje.getFullYear(), hoje.getMonth(), d);
+      const diaVenc = freq === "quinzenal" ? `${d1},${d2}` : String(d1);
+
+      // Calcular próximo vencimento
+      let proximo = new Date(hoje.getFullYear(), hoje.getMonth(), d1);
       if (proximo <= hoje) {
-        if (freq === "quinzenal") proximo.setDate(proximo.getDate() + 15);
-        else if (freq === "trimestral") proximo.setMonth(proximo.getMonth() + 3);
+        if (freq === "trimestral") proximo.setMonth(proximo.getMonth() + 3);
         else proximo.setMonth(proximo.getMonth() + 1);
       }
+
       const { data: rec, error: errRec } = await supabase.from("recorrencias").insert({
         agencia_id: agId, tipo: "entrada", descricao: desc, valor: v, periodicidade: freq,
-        dia_vencimento: d, cliente_id: cliente.id, ativo: true,
+        dia_vencimento: diaVenc, cliente_id: cliente.id, ativo: true,
         proximo_vencimento: proximo.toISOString().split("T")[0],
       }).select().single();
       if (errRec) { console.error("Erro recorrencia:", errRec); alert("Erro ao criar recorrência: " + errRec.message); setSalvando(false); return; }
 
+      // Gerar lançamentos futuros
       const lancamentos: any[] = [];
-      let dataAtual = new Date(proximo);
-      const totalLanc = freq === "quinzenal" ? meses * 2 : freq === "trimestral" ? Math.ceil(meses / 3) : meses;
-      for (let i = 0; i < totalLanc; i++) {
-        lancamentos.push({
-          agencia_id: agId, tipo: "entrada", descricao: desc, valor: v,
-          data_vencimento: dataAtual.toISOString().split("T")[0],
-          cliente_id: cliente.id, pago: false, despesa: false,
-        });
-        if (freq === "quinzenal") dataAtual.setDate(dataAtual.getDate() + 15);
-        else if (freq === "trimestral") dataAtual = new Date(dataAtual.getFullYear(), dataAtual.getMonth() + 3, d);
-        else dataAtual = new Date(dataAtual.getFullYear(), dataAtual.getMonth() + 1, d);
+      if (freq === "quinzenal") {
+        // 2 lançamentos por mês nos dias d1 e d2
+        for (let m = 0; m < meses; m++) {
+          const mesRef = new Date(hoje.getFullYear(), hoje.getMonth() + m, 1);
+          for (const dd of [d1, d2]) {
+            const dt = new Date(mesRef.getFullYear(), mesRef.getMonth(), dd);
+            if (dt > hoje) {
+              lancamentos.push({
+                agencia_id: agId, tipo: "entrada", descricao: desc, valor: v,
+                data_vencimento: dt.toISOString().split("T")[0],
+                cliente_id: cliente.id, pago: false, despesa: false,
+              });
+            }
+          }
+        }
+      } else {
+        const totalLanc = freq === "trimestral" ? Math.ceil(meses / 3) : meses;
+        let dataAtual = new Date(proximo);
+        for (let i = 0; i < totalLanc; i++) {
+          lancamentos.push({
+            agencia_id: agId, tipo: "entrada", descricao: desc, valor: v,
+            data_vencimento: dataAtual.toISOString().split("T")[0],
+            cliente_id: cliente.id, pago: false, despesa: false,
+          });
+          if (freq === "trimestral") dataAtual = new Date(dataAtual.getFullYear(), dataAtual.getMonth() + 3, d1);
+          else dataAtual = new Date(dataAtual.getFullYear(), dataAtual.getMonth() + 1, d1);
+        }
       }
+
       if (lancamentos.length) {
         const { error: errLanc } = await supabase.from("lancamentos_futuros").insert(lancamentos);
         if (errLanc) { console.error("Erro lancamentos:", errLanc); alert("Recorrência criada, mas erro nos lançamentos: " + errLanc.message); }
@@ -179,12 +203,14 @@ function ModalRecorrencia({ cliente, onClose, onSucesso }: { cliente: Cliente; o
 
       setRecorrencias(prev => [rec, ...prev].filter(Boolean));
       setSucesso(`Recorrência criada + ${lancamentos.length} lançamentos`);
-      setValor(""); setDia("");
+      setValor(""); setDia(""); setDia2("");
       onSucesso();
       setTimeout(() => setSucesso(""), 4000);
     } catch (e: any) { console.error("Erro geral:", e); alert("Erro: " + (e?.message || e)); }
     setSalvando(false);
   }
+
+  const diasPreenchidos = freq === "quinzenal" ? (!!dia && !!dia2) : !!dia;
 
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.7)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={onClose}>
@@ -202,8 +228,12 @@ function ModalRecorrencia({ cliente, onClose, onSucesso }: { cliente: Cliente; o
           <div style={{ display:"flex", gap:"10px" }}>
             <input placeholder="Valor (R$)" value={valor} onChange={e => setValor(e.target.value)} type="number" step="0.01"
               style={{ flex:1, background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", padding:"9px 12px", color:"#f0f0f0", fontSize:"13px" }}/>
-            <input placeholder="Dia" value={dia} onChange={e => setDia(e.target.value)} type="number" min="1" max="31"
+            <input placeholder={freq === "quinzenal" ? "1º Dia" : "Dia"} value={dia} onChange={e => setDia(e.target.value)} type="number" min="1" max="31"
               style={{ width:"70px", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", padding:"9px 12px", color:"#f0f0f0", fontSize:"13px", textAlign:"center" }}/>
+            {freq === "quinzenal" && (
+              <input placeholder="2º Dia" value={dia2} onChange={e => setDia2(e.target.value)} type="number" min="1" max="31"
+                style={{ width:"70px", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", padding:"9px 12px", color:"#f0f0f0", fontSize:"13px", textAlign:"center" }}/>
+            )}
           </div>
           <div style={{ display:"flex", gap:"10px" }}>
             <select value={freq} onChange={e => setFreq(e.target.value)}
@@ -219,8 +249,8 @@ function ModalRecorrencia({ cliente, onClose, onSucesso }: { cliente: Cliente; o
               <option value={24}>24 meses</option>
             </select>
           </div>
-          <button onClick={criar} disabled={salvando || !valor || !dia}
-            style={{ background:(!valor||!dia)?"#2e2e2e":"#29ABE2", border:"none", borderRadius:"8px", padding:"10px", cursor:(!valor||!dia)?"default":"pointer", color:(!valor||!dia)?"#606060":"#000", fontWeight:"600", fontSize:"13px", marginTop:"4px" }}>
+          <button onClick={criar} disabled={salvando || !valor || !diasPreenchidos}
+            style={{ background:(!valor||!diasPreenchidos)?"#2e2e2e":"#29ABE2", border:"none", borderRadius:"8px", padding:"10px", cursor:(!valor||!diasPreenchidos)?"default":"pointer", color:(!valor||!diasPreenchidos)?"#606060":"#000", fontWeight:"600", fontSize:"13px", marginTop:"4px" }}>
             {salvando ? "Criando..." : "Criar Recorrência e Lançamentos"}
           </button>
           {sucesso && <p style={{ color:"#22c55e", fontSize:"12px", margin:0, textAlign:"center" }}>{sucesso}</p>}
