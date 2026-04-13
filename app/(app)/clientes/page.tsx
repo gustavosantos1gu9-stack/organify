@@ -286,6 +286,17 @@ export default function ClientesPage() {
 
   const { data: clientes, loading, refresh } = useClientes(busca, filtros.status || "");
   const { data: movs } = useMovimentacoes();
+  const [clientesComRec, setClientesComRec] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    async function loadRecs() {
+      const agId = await getAgenciaId();
+      if (!agId) return;
+      const { data } = await supabase.from("recorrencias").select("cliente_id").eq("agencia_id", agId).eq("ativo", true).not("cliente_id", "is", null);
+      setClientesComRec(new Set((data || []).map(r => r.cliente_id)));
+    }
+    loadRecs();
+  }, []);
 
   // Busca cliente fresco do banco antes de abrir modal
   const handleEditar = async (c: Cliente) => {
@@ -526,7 +537,7 @@ export default function ClientesPage() {
                   <td style={{ color:"#a0a0a0" }}>{new Date(c.created_at).toLocaleDateString("pt-BR")}</td>
                   <td>
                     <div style={{ display:"flex",gap:"6px" }}>
-                      <button className="btn-ghost" style={{ padding:"5px 8px" }} title="Recorrência" onClick={() => setRecCliente(c)}>
+                      <button className="btn-ghost" style={{ padding:"5px 8px", color: clientesComRec.has(c.id) ? "#22c55e" : undefined }} title={clientesComRec.has(c.id) ? "Recorrência ativa" : "Criar recorrência"} onClick={() => setRecCliente(c)}>
                         <Repeat size={13}/>
                       </button>
                       <a href={`/clientes/${c.id}`} className="btn-ghost" style={{ padding:"5px 8px", textDecoration:"none", display:"flex", alignItems:"center", gap:"4px", fontSize:"12px" }} title="Ver detalhes">
@@ -549,7 +560,11 @@ export default function ClientesPage() {
 
       {showModal && <CadastrarClienteModal onClose={() => setShowModal(false)} onSave={handleSalvar}/>}
       {editando && <EditarClienteModal cliente={editando} onClose={() => setEditando(null)} onSave={refresh}/>}
-      {recCliente && <ModalRecorrencia cliente={recCliente} onClose={() => setRecCliente(null)} onSucesso={refresh}/>}
+      {recCliente && <ModalRecorrencia cliente={recCliente} onClose={() => setRecCliente(null)} onSucesso={() => {
+        refresh();
+        const cid = recCliente?.id;
+        if (cid) setClientesComRec(prev => { const s = new Set(prev); s.add(cid); return s; });
+      }}/>}
     </div>
   );
 }
