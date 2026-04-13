@@ -168,14 +168,15 @@ function ModalRecorrencia({ cliente, onClose, onSucesso }: { cliente: Cliente; o
       // Gerar lançamentos futuros
       const lancamentos: any[] = [];
       if (freq === "quinzenal") {
-        // 2 lançamentos por mês nos dias d1 e d2
+        // 2 lançamentos por mês nos dias d1 e d2, valor dividido por 2
+        const valorMetade = Math.round(v * 100 / 2) / 100;
         for (let m = 0; m < meses; m++) {
           const mesRef = new Date(hoje.getFullYear(), hoje.getMonth() + m, 1);
           for (const dd of [d1, d2]) {
             const dt = new Date(mesRef.getFullYear(), mesRef.getMonth(), dd);
             if (dt > hoje) {
               lancamentos.push({
-                agencia_id: agId, tipo: "entrada", descricao: desc, valor: v,
+                agencia_id: agId, tipo: "entrada", descricao: desc, valor: valorMetade,
                 data_vencimento: dt.toISOString().split("T")[0],
                 cliente_id: cliente.id, pago: false, despesa: false,
               });
