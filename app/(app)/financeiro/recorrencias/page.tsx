@@ -39,6 +39,7 @@ function RecModal({ rec, onClose, onSave }: { rec?: Recorrencia; onClose:()=>voi
       const dia = parseInt(form.dia_vencimento) || 1;
 
       if (isEdit) {
+        const descAnterior = rec!.descricao;
         // Editar recorrência existente
         await supabase.from("recorrencias").update({
           tipo: form.tipo,
@@ -49,6 +50,14 @@ function RecModal({ rec, onClose, onSave }: { rec?: Recorrencia; onClose:()=>voi
           ativo: form.ativo,
           considerar_cac: form.tipo === "saida" ? form.considerar_cac : false,
         }).eq("id", rec!.id);
+
+        // Atualizar lançamentos futuros não pagos
+        let q = supabase.from("lancamentos_futuros").update({
+          valor, descricao: form.descricao, tipo: form.tipo,
+        }).eq("pago", false).eq("descricao", descAnterior);
+        if (rec!.cliente_id) q = q.eq("cliente_id", rec!.cliente_id);
+        else q = q.eq("agencia_id", agenciaId!);
+        await q;
       } else {
         // Criar nova recorrência
         await supabase.from("recorrencias").insert({
