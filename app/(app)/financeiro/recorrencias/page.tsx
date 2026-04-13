@@ -9,6 +9,7 @@ import { formatCurrency } from "@/lib/utils";
 interface Recorrencia {
   id: string; tipo: string; descricao: string; valor: number;
   periodicidade: string; dia_vencimento: number; ativo: boolean;
+  cliente_id?: string;
 }
 
 const PERIODICIDADES = ["mensal","quinzenal","trimestral","semestral","anual"];
@@ -219,7 +220,14 @@ export default function RecorrenciasPage() {
   useEffect(() => { carregar(); }, [busca]);
 
   const remover = async (id: string) => {
-    if (!confirm("Remover esta recorrência?")) return;
+    if (!confirm("Remover esta recorrência e os lançamentos futuros não pagos?")) return;
+    const rec = recs.find(r => r.id === id);
+    if (rec?.cliente_id) {
+      await supabase.from("lancamentos_futuros").delete()
+        .eq("cliente_id", rec.cliente_id)
+        .eq("descricao", rec.descricao)
+        .eq("pago", false);
+    }
     await supabase.from("recorrencias").delete().eq("id", id);
     carregar();
   };
