@@ -391,8 +391,8 @@ export default function ControleClientesPage() {
   const [clientes, setClientes] = useState<ControleCliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
-  const [sort, setSort] = useState("ordem");
-  const [sortDir, setSortDir] = useState<"asc"|"desc">("asc");
+  const [sort, setSort] = useState("data_entrada");
+  const [sortDir, setSortDir] = useState<"asc"|"desc">("desc");
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
   const [subitens, setSubitens] = useState<Record<string,Subitem[]>>({});
   const [novoSubitem, setNovoSubitem] = useState<Record<string,string>>({});
@@ -590,6 +590,11 @@ export default function ControleClientesPage() {
     .sort((a,b) => {
       let va=(a as any)[sort]||""; let vb=(b as any)[sort]||"";
       if (sort==="investimento_mensal"||sort==="ordem"){va=Number(va)||0;vb=Number(vb)||0;}
+      else if (sort==="data_entrada"||sort==="data_inicio_campanha"||sort==="created_at"){
+        const pa=(va as string).includes("/")?((va as string).split("/").reverse().join("-")):(va as string);
+        const pb=(vb as string).includes("/")?((vb as string).split("/").reverse().join("-")):(vb as string);
+        va=pa||"0000";vb=pb||"0000";
+      }
       if (sortDir==="asc") return va>vb?1:-1;
       return va<vb?1:-1;
     });
