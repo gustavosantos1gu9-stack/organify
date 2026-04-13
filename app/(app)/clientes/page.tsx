@@ -123,6 +123,7 @@ function ModalRecorrencia({ cliente, onClose, onSucesso }: { cliente: Cliente; o
   const [dia, setDia] = useState("");
   const [dia2, setDia2] = useState("");
   const [freq, setFreq] = useState(cliente.frequencia || "mensal");
+  const [mesInicio, setMesInicio] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; });
   const [meses, setMeses] = useState(12);
   const [salvando, setSalvando] = useState(false);
   const [sucesso, setSucesso] = useState("");
@@ -152,10 +153,13 @@ function ModalRecorrencia({ cliente, onClose, onSucesso }: { cliente: Cliente; o
       const diaVenc = freq === "quinzenal" ? `${d1},${d2}` : String(d1);
 
       // Calcular próximo vencimento
-      let proximo = new Date(hoje.getFullYear(), hoje.getMonth(), d1);
-      if (proximo <= hoje) {
-        if (freq === "trimestral") proximo.setMonth(proximo.getMonth() + 3);
-        else proximo.setMonth(proximo.getMonth() + 1);
+      let proximo: Date;
+      if (freq === "trimestral") {
+        const [anoIni, mesIni] = mesInicio.split("-").map(Number);
+        proximo = new Date(anoIni, mesIni - 1, d1);
+      } else {
+        proximo = new Date(hoje.getFullYear(), hoje.getMonth(), d1);
+        if (proximo <= hoje) proximo.setMonth(proximo.getMonth() + 1);
       }
 
       const { data: rec, error: errRec } = await supabase.from("recorrencias").insert({
@@ -243,6 +247,10 @@ function ModalRecorrencia({ cliente, onClose, onSucesso }: { cliente: Cliente; o
               <option value="mensal">Mensal</option>
               <option value="trimestral">Trimestral</option>
             </select>
+            {freq === "trimestral" && (
+              <input type="month" value={mesInicio} onChange={e => setMesInicio(e.target.value)}
+                style={{ width:"140px", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", padding:"9px 12px", color:"#f0f0f0", fontSize:"13px" }}/>
+            )}
             <select value={meses} onChange={e => setMeses(Number(e.target.value))}
               style={{ width:"100px", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", padding:"9px 12px", color:"#f0f0f0", fontSize:"13px", cursor:"pointer" }}>
               <option value={6}>6 meses</option>
