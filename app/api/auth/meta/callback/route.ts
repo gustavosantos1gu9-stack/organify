@@ -93,11 +93,11 @@ export async function GET(req: NextRequest) {
         });
       }
 
-      // Salvar só o token — o cliente vai escolher conta de anúncio e pixel depois
-      await supabase.from("agencias").update({
-        meta_business_token: longToken,
-        meta_token: longToken,
-      }).eq("id", agenciaId);
+      // Salvar token na agência — NÃO sobrescrever meta_token (pixel) se já existe
+      const { data: ag } = await supabase.from("agencias").select("meta_token").eq("id", agenciaId).single();
+      const updateData: Record<string, string> = { meta_business_token: longToken };
+      if (!ag?.meta_token) updateData.meta_token = longToken;
+      await supabase.from("agencias").update(updateData).eq("id", agenciaId);
     }
 
     // 5. Redirecionar de volta. Voltar pra Integrações se veio de lá, senão pra Conexões
