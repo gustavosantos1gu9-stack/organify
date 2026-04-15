@@ -114,10 +114,8 @@ export async function dispararEventoMeta(data: MetaEventData): Promise<{ ok: boo
     if (utm_content) customData.utm_content = utm_content;
 
     // ── Action source ──
-    // Meta só aceita "messaging" pra evento Contact
-    // Todos os outros (ViewContent, Lead, AddToCart, Purchase) exigem "website"
-    const aceitaMessaging = event_name === "Contact";
-    const actionSource = (is_ctwa && aceitaMessaging) ? "messaging" : "website";
+    // Usar sempre "website" — "messaging" exige configuração especial no pixel
+    const actionSource = "website";
 
     const eventData: Record<string, any> = {
       event_name,
@@ -131,11 +129,7 @@ export async function dispararEventoMeta(data: MetaEventData): Promise<{ ok: boo
       eventData.event_id = event_id;
     }
 
-    if (actionSource === "messaging") {
-      eventData.messaging_channel = "whatsapp";
-    } else {
-      eventData.event_source_url = source_url || "https://salxconvert-blond.vercel.app/";
-    }
+    eventData.event_source_url = source_url || "https://salxconvert-blond.vercel.app/";
 
     if (Object.keys(customData).length > 0) {
       eventData.custom_data = customData;
