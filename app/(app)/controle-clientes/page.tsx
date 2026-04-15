@@ -15,6 +15,7 @@ interface ControleCliente {
   ultimo_aumento: string; acao: string; acao_feita: string; otimizacoes: string;
   tarefas: string; datas_otimizacoes: string; motivo: string; razao_nome: string;
   grupo: string; created_at: string; cadastro_id?: string; ordem?: number;
+  renovou?: boolean | null;
 }
 interface Subitem { id: string; cliente_id: string; texto: string; feito: boolean; created_at: string; }
 interface Anotacao { id: string; cliente_id: string; usuario: string; conteudo: string; created_at: string; tipo: string; }
@@ -46,6 +47,7 @@ const COLUNAS_PADRAO = [
   { key:"regiao_anunciar", label:"Região", w:140 },
   { key:"data_entrada", label:"Data Entrada", w:120 },
   { key:"data_inicio_campanha", label:"Início Camp.", w:120 },
+  { key:"renovacao", label:"Renovação", w:180 },
   { key:"agendamentos", label:"Agendamentos", w:120 },
   { key:"faturamento_medio", label:"Fat. Médio", w:110 },
   { key:"progresso_gestor", label:"P. Gestor", w:100 },
@@ -89,6 +91,78 @@ function formatarData(d: string) {
     return `${dia}/${m}/${y}`;
   }
   return limpo;
+}
+
+function parseData(d: string): Date | null {
+  if (!d) return null;
+  const limpo = d.trim().split(" ")[0].split("T")[0];
+  if (limpo.includes("/")) {
+    const p = limpo.split("/");
+    if (p.length === 3) return new Date(Number(p[2]), Number(p[1])-1, Number(p[0]));
+  }
+  if (limpo.match(/^\d{4}-\d{2}-\d{2}$/)) return new Date(limpo + "T12:00:00");
+  return null;
+}
+
+function CelulaRenovacao({ cliente, onRenovou }: { cliente: ControleCliente; onRenovou: (val: boolean) => void }) {
+  const inicio = parseData(cliente.data_inicio_campanha);
+  if (!inicio) return <span style={{ fontSize:"11px", color:"#404040" }}>Sem data</span>;
+
+  const hoje = new Date();
+  hoje.setHours(0,0,0,0);
+  const fimTrimestre = new Date(inicio);
+  fimTrimestre.setDate(fimTrimestre.getDate() + 90);
+
+  const diffMs = fimTrimestre.getTime() - hoje.getTime();
+  const diasRestantes = Math.ceil(diffMs / (1000*60*60*24));
+  const diasPassados = Math.floor((hoje.getTime() - inicio.getTime()) / (1000*60*60*24));
+  const progresso = Math.min(100, Math.max(0, Math.round((diasPassados / 90) * 100)));
+
+  // Já passou do 1º trimestre
+  if (diasRestantes <= 0) {
+    // Ainda não decidiu
+    if (cliente.renovou === null || cliente.renovou === undefined) {
+      return (
+        <div style={{ display:"flex", gap:"4px" }}>
+          <button onClick={() => onRenovou(true)}
+            style={{ flex:1, padding:"3px 6px", borderRadius:"4px", border:"1px solid rgba(34,197,94,0.3)", background:"rgba(34,197,94,0.1)", color:"#22c55e", fontSize:"10px", cursor:"pointer", fontWeight:"600" }}>
+            Renovou
+          </button>
+          <button onClick={() => onRenovou(false)}
+            style={{ flex:1, padding:"3px 6px", borderRadius:"4px", border:"1px solid rgba(239,68,68,0.3)", background:"rgba(239,68,68,0.1)", color:"#ef4444", fontSize:"10px", cursor:"pointer", fontWeight:"600" }}>
+            Não
+          </button>
+        </div>
+      );
+    }
+    // Não renovou
+    if (cliente.renovou === false) {
+      return <span style={{ fontSize:"11px", color:"#ef4444", fontWeight:"600" }}>Não renovou</span>;
+    }
+    // Renovou — mostrar tempo total
+    const mesesTotal = Math.floor(diasPassados / 30);
+    const diasExtra = diasPassados % 30;
+    return (
+      <span style={{ fontSize:"11px", color:"#22c55e", fontWeight:"600" }}>
+        {mesesTotal > 0 ? `${mesesTotal} ${mesesTotal===1?"mês":"meses"}` : ""}
+        {mesesTotal > 0 && diasExtra > 0 ? " e " : ""}
+        {diasExtra > 0 || mesesTotal === 0 ? `${diasExtra} dias` : ""}
+      </span>
+    );
+  }
+
+  // No 1º trimestre — barra de progresso
+  const cor = diasRestantes > 30 ? "#22c55e" : diasRestantes > 15 ? "#f59e0b" : "#ef4444";
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:"2px" }}>
+      <div style={{ height:"6px", background:"#1a1a1a", borderRadius:"3px", overflow:"hidden" }}>
+        <div style={{ height:"100%", width:`${progresso}%`, background:cor, borderRadius:"3px", transition:"width 0.3s" }}/>
+      </div>
+      <span style={{ fontSize:"10px", color:cor, fontWeight:"500" }}>
+        {diasRestantes} dias restantes
+      </span>
+    </div>
+  );
 }
 
 function CelulaEditavel({ valor, onSave, tipo="text" }: { valor: string; onSave: (v: string) => void; tipo?: string }) {
@@ -877,6 +951,11 @@ export default function ControleClientesPage() {
                         <option value="">—</option>
                         {times.length?times.map(t=><option key={t} value={t}>{t}</option>):<option value={(c as any)[col.key]}>{(c as any)[col.key]}</option>}
                       </select>
+                    ) : col.key==="renovacao" ? (
+                      <CelulaRenovacao cliente={c} onRenovou={async (val) => {
+                        await supabase.from("controle_clientes").update({ renovou: val }).eq("id", c.id);
+                        carregar();
+                      }}/>
                     ) : col.key==="data_entrada"||col.key==="data_inicio_campanha" ? (
                       <CelulaEditavel valor={(c as any)[col.key]||""} tipo="date" onSave={v=>atualizar(c.id,col.key,v,c.nome)}/>
                     ) : col.key==="investimento_mensal" ? (
