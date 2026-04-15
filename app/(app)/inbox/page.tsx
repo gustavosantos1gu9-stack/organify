@@ -44,8 +44,18 @@ function formatarNumero(n: string) {
 }
 
 function toLocalDate(iso: string) {
-  const d = new Date(iso);
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  if (!iso) return "";
+  // Se já tem offset -03:00, extrair a data local direto sem converter
+  const matchOffset = iso.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})([+-]\d{2}:\d{2})$/);
+  if (matchOffset) return matchOffset[1];
+  // Se tem T mas sem offset (UTC), converter para BRT (-3h)
+  if (iso.includes("T")) {
+    const d = new Date(iso);
+    const brt = new Date(d.getTime() - 3 * 60 * 60 * 1000);
+    return `${brt.getUTCFullYear()}-${String(brt.getUTCMonth()+1).padStart(2,"0")}-${String(brt.getUTCDate()).padStart(2,"0")}`;
+  }
+  // Só data, retornar direto
+  return iso.split(" ")[0].split("T")[0];
 }
 
 function formatarData(d: string) {
