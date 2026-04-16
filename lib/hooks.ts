@@ -240,6 +240,13 @@ export async function atualizarCliente(id: string, payload: Partial<Cliente>) {
 }
 
 export async function removerCliente(id: string) {
+  // Limpar dependências antes de deletar
+  await supabase.from("lancamentos_futuros").delete().eq("cliente_id", id);
+  await supabase.from("recorrencias").delete().eq("cliente_id", id);
+  await supabase.from("movimentacoes").update({ cliente_id: null }).eq("cliente_id", id);
+  await supabase.from("reunioes").update({ cliente_id: null }).eq("cliente_id", id);
+  await supabase.from("escalas").update({ cliente_id: null }).eq("cliente_id", id);
+  await supabase.from("leads").update({ convertido_cliente_id: null }).eq("convertido_cliente_id", id);
   const { error } = await supabase.from("clientes").delete().eq("id", id);
   if (error) throw error;
 }
