@@ -41,6 +41,17 @@ function IntegracoesCliente() {
   const [metaAdsAtivo, setMetaAdsAtivo] = useState(false);
   const [tokenStatus, setTokenStatus] = useState<{valid:boolean;expires?:string;name?:string}|null>(null);
 
+  // IA
+  const [openaiKey, setOpenaiKeyC] = useState("");
+  const [openaiAtivoC, setOpenaiAtivoC] = useState(false);
+  const [openaiModeloC, setOpenaiModeloC] = useState("gpt-4o-mini");
+  const [openaiPromptC, setOpenaiPromptC] = useState("");
+  const [openaiMaxTokensC, setOpenaiMaxTokensC] = useState(500);
+  const [openaiTempC, setOpenaiTempC] = useState(0.7);
+  const [openaiContextoC, setOpenaiContextoC] = useState(10);
+  const [openaiHorarioInicioC, setOpenaiHorarioInicioC] = useState("");
+  const [openaiHorarioFimC, setOpenaiHorarioFimC] = useState("");
+
   // Modal de seleção pós-OAuth
   const [showSelector, setShowSelector] = useState(false);
   const [contasDisponiveis, setContasDisponiveis] = useState<any[]>([]);
@@ -154,6 +165,15 @@ function IntegracoesCliente() {
         setMetaAdAccountId(data.meta_ad_account_id || "");
         setMetaBusinessToken(data.meta_business_token || "");
         setMetaAdsAtivo(data.meta_ads_ativo || false);
+        setOpenaiKeyC(data.openai_key || "");
+        setOpenaiAtivoC(data.openai_ativo || false);
+        setOpenaiModeloC(data.openai_modelo || "gpt-4o-mini");
+        setOpenaiPromptC(data.openai_prompt_sistema || "");
+        setOpenaiMaxTokensC(data.openai_max_tokens || 500);
+        setOpenaiTempC(Number(data.openai_temperatura) || 0.7);
+        setOpenaiContextoC(data.openai_contexto_mensagens || 10);
+        setOpenaiHorarioInicioC(data.openai_horario_inicio || "");
+        setOpenaiHorarioFimC(data.openai_horario_fim || "");
 
         // Detectar retorno do OAuth Meta — abrir seletor
         if (typeof window !== "undefined") {
@@ -603,6 +623,79 @@ function IntegracoesCliente() {
         </div>
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <button className="btn-primary" onClick={salvarMeta} style={{ cursor: "pointer" }}><Check size={14} /> Salvar</button>
+        </div>
+      </div>
+
+      {/* Assistente IA */}
+      <div className="card" style={{marginBottom:"20px"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"20px"}}>
+          <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+            <div style={{width:"10px",height:"10px",borderRadius:"50%",background:openaiAtivoC?"#22c55e":"#ef4444"}}/>
+            <Bot size={18} color="#a0a0a0"/>
+            <h2 style={{fontSize:"16px",fontWeight:"600"}}>Assistente IA (WhatsApp)</h2>
+          </div>
+          <label style={{display:"flex",alignItems:"center",gap:"8px",cursor:"pointer",fontSize:"13px",color:"#a0a0a0"}}>
+            <input type="checkbox" checked={openaiAtivoC} onChange={e=>setOpenaiAtivoC(e.target.checked)} style={{width:"14px",height:"14px"}}/>
+            {openaiAtivoC?"Ativo":"Inativo"}
+          </label>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px",marginBottom:"16px"}}>
+          <div className="form-group">
+            <label className="form-label">API Key OpenAI</label>
+            <input className="form-input" placeholder="sk-..." type="password" value={openaiKey} onChange={e=>setOpenaiKeyC(e.target.value)}/>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Modelo</label>
+            <select className="form-input" value={openaiModeloC} onChange={e=>setOpenaiModeloC(e.target.value)}>
+              <option value="gpt-4o-mini">GPT-4o Mini (rápido e barato)</option>
+              <option value="gpt-4o">GPT-4o (mais inteligente)</option>
+              <option value="gpt-3.5-turbo">GPT-3.5 Turbo (mais barato)</option>
+            </select>
+          </div>
+        </div>
+        <div className="form-group" style={{marginBottom:"16px"}}>
+          <label className="form-label">Instruções do Assistente (Prompt)</label>
+          <textarea className="form-input" rows={6} value={openaiPromptC} onChange={e=>setOpenaiPromptC(e.target.value)}
+            placeholder={"Você é a assistente da [Nome].\n\nServiços:\n- ...\n\nPreços:\n- ...\n\nRegras:\n- Seja educada\n- Tente agendar"}
+            style={{resize:"vertical",minHeight:"120px"}}/>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"12px",marginBottom:"16px"}}>
+          <div className="form-group">
+            <label className="form-label">Temperatura ({openaiTempC})</label>
+            <input type="range" min="0" max="1" step="0.1" value={openaiTempC} onChange={e=>setOpenaiTempC(Number(e.target.value))} style={{width:"100%",accentColor:"#29ABE2"}}/>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Max Tokens</label>
+            <input className="form-input" type="number" value={openaiMaxTokensC} onChange={e=>setOpenaiMaxTokensC(Number(e.target.value))}/>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Contexto (msgs)</label>
+            <input className="form-input" type="number" value={openaiContextoC} onChange={e=>setOpenaiContextoC(Number(e.target.value))}/>
+          </div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px",marginBottom:"16px"}}>
+          <div className="form-group">
+            <label className="form-label">Horário início</label>
+            <input className="form-input" type="time" value={openaiHorarioInicioC} onChange={e=>setOpenaiHorarioInicioC(e.target.value)}/>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Horário fim</label>
+            <input className="form-input" type="time" value={openaiHorarioFimC} onChange={e=>setOpenaiHorarioFimC(e.target.value)}/>
+          </div>
+        </div>
+        <p style={{fontSize:"11px",color:"#606060",marginBottom:"16px"}}>Se vazio, responde 24h. Se humano responder, a IA pausa por 5 min naquela conversa.</p>
+        <div style={{display:"flex",justifyContent:"flex-end"}}>
+          <button className="btn-primary" onClick={async()=>{
+            try{
+              await supabase.from("agencias").update({
+                openai_key:openaiKey, openai_ativo:openaiAtivoC, openai_modelo:openaiModeloC,
+                openai_prompt_sistema:openaiPromptC, openai_max_tokens:openaiMaxTokensC,
+                openai_temperatura:openaiTempC, openai_contexto_mensagens:openaiContextoC,
+                openai_horario_inicio:openaiHorarioInicioC||null, openai_horario_fim:openaiHorarioFimC||null,
+              }).eq("id",agenciaId!);
+              alert("Assistente IA salvo!");
+            }catch{alert("Erro ao salvar");}
+          }} style={{cursor:"pointer"}}><Check size={14}/> Salvar Assistente IA</button>
         </div>
       </div>
     </div>
