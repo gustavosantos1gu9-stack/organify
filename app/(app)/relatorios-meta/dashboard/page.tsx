@@ -155,7 +155,7 @@ function DashboardInner() {
   const hoje = new Date();
   const [dateFrom, setDateFrom] = useState(new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split("T")[0]);
   const [dateTo, setDateTo] = useState(hoje.toISOString().split("T")[0]);
-  type PeriodoTipo = "esta_semana" | "semana_passada" | "14_dias" | "este_mes" | "mes_passado" | "custom";
+  type PeriodoTipo = "esta_semana" | "semana_passada" | "14_dias" | "este_mes" | "mes_passado" | "total" | "custom";
   const [periodoTipo, setPeriodoTipo] = useState<PeriodoTipo>("este_mes");
 
   const [activeTab, setActiveTab] = useState<"dashboard" | "performance">("dashboard");
@@ -171,6 +171,7 @@ function DashboardInner() {
     { key: "14_dias", label: "14 dias" },
     { key: "este_mes", label: "Este Mês" },
     { key: "mes_passado", label: "Mês Passado" },
+    { key: "total", label: "Total" },
     { key: "custom", label: "Personalizado" },
   ];
 
@@ -200,6 +201,10 @@ function DashboardInner() {
       const ultDiaMesPassado = new Date(h.getFullYear(), h.getMonth(), 0);
       setDateFrom(fmtD(primDiaMesPassado));
       setDateTo(fmtD(ultDiaMesPassado));
+    } else if (tipo === "total") {
+      const inicio = new Date(h.getFullYear(), h.getMonth() - 5, 1);
+      setDateFrom(fmtD(inicio));
+      setDateTo(fmtD(h));
     }
   };
 
@@ -784,7 +789,9 @@ function DashboardInner() {
         )}
 
         {activeTab === "performance" && (
-          <PerformanceTab relatorioId={relatorioId || ""} dateFrom={dateFrom} dateTo={dateTo} />
+          periodoTipo === "total"
+            ? <PerformanceTotalTab relatorioId={relatorioId || ""} dateFrom={dateFrom} dateTo={dateTo} />
+            : <PerformanceTab relatorioId={relatorioId || ""} dateFrom={dateFrom} dateTo={dateTo} />
         )}
       </div>
     </>
@@ -1480,6 +1487,137 @@ function CriativosPanel({ relatorioId, dateFrom, dateTo }: { relatorioId: string
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Performance Total Tab — Comparativo mês a mês                      */
+/* ------------------------------------------------------------------ */
+
+function PerformanceTotalTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string; dateFrom: string; dateTo: string }) {
+  const [meses, setMeses] = useState<{ label: string; from: string; to: string; data: any }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [nomeCliente, setNomeCliente] = useState("");
+
+  const pfmtNum = (n: number) => isNaN(n) ? "0" : n.toLocaleString("pt-BR");
+  const pfmtMoney = (n: number) => isNaN(n) ? "R$ 0,00" : `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const pfmtPct = (n: number) => isNaN(n) || !isFinite(n) ? "0,0%" : `${n.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+  const safe = (a: number, b: number) => b > 0 ? a / b : 0;
+  const MESES_NOMES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+
+  useEffect(() => {
+    async function carregar() {
+      setLoading(true);
+      const from = new Date(dateFrom + "T12:00:00");
+      const to = new Date(dateTo + "T12:00:00");
+      const mesesArr: { label: string; from: string; to: string }[] = [];
+      let d = new Date(from.getFullYear(), from.getMonth(), 1);
+      while (d <= to) {
+        const mFrom = d.toISOString().split("T")[0];
+        const mTo = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split("T")[0];
+        mesesArr.push({ label: `${MESES_NOMES[d.getMonth()]}/${d.getFullYear()}`, from: mFrom, to: mTo });
+        d = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+      }
+      const results = await Promise.all(mesesArr.map(async (m) => {
+        try {
+          const res = await fetch("/api/relatorios/performance", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "carregar", relatorio_id: relatorioId, date_from: m.from, date_to: m.to }),
+          });
+          const data = await res.json();
+          if (data.nomeCliente) setNomeCliente(data.nomeCliente);
+          const totals = { investimento: 0, mensagens: 0, agendamentos: 0, realizados: 0, vendas: 0, valorVendas: 0, faturamento: 0 };
+          (data.semanas || []).forEach((s: any) => {
+            totals.investimento += s.investimento ?? 0;
+            totals.mensagens += s.mensagens ?? 0;
+            totals.agendamentos += s.agendamentos ?? 0;
+            totals.realizados += s.comparecimentos ?? 0;
+            totals.vendas += s.vendas ?? 0;
+            totals.valorVendas += s.valor_vendas ?? 0;
+            totals.faturamento += s.faturamento ?? 0;
+          });
+          return { ...m, data: totals };
+        } catch { return { ...m, data: { investimento: 0, mensagens: 0, agendamentos: 0, realizados: 0, vendas: 0, valorVendas: 0, faturamento: 0 } }; }
+      }));
+      setMeses(results);
+      setLoading(false);
+    }
+    carregar();
+  }, [relatorioId, dateFrom, dateTo]);
+
+  if (loading) return <div style={{ textAlign: "center", padding: 40, color: "#606060" }}><Loader2 size={20} className="spin" style={{ display: "inline-block", marginRight: 8 }} />Carregando comparativo...</div>;
+  if (!meses.length) return <div style={{ textAlign: "center", padding: 40, color: "#606060" }}>Nenhum dado encontrado.</div>;
+
+  const pctChg = (curr: number, prev: number) => prev > 0 ? ((curr - prev) / prev) * 100 : curr > 0 ? 100 : 0;
+  const Badge = ({ curr, prev, inverted }: { curr: number; prev: number; inverted?: boolean }) => {
+    if (prev === 0 && curr === 0) return null;
+    const pct = pctChg(curr, prev);
+    if (Math.abs(pct) < 0.1) return null;
+    const isGood = inverted ? pct < 0 : pct > 0;
+    return <span style={{ fontSize: 10, fontWeight: 600, display: "block", marginTop: 2, color: isGood ? "#22c55e" : "#ef4444" }}>{pct > 0 ? "+" : ""}{pct.toFixed(1)}%</span>;
+  };
+
+  type MetricDef = { label: string; key?: string; calc?: (d: any) => number; format: (n: number) => string; inverted?: boolean };
+  const metrics: MetricDef[] = [
+    { label: "Investimento", key: "investimento", format: pfmtMoney },
+    { label: "Mensagens", key: "mensagens", format: pfmtNum },
+    { label: "Agendamentos", key: "agendamentos", format: pfmtNum },
+    { label: "Realizados", key: "realizados", format: pfmtNum },
+    { label: "Vendas", key: "vendas", format: pfmtNum },
+    { label: "Valor em Vendas", key: "valorVendas", format: pfmtMoney },
+    { label: "Faturamento", key: "faturamento", format: pfmtMoney },
+    { label: "Ticket Médio", calc: (d) => safe(d.valorVendas, d.vendas), format: pfmtMoney },
+    { label: "ROAS", calc: (d) => safe(d.valorVendas, d.investimento), format: (n) => `${n.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}x` },
+    { label: "Taxa Lead → Agend.", calc: (d) => safe(d.agendamentos, d.mensagens) * 100, format: pfmtPct },
+    { label: "Taxa Agend. → Realiz.", calc: (d) => safe(d.realizados, d.agendamentos) * 100, format: pfmtPct },
+    { label: "Taxa Realiz. → Venda", calc: (d) => safe(d.vendas, d.realizados) * 100, format: pfmtPct },
+    { label: "Taxa Lead → Venda", calc: (d) => safe(d.vendas, d.mensagens) * 100, format: pfmtPct },
+    { label: "Custo por Lead", calc: (d) => safe(d.investimento, d.mensagens), format: pfmtMoney, inverted: true },
+    { label: "Custo por Agend.", calc: (d) => safe(d.investimento, d.agendamentos), format: pfmtMoney, inverted: true },
+    { label: "Custo por Venda", calc: (d) => safe(d.investimento, d.vendas), format: pfmtMoney, inverted: true },
+  ];
+
+  const getVal = (m: any, metric: MetricDef) => metric.calc ? metric.calc(m.data) : (m.data[metric.key!] ?? 0);
+
+  const hCell: React.CSSProperties = { background: "#1e1e1e", fontWeight: 600, textAlign: "center", padding: "10px 8px", fontSize: 12, color: "#a0a0a0", borderBottom: "1px solid #2e2e2e", whiteSpace: "nowrap" };
+  const rLabel: React.CSSProperties = { fontWeight: 500, color: "#f0f0f0", padding: "8px 16px", fontSize: 13, whiteSpace: "nowrap", position: "sticky", left: 0, background: "#1a1a1a", zIndex: 1 };
+  const dCell: React.CSSProperties = { textAlign: "center", padding: "8px 8px", fontSize: 13, color: "#f0f0f0" };
+
+  return (
+    <div>
+      <div style={{ textAlign: "center", marginBottom: 32 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: "#f0f0f0", marginBottom: 4 }}>Comparativo Mensal — {nomeCliente}</h1>
+        <p style={{ fontSize: 13, color: "#606060" }}>{meses[0]?.label} a {meses[meses.length - 1]?.label}</p>
+      </div>
+      <div className="card" style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 12, padding: 0, overflow: "hidden" }}>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: meses.length * 130 + 200 }}>
+            <thead>
+              <tr>
+                <th style={{ ...hCell, textAlign: "left", paddingLeft: 16, position: "sticky", left: 0, background: "#1e1e1e", zIndex: 2 }}>Métrica</th>
+                {meses.map(m => <th key={m.from} style={hCell}>{m.label}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {metrics.map((metric, ri) => (
+                <tr key={metric.label} style={{ borderTop: ri === 7 ? "2px solid #2e2e2e" : ri > 0 ? "1px solid #1e1e1e" : "none" }}>
+                  <td style={{ ...rLabel, color: ri < 7 ? "#f0f0f0" : "#808080" }}>{metric.label}</td>
+                  {meses.map((m, mi) => {
+                    const val = getVal(m, metric);
+                    return (
+                      <td key={m.from} style={dCell}>
+                        {metric.format(val)}
+                        {mi > 0 && <Badge curr={val} prev={getVal(meses[mi - 1], metric)} inverted={metric.inverted} />}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
