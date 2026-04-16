@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Bot, Save, Power, Clock, MessageSquare, Zap, Brain, Plus, Trash2, Check } from "lucide-react";
+import { Bot, Save, Power, Clock, MessageSquare, Zap, Brain, Plus, Trash2, Check, Send, Loader2 } from "lucide-react";
 import { supabase, getAgenciaId } from "@/lib/hooks";
 
 export default function SecretariaIAPage() {
@@ -39,6 +39,11 @@ export default function SecretariaIAPage() {
   const [tom, setTom] = useState("profissional");
   const [instrucaoExtra, setInstrucaoExtra] = useState("");
   const [promptFinal, setPromptFinal] = useState("");
+
+  // Chat de teste
+  const [testMsgs, setTestMsgs] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
+  const [testInput, setTestInput] = useState("");
+  const [testLoading, setTestLoading] = useState(false);
 
   useEffect(() => { carregar(); }, []);
 
@@ -142,6 +147,31 @@ export default function SecretariaIAPage() {
       alert("Secretária IA salva!");
     } catch { alert("Erro ao salvar"); }
     setSalvando(false);
+  }
+
+  async function testar() {
+    if (!testInput.trim() || !apiKey) { if (!apiKey) alert("Preencha a API Key primeiro"); return; }
+    const userMsg = testInput.trim();
+    setTestInput("");
+    const novasMsgs = [...testMsgs, { role: "user" as const, content: userMsg }];
+    setTestMsgs(novasMsgs);
+    setTestLoading(true);
+    try {
+      const messages = [
+        { role: "system", content: promptFinal },
+        ...novasMsgs.map(m => ({ role: m.role, content: m.content })),
+      ];
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({ model: modelo, messages, max_tokens: maxTokens, temperature: temperatura }),
+      });
+      const data = await res.json();
+      if (data.error) { alert("Erro: " + data.error.message); setTestLoading(false); return; }
+      const resposta = data.choices?.[0]?.message?.content?.trim() || "Sem resposta";
+      setTestMsgs([...novasMsgs, { role: "assistant", content: resposta }]);
+    } catch (e: any) { alert("Erro: " + e.message); }
+    setTestLoading(false);
   }
 
   const addItem = (arr: string[], set: (v: string[]) => void) => set([...arr, ""]);
@@ -290,6 +320,54 @@ export default function SecretariaIAPage() {
             <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 300, fontSize: 12, lineHeight: "1.6", fontFamily: "monospace" }}
               value={promptFinal} onChange={e => setPromptFinal(e.target.value)} />
             <p style={{ fontSize: 11, color: "#606060", marginTop: 6 }}>Este é o prompt enviado para a IA. Edite diretamente se quiser ajustar.</p>
+          </div>
+
+          {/* Chat de teste */}
+          <div style={cardStyle}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                <MessageSquare size={16} color="#22c55e" /> Testar Secretária
+              </h3>
+              {testMsgs.length > 0 && (
+                <button onClick={() => setTestMsgs([])} style={{ background: "none", border: "none", color: "#606060", fontSize: 11, cursor: "pointer" }}>Limpar</button>
+              )}
+            </div>
+
+            <div style={{ background: "#0d0d0d", borderRadius: 8, border: "1px solid #1e1e1e", minHeight: 200, maxHeight: 300, overflowY: "auto", padding: 12, marginBottom: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+              {testMsgs.length === 0 && (
+                <p style={{ color: "#404040", fontSize: 12, textAlign: "center", margin: "auto 0" }}>Envie uma mensagem para testar a secretária</p>
+              )}
+              {testMsgs.map((m, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
+                  <div style={{
+                    maxWidth: "80%", padding: "8px 12px", borderRadius: 12, fontSize: 13, lineHeight: "1.5",
+                    background: m.role === "user" ? "#29ABE2" : "#1e1e1e",
+                    color: m.role === "user" ? "#000" : "#f0f0f0",
+                    borderBottomRightRadius: m.role === "user" ? 4 : 12,
+                    borderBottomLeftRadius: m.role === "assistant" ? 4 : 12,
+                  }}>
+                    {m.content}
+                  </div>
+                </div>
+              ))}
+              {testLoading && (
+                <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#606060", fontSize: 12 }}>
+                  <Loader2 size={14} className="spin" /> Digitando...
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: "flex", gap: 6 }}>
+              <input style={{ ...inputStyle, flex: 1 }} placeholder="Digite como se fosse um lead..."
+                value={testInput} onChange={e => setTestInput(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && !testLoading && testar()}
+                disabled={testLoading} />
+              <button onClick={testar} disabled={testLoading || !testInput.trim()}
+                style={{ background: testInput.trim() ? "#29ABE2" : "#2e2e2e", border: "none", borderRadius: 8, padding: "0 14px", cursor: testInput.trim() ? "pointer" : "default", color: testInput.trim() ? "#000" : "#606060" }}>
+                <Send size={14} />
+              </button>
+            </div>
+            {!apiKey && <p style={{ fontSize: 11, color: "#ef4444", marginTop: 6 }}>Preencha a API Key para testar</p>}
           </div>
 
           {/* Config técnica */}
