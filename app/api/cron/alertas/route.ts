@@ -74,15 +74,43 @@ export async function GET(req: NextRequest) {
         // Verificar status da conta
         const statusMap: Record<number, string> = {
           1: "Ativa", 2: "Desativada", 3: "Não liquidada", 7: "Em revisão",
+          9: "Período de carência", 101: "Fechada", 100: "Suspensa",
         };
         const statusTexto = statusMap[meta.account_status] || `Status ${meta.account_status}`;
         const contaProblema = meta.account_status !== 1;
 
-        // Verificar saldo abaixo do limite
+        // Verificar erro de pagamento (cartão de crédito)
+        let erroPagamento = false;
+        let erroPagamentoMsg = "";
+        try {
+          const payRes = await fetch(
+            `${META_API}/${acId}?fields=adspaymentcycle{threshold_amount,created_time},disable_reason,funding_source_details{type,display_string}`,
+            { headers: { Authorization: `Bearer ${con.meta_token}` } }
+          );
+          if (payRes.ok) {
+            const payData = await payRes.json();
+            // disable_reason indica problema — 0=ok, outros=erro
+            if (payData.disable_reason && payData.disable_reason !== 0) {
+              const disableReasons: Record<number, string> = {
+                1: "Política de anúncios", 2: "Falha no pagamento", 3: "Atividade suspeita",
+                4: "Problema no método de pagamento", 5: "Limite de gasto atingido",
+              };
+              erroPagamento = true;
+              erroPagamentoMsg = disableReasons[payData.disable_reason] || `Motivo ${payData.disable_reason}`;
+            }
+            // Verificar tipo de pagamento
+            const fundType = payData.funding_source_details?.type;
+            if (fundType && contaProblema) {
+              erroPagamentoMsg = `${erroPagamentoMsg ? erroPagamentoMsg + " — " : ""}Pagamento: ${fundType === 1 ? "Cartão de crédito" : fundType === 2 ? "PIX/Boleto" : fundType}`;
+            }
+          }
+        } catch {}
+
+        // Verificar saldo abaixo do limite (só para PIX/Boleto)
         const saldoBaixo = alerta.saldo_alerta && balance <= alerta.saldo_alerta;
 
         // Se não precisa alertar, pular
-        if (!saldoBaixo && !contaProblema) {
+        if (!saldoBaixo && !contaProblema && !erroPagamento) {
           resultados.push({ id: alerta.id, nome: alerta.nome_cliente, status: "ok", saldo: balance });
           continue;
         }
@@ -107,9 +135,12 @@ export async function GET(req: NextRequest) {
           "<LIMITE>": formatMoney(alerta.saldo_alerta || 0),
           "<STATUS>": statusTexto,
           "<PAGAMENTO>": alerta.forma_pagamento || "PIX/Boleto",
+          "<ERRO_PAGAMENTO>": erroPagamentoMsg || "",
         };
 
-        if (contaProblema) {
+        if (erroPagamento) {
+          mensagem = alerta.template_pagamento || `🚨 *ALERTA DE PAGAMENTO*\n\nCliente: *<CLIENTE>*\nConta: <CONTA>\nStatus: *<STATUS>*\nProblema: *<ERRO_PAGAMENTO>*\n\n_Verifique o método de pagamento (cartão/boleto) no Gerenciador de Anúncios._`;
+        } else if (contaProblema) {
           mensagem = alerta.template_status || `🚨 *ALERTA DE CONTA*\n\nCliente: *<CLIENTE>*\nConta: <CONTA>\nStatus: *<STATUS>*\nSaldo: <SALDO>\n\n_A conta está com problema. Verifique no Gerenciador de Anúncios._`;
         } else if (saldoBaixo) {
           mensagem = alerta.template_saldo || `⚠️ *ALERTA DE SALDO BAIXO*\n\nCliente: *<CLIENTE>*\nConta: <CONTA>\nSaldo atual: *<SALDO>*\nLimite configurado: <LIMITE>\n\n_Recarregue via PIX para não parar os anúncios._`;
