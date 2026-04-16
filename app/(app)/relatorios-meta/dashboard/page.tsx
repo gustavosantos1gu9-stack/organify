@@ -1338,7 +1338,7 @@ function CriativosPanel({ relatorioId, dateFrom, dateTo }: { relatorioId: string
   const cfmtNum = (n: number) => isNaN(n) ? "0" : n.toLocaleString("pt-BR");
   const cfmtPct = (n: number) => isNaN(n) || !isFinite(n) ? "0,0%" : `${n.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 
-  const cKey = (c: any) => `${c.ad_name}|||${c.adset_name || ""}`;
+  const cKey = (c: any) => `${c.ad_name}|||${c.adset_name || ""}|||${c.campaign_name || ""}`;
 
   const carregarCriativos = async () => {
     setLoading(true);
@@ -1361,7 +1361,7 @@ function CriativosPanel({ relatorioId, dateFrom, dateTo }: { relatorioId: string
 
   const salvarCriativos = async () => {
     setSaving(true);
-    const toSave = criativos.map(c => ({ ad_name: c.ad_name, adset_name: c.adset_name || "", agendamentos: agendEdit[cKey(c)] ?? 0 }));
+    const toSave = criativos.map(c => ({ ad_name: c.ad_name, adset_name: c.adset_name || "", campaign_name: c.campaign_name || "", agendamentos: agendEdit[cKey(c)] ?? 0 }));
     try {
       await fetch("/api/relatorios/performance", {
         method: "POST",

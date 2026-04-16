@@ -243,9 +243,9 @@ export async function POST(req: NextRequest) {
         .gte("periodo_inicio", desde)
         .lte("periodo_inicio", desde + "T23:59:59Z");
 
-      // Merge por ad_name + adset_name
+      // Merge por ad_name + adset_name + campaign_name
       for (const c of criativos) {
-        const manual = manuais?.find(m => m.ad_name === c.ad_name && m.adset_name === (c.adset_name || ""));
+        const manual = manuais?.find(m => m.ad_name === c.ad_name && m.adset_name === (c.adset_name || "") && (m.campaign_name || "") === (c.campaign_name || ""));
         c.agendamentos = manual?.agendamentos ?? 0;
         c.id = manual?.id ?? null;
       }
@@ -272,9 +272,10 @@ export async function POST(req: NextRequest) {
           periodo_fim: date_to,
           ad_name: c.ad_name,
           adset_name: c.adset_name || "",
+          campaign_name: c.campaign_name || "",
           agendamentos: c.agendamentos || 0,
           updated_at: new Date().toISOString(),
-        }, { onConflict: "agencia_id,relatorio_id,periodo_inicio,ad_name,adset_name" });
+        }, { onConflict: "agencia_id,relatorio_id,periodo_inicio,ad_name,adset_name,campaign_name" });
       }
 
       return NextResponse.json({ ok: true });
