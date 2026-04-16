@@ -281,6 +281,9 @@ export default function LancamentosFuturosPage() {
 
   const totalEntradas = filtrados.filter(l=>l.tipo==="entrada"&&!l.pago).reduce((a,b)=>a+b.valor,0);
   const totalSaidas = filtrados.filter(l=>l.tipo==="saida"&&!l.pago).reduce((a,b)=>a+b.valor,0);
+  const mesAtual = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,"0")}`;
+  const entradasMes = filtrados.filter(l=>l.tipo==="entrada"&&!l.pago&&l.data_vencimento.startsWith(mesAtual)).reduce((a,b)=>a+b.valor,0);
+  const saidasMes = filtrados.filter(l=>l.tipo==="saida"&&!l.pago&&l.data_vencimento.startsWith(mesAtual)).reduce((a,b)=>a+b.valor,0);
 
   // Agrupar por mês
   const MESES_NOMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
@@ -368,9 +371,11 @@ export default function LancamentosFuturosPage() {
       </div>
       <h1 style={{fontSize:"22px",fontWeight:"600",marginBottom:"24px"}}>Lançamentos futuros</h1>
 
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"16px",marginBottom:"28px"}}>
-        <KPICard label="Entradas previstas" value={formatCurrency(totalEntradas)} change={0} icon={<ArrowDownToLine size={16}/>} iconBg="green"/>
-        <KPICard label="Saídas previstas" value={formatCurrency(totalSaidas)} change={0} icon={<ArrowUpFromLine size={16}/>} iconBg="red"/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"16px",marginBottom:"28px"}}>
+        <KPICard label="Entradas previstas (total)" value={formatCurrency(totalEntradas)} change={0} icon={<ArrowDownToLine size={16}/>} iconBg="green"/>
+        <KPICard label="Saídas previstas (total)" value={formatCurrency(totalSaidas)} change={0} icon={<ArrowUpFromLine size={16}/>} iconBg="red"/>
+        <KPICard label="Entradas este mês" value={formatCurrency(entradasMes)} change={0} icon={<ArrowDownToLine size={16}/>} iconBg="green"/>
+        <KPICard label="Saídas este mês" value={formatCurrency(saidasMes)} change={0} icon={<ArrowUpFromLine size={16}/>} iconBg="red"/>
       </div>
 
       <div className="table-wrapper">
