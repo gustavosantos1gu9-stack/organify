@@ -432,17 +432,11 @@ export async function POST(req: NextRequest) {
           let candidato = null;
           for (const r of recentes) {
             if (!r.utm_campaign && !r.link_id && !r.fbclid) continue;
+            // Já foi usado por outro lead
             const isNumeroReal = /^\d{10,15}$/.test(r.wa_numero || "");
             if (isNumeroReal) continue;
 
-            // Se é nova conversa e veio pelo wa_destino correto, aceitar direto
-            // (pessoa clicou no link, mandou msg pro número certo dentro de 5min)
-            if (eraNovaConversa && r.wa_destino === agencia.whatsapp_numero) {
-              candidato = r;
-              break;
-            }
-
-            // Se o candidato veio de link rastreável, tentar validar mensagem (mas não obrigar)
+            // Se veio de link rastreável, OBRIGAR validação da mensagem
             if (r.link_id && msgNorm) {
               const { data: linkData } = await supabase.from("links_campanha")
                 .select("wa_mensagem").eq("id", r.link_id).single();
@@ -452,18 +446,16 @@ export async function POST(req: NextRequest) {
                   candidato = r;
                   break;
                 }
-                // Mensagem não bateu, mas se wa_destino bate, ainda aceitar
-                if (r.wa_destino === agencia.whatsapp_numero) {
-                  candidato = r;
-                  break;
-                }
+                // Mensagem não bateu — NÃO associar, pular
                 continue;
               }
             }
 
-            // Candidato sem link_id (fbclid direto, utm sem link) — aceitar
-            candidato = r;
-            break;
+            // Candidato sem link_id (fbclid direto, utm sem link) — aceitar só se nova conversa
+            if (eraNovaConversa && !r.link_id) {
+              candidato = r;
+              break;
+            }
           }
 
           if (candidato) {
