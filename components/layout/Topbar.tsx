@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { User, LogOut, UserCircle, Building2, ChevronDown, ArrowLeftRight, Wifi, WifiOff } from "lucide-react";
+import { User, LogOut, UserCircle, Building2, ChevronDown, ArrowLeftRight, Wifi, WifiOff, Settings } from "lucide-react";
 import Link from "next/link";
 import { supabase, getAgenciaId } from "@/lib/hooks";
 
@@ -230,6 +230,19 @@ export default function Topbar() {
                   )}
                 </button>
               ))}
+              {/* Gerenciar Contas */}
+              <Link href="/configuracoes/whatsapp-contas" onClick={() => setSelectorOpen(false)} style={{
+                width: "100%", display: "flex", alignItems: "center", gap: "10px",
+                padding: "10px 16px", background: "transparent",
+                border: "none", borderTop: "1px solid #2e2e2e",
+                color: "#29ABE2", fontSize: "13px", cursor: "pointer", textDecoration: "none",
+                transition: "background 0.15s",
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = "rgba(41,171,226,0.08)")}
+              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+                <Settings size={14} />
+                <span>Gerenciar Contas</span>
+              </Link>
             </div>
           )}
         </div>

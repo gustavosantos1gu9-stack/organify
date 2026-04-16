@@ -108,7 +108,6 @@ const navItems: NavItem[] = [
     children: [
       { href: "/configuracoes/agencia", label: "Agência" },
       { href: "/configuracoes/integracoes", label: "Integrações" },
-      { href: "/configuracoes/whatsapp-contas", label: "WhatsApp Contas" },
       {
         label: "Clientes",
         children: [
