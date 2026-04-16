@@ -635,9 +635,16 @@ function IntegracoesMaster() {
   const [metaAdsAtivo, setMetaAdsAtivo] = useState(false);
   const [tokenStatus, setTokenStatus] = useState<{valid:boolean;expires?:string;name?:string}|null>(null);
 
-  // OpenAI
+  // OpenAI / IA
   const [openaiKey, setOpenaiKey] = useState("");
   const [openaiAtivo, setOpenaiAtivo] = useState(false);
+  const [openaiModelo, setOpenaiModelo] = useState("gpt-4o-mini");
+  const [openaiPrompt, setOpenaiPrompt] = useState("");
+  const [openaiMaxTokens, setOpenaiMaxTokens] = useState(500);
+  const [openaiTemp, setOpenaiTemp] = useState(0.7);
+  const [openaiContexto, setOpenaiContexto] = useState(10);
+  const [openaiHorarioInicio, setOpenaiHorarioInicio] = useState("");
+  const [openaiHorarioFim, setOpenaiHorarioFim] = useState("");
 
   // Asaas
   const [asaasToken, setAsaasToken] = useState("");
@@ -662,6 +669,13 @@ function IntegracoesMaster() {
         setMetaAdsAtivo(data.meta_ads_ativo || false);
         setOpenaiKey(data.openai_key || "");
         setOpenaiAtivo(data.openai_ativo || false);
+        setOpenaiModelo(data.openai_modelo || "gpt-4o-mini");
+        setOpenaiPrompt(data.openai_prompt_sistema || "");
+        setOpenaiMaxTokens(data.openai_max_tokens || 500);
+        setOpenaiTemp(Number(data.openai_temperatura) || 0.7);
+        setOpenaiContexto(data.openai_contexto_mensagens || 10);
+        setOpenaiHorarioInicio(data.openai_horario_inicio || "");
+        setOpenaiHorarioFim(data.openai_horario_fim || "");
         setAsaasToken(data.asaas_token || "");
         // Verificar status do token
         if (data.meta_business_token) {
@@ -827,8 +841,14 @@ function IntegracoesMaster() {
   const salvarOpenAI = async () => {
     try {
       const agId = await getAgenciaId();
-      await supabase.from("agencias").update({ openai_key: openaiKey, openai_ativo: openaiAtivo }).eq("id", agId!);
-      alert("OpenAI salvo!");
+      await supabase.from("agencias").update({
+        openai_key: openaiKey, openai_ativo: openaiAtivo,
+        openai_modelo: openaiModelo, openai_prompt_sistema: openaiPrompt,
+        openai_max_tokens: openaiMaxTokens, openai_temperatura: openaiTemp,
+        openai_contexto_mensagens: openaiContexto,
+        openai_horario_inicio: openaiHorarioInicio || null, openai_horario_fim: openaiHorarioFim || null,
+      }).eq("id", agId!);
+      alert("Assistente IA salvo!");
     } catch(e) { alert("Erro ao salvar"); }
   };
 
@@ -1138,25 +1158,75 @@ function IntegracoesMaster() {
         </div>
       </div>
 
-      {/* OpenAI */}
+      {/* Assistente IA */}
       <div className="card" style={{marginBottom:"20px"}}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"20px"}}>
           <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-            <div style={{width:"10px",height:"10px",borderRadius:"50%",background:openaiAtivo?"#29ABE2":"#ef4444"}}/>
+            <div style={{width:"10px",height:"10px",borderRadius:"50%",background:openaiAtivo?"#22c55e":"#ef4444"}}/>
             <Bot size={18} color="#a0a0a0"/>
-            <h2 style={{fontSize:"16px",fontWeight:"600"}}>OpenAI</h2>
+            <h2 style={{fontSize:"16px",fontWeight:"600"}}>Assistente IA (WhatsApp)</h2>
           </div>
           <label style={{display:"flex",alignItems:"center",gap:"8px",cursor:"pointer",fontSize:"13px",color:"#a0a0a0"}}>
             <input type="checkbox" checked={openaiAtivo} onChange={e=>setOpenaiAtivo(e.target.checked)} style={{width:"14px",height:"14px"}}/>
             {openaiAtivo?"Ativo":"Inativo"}
           </label>
         </div>
-        <div className="form-group" style={{marginBottom:"16px"}}>
-          <label className="form-label">API Key</label>
-          <input className="form-input" placeholder="sk-..." type="password" value={openaiKey} onChange={e=>setOpenaiKey(e.target.value)}/>
+
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px",marginBottom:"16px"}}>
+          <div className="form-group">
+            <label className="form-label">API Key OpenAI</label>
+            <input className="form-input" placeholder="sk-..." type="password" value={openaiKey} onChange={e=>setOpenaiKey(e.target.value)}/>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Modelo</label>
+            <select className="form-input" value={openaiModelo} onChange={e=>setOpenaiModelo(e.target.value)}>
+              <option value="gpt-4o-mini">GPT-4o Mini (rápido e barato)</option>
+              <option value="gpt-4o">GPT-4o (mais inteligente)</option>
+              <option value="gpt-4-turbo">GPT-4 Turbo</option>
+              <option value="gpt-3.5-turbo">GPT-3.5 Turbo (mais barato)</option>
+            </select>
+          </div>
         </div>
+
+        <div className="form-group" style={{marginBottom:"16px"}}>
+          <label className="form-label">Instruções do Assistente (Prompt)</label>
+          <textarea className="form-input" rows={6} value={openaiPrompt} onChange={e=>setOpenaiPrompt(e.target.value)}
+            placeholder={"Você é a assistente da [Nome da Empresa].\n\nServiços oferecidos:\n- ...\n\nPreços:\n- ...\n\nHorários de atendimento:\n- ...\n\nRegras:\n- Seja educada e profissional\n- Nunca invente informações\n- Se não souber algo, diga que vai verificar\n- Tente agendar um horário"}
+            style={{resize:"vertical",minHeight:"120px"}}/>
+          <p style={{fontSize:"11px",color:"#606060",marginTop:"4px"}}>Descreva a personalidade, serviços, preços, horários e regras do assistente. Quanto mais detalhado, melhor.</p>
+        </div>
+
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"12px",marginBottom:"16px"}}>
+          <div className="form-group">
+            <label className="form-label">Temperatura ({openaiTemp})</label>
+            <input type="range" min="0" max="1" step="0.1" value={openaiTemp} onChange={e=>setOpenaiTemp(Number(e.target.value))}
+              style={{width:"100%",accentColor:"#29ABE2"}}/>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:"10px",color:"#606060"}}><span>Preciso</span><span>Criativo</span></div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Max Tokens</label>
+            <input className="form-input" type="number" value={openaiMaxTokens} onChange={e=>setOpenaiMaxTokens(Number(e.target.value))}/>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Mensagens de contexto</label>
+            <input className="form-input" type="number" value={openaiContexto} onChange={e=>setOpenaiContexto(Number(e.target.value))}/>
+          </div>
+        </div>
+
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px",marginBottom:"16px"}}>
+          <div className="form-group">
+            <label className="form-label">Horário início (opcional)</label>
+            <input className="form-input" type="time" value={openaiHorarioInicio} onChange={e=>setOpenaiHorarioInicio(e.target.value)}/>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Horário fim (opcional)</label>
+            <input className="form-input" type="time" value={openaiHorarioFim} onChange={e=>setOpenaiHorarioFim(e.target.value)}/>
+          </div>
+        </div>
+        <p style={{fontSize:"11px",color:"#606060",marginBottom:"16px"}}>Se vazio, a IA responde 24h. Se configurado, só responde dentro do horário. A IA não responde se um humano respondeu nos últimos 5 minutos.</p>
+
         <div style={{display:"flex",justifyContent:"flex-end"}}>
-          <button className="btn-primary" onClick={salvarOpenAI} style={{cursor:"pointer"}}><Check size={14}/> Salvar</button>
+          <button className="btn-primary" onClick={salvarOpenAI} style={{cursor:"pointer"}}><Check size={14}/> Salvar Assistente IA</button>
         </div>
       </div>
 

@@ -613,6 +613,19 @@ export async function POST(req: NextRequest) {
           console.error("[pixel] Exceção primeiro contato:", e);
         }
       }
+
+      // IA AUTO-RESPONDER (não-bloqueante)
+      if (conteudo && tipo === "text" && conversa?.id) {
+        fetch(`${APP_URL}/api/ai/responder`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            agencia_id: agencia.id,
+            conversa_id: conversa.id,
+            mensagem_lead: conteudo,
+          }),
+        }).catch(() => {});
+      }
     }
 
     return NextResponse.json({ ok: true });
