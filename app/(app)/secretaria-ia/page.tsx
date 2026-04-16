@@ -1,0 +1,351 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Bot, Save, Power, Clock, MessageSquare, Zap, Brain, Plus, Trash2, Check } from "lucide-react";
+import { supabase, getAgenciaId } from "@/lib/hooks";
+
+export default function SecretariaIAPage() {
+  const [loading, setLoading] = useState(true);
+  const [salvando, setSalvando] = useState(false);
+  const [agId, setAgId] = useState("");
+  const [nomeAgencia, setNomeAgencia] = useState("");
+
+  // Config
+  const [ativo, setAtivo] = useState(false);
+  const [apiKey, setApiKey] = useState("");
+  const [modelo, setModelo] = useState("gpt-4o-mini");
+  const [temperatura, setTemperatura] = useState(0.7);
+  const [maxTokens, setMaxTokens] = useState(500);
+  const [contexto, setContexto] = useState(10);
+  const [horarioInicio, setHorarioInicio] = useState("");
+  const [horarioFim, setHorarioFim] = useState("");
+
+  // Prompt estruturado
+  const [nomeSecretaria, setNomeSecretaria] = useState("");
+  const [nomeEmpresa, setNomeEmpresa] = useState("");
+  const [segmento, setSegmento] = useState("");
+  const [servicos, setServicos] = useState<string[]>([""]);
+  const [precos, setPrecos] = useState<string[]>([""]);
+  const [horarioAtendimento, setHorarioAtendimento] = useState("");
+  const [endereco, setEndereco] = useState("");
+  const [regras, setRegras] = useState<string[]>([
+    "Seja educada, simpática e profissional",
+    "Nunca invente informações que não foram fornecidas",
+    "Se não souber algo, diga que vai verificar com a equipe",
+    "Tente sempre agendar um horário para o cliente",
+    "Não envie links ou URLs",
+  ]);
+  const [objetivoPrincipal, setObjetivoPrincipal] = useState("agendamento");
+  const [tom, setTom] = useState("profissional");
+  const [instrucaoExtra, setInstrucaoExtra] = useState("");
+  const [promptFinal, setPromptFinal] = useState("");
+
+  useEffect(() => { carregar(); }, []);
+
+  // Gerar prompt automaticamente quando os campos mudam
+  useEffect(() => {
+    const prompt = gerarPrompt();
+    setPromptFinal(prompt);
+  }, [nomeSecretaria, nomeEmpresa, segmento, servicos, precos, horarioAtendimento, endereco, regras, objetivoPrincipal, tom, instrucaoExtra]);
+
+  function gerarPrompt() {
+    const obj: Record<string, string> = {
+      agendamento: "Seu objetivo principal é agendar horários para os clientes. Sempre tente conduzir a conversa para um agendamento.",
+      qualificacao: "Seu objetivo principal é qualificar o lead. Faça perguntas para entender o que ele precisa e se o serviço é adequado.",
+      atendimento: "Seu objetivo principal é atender o cliente, responder dúvidas e fornecer informações sobre os serviços.",
+      vendas: "Seu objetivo principal é vender. Destaque os benefícios, tire objeções e conduza para o fechamento.",
+    };
+    const tons: Record<string, string> = {
+      profissional: "Use um tom profissional e cordial.",
+      informal: "Use um tom informal e descontraído, como se fosse uma amiga.",
+      formal: "Use um tom formal e respeitoso.",
+      entusiasmado: "Use um tom entusiasmado e animado, transmitindo energia positiva.",
+    };
+
+    let p = `Você é ${nomeSecretaria || "a secretária virtual"} da ${nomeEmpresa || "empresa"}`;
+    if (segmento) p += `, especializada em ${segmento}`;
+    p += ".\n\n";
+
+    p += `${tons[tom] || tons.profissional}\n`;
+    p += `${obj[objetivoPrincipal] || obj.agendamento}\n\n`;
+
+    const servicosValidos = servicos.filter(s => s.trim());
+    if (servicosValidos.length) {
+      p += "SERVIÇOS OFERECIDOS:\n";
+      servicosValidos.forEach(s => { p += `- ${s}\n`; });
+      p += "\n";
+    }
+
+    const precosValidos = precos.filter(s => s.trim());
+    if (precosValidos.length) {
+      p += "PREÇOS/VALORES:\n";
+      precosValidos.forEach(s => { p += `- ${s}\n`; });
+      p += "\n";
+    }
+
+    if (horarioAtendimento) p += `HORÁRIO DE ATENDIMENTO: ${horarioAtendimento}\n\n`;
+    if (endereco) p += `ENDEREÇO/LOCAL: ${endereco}\n\n`;
+
+    const regrasValidas = regras.filter(s => s.trim());
+    if (regrasValidas.length) {
+      p += "REGRAS IMPORTANTES:\n";
+      regrasValidas.forEach(s => { p += `- ${s}\n`; });
+      p += "\n";
+    }
+
+    if (instrucaoExtra) p += `INSTRUÇÕES ADICIONAIS:\n${instrucaoExtra}\n`;
+
+    return p.trim();
+  }
+
+  async function carregar() {
+    setLoading(true);
+    const id = await getAgenciaId();
+    if (!id) return;
+    setAgId(id);
+    const { data } = await supabase.from("agencias").select("*").eq("id", id).single();
+    if (data) {
+      setNomeAgencia(data.nome || "");
+      setAtivo(data.openai_ativo || false);
+      setApiKey(data.openai_key || "");
+      setModelo(data.openai_modelo || "gpt-4o-mini");
+      setTemperatura(Number(data.openai_temperatura) || 0.7);
+      setMaxTokens(data.openai_max_tokens || 500);
+      setContexto(data.openai_contexto_mensagens || 10);
+      setHorarioInicio(data.openai_horario_inicio || "");
+      setHorarioFim(data.openai_horario_fim || "");
+
+      // Se já tem prompt, tentar parsear de volta
+      const prompt = data.openai_prompt_sistema || "";
+      if (prompt) {
+        setPromptFinal(prompt);
+        // Tentar extrair nome da secretária do prompt
+        const matchNome = prompt.match(/Você é (.+?) da /);
+        if (matchNome) setNomeSecretaria(matchNome[1]);
+        const matchEmpresa = prompt.match(/da (.+?)[\.,\n]/);
+        if (matchEmpresa) setNomeEmpresa(matchEmpresa[1]);
+      }
+    }
+    setLoading(false);
+  }
+
+  async function salvar() {
+    setSalvando(true);
+    try {
+      await supabase.from("agencias").update({
+        openai_key: apiKey, openai_ativo: ativo, openai_modelo: modelo,
+        openai_prompt_sistema: promptFinal,
+        openai_max_tokens: maxTokens, openai_temperatura: temperatura,
+        openai_contexto_mensagens: contexto,
+        openai_horario_inicio: horarioInicio || null, openai_horario_fim: horarioFim || null,
+      }).eq("id", agId);
+      alert("Secretária IA salva!");
+    } catch { alert("Erro ao salvar"); }
+    setSalvando(false);
+  }
+
+  const addItem = (arr: string[], set: (v: string[]) => void) => set([...arr, ""]);
+  const updateItem = (arr: string[], set: (v: string[]) => void, idx: number, val: string) => { const n = [...arr]; n[idx] = val; set(n); };
+  const removeItem = (arr: string[], set: (v: string[]) => void, idx: number) => set(arr.filter((_, i) => i !== idx));
+
+  const inputStyle: React.CSSProperties = { background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 8, padding: "9px 12px", color: "#f0f0f0", fontSize: 13, width: "100%", boxSizing: "border-box" };
+  const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 500, color: "#a0a0a0", marginBottom: 4, display: "block" };
+  const cardStyle: React.CSSProperties = { background: "#141414", border: "1px solid #2e2e2e", borderRadius: 12, padding: 20, marginBottom: 16 };
+
+  if (loading) return <div style={{ padding: 40, color: "#606060" }}>Carregando...</div>;
+
+  return (
+    <div className="animate-in" style={{ maxWidth: 900, margin: "0 auto" }}>
+      <div className="breadcrumb">
+        <a href="/">Início</a><span>›</span><span className="current">Secretária IA</span>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 600, margin: 0 }}>Secretária IA</h1>
+          <p style={{ fontSize: 13, color: "#606060", margin: "4px 0 0" }}>{nomeAgencia}</p>
+        </div>
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, padding: "8px 14px", borderRadius: 8, background: ativo ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", border: `1px solid ${ativo ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"}`, color: ativo ? "#22c55e" : "#ef4444" }}>
+            <Power size={14} />
+            <input type="checkbox" checked={ativo} onChange={e => setAtivo(e.target.checked)} style={{ display: "none" }} />
+            {ativo ? "Ativa" : "Desativada"}
+          </label>
+          <button onClick={salvar} disabled={salvando} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 20px", borderRadius: 8, border: "none", background: "#29ABE2", color: "#000", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+            <Save size={14} /> {salvando ? "Salvando..." : "Salvar"}
+          </button>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        {/* Coluna esquerda — Configuração */}
+        <div>
+          {/* Identidade */}
+          <div style={cardStyle}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
+              <Bot size={16} color="#29ABE2" /> Identidade
+            </h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div>
+                <label style={labelStyle}>Nome da secretária</label>
+                <input style={inputStyle} placeholder="Ex: Sofia, Ana, Bia..." value={nomeSecretaria} onChange={e => setNomeSecretaria(e.target.value)} />
+              </div>
+              <div>
+                <label style={labelStyle}>Nome da empresa</label>
+                <input style={inputStyle} placeholder="Ex: Studio Maria Beauty" value={nomeEmpresa} onChange={e => setNomeEmpresa(e.target.value)} />
+              </div>
+              <div>
+                <label style={labelStyle}>Segmento</label>
+                <input style={inputStyle} placeholder="Ex: micropigmentação, estética facial, remoção a laser" value={segmento} onChange={e => setSegmento(e.target.value)} />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div>
+                  <label style={labelStyle}>Objetivo principal</label>
+                  <select style={inputStyle} value={objetivoPrincipal} onChange={e => setObjetivoPrincipal(e.target.value)}>
+                    <option value="agendamento">Agendar horários</option>
+                    <option value="qualificacao">Qualificar leads</option>
+                    <option value="atendimento">Atendimento geral</option>
+                    <option value="vendas">Vendas</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Tom de voz</label>
+                  <select style={inputStyle} value={tom} onChange={e => setTom(e.target.value)}>
+                    <option value="profissional">Profissional</option>
+                    <option value="informal">Informal / Amiga</option>
+                    <option value="formal">Formal</option>
+                    <option value="entusiasmado">Entusiasmado</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Serviços e Preços */}
+          <div style={cardStyle}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
+              <Zap size={16} color="#f59e0b" /> Serviços e Preços
+            </h3>
+            <label style={labelStyle}>Serviços oferecidos</label>
+            {servicos.map((s, i) => (
+              <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+                <input style={{ ...inputStyle, flex: 1 }} placeholder="Ex: Micropigmentação labial" value={s} onChange={e => updateItem(servicos, setServicos, i, e.target.value)} />
+                {servicos.length > 1 && <button onClick={() => removeItem(servicos, setServicos, i)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: 4 }}><Trash2 size={14} /></button>}
+              </div>
+            ))}
+            <button onClick={() => addItem(servicos, setServicos)} style={{ background: "none", border: "1px dashed #2e2e2e", borderRadius: 6, padding: "6px 12px", color: "#606060", fontSize: 12, cursor: "pointer", width: "100%", marginBottom: 16 }}><Plus size={12} /> Adicionar serviço</button>
+
+            <label style={labelStyle}>Preços / Valores</label>
+            {precos.map((s, i) => (
+              <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+                <input style={{ ...inputStyle, flex: 1 }} placeholder="Ex: Micropigmentação labial: R$ 800" value={s} onChange={e => updateItem(precos, setPrecos, i, e.target.value)} />
+                {precos.length > 1 && <button onClick={() => removeItem(precos, setPrecos, i)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: 4 }}><Trash2 size={14} /></button>}
+              </div>
+            ))}
+            <button onClick={() => addItem(precos, setPrecos)} style={{ background: "none", border: "1px dashed #2e2e2e", borderRadius: 6, padding: "6px 12px", color: "#606060", fontSize: 12, cursor: "pointer", width: "100%" }}><Plus size={12} /> Adicionar preço</button>
+          </div>
+
+          {/* Info */}
+          <div style={cardStyle}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
+              <Clock size={16} color="#22c55e" /> Informações
+            </h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div>
+                <label style={labelStyle}>Horário de atendimento</label>
+                <input style={inputStyle} placeholder="Ex: Segunda a sexta, 9h às 18h" value={horarioAtendimento} onChange={e => setHorarioAtendimento(e.target.value)} />
+              </div>
+              <div>
+                <label style={labelStyle}>Endereço / Local</label>
+                <input style={inputStyle} placeholder="Ex: Rua das Flores, 123 - Centro" value={endereco} onChange={e => setEndereco(e.target.value)} />
+              </div>
+            </div>
+          </div>
+
+          {/* Regras */}
+          <div style={cardStyle}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
+              <Brain size={16} color="#8b5cf6" /> Regras de Comportamento
+            </h3>
+            {regras.map((s, i) => (
+              <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+                <input style={{ ...inputStyle, flex: 1 }} placeholder="Ex: Nunca fale mal de concorrentes" value={s} onChange={e => updateItem(regras, setRegras, i, e.target.value)} />
+                <button onClick={() => removeItem(regras, setRegras, i)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: 4 }}><Trash2 size={14} /></button>
+              </div>
+            ))}
+            <button onClick={() => addItem(regras, setRegras)} style={{ background: "none", border: "1px dashed #2e2e2e", borderRadius: 6, padding: "6px 12px", color: "#606060", fontSize: 12, cursor: "pointer", width: "100%", marginBottom: 12 }}><Plus size={12} /> Adicionar regra</button>
+
+            <label style={labelStyle}>Instruções extras (opcional)</label>
+            <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 60 }} placeholder="Qualquer instrução adicional..." value={instrucaoExtra} onChange={e => setInstrucaoExtra(e.target.value)} />
+          </div>
+        </div>
+
+        {/* Coluna direita — Preview e Config técnica */}
+        <div>
+          {/* Preview do prompt */}
+          <div style={cardStyle}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 8 }}>
+              <MessageSquare size={16} color="#29ABE2" /> Preview do Prompt
+            </h3>
+            <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 300, fontSize: 12, lineHeight: "1.6", fontFamily: "monospace" }}
+              value={promptFinal} onChange={e => setPromptFinal(e.target.value)} />
+            <p style={{ fontSize: 11, color: "#606060", marginTop: 6 }}>Este é o prompt enviado para a IA. Edite diretamente se quiser ajustar.</p>
+          </div>
+
+          {/* Config técnica */}
+          <div style={cardStyle}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 16px" }}>Configuração Técnica</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div>
+                <label style={labelStyle}>API Key OpenAI</label>
+                <input style={inputStyle} type="password" placeholder="sk-..." value={apiKey} onChange={e => setApiKey(e.target.value)} />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div>
+                  <label style={labelStyle}>Modelo</label>
+                  <select style={inputStyle} value={modelo} onChange={e => setModelo(e.target.value)}>
+                    <option value="gpt-4o-mini">GPT-4o Mini</option>
+                    <option value="gpt-4o">GPT-4o</option>
+                    <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Temperatura ({temperatura})</label>
+                  <input type="range" min="0" max="1" step="0.1" value={temperatura} onChange={e => setTemperatura(Number(e.target.value))} style={{ width: "100%", accentColor: "#29ABE2", marginTop: 8 }} />
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div>
+                  <label style={labelStyle}>Max Tokens</label>
+                  <input style={inputStyle} type="number" value={maxTokens} onChange={e => setMaxTokens(Number(e.target.value))} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Contexto (msgs)</label>
+                  <input style={inputStyle} type="number" value={contexto} onChange={e => setContexto(Number(e.target.value))} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Horário da IA */}
+          <div style={cardStyle}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
+              <Clock size={16} color="#f59e0b" /> Horário da IA
+            </h3>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <div>
+                <label style={labelStyle}>Início</label>
+                <input style={inputStyle} type="time" value={horarioInicio} onChange={e => setHorarioInicio(e.target.value)} />
+              </div>
+              <div>
+                <label style={labelStyle}>Fim</label>
+                <input style={inputStyle} type="time" value={horarioFim} onChange={e => setHorarioFim(e.target.value)} />
+              </div>
+            </div>
+            <p style={{ fontSize: 11, color: "#606060", marginTop: 8 }}>Se vazio, responde 24h. A IA pausa automaticamente quando um humano responde.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

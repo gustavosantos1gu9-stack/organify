@@ -33,6 +33,7 @@ import {
   Info,
   UserCheck,
   Mail,
+  Bot,
 } from "lucide-react";
 
 interface NavItem {
@@ -71,6 +72,7 @@ const navItems: NavItem[] = [
       { href: "/crm", label: "CRM" },
     ],
   },
+  { href: "/secretaria-ia", label: "Secretária IA", icon: <Bot size={16} /> },
   {
     label: "Relatórios Meta",
     icon: <FileBarChart size={16} />,
