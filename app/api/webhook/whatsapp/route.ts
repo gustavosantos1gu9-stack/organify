@@ -230,6 +230,10 @@ export async function POST(req: NextRequest) {
 
       if (!conversa) {
         eraNovaConversa = true;
+        // Buscar etapa de primeiro contato da agência
+        const { data: etapaPrimeira } = await supabase.from("jornada_etapas")
+          .select("nome").eq("agencia_id", agencia.id).eq("eh_primeiro_contato", true).single();
+        const etapaInicial = etapaPrimeira?.nome || "Fez Contato";
         // Tentar inserir — se já existe (race condition), buscar a existente
         const { data: nova, error: insertErr } = await supabase.from("conversas").insert({
           agencia_id: agencia.id, instancia: instanciaName,
@@ -238,6 +242,7 @@ export async function POST(req: NextRequest) {
           ultima_mensagem: conteudo, ultima_mensagem_at: timestamp,
           primeira_mensagem_at: timestamp, nao_lidas: 1,
           origem: isLid ? "Meta Ads" : "Não Rastreada",
+          etapa_jornada: etapaInicial,
         }).select().single();
         if (insertErr) {
           // Race condition — conversa foi criada por outro request simultâneo
