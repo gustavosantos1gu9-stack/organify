@@ -6,11 +6,15 @@ import { supabase, getAgenciaId } from "@/lib/hooks";
 
 interface Pergunta {
   id: string;
-  tipo: "text" | "select" | "phone" | "email" | "textarea" | "radio";
+  tipo: "text" | "select" | "phone" | "email" | "textarea" | "radio" | "welcome" | "video";
   label: string;
+  descricao?: string;
   placeholder?: string;
   obrigatorio: boolean;
   opcoes?: string[];
+  videoUrl?: string;
+  imagemUrl?: string;
+  botaoTexto?: string;
 }
 
 interface Formulario {
@@ -33,12 +37,14 @@ interface Formulario {
 }
 
 const TIPOS_PERGUNTA = [
+  { value: "welcome", label: "Tela de boas-vindas" },
   { value: "text", label: "Texto curto" },
   { value: "phone", label: "Telefone/WhatsApp" },
   { value: "email", label: "Email" },
   { value: "textarea", label: "Texto longo" },
-  { value: "select", label: "Seleção (dropdown)" },
+  { value: "select", label: "Seleção (opções)" },
   { value: "radio", label: "Múltipla escolha" },
+  { value: "video", label: "Vídeo / Depoimento" },
 ];
 
 function gerarId() { return Math.random().toString(36).slice(2, 10); }
@@ -67,8 +73,9 @@ export default function FormulariosPage() {
     setEditando({
       id: "", agencia_id: agId, nome: "", slug: "", titulo: "Preencha seus dados", subtitulo: "Entraremos em contato em breve",
       perguntas: [
-        { id: gerarId(), tipo: "text", label: "Nome completo", placeholder: "Seu nome", obrigatorio: true },
-        { id: gerarId(), tipo: "phone", label: "WhatsApp", placeholder: "(00) 00000-0000", obrigatorio: true },
+        { id: gerarId(), tipo: "welcome", label: "Bem-vindo!", descricao: "Responda algumas perguntas rápidas", obrigatorio: false, botaoTexto: "Começar" },
+        { id: gerarId(), tipo: "text", label: "Qual seu nome?", placeholder: "Seu nome completo", obrigatorio: true },
+        { id: gerarId(), tipo: "phone", label: "Qual seu WhatsApp?", placeholder: "(00) 00000-0000", obrigatorio: true },
       ],
       cor_primaria: "#29ABE2", cor_fundo: "#0f0f0f", msg_sucesso: "Obrigado! Entraremos em contato em breve.",
       redirecionar_url: "", redirecionar_whatsapp: false, whatsapp_numero: "", whatsapp_mensagem: "Olá! Preenchi o formulário e gostaria de mais informações.",
@@ -335,7 +342,23 @@ export default function FormulariosPage() {
                           {TIPOS_PERGUNTA.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                         </select>
                       </div>
-                      <input style={{ ...inp, fontSize: 12 }} placeholder="Placeholder (opcional)" value={p.placeholder || ""} onChange={e => updatePergunta(idx, "placeholder", e.target.value)} />
+                      <input style={{ ...inp, fontSize: 12, marginTop: 6 }} placeholder="Descrição (opcional)" value={p.descricao || ""} onChange={e => updatePergunta(idx, "descricao", e.target.value)} />
+
+                      {!["welcome", "video"].includes(p.tipo) && (
+                        <input style={{ ...inp, fontSize: 12, marginTop: 6 }} placeholder="Placeholder (opcional)" value={p.placeholder || ""} onChange={e => updatePergunta(idx, "placeholder", e.target.value)} />
+                      )}
+
+                      {(p.tipo === "welcome" || p.tipo === "video") && (
+                        <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 6 }}>
+                          <input style={{ ...inp, fontSize: 12 }} placeholder="Texto do botão (ex: Começar)" value={p.botaoTexto || ""} onChange={e => updatePergunta(idx, "botaoTexto", e.target.value)} />
+                          {p.tipo === "welcome" && (
+                            <input style={{ ...inp, fontSize: 12 }} placeholder="URL da imagem (opcional)" value={p.imagemUrl || ""} onChange={e => updatePergunta(idx, "imagemUrl", e.target.value)} />
+                          )}
+                          {p.tipo === "video" && (
+                            <input style={{ ...inp, fontSize: 12 }} placeholder="URL do vídeo (YouTube, Vimeo...)" value={p.videoUrl || ""} onChange={e => updatePergunta(idx, "videoUrl", e.target.value)} />
+                          )}
+                        </div>
+                      )}
 
                       {(p.tipo === "select" || p.tipo === "radio") && (
                         <div style={{ marginTop: 8 }}>
