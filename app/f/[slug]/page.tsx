@@ -17,6 +17,7 @@ interface Pergunta {
   placeholder?: string;
   obrigatorio: boolean;
   opcoes?: string[];
+  opcoesIrPara?: Record<string, string>;
   videoUrl?: string;
   imagemUrl?: string;
   botaoTexto?: string;
@@ -69,9 +70,19 @@ export default function FormularioPublico() {
     return !!respostas[current.id]?.trim();
   };
 
-  const next = () => {
+  const next = (opcaoSelecionada?: string) => {
     if (!canProceed()) { setErro(`Preencha o campo "${current.label}"`); return; }
     setErro("");
+
+    // Verificar rota condicional
+    const resposta = opcaoSelecionada || respostas[current?.id];
+    if (resposta && current?.opcoesIrPara?.[resposta]) {
+      const destino = current.opcoesIrPara[resposta];
+      if (destino === "__fim__") { handleSubmit(); return; }
+      const destinoIdx = perguntas.findIndex(p => p.id === destino);
+      if (destinoIdx >= 0) { setDir(1); setStep(destinoIdx); return; }
+    }
+
     if (step < total - 1) { setDir(1); setStep(s => s + 1); }
     else handleSubmit();
   };
@@ -183,7 +194,7 @@ export default function FormularioPublico() {
               {current.imagemUrl && <img src={current.imagemUrl} alt="" style={{ maxWidth: 200, marginBottom: 32, borderRadius: 16 }} />}
               <h1 style={{ fontSize: 36, fontWeight: 700, color: "#f0f0f0", marginBottom: 16, lineHeight: 1.2 }}>{current.label}</h1>
               {current.descricao && <p style={{ fontSize: 18, color: "#808080", lineHeight: 1.6, marginBottom: 32 }}>{current.descricao}</p>}
-              <button onClick={next} style={{
+              <button onClick={() => next()} style={{
                 padding: "16px 48px", borderRadius: 8, border: "none", background: cor,
                 color: "#000", fontSize: 18, fontWeight: 700, cursor: "pointer",
                 transition: "transform 0.2s, box-shadow 0.2s",
@@ -209,7 +220,7 @@ export default function FormularioPublico() {
                   />
                 </div>
               )}
-              <button onClick={next} style={{
+              <button onClick={() => next()} style={{
                 padding: "14px 40px", borderRadius: 8, border: "none", background: cor,
                 color: "#000", fontSize: 16, fontWeight: 700, cursor: "pointer",
               }}>
@@ -270,7 +281,7 @@ export default function FormularioPublico() {
                 {(current.opcoes || []).map((o, i) => {
                   const sel = respostas[current.id] === o;
                   return (
-                    <button key={i} className="option-btn" onClick={() => { setRespostas({ ...respostas, [current.id]: o }); setTimeout(next, 300); }}
+                    <button key={i} className="option-btn" onClick={() => { setRespostas({ ...respostas, [current.id]: o }); setTimeout(() => next(o), 300); }}
                       style={{
                         display: "flex", alignItems: "center", gap: 14, padding: "16px 20px",
                         background: sel ? `${cor}15` : "transparent", border: `1px solid ${sel ? cor : "#2e2e2e"}`,
@@ -304,7 +315,7 @@ export default function FormularioPublico() {
                 {(current.opcoes || []).map((o, i) => {
                   const sel = respostas[current.id] === o;
                   return (
-                    <button key={i} className="option-btn" onClick={() => { setRespostas({ ...respostas, [current.id]: o }); setTimeout(next, 300); }}
+                    <button key={i} className="option-btn" onClick={() => { setRespostas({ ...respostas, [current.id]: o }); setTimeout(() => next(o), 300); }}
                       style={{
                         display: "flex", alignItems: "center", gap: 14, padding: "16px 20px",
                         background: sel ? `${cor}15` : "transparent", border: `1px solid ${sel ? cor : "#2e2e2e"}`,
@@ -338,7 +349,7 @@ export default function FormularioPublico() {
           </button>
 
           {isInputStep && current?.tipo !== "select" && current?.tipo !== "radio" && (
-            <button onClick={next} disabled={enviando}
+            <button onClick={() => next()} disabled={enviando}
               style={{
                 padding: "12px 32px", borderRadius: 8, border: "none", background: cor,
                 color: "#000", fontSize: 15, fontWeight: 700, cursor: "pointer",
@@ -350,7 +361,7 @@ export default function FormularioPublico() {
           )}
 
           {current?.tipo === "video" && (
-            <button onClick={next}
+            <button onClick={() => next()}
               style={{ padding: "12px 32px", borderRadius: 8, border: "none", background: cor, color: "#000", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
               Continuar →
             </button>

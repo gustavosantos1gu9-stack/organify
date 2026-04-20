@@ -12,6 +12,7 @@ interface Pergunta {
   placeholder?: string;
   obrigatorio: boolean;
   opcoes?: string[];
+  opcoesIrPara?: Record<string, string>; // opcao -> pergunta_id
   videoUrl?: string;
   imagemUrl?: string;
   botaoTexto?: string;
@@ -362,10 +363,27 @@ export default function FormulariosPage() {
 
                       {(p.tipo === "select" || p.tipo === "radio") && (
                         <div style={{ marginTop: 8 }}>
-                          <label style={{ ...lbl, fontSize: 11 }}>Opções</label>
+                          <label style={{ ...lbl, fontSize: 11 }}>Opções e rotas</label>
                           {(p.opcoes || []).map((o, oi) => (
-                            <div key={oi} style={{ display: "flex", gap: 4, marginBottom: 4 }}>
+                            <div key={oi} style={{ display: "flex", gap: 4, marginBottom: 6, alignItems: "center" }}>
                               <input style={{ ...inp, flex: 1, fontSize: 12 }} placeholder={`Opção ${oi + 1}`} value={o} onChange={e => updateOpcao(idx, oi, e.target.value)} />
+                              <select style={{ ...inp, width: 120, fontSize: 11, color: (p.opcoesIrPara?.[o]) ? "#29ABE2" : "#606060" }}
+                                value={p.opcoesIrPara?.[o] || ""}
+                                onChange={e => {
+                                  const pergs = [...editando!.perguntas];
+                                  if (!pergs[idx].opcoesIrPara) pergs[idx].opcoesIrPara = {};
+                                  if (e.target.value) pergs[idx].opcoesIrPara![o] = e.target.value;
+                                  else delete pergs[idx].opcoesIrPara![o];
+                                  setEditando({ ...editando!, perguntas: pergs });
+                                }}>
+                                <option value="">Próxima →</option>
+                                {editando!.perguntas.filter((_, pi) => pi !== idx).map((pDest) => (
+                                  <option key={pDest.id} value={pDest.id}>
+                                    Ir p/ {pDest.label?.slice(0, 20) || `Campo ${editando!.perguntas.indexOf(pDest) + 1}`}
+                                  </option>
+                                ))}
+                                <option value="__fim__">Enviar formulário</option>
+                              </select>
                               <button onClick={() => removeOpcao(idx, oi)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: 2 }}><Trash2 size={12} /></button>
                             </div>
                           ))}
