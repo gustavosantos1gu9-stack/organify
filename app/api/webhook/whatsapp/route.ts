@@ -415,8 +415,31 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // 6a2. Detectar formulário instantâneo do Meta (lead preenche form → redireciona pro WhatsApp)
+      if (!tracking && eraNovaConversa) {
+        const msgLower = (conteudo || "").toLowerCase();
+        const isFormulario = msgLower.includes("preenchi seu formulário") || msgLower.includes("preenchi o formulário") || msgLower.includes("preenchi seu formulario") || msgLower.includes("assisti todo o vídeo") || msgLower.includes("assisti todo o video");
+        if (isFormulario) {
+          // Tentar buscar campanha de formulário ativa
+          let campForm = "Formulário Instantâneo";
+          const adsToken = agencia.meta_business_token || agencia.meta_token;
+          const adAccount = agencia.meta_ad_account_id;
+          if (adsToken && adAccount) {
+            try {
+              const acId = adAccount.startsWith("act_") ? adAccount : `act_${adAccount}`;
+              const campRes = await fetch(`https://graph.facebook.com/v21.0/${acId}/campaigns?fields=name,objective,status&filtering=[{"field":"effective_status","operator":"IN","value":["ACTIVE"]},{"field":"objective","operator":"IN","value":["OUTCOME_LEADS"]}]&limit=5&access_token=${adsToken}`);
+              const campData = await campRes.json();
+              if (campData.data?.length) campForm = campData.data[0].name;
+            } catch {}
+          }
+          tracking = {
+            utm_source: "meta", utm_medium: "leadform", utm_campaign: campForm,
+            utm_content: "", fbclid: "", origem: "Formulário Meta", link_id: null,
+          };
+        }
+      }
+
       // 6b. Buscar rastreamento pendente genérico — só se CTWA não resolveu e NÃO é @lid
-      //     Se é @lid, já sabemos que é Meta Ads (passo 6 tratou), não associar a link
       if (!tracking && !isLid) {
         const cincoMinAtras = new Date(Date.now() - 5 * 60 * 1000).toISOString();
         const { data: recentes } = await supabase.from("rastreamentos_pendentes")
