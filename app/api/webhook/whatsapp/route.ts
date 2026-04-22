@@ -179,7 +179,7 @@ export async function POST(req: NextRequest) {
 
       // Mensagens do lead — processar normalmente
       const { data: agencia } = await supabase.from("agencias")
-        .select("id, evolution_url, evolution_key, whatsapp_numero, meta_pixel_id, meta_token, meta_ativo, meta_business_token")
+        .select("id, evolution_url, evolution_key, whatsapp_numero, meta_pixel_id, meta_token, meta_ativo, meta_business_token, meta_ad_account_id")
         .eq("whatsapp_instancia", instanciaName).single();
       if (!agencia) {
         console.error("Webhook: agência não encontrada para instância:", instanciaName);
@@ -504,17 +504,48 @@ export async function POST(req: NextRequest) {
         const adsToken = agencia.meta_business_token || agencia.meta_token;
         if (adsToken) {
           try {
-            const adRes = await fetch(`https://graph.facebook.com/v21.0/${_sourceId}?fields=name,adset%7Bname%7D,campaign%7Bname%7D&access_token=${adsToken}`);
+            const adRes = await fetch(`https://graph.facebook.com/v21.0/${_sourceId}?fields=name,adset%7Bname%7D,campaign%7Bname,objective%7D&access_token=${adsToken}`);
             const adData = await adRes.json();
             if (adData && !adData.error) {
               tracking.utm_campaign = adData.campaign?.name || tracking.utm_campaign;
               tracking.utm_content = adData.adset?.name ? `${adData.adset.name}_${adData.name}` : tracking.utm_content;
               tracking._nome_anuncio = adData.name || tracking._nome_anuncio;
+              // Auto-classificar tipo de campanha pelo objetivo
+              const objective = adData.campaign?.objective || "";
+              if (objective === "OUTCOME_LEADS") {
+                tracking.origem = "Formulário Meta";
+                tracking.utm_medium = "leadform";
+              } else if (objective === "OUTCOME_ENGAGEMENT") {
+                tracking.origem = "Meta Ads";
+                tracking.utm_medium = "ctwa";
+              } else if (objective === "OUTCOME_TRAFFIC" || objective === "OUTCOME_SALES") {
+                tracking.origem = "Meta Ads";
+                tracking.utm_medium = "link";
+              }
             }
           } catch {}
         }
         // Garantir fbclid do CTWA
         if (_ctwaClid && !tracking.fbclid) tracking.fbclid = _ctwaClid;
+      }
+
+      // 8b. AUTO-CLASSIFICAR: se tem tracking com campanha mas sem tipo, tentar detectar pelo objetivo
+      if (tracking && tracking.utm_campaign && !tracking.utm_medium) {
+        const adsToken = agencia.meta_business_token || agencia.meta_token;
+        const adAccount = (agencia as any).meta_ad_account_id;
+        if (adsToken && adAccount) {
+          try {
+            const acId = adAccount.startsWith("act_") ? adAccount : `act_${adAccount}`;
+            const campRes = await fetch(`https://graph.facebook.com/v21.0/${acId}/campaigns?fields=name,objective&filtering=[{"field":"name","operator":"CONTAIN","value":"${tracking.utm_campaign.slice(0, 50)}"}]&limit=1&access_token=${adsToken}`);
+            const campData = await campRes.json();
+            if (campData.data?.[0]) {
+              const obj = campData.data[0].objective;
+              if (obj === "OUTCOME_LEADS") { tracking.origem = "Formulário Meta"; tracking.utm_medium = "leadform"; }
+              else if (obj === "OUTCOME_ENGAGEMENT") { tracking.utm_medium = "ctwa"; }
+              else if (obj === "OUTCOME_TRAFFIC" || obj === "OUTCOME_SALES") { tracking.utm_medium = "link"; }
+            }
+          } catch {}
+        }
       }
 
       if (tracking) {
