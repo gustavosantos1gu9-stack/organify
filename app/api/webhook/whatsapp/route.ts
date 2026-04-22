@@ -418,13 +418,13 @@ export async function POST(req: NextRequest) {
       // 6b. Buscar rastreamento pendente genérico — só se CTWA não resolveu e NÃO é @lid
       //     Se é @lid, já sabemos que é Meta Ads (passo 6 tratou), não associar a link
       if (!tracking && !isLid) {
-        const dezMinAtras = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        const cincoMinAtras = new Date(Date.now() - 5 * 60 * 1000).toISOString();
         const { data: recentes } = await supabase.from("rastreamentos_pendentes")
           .select("*")
-          .gt("created_at", dezMinAtras)
+          .gt("created_at", cincoMinAtras)
           .or(`wa_destino.eq.${agencia.whatsapp_numero},wa_destino.is.null`)
           .order("created_at", { ascending: false })
-          .limit(30);
+          .limit(10);
 
         if (recentes && recentes.length > 0) {
           const msgNorm = (conteudo || "").toLowerCase().replace(/[^\w\sáéíóúâêôãõàçü]/g, "").replace(/\s+/g, " ").trim();
@@ -451,11 +451,9 @@ export async function POST(req: NextRequest) {
               }
             }
 
-            // Candidato sem link_id (fbclid direto, utm sem link) — aceitar só se nova conversa
-            if (eraNovaConversa && !r.link_id) {
-              candidato = r;
-              break;
-            }
+            // Candidato sem link_id (fbclid direto, utm sem link) — NÃO aceitar
+            // Evita falsos positivos com rastreamentos pendentes genéricos
+            continue;
           }
 
           if (candidato) {
