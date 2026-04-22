@@ -105,9 +105,8 @@ export default function AlertasPage() {
           const balance = spendCap > 0 ? spendCap - amountSpent : 0;
           return { id, name: c.name, balance, spendCap, account_status: c.account_status };
         });
-        // Pré-pagas: tem spend_cap (saldo disponível)
-        const prePagas = todas.filter((c: any) => c.spendCap > 0);
-        setContas(prePagas.length > 0 ? prePagas : todas);
+        // Mostrar todas as contas (PIX e cartão)
+        setContas(todas);
       } else {
         setErroContas(data.error || "Token expirado ou inválido");
       }
