@@ -309,9 +309,31 @@ export async function POST(req: NextRequest) {
 
       // 1. Tentar por número do lead (só se não é CTWA e sem tracking ainda)
       if (!tracking && !_isCTWA) {
+        // Tentar match exato primeiro
         const { data: t1 } = await supabase.from("rastreamentos_pendentes")
           .select("*").eq("wa_numero", numero).single();
-        if (t1) tracking = t1;
+        if (t1) { tracking = t1; }
+        // Fallback: variantes do número BR (com/sem 55, com/sem 9° dígito)
+        if (!tracking) {
+          const numClean = numero.replace(/\D/g, "");
+          const variantes = [numClean];
+          if (numClean.startsWith("55")) {
+            variantes.push(numClean.slice(2)); // sem 55
+            // sem 9° dígito: 55+DD+8dig
+            if (numClean.length === 13) variantes.push("55" + numClean.slice(2,4) + numClean.slice(5));
+          } else {
+            variantes.push("55" + numClean); // com 55
+            // com 9° dígito: DD+9+8dig
+            if (numClean.length === 10) variantes.push(numClean.slice(0,2) + "9" + numClean.slice(2));
+            if (numClean.length === 10) variantes.push("55" + numClean.slice(0,2) + "9" + numClean.slice(2));
+          }
+          for (const v of variantes) {
+            if (v === numero) continue;
+            const { data: tv } = await supabase.from("rastreamentos_pendentes")
+              .select("*").eq("wa_numero", v).single();
+            if (tv) { tracking = tv; break; }
+          }
+        }
       }
 
       // 2. Detectar externalAdReply (CTWA) — prioridade máxima

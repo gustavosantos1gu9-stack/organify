@@ -106,6 +106,30 @@ export async function POST(req: NextRequest) {
 
         console.log("[meta-leads] Tracking:", { campanhaNome, conjuntoNome, criativoNome, adId, resolvedAdId });
 
+        // Salvar rastreamento pendente para match automático no WhatsApp
+        // Quando o lead mandar msg no WhatsApp, o webhook cruza pelo número
+        if (telefone) {
+          const phoneClean = telefone.replace(/\D/g, "");
+          // Normalizar: garantir formato 55DDDNNNNNNNNN
+          const phoneNorm = phoneClean.startsWith("55") ? phoneClean
+            : phoneClean.length >= 10 ? `55${phoneClean}` : phoneClean;
+          try {
+            await supabase.from("rastreamentos_pendentes").insert({
+              wa_numero: phoneNorm,
+              utm_source: "meta",
+              utm_medium: "leadform",
+              utm_campaign: campanhaNome,
+              utm_content: conjuntoNome,
+              utm_term: criativoNome,
+              origem: "Formulário Meta",
+              wa_destino: agenciaId === "32cdce6e-4664-4ac6-979d-6d68a1a68745" ? "555193694003" : null,
+            });
+            console.log("[meta-leads] Rastreamento pendente salvo:", phoneNorm);
+          } catch (e) {
+            console.error("[meta-leads] Erro ao salvar rastreamento:", e);
+          }
+        }
+
         // Criar lead no CRM
         const { data: lead, error: errLead } = await supabase.from("leads").insert({
           agencia_id: agenciaId,
