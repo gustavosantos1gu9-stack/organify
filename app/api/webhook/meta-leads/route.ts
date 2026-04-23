@@ -56,9 +56,9 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        // Buscar dados do lead na API do Meta
+        // Buscar dados do lead na API do Meta (incluindo ad_id, campaign, adset)
         const leadRes = await fetch(
-          `https://graph.facebook.com/v21.0/${leadgenId}?access_token=${token}`
+          `https://graph.facebook.com/v21.0/${leadgenId}?fields=field_data,ad_id,ad_name,campaign_id,campaign_name,adset_id,adset_name,form_id&access_token=${token}`
         );
         const leadData = await leadRes.json();
 
@@ -78,23 +78,33 @@ export async function POST(req: NextRequest) {
         const telefone = fields.phone_number || fields.whatsapp || fields.telefone || null;
         const cidade = fields.city || null;
 
-        // Buscar nome da campanha/anúncio
-        let campanhaNome = "";
-        let conjuntoNome = "";
-        let criativoNome = "";
-        if (adId && token) {
+        // Buscar nome da campanha/conjunto/anúncio
+        // Primeiro tenta usar os dados que vieram direto do lead
+        let campanhaNome = leadData.campaign_name || "";
+        let conjuntoNome = leadData.adset_name || "";
+        let criativoNome = leadData.ad_name || "";
+        const resolvedAdId = adId || leadData.ad_id;
+
+        // Se não veio direto do lead, buscar pelo ad_id
+        if ((!campanhaNome || !conjuntoNome || !criativoNome) && resolvedAdId && token) {
           try {
             const adRes = await fetch(
-              `https://graph.facebook.com/v21.0/${adId}?fields=name,adset{name},campaign{name}&access_token=${token}`
+              `https://graph.facebook.com/v21.0/${resolvedAdId}?fields=name,adset{id,name},campaign{id,name}&access_token=${token}`
             );
             const adData = await adRes.json();
             if (!adData.error) {
-              campanhaNome = adData.campaign?.name || "";
-              conjuntoNome = adData.adset?.name || "";
-              criativoNome = adData.name || "";
+              campanhaNome = campanhaNome || adData.campaign?.name || "";
+              conjuntoNome = conjuntoNome || adData.adset?.name || "";
+              criativoNome = criativoNome || adData.name || "";
+            } else {
+              console.error("[meta-leads] Erro ao buscar ad:", adData.error);
             }
-          } catch {}
+          } catch (e) {
+            console.error("[meta-leads] Erro fetch ad:", e);
+          }
         }
+
+        console.log("[meta-leads] Tracking:", { campanhaNome, conjuntoNome, criativoNome, adId, resolvedAdId });
 
         // Criar lead no CRM
         const { data: lead, error: errLead } = await supabase.from("leads").insert({
@@ -107,7 +117,8 @@ export async function POST(req: NextRequest) {
           utm_medium: "leadform",
           utm_campaign: campanhaNome,
           utm_content: conjuntoNome,
-          whatsapp_mensagem_inicial: `Formulário: ${formId} | Campanha: ${campanhaNome || "—"}`,
+          utm_term: criativoNome,
+          whatsapp_mensagem_inicial: `Formulário: ${formId} | Campanha: ${campanhaNome || "—"} | Conjunto: ${conjuntoNome || "—"} | Anúncio: ${criativoNome || "—"}`,
           observacoes: Object.entries(fields).map(([k, v]) => `${k}: ${v}`).join("\n"),
         }).select().single();
 
