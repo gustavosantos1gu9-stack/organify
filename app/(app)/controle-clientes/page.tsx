@@ -558,6 +558,7 @@ export default function ControleClientesPage() {
       clientes.forEach(async (cliente) => {
         if (cliente.cadastro_id) return; // já vinculado
         const match = cadastros.find(c =>
+          c.nome && cliente.nome &&
           c.nome.toLowerCase().trim() === cliente.nome.toLowerCase().trim()
         );
         if (match) {
@@ -574,6 +575,7 @@ export default function ControleClientesPage() {
       clientes.forEach(async (cliente) => {
         if (cliente.relatorio_id) return;
         const match = relatorios.find(r =>
+          r.nome_cliente && cliente.nome &&
           r.nome_cliente.toLowerCase().trim() === cliente.nome.toLowerCase().trim()
         );
         if (match) {
