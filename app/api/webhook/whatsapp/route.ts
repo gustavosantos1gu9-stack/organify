@@ -428,38 +428,25 @@ export async function POST(req: NextRequest) {
           if (adsToken && adAccount) {
             try {
               const acId = adAccount.startsWith("act_") ? adAccount : `act_${adAccount}`;
-              // Buscar ads ativos de campanhas OUTCOME_LEADS com leads recentes
-              const adsRes = await fetch(`https://graph.facebook.com/v21.0/${acId}/ads?fields=name,adset{name},campaign{name},leads.limit(10){field_data,created_time}&filtering=[{"field":"campaign.objective","operator":"EQUAL","value":"OUTCOME_LEADS"},{"field":"effective_status","operator":"IN","value":["ACTIVE"]}]&limit=20&access_token=${adsToken}`);
-              const adsData = await adsRes.json();
-              if (adsData.data?.length) {
-                // Normalizar telefone do lead pra comparar
-                const phoneNorm = numero.replace(/\D/g, "").slice(-10);
-                let matched = false;
-                for (const ad of adsData.data) {
-                  const leads = ad.leads?.data || [];
-                  for (const lead of leads) {
-                    const fields = lead.field_data || [];
-                    const phoneField = fields.find((f: any) => f.name === "phone_number" || f.name === "whatsapp" || f.name === "telefone");
-                    const leadPhone = (phoneField?.values?.[0] || "").replace(/\D/g, "").slice(-10);
-                    if (leadPhone && leadPhone === phoneNorm) {
-                      campForm = ad.campaign?.name || campForm;
-                      conjuntoForm = ad.adset?.name || "";
-                      criativoForm = ad.name || "";
-                      matched = true;
-                      break;
-                    }
+              // Buscar campanhas OUTCOME_LEADS ativas
+              const campRes = await fetch(`https://graph.facebook.com/v21.0/${acId}/campaigns?fields=name,objective,effective_status&filtering=[{"field":"effective_status","operator":"IN","value":["ACTIVE"]},{"field":"objective","operator":"IN","value":["OUTCOME_LEADS"]}]&limit=5&access_token=${adsToken}`);
+              const campData = await campRes.json();
+              if (campData.data?.length) {
+                // Pegar a primeira campanha ativa de leads
+                const camp = campData.data[0];
+                campForm = camp.name;
+                // Buscar ads ativos dessa campanha pra pegar conjunto e anúncio
+                try {
+                  const adsRes = await fetch(`https://graph.facebook.com/v21.0/${camp.id}/ads?fields=name,effective_status,adset{name}&filtering=[{"field":"effective_status","operator":"IN","value":["ACTIVE"]}]&limit=10&access_token=${adsToken}`);
+                  const adsData = await adsRes.json();
+                  if (adsData.data?.length) {
+                    conjuntoForm = adsData.data[0].adset?.name || "";
+                    criativoForm = adsData.data[0].name || "";
                   }
-                  if (matched) break;
-                }
-                // Fallback: se não achou por telefone, usar primeiro ad ativo
-                if (!matched && adsData.data[0]) {
-                  campForm = adsData.data[0].campaign?.name || campForm;
-                  conjuntoForm = adsData.data[0].adset?.name || "";
-                  criativoForm = adsData.data[0].name || "";
-                }
+                } catch {}
               }
             } catch (e) {
-              console.error("[whatsapp] Erro ao buscar ads formulário:", e);
+              console.error("[whatsapp] Erro ao buscar campanha formulário:", e);
             }
           }
           tracking = {
