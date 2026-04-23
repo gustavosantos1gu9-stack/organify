@@ -158,7 +158,8 @@ function DashboardInner() {
   type PeriodoTipo = "esta_semana" | "semana_passada" | "14_dias" | "este_mes" | "mes_passado" | "total" | "custom";
   const [periodoTipo, setPeriodoTipo] = useState<PeriodoTipo>("este_mes");
 
-  const [activeTab, setActiveTab] = useState<"dashboard" | "performance">("dashboard");
+  const tabParam = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "performance">(tabParam === "performance" ? "performance" : "dashboard");
 
   // Helpers de período
   const fmtD = (d: Date | string) => typeof d === "string" ? d : d.toISOString().split("T")[0];

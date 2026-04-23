@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, RefreshCw, ChevronDown, ChevronRight, ChevronUp, MessageSquare, X, Send, Check, UserCircle2, Pencil, Trash2, Plus, FileText, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, RefreshCw, ChevronDown, ChevronRight, ChevronUp, MessageSquare, X, Send, Check, UserCircle2, Pencil, Trash2, Plus, FileText, ArrowUp, ArrowDown, BarChart2 } from "lucide-react";
 import ModalContrato from "@/components/controle/ModalContrato";
 import ModalNovoCliente from "@/components/controle/ModalNovoCliente";
 import { supabase, getAgenciaId } from "@/lib/hooks";
@@ -16,7 +16,9 @@ interface ControleCliente {
   tarefas: string; datas_otimizacoes: string; motivo: string; razao_nome: string;
   grupo: string; created_at: string; cadastro_id?: string; ordem?: number;
   renovou?: boolean | null;
+  relatorio_id?: string; link_planilha?: string;
 }
+interface Relatorio { id: string; nome: string; nome_cliente: string; }
 interface Subitem { id: string; cliente_id: string; texto: string; feito: boolean; created_at: string; }
 interface Anotacao { id: string; cliente_id: string; usuario: string; conteudo: string; created_at: string; tipo: string; }
 interface Cadastro {
@@ -68,6 +70,8 @@ const COLUNAS_PADRAO = [
   { key:"datas_otimizacoes", label:"Datas Otim.", w:120 },
   { key:"motivo", label:"Motivo", w:140 },
   { key:"razao_nome", label:"Razão + Nome", w:140 },
+  { key:"dashboard", label:"Dashboard", w:100 },
+  { key:"link_planilha", label:"Planilha", w:100 },
 ];
 
 const SORT_OPTS = [
@@ -165,7 +169,7 @@ function CelulaRenovacao({ cliente, onRenovou }: { cliente: ControleCliente; onR
   );
 }
 
-function CelulaEditavel({ valor, onSave, tipo="text" }: { valor: string; onSave: (v: string) => void; tipo?: string }) {
+function CelulaEditavel({ valor, onSave, tipo="text", placeholder }: { valor: string; onSave: (v: string) => void; tipo?: string; placeholder?: string }) {
   const [editando, setEditando] = useState(false);
   const [v, setV] = useState(valor||"");
   if (editando && tipo === "date") return (
@@ -182,8 +186,8 @@ function CelulaEditavel({ valor, onSave, tipo="text" }: { valor: string; onSave:
   );
   return (
     <span onClick={()=>setEditando(true)} title="Clique para editar"
-      style={{ cursor:"pointer", padding:"3px 4px", borderRadius:"4px", display:"block", minHeight:"22px", fontSize:"12px", color:v?"#f0f0f0":"#2a2a2a" }}>
-      {tipo==="date" ? formatarData(v) : (v||"—")}
+      style={{ cursor:"pointer", padding:"3px 4px", borderRadius:"4px", display:"block", minHeight:"22px", fontSize:"12px", color:v?"#f0f0f0": placeholder?"#404040":"#2a2a2a" }}>
+      {tipo==="date" ? formatarData(v) : (v || placeholder || "—")}
     </span>
   );
 }
@@ -492,6 +496,8 @@ export default function ControleClientesPage() {
   const [editandoHeader, setEditandoHeader] = useState<string|null>(null);
   const [cadastros, setCadastros] = useState<Cadastro[]>([]);
   const [cadastrosMap, setCadastrosMap] = useState<Record<string,Cadastro>>({});
+  const [relatorios, setRelatorios] = useState<Relatorio[]>([]);
+  const [relatoriosMap, setRelatoriosMap] = useState<Record<string,Relatorio>>({});
   const [modalNovoCliente, setModalNovoCliente] = useState(false);
   const resizing = useRef<{key:string;startX:number;startW:number}|null>(null);
 
@@ -532,6 +538,14 @@ export default function ControleClientesPage() {
     lista.forEach((c: Cadastro) => { mapa[c.id] = c; });
     setCadastrosMap(mapa);
 
+    // Carregar relatórios para associação Dashboard
+    const { data: rels } = await supabase.from("relatorios").select("id, nome, nome_cliente").eq("agencia_id", id!);
+    const listaRels = rels || [];
+    setRelatorios(listaRels);
+    const mapaRels: Record<string,Relatorio> = {};
+    listaRels.forEach((r: Relatorio) => { mapaRels[r.id] = r; });
+    setRelatoriosMap(mapaRels);
+
     setLoading(false);
   };
 
@@ -550,6 +564,22 @@ export default function ControleClientesPage() {
       });
     }
   }, [clientes.length, cadastros.length]);
+
+  // Auto-associar relatórios por nome_cliente
+  useEffect(() => {
+    if (clientes.length && relatorios.length) {
+      clientes.forEach(async (cliente) => {
+        if (cliente.relatorio_id) return;
+        const match = relatorios.find(r =>
+          r.nome_cliente.toLowerCase().trim() === cliente.nome.toLowerCase().trim()
+        );
+        if (match) {
+          await supabase.from("controle_clientes").update({ relatorio_id: match.id }).eq("id", cliente.id);
+          setClientes(prev => prev.map(c => c.id === cliente.id ? { ...c, relatorio_id: match.id } : c));
+        }
+      });
+    }
+  }, [clientes.length, relatorios.length]);
 
   const atualizar = async (id: string, campo: string, valor: any, nomeCliente: string) => {
     const updates: any = { [campo]: valor };
@@ -960,6 +990,34 @@ export default function ControleClientesPage() {
                       <CelulaEditavel valor={(c as any)[col.key]||""} tipo="date" onSave={v=>atualizar(c.id,col.key,v,c.nome)}/>
                     ) : col.key==="investimento_mensal" ? (
                       <CelulaEditavel valor={c.investimento_mensal?String(c.investimento_mensal):""} onSave={v=>atualizar(c.id,col.key,Number(v.replace(/\D/g,"")),c.nome)}/>
+                    ) : col.key==="dashboard" ? (
+                      c.relatorio_id ? (
+                        <a href={`/relatorios-meta/dashboard?id=${c.relatorio_id}&tab=performance`} target="_blank" rel="noopener"
+                          style={{ display:"inline-flex", alignItems:"center", gap:"4px", background:"rgba(41,171,226,0.15)", color:"#29ABE2", border:"none", borderRadius:"4px", padding:"4px 10px", fontSize:"11px", fontWeight:600, cursor:"pointer", textDecoration:"none", whiteSpace:"nowrap" }}>
+                          <BarChart2 size={12}/> Performance
+                        </a>
+                      ) : (
+                        <select value="" onChange={e => { if (e.target.value) atualizar(c.id, "relatorio_id", e.target.value, c.nome); }}
+                          style={{ background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"4px", padding:"3px 6px", color:"#606060", fontSize:"11px", cursor:"pointer", width:"100%" }}>
+                          <option value="">Vincular...</option>
+                          {relatorios.map(r => <option key={r.id} value={r.id}>{r.nome_cliente || r.nome}</option>)}
+                        </select>
+                      )
+                    ) : col.key==="link_planilha" ? (
+                      c.link_planilha ? (
+                        <div style={{ display:"flex", alignItems:"center", gap:"4px" }}>
+                          <a href={c.link_planilha} target="_blank" rel="noopener"
+                            style={{ color:"#22c55e", fontSize:"11px", fontWeight:600, textDecoration:"none", display:"inline-flex", alignItems:"center", gap:"3px" }}>
+                            <FileText size={12}/> Abrir
+                          </a>
+                          <button onClick={() => atualizar(c.id, "link_planilha", "", c.nome)}
+                            style={{ background:"none", border:"none", cursor:"pointer", color:"#404040", padding:"2px" }} title="Remover link">
+                            <X size={10}/>
+                          </button>
+                        </div>
+                      ) : (
+                        <CelulaEditavel valor="" placeholder="Colar link..." onSave={v => { if (v) atualizar(c.id, "link_planilha", v, c.nome); }}/>
+                      )
                     ) : (
                       <CelulaEditavel valor={(c as any)[col.key]||""} onSave={v=>atualizar(c.id,col.key,v,c.nome)}/>
                     )}
