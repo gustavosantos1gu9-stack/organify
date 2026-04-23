@@ -1284,7 +1284,24 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
       </div>
 
       {/* ============================================================ */}
-      {/* SECTION 3: Meta Metrics selector                              */}
+      {/* SECTION 3: Simulador de Crescimento                           */}
+      {/* ============================================================ */}
+      <SimuladorCrescimento
+        totInvestimento={totInvestimento}
+        totMensagens={totMensagens}
+        totAgendamentos={totAgendamentos}
+        totRealizados={totRealizados}
+        totVendas={totVendas}
+        totValorVendas={totValorVendas}
+        totFaturamento={totFaturamento}
+        pfmtMoney={pfmtMoney}
+        pfmtNum={pfmtNum}
+        pfmtPct={pfmtPct}
+        safe={safe}
+      />
+
+      {/* ============================================================ */}
+      {/* SECTION 4: Meta Metrics selector                              */}
       {/* ============================================================ */}
       <div className="no-print card" style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 12, padding: "16px 20px", marginBottom: 32 }}>
         <h3 style={{ fontSize: 13, fontWeight: 600, color: "#a0a0a0", marginBottom: 12 }}>Métricas Meta (exibir no painel)</h3>
@@ -1311,7 +1328,7 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
       </div>
 
       {/* ============================================================ */}
-      {/* SECTION 4: Performance por Criativo                            */}
+      {/* SECTION 5: Performance por Criativo                            */}
       {/* ============================================================ */}
       <CriativosPanel relatorioId={relatorioId} dateFrom={dateFrom} dateTo={dateTo} />
 
@@ -1319,6 +1336,174 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
       <div style={{ textAlign: "center", padding: "20px 0", color: "#404040", fontSize: 12 }}>
         Relatório gerado com <strong style={{ color: "#606060" }}>SALX Convert</strong>
       </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Simulador de Crescimento                                           */
+/* ------------------------------------------------------------------ */
+
+function SimuladorCrescimento({
+  totInvestimento, totMensagens, totAgendamentos, totRealizados,
+  totVendas, totValorVendas, totFaturamento,
+  pfmtMoney, pfmtNum, pfmtPct, safe,
+}: {
+  totInvestimento: number; totMensagens: number; totAgendamentos: number;
+  totRealizados: number; totVendas: number; totValorVendas: number; totFaturamento: number;
+  pfmtMoney: (n: number) => string; pfmtNum: (n: number) => string;
+  pfmtPct: (n: number) => string; safe: (a: number, b: number) => number;
+}) {
+  const [simInvestimento, setSimInvestimento] = useState(totInvestimento);
+  const [aberto, setAberto] = useState(false);
+
+  // Sync when real data loads
+  useEffect(() => {
+    if (totInvestimento > 0) setSimInvestimento(totInvestimento);
+  }, [totInvestimento]);
+
+  if (totInvestimento === 0 || totMensagens === 0) return null;
+
+  // Current ratios (fixed — based on real performance)
+  const custoLead = safe(totInvestimento, totMensagens);
+  const txLeadAgend = safe(totAgendamentos, totMensagens);
+  const txAgendRealiz = safe(totRealizados, totAgendamentos);
+  const txRealizVenda = safe(totVendas, totRealizados);
+  const ticketMedio = safe(totValorVendas, totVendas);
+  const fatPorLead = safe(totFaturamento, totMensagens);
+
+  // Simulated metrics (proportional to new investment)
+  const fator = safe(simInvestimento, totInvestimento);
+  const simLeads = Math.round(totMensagens * fator);
+  const simAgend = Math.round(totAgendamentos * fator);
+  const simRealiz = Math.round(totRealizados * fator);
+  const simVendas = Math.round(totVendas * fator);
+  const simValorVendas = totValorVendas * fator;
+  const simFaturamento = totFaturamento * fator;
+  const simRoas = safe(simValorVendas, simInvestimento);
+
+  // Deltas
+  const dInv = simInvestimento - totInvestimento;
+  const dLeads = simLeads - totMensagens;
+  const dAgend = simAgend - totAgendamentos;
+  const dRealiz = simRealiz - totRealizados;
+  const dVendas = simVendas - totVendas;
+  const dFat = simFaturamento - totFaturamento;
+
+  const cardBg = "rgba(139,92,246,0.08)";
+  const labelColor = "#c4b5fd";
+  const deltaColor = (d: number) => d > 0 ? "#22c55e" : d < 0 ? "#ef4444" : "#888";
+  const deltaText = (d: number, fmt: (n: number) => string) => d === 0 ? "" : `${d > 0 ? "+" : ""}${fmt(d)}`;
+
+  return (
+    <div className="no-print card" style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 12, overflow: "hidden", marginBottom: 32 }}>
+      <div
+        onClick={() => setAberto(!aberto)}
+        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", cursor: "pointer", userSelect: "none" }}
+      >
+        <h3 style={{ fontSize: 15, fontWeight: 600, color: "#c4b5fd", margin: 0 }}>
+          Simulador de Crescimento
+        </h3>
+        <span style={{ color: "#808080", fontSize: 18 }}>{aberto ? "−" : "+"}</span>
+      </div>
+
+      {aberto && (
+        <div style={{ padding: "0 20px 24px" }}>
+          <p style={{ fontSize: 12, color: "#606060", marginBottom: 20 }}>
+            Ajuste o investimento e veja a projeção com base nas taxas de conversão atuais
+          </p>
+
+          {/* Investment input */}
+          <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 13, color: "#a0a0a0" }}>Investimento simulado:</span>
+              <div style={{ position: "relative" }}>
+                <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#808080", fontSize: 13 }}>R$</span>
+                <input
+                  type="number"
+                  step="100"
+                  min="0"
+                  value={simInvestimento || ""}
+                  onChange={e => setSimInvestimento(parseFloat(e.target.value) || 0)}
+                  style={{
+                    background: "#2a2a3a", border: "2px solid #7c3aed", borderRadius: 8,
+                    padding: "10px 12px 10px 36px", color: "#f0f0f0", fontSize: 18, fontWeight: 700,
+                    width: 200, outline: "none",
+                  }}
+                />
+              </div>
+            </div>
+            <div style={{ fontSize: 12, color: deltaColor(dInv), fontWeight: 600 }}>
+              {dInv !== 0 && `${dInv > 0 ? "+" : ""}${pfmtMoney(dInv)} vs atual`}
+            </div>
+            <button
+              onClick={() => setSimInvestimento(totInvestimento)}
+              style={{ background: "#333", border: "none", borderRadius: 6, padding: "6px 12px", color: "#a0a0a0", fontSize: 11, cursor: "pointer" }}
+            >
+              Resetar
+            </button>
+          </div>
+
+          {/* Quick buttons */}
+          <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
+            {[0.5, 0.75, 1, 1.25, 1.5, 2, 3].map(mult => (
+              <button
+                key={mult}
+                onClick={() => setSimInvestimento(Math.round(totInvestimento * mult))}
+                style={{
+                  background: Math.abs(simInvestimento - totInvestimento * mult) < 1 ? "rgba(124,58,237,0.3)" : "#252525",
+                  border: Math.abs(simInvestimento - totInvestimento * mult) < 1 ? "1px solid #7c3aed" : "1px solid #333",
+                  borderRadius: 6, padding: "6px 14px", color: "#e0e0e0", fontSize: 12,
+                  cursor: "pointer", fontWeight: 500,
+                }}
+              >
+                {mult === 1 ? "Atual" : `${mult}x`}
+              </button>
+            ))}
+          </div>
+
+          {/* Results grid */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 20 }}>
+            {[
+              { label: "Leads", atual: totMensagens, sim: simLeads, delta: dLeads, fmt: pfmtNum },
+              { label: "Agendamentos", atual: totAgendamentos, sim: simAgend, delta: dAgend, fmt: pfmtNum },
+              { label: "Realizados", atual: totRealizados, sim: simRealiz, delta: dRealiz, fmt: pfmtNum },
+              { label: "Vendas", atual: totVendas, sim: simVendas, delta: dVendas, fmt: pfmtNum },
+              { label: "Valor em Vendas", atual: totValorVendas, sim: simValorVendas, delta: simValorVendas - totValorVendas, fmt: pfmtMoney },
+              { label: "Faturamento", atual: totFaturamento, sim: simFaturamento, delta: dFat, fmt: pfmtMoney },
+            ].map(m => (
+              <div key={m.label} style={{ background: cardBg, borderRadius: 10, padding: "14px 16px" }}>
+                <p style={{ fontSize: 11, color: labelColor, marginBottom: 6 }}>{m.label}</p>
+                <p style={{ fontSize: 22, fontWeight: 700, color: "#f0f0f0", marginBottom: 4 }}>{m.fmt(m.sim)}</p>
+                {m.delta !== 0 && (
+                  <p style={{ fontSize: 11, color: deltaColor(m.delta), fontWeight: 600 }}>
+                    {deltaText(m.delta, m.fmt)}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Derived metrics */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12, paddingTop: 16, borderTop: "1px solid #2e2e2e" }}>
+            {[
+              { label: "Custo por Lead", value: pfmtMoney(custoLead), note: "fixo" },
+              { label: "Tx Lead → Agend", value: pfmtPct(txLeadAgend * 100), note: "fixo" },
+              { label: "Tx Agend → Realiz", value: pfmtPct(txAgendRealiz * 100), note: "fixo" },
+              { label: "Tx Realiz → Venda", value: pfmtPct(txRealizVenda * 100), note: "fixo" },
+              { label: "Ticket Médio", value: pfmtMoney(ticketMedio), note: "fixo" },
+              { label: "ROAS Projetado", value: `${simRoas.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}x`, note: "" },
+            ].map(m => (
+              <div key={m.label} style={{ background: "#1e1e1e", borderRadius: 8, padding: "10px 14px" }}>
+                <p style={{ fontSize: 10, color: "#808080", marginBottom: 4 }}>
+                  {m.label} {m.note && <span style={{ color: "#555", fontSize: 9 }}>({m.note})</span>}
+                </p>
+                <p style={{ fontSize: 15, fontWeight: 600, color: "#d0d0d0" }}>{m.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
