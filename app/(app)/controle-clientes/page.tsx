@@ -72,6 +72,8 @@ const COLUNAS_PADRAO = [
   { key:"razao_nome", label:"Razão + Nome", w:140 },
   { key:"dashboard", label:"Dashboard", w:100 },
   { key:"link_planilha", label:"Planilha", w:100 },
+  { key:"resposta_planilha", label:"Resp. Planilha", w:120 },
+  { key:"acao_atual", label:"Ação Atual", w:160 },
 ];
 
 const SORT_OPTS = [
@@ -499,6 +501,7 @@ export default function ControleClientesPage() {
   const [relatorios, setRelatorios] = useState<Relatorio[]>([]);
   const [relatoriosMap, setRelatoriosMap] = useState<Record<string,Relatorio>>({});
   const [modalNovoCliente, setModalNovoCliente] = useState(false);
+  const [modalColunas, setModalColunas] = useState(false);
   const resizing = useRef<{key:string;startX:number;startW:number}|null>(null);
 
   const salvarColunas = (novas: typeof COLUNAS_PADRAO) => {
@@ -733,6 +736,10 @@ export default function ControleClientesPage() {
             {sortDir==="asc"?"↑ Crescente":"↓ Decrescente"}
           </button>
           <button onClick={carregar} className="btn-ghost" style={{ padding:"8px", cursor:"pointer" }}><RefreshCw size={14}/></button>
+          <button onClick={()=>setModalColunas(true)} style={{ background:"#252525", border:"1px solid #333", borderRadius:"8px", padding:"8px 14px", cursor:"pointer", color:"#a0a0a0", fontWeight:"500", fontSize:"13px", display:"flex", alignItems:"center", gap:"6px" }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            Colunas
+          </button>
           <button onClick={()=>setModalNovoCliente(true)} style={{ background:"#29ABE2", border:"none", borderRadius:"8px", padding:"8px 14px", cursor:"pointer", color:"#000", fontWeight:"600", fontSize:"13px", display:"flex", alignItems:"center", gap:"6px" }}><Plus size={14}/> Novo Cliente</button>
         </div>
       </div>
@@ -1018,6 +1025,21 @@ export default function ControleClientesPage() {
                       ) : (
                         <CelulaEditavel valor="" placeholder="Colar link..." onSave={v => { if (v) atualizar(c.id, "link_planilha", v, c.nome); }}/>
                       )
+                    ) : col.key==="resposta_planilha" ? (
+                      <select value={(c as any).resposta_planilha||""} onChange={e=>atualizar(c.id,"resposta_planilha",e.target.value,c.nome)}
+                        style={{
+                          background: (c as any).resposta_planilha==="sim"?"rgba(34,197,94,0.15)":(c as any).resposta_planilha==="parcialmente"?"rgba(245,158,11,0.15)":(c as any).resposta_planilha==="nao"?"rgba(239,68,68,0.15)":"#1a1a1a",
+                          border:"1px solid #2e2e2e", borderRadius:"4px", padding:"3px 6px",
+                          color:(c as any).resposta_planilha==="sim"?"#22c55e":(c as any).resposta_planilha==="parcialmente"?"#f59e0b":(c as any).resposta_planilha==="nao"?"#ef4444":"#606060",
+                          fontSize:"12px", cursor:"pointer", width:"100%", fontWeight:600,
+                        }}>
+                        <option value="">—</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                        <option value="parcialmente">Parcialmente</option>
+                      </select>
+                    ) : col.key==="acao_atual" ? (
+                      <CelulaEditavel valor={(c as any).acao_atual||""} onSave={v=>atualizar(c.id,"acao_atual",v,c.nome)}/>
                     ) : (
                       <CelulaEditavel valor={(c as any)[col.key]||""} onSave={v=>atualizar(c.id,col.key,v,c.nome)}/>
                     )}
@@ -1058,6 +1080,7 @@ export default function ControleClientesPage() {
       </div>
 
       {modalNovoCliente && <ModalNovoCliente agId={agId} cadastros={cadastros} onClose={()=>setModalNovoCliente(false)} onSave={()=>{setModalNovoCliente(false);carregar();}}/>}
+      {modalColunas && <ModalColunas colunas={colunas} onSave={(novas: any) => { salvarColunas(novas); setModalColunas(false); }} onClose={() => setModalColunas(false)} />}
       {painelAberto && <PainelLateral cliente={painelAberto} onClose={()=>setPainelAberto(null)}/>}
       {perfilAberto && (
         <PainelPerfil
@@ -1068,6 +1091,96 @@ export default function ControleClientesPage() {
           onVincular={(cadastroId)=>vincularCadastro(perfilAberto.id, cadastroId)}
         />
       )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Modal Editar Colunas (drag to reorder + toggle visibility)         */
+/* ------------------------------------------------------------------ */
+
+function ModalColunas({ colunas, onSave, onClose }: { colunas: any[]; onSave: (c: any[]) => void; onClose: () => void }) {
+  const dragIdx = useRef<number | null>(null);
+  const [items, setItems] = useState(() => {
+    const visKeys = new Set(colunas.map((c: any) => c.key));
+    const ordered: { key: string; label: string; w: number; visible: boolean }[] = [];
+    colunas.forEach((c: any) => {
+      const def = COLUNAS_PADRAO.find(d => d.key === c.key);
+      ordered.push({ key: c.key, label: c.label, w: c.w || def?.w || 120, visible: true });
+    });
+    COLUNAS_PADRAO.forEach(d => { if (!visKeys.has(d.key)) ordered.push({ ...d, visible: false }); });
+    return ordered;
+  });
+
+  const toggle = (key: string) => setItems(prev => prev.map(i => i.key === key ? { ...i, visible: !i.visible } : i));
+
+  const move = (from: number, to: number) => {
+    setItems(prev => {
+      const next = [...prev];
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item);
+      return next;
+    });
+  };
+
+  const salvar = () => {
+    onSave(items.filter(i => i.visible).map(({ key, label, w }) => ({ key, label, w })));
+  };
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.6)", zIndex:9999, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{ background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:12, width:400, maxHeight:"80vh", display:"flex", flexDirection:"column", overflow:"hidden" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"16px 20px", borderBottom:"1px solid #2e2e2e" }}>
+          <h3 style={{ fontSize:15, fontWeight:600, color:"#f0f0f0", margin:0 }}>Editar Colunas</h3>
+          <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", color:"#606060", padding:4 }}><X size={16}/></button>
+        </div>
+        <p style={{ padding:"8px 20px 0", fontSize:11, color:"#606060", margin:0 }}>Arraste para reordenar. Clique no toggle para mostrar/esconder.</p>
+        <div style={{ flex:1, overflowY:"auto", padding:"12px 20px" }}>
+          {items.map((item, idx) => (
+            <div
+              key={item.key}
+              draggable
+              onDragStart={() => { dragIdx.current = idx; }}
+              onDragOver={e => { e.preventDefault(); }}
+              onDrop={() => { if (dragIdx.current !== null && dragIdx.current !== idx) move(dragIdx.current, idx); dragIdx.current = null; }}
+              style={{
+                display:"flex", alignItems:"center", gap:10, padding:"8px 10px", marginBottom:4,
+                background: item.visible ? "#222" : "#181818", borderRadius:8, cursor:"grab",
+                border: "1px solid #2e2e2e", opacity: item.visible ? 1 : 0.5,
+              }}
+            >
+              <span style={{ color:"#404040", cursor:"grab", fontSize:14 }}>&#x2807;</span>
+              <span style={{ flex:1, fontSize:13, color: item.visible ? "#f0f0f0" : "#606060", fontWeight: item.visible ? 500 : 400 }}>{item.label}</span>
+              <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+                {idx > 0 && <button onClick={() => move(idx, idx-1)} style={{ background:"none", border:"none", cursor:"pointer", color:"#606060", padding:2 }}><ArrowUp size={12}/></button>}
+                {idx < items.length-1 && <button onClick={() => move(idx, idx+1)} style={{ background:"none", border:"none", cursor:"pointer", color:"#606060", padding:2 }}><ArrowDown size={12}/></button>}
+                <button onClick={() => toggle(item.key)}
+                  style={{
+                    width:36, height:20, borderRadius:10, border:"none", cursor:"pointer",
+                    background: item.visible ? "#29ABE2" : "#333",
+                    position:"relative", transition:"background 0.2s",
+                  }}>
+                  <span style={{
+                    position:"absolute", top:2, left: item.visible ? 18 : 2,
+                    width:16, height:16, borderRadius:"50%", background:"#fff",
+                    transition:"left 0.2s",
+                  }}/>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ display:"flex", gap:8, padding:"12px 20px", borderTop:"1px solid #2e2e2e", justifyContent:"flex-end" }}>
+          <button onClick={() => { setItems(COLUNAS_PADRAO.map(c => ({ ...c, visible: true }))); }}
+            style={{ background:"#252525", border:"1px solid #333", borderRadius:6, padding:"8px 16px", color:"#a0a0a0", fontSize:12, cursor:"pointer" }}>
+            Resetar Padrão
+          </button>
+          <button onClick={salvar}
+            style={{ background:"#29ABE2", border:"none", borderRadius:6, padding:"8px 20px", color:"#000", fontWeight:600, fontSize:12, cursor:"pointer" }}>
+            Salvar
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
