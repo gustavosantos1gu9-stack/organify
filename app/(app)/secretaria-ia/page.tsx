@@ -40,6 +40,15 @@ export default function SecretariaIAPage() {
   const [instrucaoExtra, setInstrucaoExtra] = useState("");
   const [promptFinal, setPromptFinal] = useState("");
 
+  // Follow-up
+  const [followupAtivo, setFollowupAtivo] = useState(false);
+  const [followupEtapas, setFollowupEtapas] = useState<{
+    id?: string; ordem: number; nome: string; delay_minutos: number;
+    tipo_mensagem: string; texto_template: string; prompt_ia: string;
+    midia_url: string; midia_tipo: string; ativo: boolean;
+  }[]>([]);
+  const [salvandoFollowup, setSalvandoFollowup] = useState(false);
+
   // Chat de teste
   const [testMsgs, setTestMsgs] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
   const [testInput, setTestInput] = useState("");
@@ -124,13 +133,22 @@ export default function SecretariaIAPage() {
       const prompt = data.openai_prompt_sistema || "";
       if (prompt) {
         setPromptFinal(prompt);
-        // Tentar extrair nome da secretária do prompt
         const matchNome = prompt.match(/Você é (.+?) da /);
         if (matchNome) setNomeSecretaria(matchNome[1]);
         const matchEmpresa = prompt.match(/da (.+?)[\.,\n]/);
         if (matchEmpresa) setNomeEmpresa(matchEmpresa[1]);
       }
+      setFollowupAtivo(data.followup_ativo || false);
     }
+    // Carregar etapas de follow-up
+    const { data: etapas } = await supabase.from("followup_etapas")
+      .select("*").eq("agencia_id", id).order("ordem", { ascending: true });
+    if (etapas?.length) setFollowupEtapas(etapas.map((e: any) => ({
+      id: e.id, ordem: e.ordem, nome: e.nome || "", delay_minutos: e.delay_minutos,
+      tipo_mensagem: e.tipo_mensagem || "template", texto_template: e.texto_template || "",
+      prompt_ia: e.prompt_ia || "", midia_url: e.midia_url || "", midia_tipo: e.midia_tipo || "",
+      ativo: e.ativo,
+    })));
     setLoading(false);
   }
 
@@ -147,6 +165,51 @@ export default function SecretariaIAPage() {
       alert("Secretária IA salva!");
     } catch { alert("Erro ao salvar"); }
     setSalvando(false);
+  }
+
+  async function salvarFollowup() {
+    setSalvandoFollowup(true);
+    try {
+      await supabase.from("agencias").update({ followup_ativo: followupAtivo }).eq("id", agId);
+      // Deletar etapas antigas e inserir novas
+      await supabase.from("followup_etapas").delete().eq("agencia_id", agId);
+      if (followupEtapas.length) {
+        await supabase.from("followup_etapas").insert(
+          followupEtapas.map((e, i) => ({
+            agencia_id: agId, ordem: i + 1, nome: e.nome,
+            delay_minutos: e.delay_minutos, tipo_mensagem: e.tipo_mensagem,
+            texto_template: e.texto_template || null, prompt_ia: e.prompt_ia || null,
+            midia_url: e.midia_url || null, midia_tipo: e.midia_tipo || null,
+            ativo: e.ativo,
+          }))
+        );
+      }
+      alert("Follow-up salvo!");
+    } catch { alert("Erro ao salvar follow-up"); }
+    setSalvandoFollowup(false);
+  }
+
+  function addEtapa() {
+    setFollowupEtapas(prev => [...prev, {
+      ordem: prev.length + 1, nome: `Follow-up ${prev.length + 1}`,
+      delay_minutos: prev.length === 0 ? 120 : 1440,
+      tipo_mensagem: "template", texto_template: "", prompt_ia: "",
+      midia_url: "", midia_tipo: "", ativo: true,
+    }]);
+  }
+
+  function removeEtapa(idx: number) {
+    setFollowupEtapas(prev => prev.filter((_, i) => i !== idx));
+  }
+
+  function updateEtapa(idx: number, campo: string, valor: any) {
+    setFollowupEtapas(prev => prev.map((e, i) => i === idx ? { ...e, [campo]: valor } : e));
+  }
+
+  function fmtDelay(min: number) {
+    if (min < 60) return `${min}min`;
+    if (min < 1440) return `${(min / 60).toFixed(0)}h`;
+    return `${(min / 1440).toFixed(0)}d`;
   }
 
   async function testar() {
@@ -421,6 +484,121 @@ export default function SecretariaIAPage() {
               </div>
             </div>
             <p style={{ fontSize: 11, color: "#606060", marginTop: 8 }}>Se vazio, responde 24h. A IA pausa automaticamente quando um humano responde.</p>
+          </div>
+
+          {/* Follow-up Automático */}
+          <div style={cardStyle}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                <Zap size={16} color="#f59e0b" /> Follow-up Automático
+              </h3>
+              <button onClick={() => setFollowupAtivo(!followupAtivo)}
+                style={{
+                  width: 44, height: 24, borderRadius: 12, border: "none", cursor: "pointer",
+                  background: followupAtivo ? "#22c55e" : "#333", position: "relative", transition: "background 0.2s",
+                }}>
+                <span style={{
+                  position: "absolute", top: 3, left: followupAtivo ? 23 : 3,
+                  width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 0.2s",
+                }} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: 12, color: "#606060", marginBottom: 16 }}>
+              Envia mensagens automaticamente quando o lead não responde. Para quando receber resposta.
+            </p>
+
+            {followupEtapas.map((etapa, idx) => (
+              <div key={idx} style={{ background: "#0d0d0d", borderRadius: 8, border: "1px solid #1e1e1e", padding: 14, marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "#a0a0a0" }}>Etapa {idx + 1}</span>
+                  <button onClick={() => removeEtapa(idx)} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", padding: 2 }}>
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+                  <div>
+                    <label style={{ ...labelStyle, fontSize: 10 }}>Nome (opcional)</label>
+                    <input style={inputStyle} placeholder="Ex: Primeiro lembrete" value={etapa.nome} onChange={e => updateEtapa(idx, "nome", e.target.value)} />
+                  </div>
+                  <div>
+                    <label style={{ ...labelStyle, fontSize: 10 }}>Carência ({fmtDelay(etapa.delay_minutos)})</label>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <input style={{ ...inputStyle, width: 70 }} type="number" min="1"
+                        value={etapa.delay_minutos < 60 ? etapa.delay_minutos : etapa.delay_minutos < 1440 ? etapa.delay_minutos / 60 : etapa.delay_minutos / 1440}
+                        onChange={e => {
+                          const v = Number(e.target.value) || 1;
+                          const unit = etapa.delay_minutos < 60 ? 1 : etapa.delay_minutos < 1440 ? 60 : 1440;
+                          updateEtapa(idx, "delay_minutos", v * unit);
+                        }} />
+                      <select style={{ ...inputStyle, width: 80 }}
+                        value={etapa.delay_minutos < 60 ? "min" : etapa.delay_minutos < 1440 ? "h" : "d"}
+                        onChange={e => {
+                          const curr = etapa.delay_minutos;
+                          const currVal = curr < 60 ? curr : curr < 1440 ? curr / 60 : curr / 1440;
+                          const mult = e.target.value === "min" ? 1 : e.target.value === "h" ? 60 : 1440;
+                          updateEtapa(idx, "delay_minutos", Math.round(currVal * mult));
+                        }}>
+                        <option value="min">min</option>
+                        <option value="h">horas</option>
+                        <option value="d">dias</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 8 }}>
+                  <label style={{ ...labelStyle, fontSize: 10 }}>Tipo</label>
+                  <select style={inputStyle} value={etapa.tipo_mensagem} onChange={e => updateEtapa(idx, "tipo_mensagem", e.target.value)}>
+                    <option value="template">Mensagem fixa</option>
+                    <option value="ia">IA gera a mensagem</option>
+                  </select>
+                </div>
+
+                {etapa.tipo_mensagem === "template" ? (
+                  <div style={{ marginBottom: 8 }}>
+                    <label style={{ ...labelStyle, fontSize: 10 }}>Mensagem (use {"{nome}"} e {"{empresa}"})</label>
+                    <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 60, fontSize: 12 }}
+                      placeholder="Olá {nome}! Vi que você se interessou pelos nossos serviços..."
+                      value={etapa.texto_template} onChange={e => updateEtapa(idx, "texto_template", e.target.value)} />
+                  </div>
+                ) : (
+                  <div style={{ marginBottom: 8 }}>
+                    <label style={{ ...labelStyle, fontSize: 10 }}>Prompt para a IA</label>
+                    <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 60, fontSize: 12 }}
+                      placeholder="Envie um follow-up amigável perguntando se o lead tem mais dúvidas..."
+                      value={etapa.prompt_ia} onChange={e => updateEtapa(idx, "prompt_ia", e.target.value)} />
+                  </div>
+                )}
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
+                  <div>
+                    <label style={{ ...labelStyle, fontSize: 10 }}>Mídia (URL da imagem ou vídeo — opcional)</label>
+                    <input style={inputStyle} placeholder="https://..." value={etapa.midia_url} onChange={e => updateEtapa(idx, "midia_url", e.target.value)} />
+                  </div>
+                  {etapa.midia_url && (
+                    <div>
+                      <label style={{ ...labelStyle, fontSize: 10 }}>Tipo</label>
+                      <select style={inputStyle} value={etapa.midia_tipo || "image"} onChange={e => updateEtapa(idx, "midia_tipo", e.target.value)}>
+                        <option value="image">Imagem</option>
+                        <option value="video">Vídeo</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            <button onClick={addEtapa}
+              style={{ width: "100%", background: "#1e1e1e", border: "1px dashed #333", borderRadius: 8, padding: "10px 0", color: "#606060", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 12 }}>
+              <Plus size={14} /> Adicionar etapa
+            </button>
+
+            <button onClick={salvarFollowup} disabled={salvandoFollowup}
+              style={{ width: "100%", background: "#f59e0b", border: "none", borderRadius: 8, padding: "10px 0", color: "#000", fontWeight: 600, fontSize: 13, cursor: "pointer", opacity: salvandoFollowup ? 0.6 : 1 }}>
+              {salvandoFollowup ? "Salvando..." : "Salvar Follow-up"}
+            </button>
           </div>
         </div>
       </div>

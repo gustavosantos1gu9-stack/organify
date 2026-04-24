@@ -706,6 +706,15 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // FOLLOW-UP: cancelar pendentes quando lead responde (não-bloqueante)
+      if (conversa?.id) {
+        supabase.from("followup_fila")
+          .update({ status: "cancelado" })
+          .eq("conversa_id", conversa.id)
+          .eq("status", "pendente")
+          .then(() => {});
+      }
+
       // IA AUTO-RESPONDER (não-bloqueante)
       if (conteudo && tipo === "text" && conversa?.id) {
         fetch(`${APP_URL}/api/ai/responder`, {
@@ -715,6 +724,18 @@ export async function POST(req: NextRequest) {
             agencia_id: agencia.id,
             conversa_id: conversa.id,
             mensagem_lead: conteudo,
+          }),
+        }).catch(() => {});
+
+        // FOLLOW-UP: agendar novas etapas (não-bloqueante)
+        fetch(`${APP_URL}/api/ai/followup/agendar`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            agencia_id: agencia.id,
+            conversa_id: conversa.id,
+            contato_numero: numero,
+            contato_jid: remoteJid,
           }),
         }).catch(() => {});
       }
