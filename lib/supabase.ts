@@ -38,8 +38,8 @@ export async function getAgenciaId(): Promise<string | null> {
       .from("usuarios")
       .select("agencia_id")
       .eq("auth_user_id", user.id)
-      .single();
-    return data?.agencia_id ?? null;
+      .limit(1);
+    return data?.[0]?.agencia_id ?? null;
   } catch {
     return null;
   }
