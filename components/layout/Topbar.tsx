@@ -96,11 +96,12 @@ export default function Topbar() {
       if (!user) return;
 
       // Buscar a agência master
-      const { data: usuario } = await supabase
+      const { data: _usuarios } = await supabase
         .from("usuarios")
         .select("agencia_id")
         .eq("auth_user_id", user.id)
-        .single();
+        .limit(1);
+      const usuario = _usuarios?.[0] || null;
 
       let masterId: string | null = null;
       if (!usuario) {
@@ -122,11 +123,12 @@ export default function Topbar() {
           .eq("usuario_id", usuario.agencia_id ? undefined! : ""); // placeholder
 
         // Buscar por auth_user_id via query direta
-        const { data: userRow } = await supabase
+        const { data: _userRows } = await supabase
           .from("usuarios")
           .select("id")
           .eq("auth_user_id", user.id)
-          .single();
+          .limit(1);
+        const userRow = _userRows?.[0] || null;
 
         if (userRow) {
           const { data: acessosFilhas } = await supabase

@@ -16,11 +16,12 @@ async function getMasterAgenciaId(req: NextRequest): Promise<string | null> {
   if (!user) return null;
 
   // Buscar agência do usuário
-  const { data: usuario } = await supabaseAdmin
+  const { data: _usuarios } = await supabaseAdmin
     .from("usuarios")
     .select("agencia_id")
     .eq("auth_user_id", user.id)
-    .single();
+    .limit(1);
+  const usuario = _usuarios?.[0] || null;
 
   // Se não tem registro em usuarios, é o dono original — buscar agência sem parent_id
   if (!usuario) {

@@ -19,11 +19,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ permissoes: null, modulos_agencia: null });
     }
 
-    const { data: usuario } = await supabaseAdmin
+    const { data: _usuarios } = await supabaseAdmin
       .from("usuarios")
       .select("time_id, agencia_id")
       .eq("auth_user_id", user.id)
-      .single();
+      .limit(1);
+    const usuario = _usuarios?.[0] || null;
 
     if (!usuario) {
       // Dono/admin — verificar se tem agência selecionada via query param
