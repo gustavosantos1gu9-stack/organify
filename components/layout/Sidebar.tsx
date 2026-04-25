@@ -218,13 +218,13 @@ export default function Sidebar() {
         try {
           const { data: { user } } = await supabase.auth.getUser();
           if (user) {
-            const { data: usuario } = await supabase
+            const { data: usuarios } = await supabase
               .from("usuarios")
               .select("agencia_id")
               .eq("auth_user_id", user.id)
-              .single();
+              .limit(1);
 
-            const agId = agenciaId || usuario?.agencia_id;
+            const agId = agenciaId || usuarios?.[0]?.agencia_id;
             if (agId) {
               const { data: ag } = await supabase
                 .from("agencias")

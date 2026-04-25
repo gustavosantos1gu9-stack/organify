@@ -55,17 +55,17 @@ export async function getAuthenticatedAgenciaId(
   }
 
   // 3. Buscar agencia_id do usuário
-  const { data: usuario } = await supabaseAdmin
+  const { data: usuarios } = await supabaseAdmin
     .from("usuarios")
     .select("agencia_id")
     .eq("auth_user_id", user.id)
-    .single();
+    .limit(1);
 
-  if (!usuario?.agencia_id) {
+  if (!usuarios?.[0]?.agencia_id) {
     throw new AuthError("Usuário sem agência vinculada", 403);
   }
 
-  const agenciaId = usuario.agencia_id;
+  const agenciaId = usuarios[0].agencia_id;
 
   // 4. Se o body da request tem um agencia_id, verificar que bate
   if (bodyAgenciaId && bodyAgenciaId !== agenciaId) {
