@@ -34,12 +34,34 @@ export async function getAgenciaId(): Promise<string | null> {
       if (selecionada) return selecionada;
     }
 
+    // Buscar agência pelo auth_user_id
     const { data } = await supabase
       .from("usuarios")
       .select("agencia_id")
       .eq("auth_user_id", user.id)
       .limit(1);
-    return data?.[0]?.agencia_id ?? null;
+
+    const agId = data?.[0]?.agencia_id;
+    if (agId) {
+      // Salvar no sessionStorage pra não precisar buscar de novo
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("agencia_selecionada", agId);
+      }
+      return agId;
+    }
+
+    // Fallback: se não achou no usuarios (dono/admin), buscar agência raiz
+    const { data: agRaiz } = await supabase
+      .from("agencias")
+      .select("id")
+      .is("parent_id", null)
+      .limit(1);
+
+    const raizId = agRaiz?.[0]?.id;
+    if (raizId && typeof window !== "undefined") {
+      sessionStorage.setItem("agencia_selecionada", raizId);
+    }
+    return raizId ?? null;
   } catch {
     return null;
   }
