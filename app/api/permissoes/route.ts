@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
     const { data: _usuarios } = await supabaseAdmin
       .from("usuarios")
-      .select("time_id, agencia_id")
+      .select("id, time_id, agencia_id")
       .eq("auth_user_id", user.id)
       .limit(1);
     const usuario = _usuarios?.[0] || null;
@@ -41,6 +41,30 @@ export async function GET(request: NextRequest) {
         });
       }
       return NextResponse.json({ permissoes: null, modulos_agencia: null });
+    }
+
+    // Se o usuário está acessando uma agência filha que ele tem acesso via usuarios_agencias,
+    // dar acesso completo (sem restrições de permissão do time)
+    const agenciaIdParam = request.nextUrl.searchParams.get("agencia_id");
+    if (agenciaIdParam && agenciaIdParam !== usuario.agencia_id) {
+      const { data: acesso } = await supabaseAdmin
+        .from("usuarios_agencias")
+        .select("agencia_id")
+        .eq("usuario_id", usuario.id)
+        .eq("agencia_id", agenciaIdParam)
+        .limit(1);
+      if (acesso && acesso.length > 0) {
+        // Usuário tem acesso explícito a essa agência filha — acesso total
+        const { data: ag } = await supabaseAdmin
+          .from("agencias")
+          .select("modulos_habilitados")
+          .eq("id", agenciaIdParam)
+          .single();
+        return NextResponse.json({
+          permissoes: null,
+          modulos_agencia: ag?.modulos_habilitados || null,
+        });
+      }
     }
 
     // Buscar modulos_habilitados da agência do usuário
