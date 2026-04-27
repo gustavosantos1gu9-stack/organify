@@ -138,6 +138,13 @@ export async function POST(req: NextRequest) {
         ? new Date(Number(msg.messageTimestamp) * 1000).toISOString()
         : new Date().toISOString();
 
+      // Detectar mensagem histórica (sync inicial ao conectar conta nova)
+      // Se a mensagem tem mais de 2 minutos, é histórica — salvar mas não tratar como nova
+      const msgAgeMs = msg.messageTimestamp
+        ? Date.now() - Number(msg.messageTimestamp) * 1000
+        : 0;
+      const isHistorica = msgAgeMs > 2 * 60 * 1000; // mais de 2 min = histórica
+
       // Extrair conteúdo
       let tipo = "text"; let conteudo = "";
       const m = msg.message;
@@ -168,7 +175,7 @@ export async function POST(req: NextRequest) {
                 ultima_mensagem: conteudo, ultima_mensagem_at: timestamp,
               }).eq("id", conv.id);
             }
-            if (conteudo) {
+            if (conteudo && !isHistorica) {
               const convIsCTWA = conv.contato_jid?.includes("@lid") || false;
               await verificarTermoChave(ag.id, conv.id, conteudo, numero, conv.fbclid, conv.utm_campaign, conv.utm_content, convIsCTWA);
             }
@@ -240,7 +247,7 @@ export async function POST(req: NextRequest) {
           contato_numero: numero, contato_nome: nome, contato_foto: foto,
           contato_jid: remoteJid,
           ultima_mensagem: conteudo, ultima_mensagem_at: timestamp,
-          primeira_mensagem_at: timestamp, nao_lidas: 1,
+          primeira_mensagem_at: timestamp, nao_lidas: isHistorica ? 0 : 1,
           origem: isLid ? "Meta Ads" : "Não Rastreada",
           etapa_jornada: etapaInicial,
         }).select().single();
@@ -259,11 +266,14 @@ export async function POST(req: NextRequest) {
           conversa = nova;
         }
       } else {
-        await supabase.from("conversas").update({
+        const updateConv: any = {
           ultima_mensagem: conteudo, ultima_mensagem_at: timestamp,
           contato_nome: nome,
-          nao_lidas: (conversa.nao_lidas || 0) + 1,
-        }).eq("id", conversa.id);
+        };
+        if (!isHistorica) {
+          updateConv.nao_lidas = (conversa.nao_lidas || 0) + 1;
+        }
+        await supabase.from("conversas").update(updateConv).eq("id", conversa.id);
       }
 
       if (!conversa) return NextResponse.json({ ok: false, error: "Conversa não criada" }, { status: 500 });
@@ -274,6 +284,11 @@ export async function POST(req: NextRequest) {
           conversa_id: conversa.id, agencia_id: agencia.id,
           mensagem_id: msgId, de_mim: false, tipo, conteudo, created_at: timestamp,
         }, { onConflict: "mensagem_id" });
+      }
+
+      // Se mensagem histórica (sync inicial), pular rastreamento, automações, IA e pixel
+      if (isHistorica) {
+        return NextResponse.json({ ok: true });
       }
 
       // ============================================
