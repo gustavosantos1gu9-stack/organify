@@ -134,7 +134,7 @@ function IntegracoesCliente() {
     const interval = setInterval(async () => {
       try {
         const data = await evoCall("connect", instancia);
-        const newQr = data.base64 || data.qrcode?.base64;
+        const newQr = extractQr(data);
         if (newQr) setQrCode(newQr);
       } catch {}
     }, 30000);
@@ -256,6 +256,12 @@ function IntegracoesCliente() {
     load();
   }, []);
 
+  // Extrair QR de qualquer formato de resposta do Evolution
+  const extractQr = (data: any): string | null => {
+    if (!data) return null;
+    return data.base64 || data.qrcode?.base64 || data.qrcode?.code || data.code || data.qr || null;
+  };
+
   const conectarWA = async () => {
     if (!evoUrl || !evoKey) { alert("Evolution API não configurada. Peça para seu gestor configurar."); return; }
     setCriando(true);
@@ -271,7 +277,7 @@ function IntegracoesCliente() {
         if (state === "close" || state === "connecting") {
           // Instância existe mas desconectada — tentar reconectar
           const data = await evoCall("connect", nome);
-          const qr = data.base64 || data.qrcode?.base64;
+          const qr = extractQr(data);
           if (qr) {
             setQrCode(qr); setInstancia(nome);
             await supabase.from("agencias").update({ whatsapp_instancia: nome }).eq("id", agId!);
@@ -283,30 +289,36 @@ function IntegracoesCliente() {
 
       // Tentar connect direto
       const data = await evoCall("connect", nome);
-      const qr = data.base64 || data.qrcode?.base64;
+      const qr = extractQr(data);
       if (qr) {
         setQrCode(qr); setInstancia(nome);
         await supabase.from("agencias").update({ whatsapp_instancia: nome }).eq("id", agId!);
       } else {
         // Instância não existe — deletar caso corrompida e criar nova
         try { await evoCall("delete", nome); } catch {}
-        // Tentar criar com syncFullHistory, fallback sem
+        // Criar instância e depois pegar QR via connect
         let data2 = await evoCall("create", nome, { instanceName: nome, token: nome, qrcode: true, integration: "WHATSAPP-BAILEYS", syncFullHistory: true });
-        let qr2 = data2.qrcode?.base64 || data2.base64;
+        let qr2 = extractQr(data2);
         if (!qr2 && (data2.error || data2.message)) {
           // Fallback: criar sem syncFullHistory
           try { await evoCall("delete", nome); } catch {}
           data2 = await evoCall("create", nome, { instanceName: nome, token: nome, qrcode: true, integration: "WHATSAPP-BAILEYS" });
-          qr2 = data2.qrcode?.base64 || data2.base64;
+          qr2 = extractQr(data2);
+        }
+        // Se o create não retornou QR, tentar connect separado
+        if (!qr2) {
+          const data3 = await evoCall("connect", nome);
+          qr2 = extractQr(data3);
         }
         if (qr2) {
           setQrCode(qr2); setInstancia(nome);
           await supabase.from("agencias").update({ whatsapp_instancia: nome }).eq("id", agId!);
         } else {
           alert("Não foi possível gerar o QR Code. Tente novamente.");
+          console.error("[QR] Respostas:", JSON.stringify(data), JSON.stringify(data2));
         }
       }
-    } catch { alert("Erro ao conectar. Verifique sua conexão e tente novamente."); }
+    } catch (e) { console.error("[QR] Erro:", e); alert("Erro ao conectar. Verifique sua conexão e tente novamente."); }
     setCriando(false);
   };
 
@@ -466,9 +478,7 @@ function IntegracoesCliente() {
             {qrCode.startsWith("data:image") ? (
               <img src={qrCode} alt="QR" style={{ width: "220px", height: "220px", borderRadius: "8px" }} />
             ) : (
-              <div style={{ background: "#fff", padding: "20px", borderRadius: "8px", display: "inline-block" }}>
-                <p style={{ fontSize: "11px", color: "#000", fontFamily: "monospace", wordBreak: "break-all", maxWidth: "220px" }}>{qrCode.replace("qr:", "")}</p>
-              </div>
+              <img src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrCode.replace("qr:", ""))}`} alt="QR" style={{ width: "220px", height: "220px", borderRadius: "8px" }} />
             )}
             <div style={{ marginTop: "16px" }}>
               <button className="btn-secondary" style={{ cursor: "pointer" }} onClick={() => { setQrCode(null); window.location.reload(); }}>
@@ -1083,11 +1093,7 @@ function IntegracoesMaster() {
                   {qrCode.startsWith("data:image") ? (
                     <img src={qrCode} alt="QR Code" style={{width:"200px",height:"200px",borderRadius:"8px"}}/>
                   ) : (
-                    <div style={{background:"#fff",padding:"16px",borderRadius:"8px",display:"inline-block"}}>
-                      <p style={{fontSize:"11px",color:"#000",fontFamily:"monospace",wordBreak:"break-all",maxWidth:"200px"}}>
-                        {qrCode.replace("qr:","")}
-                      </p>
-                    </div>
+                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCode.replace("qr:",""))}`} alt="QR Code" style={{width:"200px",height:"200px",borderRadius:"8px"}}/>
                   )}
                   <div style={{marginTop:"12px"}}>
                     <button className="btn-secondary" style={{cursor:"pointer"}} onClick={()=>{setQrCode(null);carregarInstancias();}}>
