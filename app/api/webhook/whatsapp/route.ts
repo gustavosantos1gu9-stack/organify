@@ -245,10 +245,6 @@ export async function POST(req: NextRequest) {
         .select("*").eq("agencia_id", agencia.id).eq("contato_numero", numero).single();
 
       if (!conversa) {
-        // Mensagem histórica (sync inicial) — NÃO criar conversa nova, ignorar
-        if (isHistorica) {
-          return NextResponse.json({ ok: true });
-        }
         eraNovaConversa = true;
         // Buscar etapa de primeiro contato da agência
         const { data: etapaPrimeira } = await supabase.from("jornada_etapas")
@@ -260,7 +256,7 @@ export async function POST(req: NextRequest) {
           contato_numero: numero, contato_nome: nome, contato_foto: foto,
           contato_jid: remoteJid,
           ultima_mensagem: conteudo, ultima_mensagem_at: timestamp,
-          primeira_mensagem_at: timestamp, nao_lidas: 1,
+          primeira_mensagem_at: timestamp, nao_lidas: isHistorica ? 0 : 1,
           origem: isLid ? "Meta Ads" : "Não Rastreada",
           etapa_jornada: etapaInicial,
         }).select().single();
