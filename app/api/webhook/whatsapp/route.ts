@@ -92,8 +92,9 @@ export async function POST(req: NextRequest) {
           const conectado = state === "open" || state === "connected";
           await supabase.from("agencias").update({ whatsapp_conectado: conectado }).eq("id", ag.id);
 
-          // Se desconectou, tentar reconectar automaticamente
-          if (!conectado && (state === "close" || state === "connecting")) {
+          // Se desconectou, tentar reconectar automaticamente (só se não foi deletada)
+          // Não reconectar se state === "close" pois pode ser deleção intencional
+          if (!conectado && state === "connecting") {
             try {
               // Buscar Evolution URL (da própria agência ou do parent)
               let evoUrl = ag.evolution_url || "";
@@ -105,10 +106,18 @@ export async function POST(req: NextRequest) {
                 if (parent) { evoUrl = parent.evolution_url || ""; evoKey = parent.evolution_key || ""; }
               }
               if (evoUrl && evoKey) {
-                // Tentar reconectar a instância
-                await fetch(`${evoUrl}/instance/connect/${instanciaName}`, {
+                // Verificar se a instância ainda existe antes de reconectar
+                const statusRes = await fetch(`${evoUrl}/instance/connectionState/${instanciaName}`, {
                   headers: { apikey: evoKey },
                 });
+                const statusData = await statusRes.json();
+                const currentState = (statusData?.state || statusData?.instance?.state || "").toLowerCase();
+                // Só reconectar se a instância ainda existe e está em connecting
+                if (currentState === "connecting" || currentState === "close") {
+                  await fetch(`${evoUrl}/instance/connect/${instanciaName}`, {
+                    headers: { apikey: evoKey },
+                  });
+                }
               }
             } catch {}
           }
