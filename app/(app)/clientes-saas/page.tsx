@@ -37,6 +37,7 @@ interface UsuarioFilha {
   nome: string;
   email: string;
   ativo: boolean;
+  _acesso_externo?: boolean;
 }
 
 async function getToken() {
@@ -358,11 +359,19 @@ export default function ClientesSaasPage() {
                               <span style={{ fontSize: "13px", color: "#f0f0f0" }}>{u.nome}</span>
                               <span style={{ fontSize: "11px", color: "#606060", marginLeft: "8px" }}>{u.email}</span>
                             </div>
-                            <span style={{
-                              fontSize: "11px", padding: "2px 8px", borderRadius: "12px",
-                              background: u.ativo ? "rgba(41,171,226,0.15)" : "rgba(96,96,96,0.15)",
-                              color: u.ativo ? "#f0f0f0" : "#606060",
-                            }}>{u.ativo ? "Ativo" : "Inativo"}</span>
+                            <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                              {u._acesso_externo && (
+                                <span style={{
+                                  fontSize: "10px", padding: "2px 8px", borderRadius: "12px",
+                                  background: "rgba(168,85,247,0.15)", color: "#a855f7",
+                                }}>Equipe</span>
+                              )}
+                              <span style={{
+                                fontSize: "11px", padding: "2px 8px", borderRadius: "12px",
+                                background: u.ativo ? "rgba(41,171,226,0.15)" : "rgba(96,96,96,0.15)",
+                                color: u.ativo ? "#f0f0f0" : "#606060",
+                              }}>{u.ativo ? "Ativo" : "Inativo"}</span>
+                            </div>
                           </div>
                         ))}
                       </div>

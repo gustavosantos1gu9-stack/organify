@@ -208,14 +208,32 @@ export async function POST(req: NextRequest) {
     const { agencia_id } = body;
     if (!agencia_id) return NextResponse.json({ error: "agencia_id obrigatório" }, { status: 400 });
 
-    const { data, error } = await supabaseAdmin
+    // Usuários próprios da agência filha
+    const { data: proprios } = await supabaseAdmin
       .from("usuarios")
       .select("id, nome, email, ativo, time_id, created_at")
       .eq("agencia_id", agencia_id)
       .order("nome");
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json(data || []);
+    // Usuários da equipe master com acesso via usuarios_agencias
+    const { data: acessos } = await supabaseAdmin
+      .from("usuarios_agencias")
+      .select("usuario_id")
+      .eq("agencia_id", agencia_id);
+
+    let comAcesso: any[] = [];
+    if (acessos?.length) {
+      const ids = acessos.map(a => a.usuario_id);
+      const { data: masterUsers } = await supabaseAdmin
+        .from("usuarios")
+        .select("id, nome, email, ativo, time_id, created_at")
+        .in("id", ids)
+        .order("nome");
+      comAcesso = (masterUsers || []).map(u => ({ ...u, _acesso_externo: true }));
+    }
+
+    const todos = [...(proprios || []), ...comAcesso];
+    return NextResponse.json(todos);
   }
 
   return NextResponse.json({ error: "Ação inválida" }, { status: 400 });
