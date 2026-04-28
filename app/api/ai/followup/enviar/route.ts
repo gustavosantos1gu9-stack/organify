@@ -83,18 +83,45 @@ export async function POST(req: NextRequest) {
         messages.push({ role: msg.de_mim ? "assistant" : "user", content: msg.conteudo });
       }
 
-      const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${ag.openai_key}` },
-        body: JSON.stringify({
-          model: ag.openai_modelo || "gpt-4o-mini",
-          messages,
-          max_tokens: ag.openai_max_tokens || 300,
-          temperature: Number(ag.openai_temperatura) || 0.7,
-        }),
-      });
-      const openaiData = await openaiRes.json();
-      texto = openaiData.choices?.[0]?.message?.content?.trim() || "";
+      const isAnthropic = ag.openai_key.startsWith("sk-ant-");
+
+      if (isAnthropic) {
+        const systemMsgs = messages.filter(m => m.role === "system").map(m => m.content).join("\n\n");
+        const chatMsgs = messages.filter(m => m.role !== "system").map(m => ({
+          role: m.role as "user" | "assistant", content: m.content,
+        }));
+
+        const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": ag.openai_key,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model: ag.openai_modelo || "claude-haiku-4-5-20251001",
+            system: systemMsgs,
+            messages: chatMsgs,
+            max_tokens: ag.openai_max_tokens || 300,
+            temperature: Number(ag.openai_temperatura) || 0.7,
+          }),
+        });
+        const anthropicData = await anthropicRes.json();
+        texto = anthropicData.content?.[0]?.text?.trim() || "";
+      } else {
+        const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${ag.openai_key}` },
+          body: JSON.stringify({
+            model: ag.openai_modelo || "gpt-4o-mini",
+            messages,
+            max_tokens: ag.openai_max_tokens || 300,
+            temperature: Number(ag.openai_temperatura) || 0.7,
+          }),
+        });
+        const openaiData = await openaiRes.json();
+        texto = openaiData.choices?.[0]?.message?.content?.trim() || "";
+      }
 
       if (!texto) {
         await marcarErro(followup_fila_id, "IA não gerou resposta");

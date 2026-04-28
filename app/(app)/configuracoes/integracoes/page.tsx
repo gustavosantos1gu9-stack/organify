@@ -651,14 +651,20 @@ function IntegracoesCliente() {
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px",marginBottom:"16px"}}>
           <div className="form-group">
-            <label className="form-label">API Key OpenAI</label>
-            <input className="form-input" placeholder="sk-..." type="password" value={openaiKey} onChange={e=>setOpenaiKeyC(e.target.value)}/>
+            <label className="form-label">API Key (OpenAI ou Anthropic)</label>
+            <input className="form-input" placeholder="sk-... ou sk-ant-..." type="password" value={openaiKey} onChange={e=>setOpenaiKeyC(e.target.value)}/>
           </div>
           <div className="form-group">
             <label className="form-label">Modelo</label>
             <select className="form-input" value={openaiModeloC} onChange={e=>setOpenaiModeloC(e.target.value)}>
-              <option value="gpt-4o-mini">GPT-4o Mini (rápido e barato)</option>
-              <option value="gpt-4o">GPT-4o (mais inteligente)</option>
+              <optgroup label="OpenAI">
+                <option value="gpt-4o-mini">GPT-4o Mini (rápido e barato)</option>
+                <option value="gpt-4o">GPT-4o (mais inteligente)</option>
+              </optgroup>
+              <optgroup label="Claude (Anthropic)">
+                <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (mais barato)</option>
+                <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (equilibrado)</option>
+              </optgroup>
               <option value="gpt-3.5-turbo">GPT-3.5 Turbo (mais barato)</option>
             </select>
           </div>
@@ -1273,14 +1279,20 @@ function IntegracoesMaster() {
 
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px",marginBottom:"16px"}}>
           <div className="form-group">
-            <label className="form-label">API Key OpenAI</label>
-            <input className="form-input" placeholder="sk-..." type="password" value={openaiKey} onChange={e=>setOpenaiKey(e.target.value)}/>
+            <label className="form-label">API Key (OpenAI ou Anthropic)</label>
+            <input className="form-input" placeholder="sk-... ou sk-ant-..." type="password" value={openaiKey} onChange={e=>setOpenaiKey(e.target.value)}/>
           </div>
           <div className="form-group">
             <label className="form-label">Modelo</label>
             <select className="form-input" value={openaiModelo} onChange={e=>setOpenaiModelo(e.target.value)}>
-              <option value="gpt-4o-mini">GPT-4o Mini (rápido e barato)</option>
-              <option value="gpt-4o">GPT-4o (mais inteligente)</option>
+              <optgroup label="OpenAI">
+                <option value="gpt-4o-mini">GPT-4o Mini (rápido e barato)</option>
+                <option value="gpt-4o">GPT-4o (mais inteligente)</option>
+              </optgroup>
+              <optgroup label="Claude (Anthropic)">
+                <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (mais barato)</option>
+                <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (equilibrado)</option>
+              </optgroup>
               <option value="gpt-4-turbo">GPT-4 Turbo</option>
               <option value="gpt-3.5-turbo">GPT-3.5 Turbo (mais barato)</option>
             </select>

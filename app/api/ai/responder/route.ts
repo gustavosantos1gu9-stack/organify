@@ -63,28 +63,67 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 6. Chamar OpenAI
-    const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${ag.openai_key}`,
-      },
-      body: JSON.stringify({
-        model: ag.openai_modelo || "gpt-4o-mini",
-        messages,
-        max_tokens: ag.openai_max_tokens || 500,
-        temperature: Number(ag.openai_temperatura) || 0.7,
-      }),
-    });
+    // 6. Chamar IA (detectar provider pela key)
+    const isAnthropic = ag.openai_key.startsWith("sk-ant-");
+    let resposta = "";
 
-    const openaiData = await openaiRes.json();
-    if (openaiData.error) {
-      console.error("[IA] Erro OpenAI:", openaiData.error);
-      return NextResponse.json({ ok: false, motivo: openaiData.error.message });
+    if (isAnthropic) {
+      // Claude API (Anthropic)
+      const modelo = ag.openai_modelo || "claude-haiku-4-5-20251001";
+      const systemPrompt = messages.find(m => m.role === "system")?.content || "";
+      const chatMessages = messages.filter(m => m.role !== "system").map(m => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      }));
+
+      const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": ag.openai_key,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: modelo,
+          system: systemPrompt,
+          messages: chatMessages,
+          max_tokens: ag.openai_max_tokens || 500,
+          temperature: Number(ag.openai_temperatura) || 0.7,
+        }),
+      });
+
+      const anthropicData = await anthropicRes.json();
+      if (anthropicData.error) {
+        console.error("[IA] Erro Anthropic:", anthropicData.error);
+        return NextResponse.json({ ok: false, motivo: anthropicData.error.message });
+      }
+
+      resposta = anthropicData.content?.[0]?.text?.trim() || "";
+    } else {
+      // OpenAI
+      const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${ag.openai_key}`,
+        },
+        body: JSON.stringify({
+          model: ag.openai_modelo || "gpt-4o-mini",
+          messages,
+          max_tokens: ag.openai_max_tokens || 500,
+          temperature: Number(ag.openai_temperatura) || 0.7,
+        }),
+      });
+
+      const openaiData = await openaiRes.json();
+      if (openaiData.error) {
+        console.error("[IA] Erro OpenAI:", openaiData.error);
+        return NextResponse.json({ ok: false, motivo: openaiData.error.message });
+      }
+
+      resposta = openaiData.choices?.[0]?.message?.content?.trim() || "";
     }
 
-    const resposta = openaiData.choices?.[0]?.message?.content?.trim();
     if (!resposta) return NextResponse.json({ ok: false, motivo: "Sem resposta da IA" });
 
     // 7. Enviar via Evolution API
