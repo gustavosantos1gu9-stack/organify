@@ -111,6 +111,55 @@ export async function POST(req: NextRequest) {
   if (action === "delete") {
     if (!id) return NextResponse.json({ error: "ID obrigatório" }, { status: 400 });
 
+    // Verificar que a agência é filha do master (segurança)
+    const { data: agFilha } = await supabaseAdmin
+      .from("agencias")
+      .select("id, nome, whatsapp_instancia, evolution_url, evolution_key, parent_id")
+      .eq("id", id)
+      .eq("parent_id", masterId)
+      .single();
+    if (!agFilha) return NextResponse.json({ error: "Agência não encontrada ou sem permissão" }, { status: 404 });
+
+    // 1. Limpar usuarios_agencias (acessos de usuários master a esta filha)
+    await supabaseAdmin.from("usuarios_agencias").delete().eq("agencia_id", id);
+
+    // 2. Remover auth users que pertencem a esta agência
+    const { data: usersFilha } = await supabaseAdmin
+      .from("usuarios")
+      .select("auth_user_id")
+      .eq("agencia_id", id);
+    if (usersFilha?.length) {
+      for (const u of usersFilha) {
+        if (u.auth_user_id) {
+          await supabaseAdmin.auth.admin.deleteUser(u.auth_user_id);
+        }
+      }
+    }
+
+    // 3. Desconectar/remover instância Evolution se existir
+    if (agFilha.whatsapp_instancia) {
+      let evoUrl = agFilha.evolution_url || "";
+      let evoKey = agFilha.evolution_key || "";
+      // Se não tem config própria, herdar do master
+      if (!evoUrl) {
+        const { data: master } = await supabaseAdmin
+          .from("agencias")
+          .select("evolution_url, evolution_key")
+          .eq("id", masterId)
+          .single();
+        if (master) { evoUrl = master.evolution_url || ""; evoKey = master.evolution_key || ""; }
+      }
+      if (evoUrl && evoKey) {
+        try {
+          await fetch(`${evoUrl}/instance/delete/${agFilha.whatsapp_instancia}`, {
+            method: "DELETE",
+            headers: { apikey: evoKey },
+          });
+        } catch {}
+      }
+    }
+
+    // 4. Deletar a agência (cascade remove conversas, mensagens, etc.)
     const { error } = await supabaseAdmin
       .from("agencias")
       .delete()

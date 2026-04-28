@@ -227,6 +227,9 @@ export default function ClientesSaasPage() {
   const [expandido, setExpandido] = useState<string | null>(null);
   const [usuarios, setUsuarios] = useState<Record<string, UsuarioFilha[]>>({});
   const [showUserModal, setShowUserModal] = useState<Agencia | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Agencia | null>(null);
+  const [confirmNome, setConfirmNome] = useState("");
+  const [deletando, setDeletando] = useState(false);
 
   const carregar = async () => {
     setLoading(true);
@@ -247,10 +250,14 @@ export default function ClientesSaasPage() {
     if (!usuarios[id]) carregarUsuarios(id);
   };
 
-  const remover = async (id: string) => {
-    if (!confirm("Remover esta cliente e todos os dados dela?")) return;
-    await apiCall("POST", { action: "delete", id });
-    carregar();
+  const remover = async (ag: Agencia) => {
+    setDeletando(true);
+    try {
+      await apiCall("POST", { action: "delete", id: ag.id });
+      setConfirmDelete(null);
+      setConfirmNome("");
+      carregar();
+    } catch {} finally { setDeletando(false); }
   };
 
   useEffect(() => { carregar(); }, []);
@@ -316,7 +323,7 @@ export default function ClientesSaasPage() {
                       <Edit2 size={12} /> Editar
                     </button>
                     <button className="btn-danger" style={{ padding: "5px 10px", fontSize: "12px", cursor: "pointer" }}
-                      onClick={e => { e.stopPropagation(); remover(a.id); }}>
+                      onClick={e => { e.stopPropagation(); setConfirmDelete(a); setConfirmNome(""); }}>
                       <Trash2 size={12} />
                     </button>
                     {expandido === a.id ? <ChevronUp size={16} color="#606060" /> : <ChevronDown size={16} color="#606060" />}
@@ -377,6 +384,55 @@ export default function ClientesSaasPage() {
           onClose={() => setShowUserModal(null)}
           onSave={() => carregarUsuarios(showUserModal.id)}
         />
+      )}
+
+      {confirmDelete && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && !deletando && setConfirmDelete(null)}>
+          <div className="modal animate-in" style={{ maxWidth: "440px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <h2 style={{ fontSize: "17px", fontWeight: "600", color: "#ef4444" }}>Excluir Cliente</h2>
+              <button onClick={() => !deletando && setConfirmDelete(null)} className="btn-ghost" style={{ padding: "6px", cursor: "pointer" }}><X size={16} /></button>
+            </div>
+            <p style={{ fontSize: "13px", color: "#a0a0a0", lineHeight: "1.6", marginBottom: "8px" }}>
+              Isso vai excluir permanentemente <strong style={{ color: "#f0f0f0" }}>{confirmDelete.nome}</strong> e todos os dados associados:
+            </p>
+            <ul style={{ fontSize: "12px", color: "#808080", lineHeight: "1.8", paddingLeft: "18px", marginBottom: "16px" }}>
+              <li>Conversas e mensagens do WhatsApp</li>
+              <li>Leads e histórico do CRM</li>
+              <li>Usuários e acessos</li>
+              <li>Integrações e instância Evolution</li>
+              <li>Configurações de jornada e automações</li>
+            </ul>
+            <p style={{ fontSize: "12px", color: "#a0a0a0", marginBottom: "6px" }}>
+              Esta ação <strong style={{ color: "#ef4444" }}>não pode ser desfeita</strong> e não afeta nenhuma outra agência.
+            </p>
+            <p style={{ fontSize: "12px", color: "#a0a0a0", marginBottom: "8px" }}>
+              Digite <strong style={{ color: "#f0f0f0" }}>{confirmDelete.nome}</strong> para confirmar:
+            </p>
+            <input
+              className="form-input"
+              placeholder={confirmDelete.nome}
+              value={confirmNome}
+              onChange={e => setConfirmNome(e.target.value)}
+              style={{ marginBottom: "16px" }}
+            />
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+              <button className="btn-secondary" onClick={() => setConfirmDelete(null)} disabled={deletando} style={{ cursor: "pointer" }}>Cancelar</button>
+              <button
+                className="btn-danger"
+                disabled={confirmNome !== confirmDelete.nome || deletando}
+                onClick={() => remover(confirmDelete)}
+                style={{
+                  cursor: confirmNome === confirmDelete.nome && !deletando ? "pointer" : "not-allowed",
+                  opacity: confirmNome === confirmDelete.nome && !deletando ? 1 : 0.5,
+                  padding: "8px 16px", fontSize: "13px",
+                }}
+              >
+                <Trash2 size={13} /> {deletando ? "Excluindo..." : "Excluir permanentemente"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
