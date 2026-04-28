@@ -26,7 +26,7 @@ function IntegracoesCliente() {
   const [profileName, setProfileName] = useState("");
   const [profilePic, setProfilePic] = useState("");
   const [qrCode, setQrCode] = useState<string | null>(null);
-  const [novaInstancia, setNovaInstancia] = useState("whatsapp");
+  const [novaInstancia, setNovaInstancia] = useState("");
   const [criando, setCriando] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -261,8 +261,8 @@ function IntegracoesCliente() {
     setCriando(true);
     try {
       const agId = agenciaId || await getAgenciaId();
-      // Gerar nome único por agência (evita conflito com master)
-      const nome = novaInstancia.trim() || `wa-${(agId || "").slice(0, 8)}`;
+      // Gerar nome único por agência (evita conflito com master e outras clientes)
+      const nome = novaInstancia.trim() || `wa-${(agId || "").replace(/-/g, "").slice(0, 12)}`;
 
       // Primeiro tenta deletar instância antiga com problema (se existir com status "close")
       try {
