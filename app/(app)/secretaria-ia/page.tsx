@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Bot, Save, Power, Clock, MessageSquare, Zap, Brain, Plus, Trash2, Check, Send, Loader2 } from "lucide-react";
+import { Bot, Save, Power, Clock, MessageSquare, Zap, Brain, Plus, Trash2, Check, Send, Loader2, Calendar, Video, MapPin, Link2 } from "lucide-react";
 import { supabase, getAgenciaId } from "@/lib/hooks";
 
 export default function SecretariaIAPage() {
@@ -39,6 +39,18 @@ export default function SecretariaIAPage() {
   const [tom, setTom] = useState("profissional");
   const [instrucaoExtra, setInstrucaoExtra] = useState("");
   const [promptFinal, setPromptFinal] = useState("");
+
+  // Agendamento
+  const [agendamentoAtivo, setAgendamentoAtivo] = useState(false);
+  const [googleCalEmail, setGoogleCalEmail] = useState("");
+  const [googleCalAtivo, setGoogleCalAtivo] = useState(false);
+  const [reuniaoTipo, setReuniaoTipo] = useState("google_meet");
+  const [reuniaoLinkCustom, setReuniaoLinkCustom] = useState("");
+  const [reuniaoDuracao, setReuniaooDuracao] = useState(60);
+  const [reuniaoHorarioInicio, setReuniaoHorarioInicio] = useState("09:00");
+  const [reuniaoHorarioFim, setReuniaoHorarioFim] = useState("18:00");
+  const [reuniaoDias, setReuniaDias] = useState([1,2,3,4,5]);
+  const [reuniaoIntervalo, setReuniaoIntervalo] = useState(0);
 
   // Follow-up
   const [followupAtivo, setFollowupAtivo] = useState(false);
@@ -139,6 +151,25 @@ export default function SecretariaIAPage() {
         if (matchEmpresa) setNomeEmpresa(matchEmpresa[1]);
       }
       setFollowupAtivo(data.followup_ativo || false);
+      setAgendamentoAtivo(data.agendamento_ativo || false);
+      setGoogleCalEmail(data.google_calendar_email || "");
+      setGoogleCalAtivo(data.google_calendar_ativo || false);
+      setReuniaoTipo(data.reuniao_tipo || "google_meet");
+      setReuniaoLinkCustom(data.reuniao_link_customizado || "");
+      setReuniaooDuracao(data.reuniao_duracao_minutos || 60);
+      setReuniaoHorarioInicio(data.reuniao_horario_inicio || "09:00");
+      setReuniaoHorarioFim(data.reuniao_horario_fim || "18:00");
+      setReuniaDias(data.reuniao_dias_semana || [1,2,3,4,5]);
+      setReuniaoIntervalo(data.reuniao_intervalo_minutos || 0);
+
+      // Detectar retorno do Google OAuth
+      if (typeof window !== "undefined") {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("google_success") === "true") {
+          setGoogleCalAtivo(true);
+          window.history.replaceState({}, "", "/secretaria-ia");
+        }
+      }
     }
     // Carregar etapas de follow-up
     const { data: etapas } = await supabase.from("followup_etapas")
@@ -161,6 +192,14 @@ export default function SecretariaIAPage() {
         openai_max_tokens: maxTokens, openai_temperatura: temperatura,
         openai_contexto_mensagens: contexto,
         openai_horario_inicio: horarioInicio || null, openai_horario_fim: horarioFim || null,
+        agendamento_ativo: agendamentoAtivo,
+        reuniao_tipo: reuniaoTipo,
+        reuniao_link_customizado: reuniaoLinkCustom || null,
+        reuniao_duracao_minutos: reuniaoDuracao,
+        reuniao_horario_inicio: reuniaoHorarioInicio,
+        reuniao_horario_fim: reuniaoHorarioFim,
+        reuniao_dias_semana: reuniaoDias,
+        reuniao_intervalo_minutos: reuniaoIntervalo,
       }).eq("id", agId);
       alert("Secretária IA salva!");
     } catch { alert("Erro ao salvar"); }
@@ -512,6 +551,127 @@ export default function SecretariaIAPage() {
               </div>
             </div>
             <p style={{ fontSize: 11, color: "#606060", marginTop: 8 }}>Se vazio, responde 24h. A IA pausa automaticamente quando um humano responde.</p>
+          </div>
+
+          {/* Agendamento Automático */}
+          <div style={cardStyle}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                <Calendar size={16} color="#29ABE2" /> Agendamento Automático
+              </h3>
+              <button onClick={() => setAgendamentoAtivo(!agendamentoAtivo)}
+                style={{
+                  width: 44, height: 24, borderRadius: 12, border: "none", cursor: "pointer",
+                  background: agendamentoAtivo ? "#22c55e" : "#333", position: "relative", transition: "background 0.2s",
+                }}>
+                <span style={{
+                  position: "absolute", top: 3, left: agendamentoAtivo ? 23 : 3,
+                  width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 0.2s",
+                }} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: 12, color: "#606060", marginBottom: 16 }}>
+              A IA consulta sua agenda e agenda reuniões automaticamente quando o lead quiser marcar.
+            </p>
+
+            {/* Google Calendar */}
+            <div style={{ background: "#0d0d0d", borderRadius: 8, border: "1px solid #1e1e1e", padding: 14, marginBottom: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Calendar size={14} color={googleCalAtivo ? "#22c55e" : "#606060"} />
+                  <span style={{ fontSize: 13, color: "#f0f0f0" }}>Google Calendar</span>
+                  {googleCalAtivo && googleCalEmail && (
+                    <span style={{ fontSize: 11, color: "#22c55e" }}>({googleCalEmail})</span>
+                  )}
+                </div>
+                {googleCalAtivo ? (
+                  <span style={{ fontSize: 11, padding: "2px 10px", borderRadius: 12, background: "rgba(34,197,94,0.15)", color: "#22c55e" }}>Conectado</span>
+                ) : (
+                  <button onClick={() => window.location.href = `/api/auth/google?agencia_id=${agId}`}
+                    style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8, border: "1px solid #29ABE2", background: "rgba(41,171,226,0.1)", color: "#29ABE2", cursor: "pointer" }}>
+                    Conectar
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Tipo de reunião */}
+            <div style={{ marginBottom: 12 }}>
+              <label style={labelStyle}>Tipo de reunião</label>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                {([
+                  { key: "google_meet", label: "Google Meet", icon: <Video size={13} /> },
+                  { key: "zoom", label: "Zoom", icon: <Video size={13} /> },
+                  { key: "presencial", label: "Presencial", icon: <MapPin size={13} /> },
+                  { key: "link_customizado", label: "Link personalizado", icon: <Link2 size={13} /> },
+                ] as const).map(t => (
+                  <button key={t.key} onClick={() => setReuniaoTipo(t.key)} style={{
+                    display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12,
+                    border: `1px solid ${reuniaoTipo === t.key ? "#29ABE2" : "#2e2e2e"}`,
+                    background: reuniaoTipo === t.key ? "rgba(41,171,226,0.1)" : "#1a1a1a",
+                    color: reuniaoTipo === t.key ? "#29ABE2" : "#a0a0a0",
+                  }}>
+                    {t.icon} {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {reuniaoTipo === "link_customizado" && (
+              <div style={{ marginBottom: 12 }}>
+                <label style={labelStyle}>Link da reunião</label>
+                <input style={inputStyle} placeholder="https://..." value={reuniaoLinkCustom} onChange={e => setReuniaoLinkCustom(e.target.value)} />
+              </div>
+            )}
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
+              <div>
+                <label style={labelStyle}>Duração</label>
+                <select style={inputStyle} value={reuniaoDuracao} onChange={e => setReuniaooDuracao(Number(e.target.value))}>
+                  <option value={15}>15 min</option>
+                  <option value={30}>30 min</option>
+                  <option value={45}>45 min</option>
+                  <option value={60}>1 hora</option>
+                  <option value={90}>1h30</option>
+                  <option value={120}>2 horas</option>
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Início</label>
+                <input style={inputStyle} type="time" value={reuniaoHorarioInicio} onChange={e => setReuniaoHorarioInicio(e.target.value)} />
+              </div>
+              <div>
+                <label style={labelStyle}>Fim</label>
+                <input style={inputStyle} type="time" value={reuniaoHorarioFim} onChange={e => setReuniaoHorarioFim(e.target.value)} />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={labelStyle}>Dias disponíveis</label>
+              <div style={{ display: "flex", gap: 4 }}>
+                {(["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"]).map((d, i) => (
+                  <button key={i} onClick={() => setReuniaDias(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i].sort())}
+                    style={{
+                      flex: 1, padding: "6px 0", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 500,
+                      border: `1px solid ${reuniaoDias.includes(i) ? "#29ABE2" : "#2e2e2e"}`,
+                      background: reuniaoDias.includes(i) ? "rgba(41,171,226,0.15)" : "#1a1a1a",
+                      color: reuniaoDias.includes(i) ? "#29ABE2" : "#606060",
+                    }}>
+                    {d}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label style={labelStyle}>Intervalo entre reuniões</label>
+              <select style={inputStyle} value={reuniaoIntervalo} onChange={e => setReuniaoIntervalo(Number(e.target.value))}>
+                <option value={0}>Sem intervalo</option>
+                <option value={15}>15 min</option>
+                <option value={30}>30 min</option>
+              </select>
+            </div>
           </div>
 
           {/* Follow-up Automático */}

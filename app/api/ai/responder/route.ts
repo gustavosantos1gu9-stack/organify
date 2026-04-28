@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getAvailableSlots, createEvent } from "@/lib/google-calendar";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) {
 
     // 1. Buscar config da agência
     const { data: ag } = await supabase.from("agencias").select(
-      "openai_key, openai_ativo, openai_modelo, openai_prompt_sistema, openai_max_tokens, openai_temperatura, openai_contexto_mensagens, openai_horario_inicio, openai_horario_fim, evolution_url, evolution_key, whatsapp_instancia, parent_id"
+      "openai_key, openai_ativo, openai_modelo, openai_prompt_sistema, openai_max_tokens, openai_temperatura, openai_contexto_mensagens, openai_horario_inicio, openai_horario_fim, evolution_url, evolution_key, whatsapp_instancia, parent_id, google_calendar_refresh_token, google_calendar_ativo, agendamento_ativo, reuniao_tipo, reuniao_link_customizado, reuniao_duracao_minutos, reuniao_horario_inicio, reuniao_horario_fim, reuniao_dias_semana, reuniao_intervalo_minutos, zoom_refresh_token, zoom_ativo, nome"
     ).eq("id", agencia_id).single();
 
     if (!ag) return NextResponse.json({ ok: false, motivo: "Agência não encontrada" });
@@ -48,9 +49,45 @@ export async function POST(req: NextRequest) {
       .order("created_at", { ascending: false })
       .limit(limite);
 
-    // 5. Montar mensagens para OpenAI
+    // 5. Montar mensagens — injetar contexto de agendamento se ativo
+    let systemPromptFinal = ag.openai_prompt_sistema;
+
+    if (ag.agendamento_ativo && ag.google_calendar_ativo && ag.google_calendar_refresh_token) {
+      // Buscar slots de hoje e amanhã
+      const hoje = new Date();
+      const amanha = new Date(hoje.getTime() + 86400000);
+      const fmtDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+      const config = {
+        duracao_minutos: ag.reuniao_duracao_minutos || 60,
+        horario_inicio: ag.reuniao_horario_inicio || "09:00",
+        horario_fim: ag.reuniao_horario_fim || "18:00",
+        dias_semana: ag.reuniao_dias_semana || [1,2,3,4,5],
+        intervalo_minutos: ag.reuniao_intervalo_minutos || 0,
+      };
+      try {
+        const [slotsHoje, slotsAmanha] = await Promise.all([
+          getAvailableSlots(ag.google_calendar_refresh_token, fmtDate(hoje), config),
+          getAvailableSlots(ag.google_calendar_refresh_token, fmtDate(amanha), config),
+        ]);
+        const tipoMap: Record<string,string> = { zoom: "Zoom", google_meet: "Google Meet", presencial: "presencial", link_customizado: "link" };
+        const tipoLabel = tipoMap[ag.reuniao_tipo || "google_meet"] || "online";
+
+        systemPromptFinal += `\n\nAGENDAMENTO AUTOMÁTICO:
+Você pode agendar reuniões (${tipoLabel}, ${ag.reuniao_duracao_minutos || 60}min).
+Quando o lead quiser agendar, ofereça os horários disponíveis abaixo.
+Quando o lead confirmar um horário, responda EXATAMENTE neste formato (em uma linha separada no final):
+[AGENDAR:YYYY-MM-DD HH:MM]
+
+Horários disponíveis hoje (${fmtDate(hoje)}): ${slotsHoje.length ? slotsHoje.join(", ") : "nenhum"}
+Horários disponíveis amanhã (${fmtDate(amanha)}): ${slotsAmanha.length ? slotsAmanha.join(", ") : "nenhum"}
+Se o lead pedir outro dia, diga que no momento pode agendar para hoje ou amanhã.`;
+      } catch (e) {
+        console.error("[IA] Erro ao buscar slots:", e);
+      }
+    }
+
     const messages: { role: string; content: string }[] = [
-      { role: "system", content: ag.openai_prompt_sistema },
+      { role: "system", content: systemPromptFinal },
     ];
 
     // Histórico em ordem cronológica
@@ -125,6 +162,64 @@ export async function POST(req: NextRequest) {
     }
 
     if (!resposta) return NextResponse.json({ ok: false, motivo: "Sem resposta da IA" });
+
+    // 6b. Detectar comando de agendamento na resposta da IA
+    const agendarMatch = resposta.match(/\[AGENDAR:(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})\]/);
+    if (agendarMatch && ag.agendamento_ativo && ag.google_calendar_refresh_token) {
+      const [, dataAgendar, horarioAgendar] = agendarMatch;
+      try {
+        // Buscar nome do lead
+        const { data: convInfo } = await supabase.from("conversas")
+          .select("contato_nome, contato_numero").eq("id", conversa_id).single();
+
+        const startDt = new Date(`${dataAgendar}T${horarioAgendar}:00-03:00`);
+        const endDt = new Date(startDt.getTime() + (ag.reuniao_duracao_minutos || 60) * 60000);
+        const summary = `Reunião - ${convInfo?.contato_nome || "Lead"}`;
+        const description = `Agendado via Secretária IA\nNome: ${convInfo?.contato_nome || "N/A"}\nTelefone: ${convInfo?.contato_numero || "N/A"}`;
+
+        let meetingLink = "";
+        const tipo = ag.reuniao_tipo || "google_meet";
+
+        if (tipo === "google_meet") {
+          const event = await createEvent(ag.google_calendar_refresh_token, {
+            summary, description, startDateTime: startDt.toISOString(), endDateTime: endDt.toISOString(), addGoogleMeet: true,
+          });
+          meetingLink = event.hangoutLink || event.conferenceData?.entryPoints?.[0]?.uri || "";
+        } else if (tipo === "presencial") {
+          await createEvent(ag.google_calendar_refresh_token, {
+            summary, description, startDateTime: startDt.toISOString(), endDateTime: endDt.toISOString(),
+          });
+        } else if (tipo === "link_customizado") {
+          await createEvent(ag.google_calendar_refresh_token, {
+            summary, description, startDateTime: startDt.toISOString(), endDateTime: endDt.toISOString(),
+          });
+          meetingLink = ag.reuniao_link_customizado || "";
+        } else if (tipo === "zoom" && ag.zoom_refresh_token) {
+          const zoomRes = await fetch("https://api.zoom.us/v2/users/me/meetings", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${ag.zoom_refresh_token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ topic: summary, type: 2, start_time: startDt.toISOString(), duration: ag.reuniao_duracao_minutos || 60, timezone: "America/Sao_Paulo" }),
+          });
+          const zoomData = await zoomRes.json();
+          meetingLink = zoomData.join_url || "";
+          await createEvent(ag.google_calendar_refresh_token, {
+            summary, description: `${description}\n\nZoom: ${meetingLink}`, startDateTime: startDt.toISOString(), endDateTime: endDt.toISOString(),
+          });
+        }
+
+        // Remover o comando da resposta e adicionar link se existir
+        resposta = resposta.replace(/\[AGENDAR:[^\]]+\]/, "").trim();
+        if (meetingLink) resposta += `\n\nLink da reunião: ${meetingLink}`;
+
+        // Marcar agendou_at na conversa
+        await supabase.from("conversas").update({ agendou_at: new Date().toISOString() }).eq("id", conversa_id);
+
+        console.log(`[IA] Agendamento criado: ${dataAgendar} ${horarioAgendar} (${tipo})`);
+      } catch (e) {
+        console.error("[IA] Erro ao criar agendamento:", e);
+        resposta = resposta.replace(/\[AGENDAR:[^\]]+\]/, "").trim();
+      }
+    }
 
     // 7. Enviar via Evolution API
     let evoUrl = ag.evolution_url || "";
