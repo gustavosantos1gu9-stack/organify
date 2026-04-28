@@ -220,18 +220,41 @@ export default function SecretariaIAPage() {
     setTestMsgs(novasMsgs);
     setTestLoading(true);
     try {
-      const messages = [
-        { role: "system", content: promptFinal },
-        ...novasMsgs.map(m => ({ role: m.role, content: m.content })),
-      ];
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({ model: modelo, messages, max_tokens: maxTokens, temperature: temperatura }),
-      });
-      const data = await res.json();
-      if (data.error) { alert("Erro: " + data.error.message); setTestLoading(false); return; }
-      const resposta = data.choices?.[0]?.message?.content?.trim() || "Sem resposta";
+      const isAnthropic = apiKey.startsWith("sk-ant-");
+      let resposta = "";
+
+      if (isAnthropic) {
+        const chatMsgs = novasMsgs.map(m => ({ role: m.role, content: m.content }));
+        const res = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+            "anthropic-dangerous-direct-browser-access": "true",
+          },
+          body: JSON.stringify({
+            model: modelo, system: promptFinal, messages: chatMsgs,
+            max_tokens: maxTokens, temperature: temperatura,
+          }),
+        });
+        const data = await res.json();
+        if (data.error) { alert("Erro: " + data.error.message); setTestLoading(false); return; }
+        resposta = data.content?.[0]?.text?.trim() || "Sem resposta";
+      } else {
+        const messages = [
+          { role: "system", content: promptFinal },
+          ...novasMsgs.map(m => ({ role: m.role, content: m.content })),
+        ];
+        const res = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+          body: JSON.stringify({ model: modelo, messages, max_tokens: maxTokens, temperature: temperatura }),
+        });
+        const data = await res.json();
+        if (data.error) { alert("Erro: " + data.error.message); setTestLoading(false); return; }
+        resposta = data.choices?.[0]?.message?.content?.trim() || "Sem resposta";
+      }
       setTestMsgs([...novasMsgs, { role: "assistant", content: resposta }]);
     } catch (e: any) { alert("Erro: " + e.message); }
     setTestLoading(false);
@@ -438,16 +461,21 @@ export default function SecretariaIAPage() {
             <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 16px" }}>Configuração Técnica</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
-                <label style={labelStyle}>API Key OpenAI</label>
-                <input style={inputStyle} type="password" placeholder="sk-..." value={apiKey} onChange={e => setApiKey(e.target.value)} />
+                <label style={labelStyle}>API Key (OpenAI ou Anthropic)</label>
+                <input style={inputStyle} type="password" placeholder="sk-... ou sk-ant-..." value={apiKey} onChange={e => setApiKey(e.target.value)} />
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 <div>
                   <label style={labelStyle}>Modelo</label>
                   <select style={inputStyle} value={modelo} onChange={e => setModelo(e.target.value)}>
-                    <option value="gpt-4o-mini">GPT-4o Mini</option>
-                    <option value="gpt-4o">GPT-4o</option>
-                    <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                    <optgroup label="OpenAI">
+                      <option value="gpt-4o-mini">GPT-4o Mini</option>
+                      <option value="gpt-4o">GPT-4o</option>
+                    </optgroup>
+                    <optgroup label="Claude (Anthropic)">
+                      <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (mais barato)</option>
+                      <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
+                    </optgroup>
                   </select>
                 </div>
                 <div>

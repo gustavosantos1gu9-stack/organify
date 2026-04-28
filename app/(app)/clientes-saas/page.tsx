@@ -11,6 +11,7 @@ const MODULOS_DISPONIVEIS = [
   { key: "inicio", label: "Dashboard" },
   { key: "inbox", label: "Conversas" },
   { key: "crm", label: "CRM" },
+  { key: "secretaria_ia", label: "Secretária IA" },
   { key: "links_campanhas", label: "Links Rastreáveis" },
   { key: "configurar_campanha", label: "Configurar Campanha" },
   { key: "jornada", label: "Jornada de Compra" },
