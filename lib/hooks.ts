@@ -334,6 +334,7 @@ export async function gerarLancamentosRecorrencia(cliente: Cliente) {
       periodicidade,
       dia_vencimento: diaVencimento,
       ativo: true,
+      cliente_id: cliente.id,
     });
   }
 
