@@ -66,10 +66,13 @@ export default function SecretariaIAPage() {
   const [testInput, setTestInput] = useState("");
   const [testLoading, setTestLoading] = useState(false);
 
+  const [promptEditadoManualmente, setPromptEditadoManualmente] = useState(false);
+
   useEffect(() => { carregar(); }, []);
 
-  // Gerar prompt automaticamente quando os campos mudam
+  // Gerar prompt automaticamente quando os campos mudam (só se não editou manualmente)
   useEffect(() => {
+    if (promptEditadoManualmente) return;
     const prompt = gerarPrompt();
     setPromptFinal(prompt);
   }, [nomeSecretaria, nomeEmpresa, segmento, servicos, precos, horarioAtendimento, endereco, regras, objetivoPrincipal, tom, instrucaoExtra]);
@@ -141,10 +144,11 @@ export default function SecretariaIAPage() {
       setHorarioInicio(data.openai_horario_inicio || "");
       setHorarioFim(data.openai_horario_fim || "");
 
-      // Se já tem prompt, tentar parsear de volta
+      // Se já tem prompt salvo, usar ele e marcar como editado manualmente
       const prompt = data.openai_prompt_sistema || "";
       if (prompt) {
         setPromptFinal(prompt);
+        setPromptEditadoManualmente(true);
         const matchNome = prompt.match(/Você é (.+?) da /);
         if (matchNome) setNomeSecretaria(matchNome[1]);
         const matchEmpresa = prompt.match(/da (.+?)[\.,\n]/);
@@ -443,7 +447,7 @@ export default function SecretariaIAPage() {
               <MessageSquare size={16} color="#29ABE2" /> Preview do Prompt
             </h3>
             <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 300, fontSize: 12, lineHeight: "1.6", fontFamily: "monospace" }}
-              value={promptFinal} onChange={e => setPromptFinal(e.target.value)} />
+              value={promptFinal} onChange={e => { setPromptFinal(e.target.value); setPromptEditadoManualmente(true); }} />
             <p style={{ fontSize: 11, color: "#606060", marginTop: 6 }}>Este é o prompt enviado para a IA. Edite diretamente se quiser ajustar.</p>
           </div>
 
