@@ -267,8 +267,10 @@ function IntegracoesCliente() {
     setCriando(true);
     try {
       const agId = agenciaId || await getAgenciaId();
-      // Gerar nome único por agência (evita conflito com master e outras clientes)
-      const nome = novaInstancia.trim() || `wa-${(agId || "").replace(/-/g, "").slice(0, 12)}`;
+      // Usar nome da agência como nome da instância (sanitizado)
+      const { data: agData } = await supabase.from("agencias").select("nome").eq("id", agId!).single();
+      const nomeAgencia = (agData?.nome || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 30);
+      const nome = novaInstancia.trim() || nomeAgencia || `wa-${(agId || "").replace(/-/g, "").slice(0, 12)}`;
 
       // Primeiro tenta deletar instância antiga com problema (se existir com status "close")
       try {
