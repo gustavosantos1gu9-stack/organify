@@ -558,15 +558,48 @@ export default function FunisPage() {
                     />
                   </div>
 
-                  {/* midia_url - shown for non-text types */}
+                  {/* midia - shown for non-text types */}
                   {etapa.tipo_conteudo !== "text" && (
                     <div>
-                      <label style={labelStyle}>URL da midia ({tipoLabel[etapa.tipo_conteudo]})</label>
+                      <label style={labelStyle}>Arquivo ({tipoLabel[etapa.tipo_conteudo]})</label>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <label style={{
+                          ...btnGhost, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6,
+                          padding: "8px 14px", fontSize: 12, borderRadius: 8, border: "1px solid #2e2e2e",
+                          background: "#1a1a1a", color: "#a0a0a0",
+                        }}>
+                          <Plus size={13} /> Enviar arquivo
+                          <input type="file" style={{ display: "none" }}
+                            accept={etapa.tipo_conteudo === "image" ? "image/*" : etapa.tipo_conteudo === "video" ? "video/*" : etapa.tipo_conteudo === "audio" ? "audio/*" : "*"}
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              const ext = file.name.split(".").pop() || "bin";
+                              const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+                              const { error } = await supabase.storage.from("funis-midia").upload(path, file);
+                              if (error) { alert("Erro ao enviar: " + error.message); return; }
+                              const { data: urlData } = supabase.storage.from("funis-midia").getPublicUrl(path);
+                              updateEtapa(idx, { midia_url: urlData.publicUrl });
+                            }}
+                          />
+                        </label>
+                        {etapa.midia_url && (
+                          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ fontSize: 11, color: "#22c55e", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {etapa.midia_url.split("/").pop()?.slice(0, 30) || "Arquivo enviado"}
+                            </span>
+                            <button onClick={() => updateEtapa(idx, { midia_url: "" })} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: 2 }}>
+                              <X size={13} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      {/* Fallback: URL manual */}
                       <input
-                        style={inputStyle}
+                        style={{ ...inputStyle, marginTop: 6, fontSize: 11 }}
                         value={etapa.midia_url}
                         onChange={e => updateEtapa(idx, { midia_url: e.target.value })}
-                        placeholder="https://..."
+                        placeholder="ou cole uma URL..."
                       />
                     </div>
                   )}
