@@ -86,6 +86,19 @@ Se o lead pedir outro dia, diga que no momento pode agendar para hoje ou amanhã
       }
     }
 
+    // Injetar funis disponíveis no contexto da IA
+    const { data: funisAtivos } = await supabase.from("funis")
+      .select("id, nome, descricao").eq("agencia_id", agencia_id).eq("ativo", true);
+    if (funisAtivos?.length) {
+      systemPromptFinal += `\n\nFUNIS DISPONÍVEIS:
+Você pode disparar um funil de mensagens para o lead quando achar apropriado.
+Para disparar, inclua no final da sua resposta (em uma linha separada):
+[FUNIL:nome-exato-do-funil]
+
+Funis disponíveis:
+${funisAtivos.map(f => `- "${f.nome}"${f.descricao ? `: ${f.descricao}` : ""}`).join("\n")}`;
+    }
+
     const messages: { role: string; content: string }[] = [
       { role: "system", content: systemPromptFinal },
     ];
@@ -219,6 +232,32 @@ Se o lead pedir outro dia, diga que no momento pode agendar para hoje ou amanhã
         console.error("[IA] Erro ao criar agendamento:", e);
         resposta = resposta.replace(/\[AGENDAR:[^\]]+\]/, "").trim();
       }
+    }
+
+    // 6c. Detectar comando de funil na resposta da IA
+    const funilMatch = resposta.match(/\[FUNIL:(.+?)\]/);
+    if (funilMatch) {
+      const nomeFunil = funilMatch[1].trim();
+      const { data: funil } = await supabase.from("funis")
+        .select("id").eq("agencia_id", agencia_id).ilike("nome", nomeFunil).eq("ativo", true).single();
+      if (funil) {
+        const { data: convFunil } = await supabase.from("conversas")
+          .select("contato_numero, contato_jid").eq("id", conversa_id).single();
+        if (convFunil) {
+          const APP_URL_F = process.env.NEXT_PUBLIC_APP_URL || "https://salxconvert-blond.vercel.app";
+          fetch(`${APP_URL_F}/api/funis/disparar`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              agencia_id, funil_id: funil.id, conversa_id,
+              contato_numero: convFunil.contato_numero, contato_jid: convFunil.contato_jid,
+              disparado_por: "ia",
+            }),
+          }).catch(() => {});
+          console.log(`[IA] Funil disparado: ${nomeFunil}`);
+        }
+      }
+      resposta = resposta.replace(/\[FUNIL:[^\]]+\]/, "").trim();
     }
 
     // 7. Enviar via Evolution API

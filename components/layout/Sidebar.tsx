@@ -35,6 +35,7 @@ import {
   Mail,
   Bot,
   FileText,
+  Zap,
 } from "lucide-react";
 
 interface NavItem {
@@ -74,6 +75,7 @@ const navItems: NavItem[] = [
     ],
   },
   { href: "/secretaria-ia", label: "Secretária IA", icon: <Bot size={16} /> },
+  { href: "/funis", label: "Funis", icon: <Zap size={16} /> },
   { href: "/formularios", label: "Formulários", icon: <FileText size={16} /> },
   {
     label: "Relatórios Meta",
@@ -139,6 +141,7 @@ const navItemsCliente: NavItem[] = [
   { href: "/inbox", label: "Conversas", icon: <MessageCircle size={16} /> },
   { href: "/crm", label: "CRM", icon: <ClipboardList size={16} /> },
   { href: "/secretaria-ia", label: "Secretária IA", icon: <Bot size={16} /> },
+  { href: "/funis", label: "Funis", icon: <Zap size={16} /> },
   { href: "/ferramentas/gerador-links", label: "Links Rastreáveis", icon: <Link2 size={16} /> },
   { href: "/ferramentas/campanhas", label: "Configurar Campanha", icon: <Target size={16} /> },
   { href: "/jornada", label: "Jornada de Compra", icon: <BarChart3 size={16} /> },
@@ -158,6 +161,7 @@ const hrefToModuloKey: Record<string, string> = {
   "/inbox": "inbox",
   "/crm": "crm",
   "/secretaria-ia": "secretaria_ia",
+  "/funis": "funis",
   "/relatorios-meta": "relatorios_meta",
   "/relatorios-meta/conexoes": "relatorios_conexoes",
   "/relatorios-meta/alertas": "relatorios_alertas",

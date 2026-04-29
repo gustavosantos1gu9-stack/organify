@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Search, RefreshCw, Eye, Send, X, Filter, MessageCircle, ChevronDown, UserPlus, Upload } from "lucide-react";
+import { Search, RefreshCw, Eye, Send, X, Filter, MessageCircle, ChevronDown, UserPlus, Upload, Zap } from "lucide-react";
 import { supabase, getAgenciaId } from "@/lib/hooks";
 
 interface Conversa {
@@ -399,6 +399,9 @@ function ChatLateral({ conversa, onClose }: { conversa: Conversa; onClose:()=>vo
   const [enviando, setEnviando] = useState(false);
   const [carregandoAntigas, setCarregandoAntigas] = useState(false);
   const [todasCarregadas, setTodasCarregadas] = useState(false);
+  const [showFunis, setShowFunis] = useState(false);
+  const [funisDisponiveis, setFunisDisponiveis] = useState<{id:string;nome:string}[]>([]);
+  const [disparandoFunil, setDisparandoFunil] = useState(false);
   const LIMIT = 50;
   const endRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
@@ -475,7 +478,15 @@ function ChatLateral({ conversa, onClose }: { conversa: Conversa; onClose:()=>vo
     } finally { setEnviando(false); }
   };
 
-  useEffect(()=>{carregar();},[conversa.id]);
+  useEffect(()=>{
+    carregar();
+    (async()=>{
+      const agId = await getAgenciaId();
+      if(!agId) return;
+      const {data}=await supabase.from("funis").select("id,nome").eq("agencia_id",agId).eq("ativo",true).order("nome");
+      setFunisDisponiveis(data||[]);
+    })();
+  },[conversa.id]);
 
   // Agrupar mensagens por dia
   const groupByDay = (msgs: Mensagem[]) => {
@@ -547,7 +558,41 @@ function ChatLateral({ conversa, onClose }: { conversa: Conversa; onClose:()=>vo
           ))}
           <div ref={endRef}/>
         </div>
-        <div style={{ padding:"10px 12px",borderTop:"1px solid #2e2e2e",background:"#1a1a1a",display:"flex",gap:"8px" }}>
+        <div style={{ padding:"10px 12px",borderTop:"1px solid #2e2e2e",background:"#1a1a1a",display:"flex",gap:"8px",position:"relative" }}>
+          {/* Botão Funis */}
+          {funisDisponiveis.length > 0 && (
+            <div style={{ position:"relative" }}>
+              <button onClick={()=>setShowFunis(!showFunis)} title="Disparar funil"
+                style={{ background:showFunis?"rgba(245,158,11,0.15)":"#222",border:`1px solid ${showFunis?"#f59e0b":"#2e2e2e"}`,borderRadius:"8px",padding:"8px",cursor:"pointer",color:showFunis?"#f59e0b":"#606060",flexShrink:0 }}>
+                <Zap size={14}/>
+              </button>
+              {showFunis && (
+                <div style={{ position:"absolute",bottom:"100%",left:0,marginBottom:"6px",background:"#1e1e1e",border:"1px solid #2e2e2e",borderRadius:"10px",padding:"6px",minWidth:"200px",zIndex:10,boxShadow:"0 4px 20px rgba(0,0,0,0.4)" }}>
+                  <p style={{ fontSize:"11px",color:"#606060",padding:"4px 8px",margin:0 }}>Disparar funil</p>
+                  {funisDisponiveis.map(f=>(
+                    <button key={f.id} disabled={disparandoFunil} onClick={async()=>{
+                      setDisparandoFunil(true);
+                      try {
+                        const agId = await getAgenciaId();
+                        await fetch("/api/funis/disparar",{
+                          method:"POST",headers:{"Content-Type":"application/json"},
+                          body:JSON.stringify({agencia_id:agId,funil_id:f.id,conversa_id:conversa.id,contato_numero:conversa.contato_numero,contato_jid:conversa.contato_jid||conversa.contato_numero,disparado_por:"manual"}),
+                        });
+                        setShowFunis(false);
+                        alert(`Funil "${f.nome}" disparado!`);
+                        setTimeout(carregar,1000);
+                      } catch{} finally{setDisparandoFunil(false);}
+                    }}
+                      style={{ display:"flex",alignItems:"center",gap:"8px",width:"100%",padding:"8px 10px",background:"none",border:"none",borderRadius:"6px",cursor:"pointer",color:"#f0f0f0",fontSize:"13px",textAlign:"left" }}
+                      onMouseOver={e=>(e.currentTarget.style.background="#2a2a2a")}
+                      onMouseOut={e=>(e.currentTarget.style.background="none")}>
+                      <Zap size={12} color="#f59e0b"/> {f.nome}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           <input className="form-input" placeholder="Mensagem..." value={texto}
             onChange={e=>setTexto(e.target.value)}
             onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();enviar();}}}

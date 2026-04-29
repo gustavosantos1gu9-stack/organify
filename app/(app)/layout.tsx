@@ -14,6 +14,7 @@ const hrefToModuloKey: Record<string, string> = {
   "/crm/dashboard": "crm",
   "/inbox/dashboard": "inbox",
   "/secretaria-ia": "secretaria_ia",
+  "/funis": "funis",
   "/relatorios-meta": "relatorios_meta",
   "/relatorios-meta/conexoes": "relatorios_conexoes",
   "/relatorios-meta/alertas": "relatorios_alertas",

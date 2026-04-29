@@ -730,9 +730,14 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // FOLLOW-UP: cancelar pendentes quando lead responde (não-bloqueante)
+      // FOLLOW-UP + FUNIS: cancelar pendentes quando lead responde (não-bloqueante)
       if (conversa?.id) {
         supabase.from("followup_fila")
+          .update({ status: "cancelado" })
+          .eq("conversa_id", conversa.id)
+          .eq("status", "pendente")
+          .then(() => {});
+        supabase.from("funil_fila")
           .update({ status: "cancelado" })
           .eq("conversa_id", conversa.id)
           .eq("status", "pendente")
