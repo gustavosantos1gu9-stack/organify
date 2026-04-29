@@ -235,7 +235,7 @@ ${funisAtivos.map(f => `- "${f.nome}"${f.descricao ? `: ${f.descricao}` : ""}`).
     }
 
     // 6c. Detectar comando de funil na resposta da IA
-    const funilMatch = resposta.match(/\[FUNIL:(.+?)\]/);
+    const funilMatch = resposta.match(/\[(?:FUNIL|DISPARAR FUNIL|DISPARAR_FUNIL)[:\s]+(.+?)\]/i);
     if (funilMatch) {
       const nomeFunil = funilMatch[1].trim();
       const { data: funil } = await supabase.from("funis")
@@ -257,7 +257,7 @@ ${funisAtivos.map(f => `- "${f.nome}"${f.descricao ? `: ${f.descricao}` : ""}`).
           console.log(`[IA] Funil disparado: ${nomeFunil}`);
         }
       }
-      resposta = resposta.replace(/\[FUNIL:[^\]]+\]/, "").trim();
+      resposta = resposta.replace(/\[(?:FUNIL|DISPARAR FUNIL|DISPARAR_FUNIL)[:\s]+[^\]]+\]/gi, "").trim();
     }
 
     // 7. Enviar via Evolution API
