@@ -311,7 +311,7 @@ export default function FunisPage() {
                 <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 12, color: "#666" }}>
                   <span>{f.etapas.length} etapa{f.etapas.length !== 1 ? "s" : ""}</span>
                   <span style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                    {[...new Set(f.etapas.map(e => e.tipo_conteudo))].map(t => (
+                    {Array.from(new Set(f.etapas.map(e => e.tipo_conteudo))).map(t => (
                       <span key={t} title={tipoLabel[t]} style={{ color: "#888" }}>{tipoIcon[t]}</span>
                     ))}
                   </span>

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID!;
 const REDIRECT_URI = `${process.env.NEXT_PUBLIC_APP_URL || "https://salxconvert-blond.vercel.app"}/api/auth/google/callback`;
 

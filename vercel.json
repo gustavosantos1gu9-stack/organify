@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/cron/funis",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 9 * * *"
     }
   ]
 }
