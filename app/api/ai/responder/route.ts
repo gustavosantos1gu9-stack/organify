@@ -176,6 +176,11 @@ ${funisAtivos.map(f => `- "${f.nome}"${f.descricao ? `: ${f.descricao}` : ""}`).
 
     if (!resposta) return NextResponse.json({ ok: false, motivo: "Sem resposta da IA" });
 
+    // 6a. Se a IA decidiu não responder, abortar silenciosamente
+    if (resposta.trim().toUpperCase() === "NAO_RESPONDER" || resposta.trim().toUpperCase() === "NÃO_RESPONDER") {
+      return NextResponse.json({ ok: false, motivo: "IA decidiu não responder (fora do fluxo)" });
+    }
+
     // 6b. Detectar comando de agendamento na resposta da IA
     const agendarMatch = resposta.match(/\[AGENDAR:(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})\]/);
     if (agendarMatch && ag.agendamento_ativo && ag.google_calendar_refresh_token) {

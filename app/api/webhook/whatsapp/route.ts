@@ -745,7 +745,20 @@ export async function POST(req: NextRequest) {
       }
 
       // IA AUTO-RESPONDER (não-bloqueante)
+      // Só chamar se: conversa nova OU IA já respondeu nessa conversa antes
       if (conteudo && tipo === "text" && conversa?.id) {
+        let deveResponder = false;
+        if (eraNovaConversa) {
+          // Conversa nova — IA sempre responde na primeira mensagem
+          deveResponder = true;
+        } else {
+          // Conversa existente — só responder se a IA já participou desta conversa
+          const { data: iaJaRespondeu } = await supabase.from("mensagens")
+            .select("id").eq("conversa_id", conversa.id).eq("enviada_por_ia", true).limit(1);
+          deveResponder = !!(iaJaRespondeu?.length);
+        }
+
+        if (deveResponder) {
         fetch(`${APP_URL}/api/ai/responder`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -767,6 +780,7 @@ export async function POST(req: NextRequest) {
             contato_jid: remoteJid,
           }),
         }).catch(() => {});
+        } // fecha deveResponder
       }
     }
 
