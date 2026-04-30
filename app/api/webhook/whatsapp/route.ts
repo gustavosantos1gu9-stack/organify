@@ -745,29 +745,31 @@ export async function POST(req: NextRequest) {
       }
 
       // IA AUTO-RESPONDER (não-bloqueante)
-      // Só chamar se: conversa nova (com mensagem gatilho) OU IA já respondeu nessa conversa
+      // Chamar se: mensagem bate com gatilho OU IA já respondeu nessa conversa
       if (conteudo && tipo === "text" && conversa?.id) {
         let deveResponder = false;
-        if (eraNovaConversa) {
-          // Conversa nova — verificar se a mensagem bate com algum gatilho configurado
-          const { data: agConfig } = await supabase.from("agencias")
-            .select("ia_mensagens_gatilho").eq("id", agencia.id).single();
-          let gatilhos: string[] = [];
-          try { gatilhos = agConfig?.ia_mensagens_gatilho ? JSON.parse(agConfig.ia_mensagens_gatilho) : []; } catch {}
 
-          if (gatilhos.length > 0) {
-            // Tem gatilhos configurados — só responder se a mensagem bate
-            const conteudoLower = conteudo.toLowerCase().trim();
-            deveResponder = gatilhos.some(g => {
-              const gatilhoLower = g.toLowerCase().trim();
-              return gatilhoLower && (conteudoLower.includes(gatilhoLower) || gatilhoLower.includes(conteudoLower));
-            });
-          } else {
-            // Sem gatilhos — responde todas as conversas novas
-            deveResponder = true;
-          }
+        // Verificar gatilhos configurados
+        const { data: agConfig } = await supabase.from("agencias")
+          .select("ia_mensagens_gatilho").eq("id", agencia.id).single();
+        let gatilhos: string[] = [];
+        try { gatilhos = agConfig?.ia_mensagens_gatilho ? JSON.parse(agConfig.ia_mensagens_gatilho) : []; } catch {}
+
+        // Verificar se a mensagem bate com algum gatilho
+        const conteudoLower = conteudo.toLowerCase().trim();
+        const bateGatilho = gatilhos.length > 0 && gatilhos.some(g => {
+          const gatilhoLower = g.toLowerCase().trim();
+          return gatilhoLower && (conteudoLower.includes(gatilhoLower) || gatilhoLower.includes(conteudoLower));
+        });
+
+        if (bateGatilho) {
+          // Mensagem bate com gatilho — responder sempre (nova ou existente)
+          deveResponder = true;
+        } else if (eraNovaConversa && gatilhos.length === 0) {
+          // Conversa nova sem gatilhos configurados — responder todas
+          deveResponder = true;
         } else {
-          // Conversa existente — só responder se a IA já participou desta conversa
+          // Conversa existente — só responder se a IA já participou
           const { data: iaJaRespondeu } = await supabase.from("mensagens")
             .select("id").eq("conversa_id", conversa.id).eq("enviada_por_ia", true).limit(1);
           deveResponder = !!(iaJaRespondeu?.length);
