@@ -745,12 +745,27 @@ export async function POST(req: NextRequest) {
       }
 
       // IA AUTO-RESPONDER (não-bloqueante)
-      // Só chamar se: conversa nova OU IA já respondeu nessa conversa antes
+      // Só chamar se: conversa nova (com mensagem gatilho) OU IA já respondeu nessa conversa
       if (conteudo && tipo === "text" && conversa?.id) {
         let deveResponder = false;
         if (eraNovaConversa) {
-          // Conversa nova — IA sempre responde na primeira mensagem
-          deveResponder = true;
+          // Conversa nova — verificar se a mensagem bate com algum gatilho configurado
+          const { data: agConfig } = await supabase.from("agencias")
+            .select("ia_mensagens_gatilho").eq("id", agencia.id).single();
+          let gatilhos: string[] = [];
+          try { gatilhos = agConfig?.ia_mensagens_gatilho ? JSON.parse(agConfig.ia_mensagens_gatilho) : []; } catch {}
+
+          if (gatilhos.length > 0) {
+            // Tem gatilhos configurados — só responder se a mensagem bate
+            const conteudoLower = conteudo.toLowerCase().trim();
+            deveResponder = gatilhos.some(g => {
+              const gatilhoLower = g.toLowerCase().trim();
+              return gatilhoLower && (conteudoLower.includes(gatilhoLower) || gatilhoLower.includes(conteudoLower));
+            });
+          } else {
+            // Sem gatilhos — responde todas as conversas novas
+            deveResponder = true;
+          }
         } else {
           // Conversa existente — só responder se a IA já participou desta conversa
           const { data: iaJaRespondeu } = await supabase.from("mensagens")

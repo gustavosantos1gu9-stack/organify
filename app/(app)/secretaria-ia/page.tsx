@@ -19,6 +19,7 @@ export default function SecretariaIAPage() {
   const [contexto, setContexto] = useState(10);
   const [horarioInicio, setHorarioInicio] = useState("");
   const [horarioFim, setHorarioFim] = useState("");
+  const [mensagensGatilho, setMensagensGatilho] = useState<string[]>([""]);
 
   // Prompt estruturado
   const [nomeSecretaria, setNomeSecretaria] = useState("");
@@ -155,6 +156,10 @@ export default function SecretariaIAPage() {
         if (matchEmpresa) setNomeEmpresa(matchEmpresa[1]);
       }
       setFollowupAtivo(data.followup_ativo || false);
+      try {
+        const gatilhos = data.ia_mensagens_gatilho ? JSON.parse(data.ia_mensagens_gatilho) : [""];
+        if (Array.isArray(gatilhos) && gatilhos.length) setMensagensGatilho(gatilhos);
+      } catch { setMensagensGatilho([""]); }
       setAgendamentoAtivo(data.agendamento_ativo || false);
       setGoogleCalEmail(data.google_calendar_email || "");
       setGoogleCalAtivo(data.google_calendar_ativo || false);
@@ -204,6 +209,7 @@ export default function SecretariaIAPage() {
         reuniao_horario_fim: reuniaoHorarioFim,
         reuniao_dias_semana: reuniaoDias,
         reuniao_intervalo_minutos: reuniaoIntervalo,
+        ia_mensagens_gatilho: JSON.stringify(mensagensGatilho.filter(m => m.trim())),
       }).eq("id", agId);
       alert("Secretária IA salva!");
     } catch { alert("Erro ao salvar"); }
@@ -497,6 +503,30 @@ export default function SecretariaIAPage() {
               </button>
             </div>
             {!apiKey && <p style={{ fontSize: 11, color: "#ef4444", marginTop: 6 }}>Preencha a API Key para testar</p>}
+          </div>
+
+          {/* Mensagens Gatilho */}
+          <div style={cardStyle}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 8 }}>
+              <Zap size={16} color="#22c55e" /> Mensagens Gatilho
+            </h3>
+            <p style={{ fontSize: 12, color: "#606060", marginBottom: 14 }}>
+              A IA só responde conversas novas que começam com uma dessas mensagens (ex: mensagem automática do anúncio). Se vazio, responde todas as conversas novas.
+            </p>
+            {mensagensGatilho.map((m, i) => (
+              <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+                <input style={{ ...inputStyle, flex: 1 }} placeholder='Ex: Oi, tenho interesse e quero mais informações!'
+                  value={m} onChange={e => { const n = [...mensagensGatilho]; n[i] = e.target.value; setMensagensGatilho(n); }} />
+                {mensagensGatilho.length > 1 && (
+                  <button onClick={() => setMensagensGatilho(mensagensGatilho.filter((_, j) => j !== i))}
+                    style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: 4 }}><Trash2 size={14} /></button>
+                )}
+              </div>
+            ))}
+            <button onClick={() => setMensagensGatilho([...mensagensGatilho, ""])}
+              style={{ background: "none", border: "1px dashed #2e2e2e", borderRadius: 6, padding: "6px 12px", color: "#606060", fontSize: 12, cursor: "pointer", width: "100%" }}>
+              <Plus size={12} /> Adicionar mensagem
+            </button>
           </div>
 
           {/* Config técnica */}
