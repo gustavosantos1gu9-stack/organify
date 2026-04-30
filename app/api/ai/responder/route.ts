@@ -23,10 +23,11 @@ export async function POST(req: NextRequest) {
     if (!ag.openai_ativo || !ag.openai_key) return NextResponse.json({ ok: false, motivo: "IA não ativa" });
     if (!ag.openai_prompt_sistema) return NextResponse.json({ ok: false, motivo: "Prompt não configurado" });
 
-    // 2. Verificar horário de funcionamento
+    // 2. Verificar horário de funcionamento (horário de Brasília)
     if (ag.openai_horario_inicio && ag.openai_horario_fim) {
       const agora = new Date();
-      const hhmm = `${String(agora.getHours()).padStart(2, "0")}:${String(agora.getMinutes()).padStart(2, "0")}`;
+      const brTime = new Date(agora.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+      const hhmm = `${String(brTime.getHours()).padStart(2, "0")}:${String(brTime.getMinutes()).padStart(2, "0")}`;
       if (hhmm < ag.openai_horario_inicio || hhmm > ag.openai_horario_fim) {
         return NextResponse.json({ ok: false, motivo: "Fora do horário" });
       }
