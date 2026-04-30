@@ -233,10 +233,15 @@ export default function RecorrenciasPage() {
     const rec = recs.find(r => r.id === id);
     if (rec) {
       const agId = await getAgenciaId();
-      let q = supabase.from("lancamentos_futuros").delete().eq("descricao", rec.descricao).eq("pago", false);
-      if (rec.cliente_id) q = q.eq("cliente_id", rec.cliente_id);
-      else if (agId) q = q.eq("agencia_id", agId);
-      await q;
+      if (rec.cliente_id) {
+        // Deletar por cliente_id (mais confiável que por descrição)
+        await supabase.from("lancamentos_futuros").delete()
+          .eq("cliente_id", rec.cliente_id).eq("pago", false);
+      } else if (agId) {
+        // Sem cliente — deletar por descrição + agencia
+        await supabase.from("lancamentos_futuros").delete()
+          .eq("descricao", rec.descricao).eq("pago", false).eq("agencia_id", agId);
+      }
     }
     await supabase.from("recorrencias").delete().eq("id", id);
     carregar();
