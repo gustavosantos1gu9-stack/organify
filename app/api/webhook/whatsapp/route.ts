@@ -748,7 +748,8 @@ export async function POST(req: NextRequest) {
       } // fecha else do isHistorica
 
       // IA AUTO-RESPONDER (não-bloqueante)
-      if (conteudo && tipo === "text" && conversa?.id) {
+      console.log(`[webhook-ia] conteudo="${(conteudo||'').slice(0,30)}" tipo=${tipo} conversa=${conversa?.id} ia_ativada=${conversa?.ia_ativada} isHistorica=${isHistorica}`);
+      if (conteudo && conversa?.id) {
         let deveResponder = false;
 
         if (conversa.ia_ativada) {
