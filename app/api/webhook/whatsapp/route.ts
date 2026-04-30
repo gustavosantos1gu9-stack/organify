@@ -295,10 +295,11 @@ export async function POST(req: NextRequest) {
         }, { onConflict: "mensagem_id" });
       }
 
-      // Se mensagem histórica (sync inicial), pular rastreamento, automações, IA e pixel
+      // Se mensagem histórica (sync inicial), pular rastreamento e pixel (mas NÃO pular IA)
       if (isHistorica) {
-        return NextResponse.json({ ok: true });
-      }
+        // Salvar mensagem já foi feito acima, mas pular tracking/pixel/follow-up
+        // IA será verificada abaixo com lógica de gatilho
+      } else {
 
       // ============================================
       // RASTREAMENTO — cruzar com dados pendentes
@@ -744,35 +745,40 @@ export async function POST(req: NextRequest) {
           .then(() => {});
       }
 
+      } // fecha else do isHistorica
+
       // IA AUTO-RESPONDER (não-bloqueante)
-      // Chamar se: mensagem bate com gatilho OU IA já respondeu nessa conversa
       if (conteudo && tipo === "text" && conversa?.id) {
         let deveResponder = false;
 
-        // Verificar gatilhos configurados
-        const { data: agConfig } = await supabase.from("agencias")
-          .select("ia_mensagens_gatilho").eq("id", agencia.id).single();
-        let gatilhos: string[] = [];
-        try { gatilhos = agConfig?.ia_mensagens_gatilho ? JSON.parse(agConfig.ia_mensagens_gatilho) : []; } catch {}
-
-        // Verificar se a mensagem bate com algum gatilho
-        const conteudoLower = conteudo.toLowerCase().trim();
-        const bateGatilho = gatilhos.length > 0 && gatilhos.some(g => {
-          const gatilhoLower = g.toLowerCase().trim();
-          return gatilhoLower && (conteudoLower.includes(gatilhoLower) || gatilhoLower.includes(conteudoLower));
-        });
-
-        if (bateGatilho) {
-          // Mensagem bate com gatilho — responder sempre (nova ou existente)
-          deveResponder = true;
-        } else if (eraNovaConversa && gatilhos.length === 0) {
-          // Conversa nova sem gatilhos configurados — responder todas
+        if (conversa.ia_ativada) {
+          // Conversa já foi ativada antes — IA responde sempre
           deveResponder = true;
         } else {
-          // Conversa existente — só responder se a IA já participou
-          const { data: iaJaRespondeu } = await supabase.from("mensagens")
-            .select("id").eq("conversa_id", conversa.id).eq("enviada_por_ia", true).limit(1);
-          deveResponder = !!(iaJaRespondeu?.length);
+          // Conversa nunca ativada — verificar se mensagem bate com gatilho
+          const { data: agConfig } = await supabase.from("agencias")
+            .select("ia_mensagens_gatilho").eq("id", agencia.id).single();
+          let gatilhos: string[] = [];
+          try { gatilhos = agConfig?.ia_mensagens_gatilho ? JSON.parse(agConfig.ia_mensagens_gatilho) : []; } catch {}
+
+          if (gatilhos.length === 0) {
+            // Sem gatilhos configurados — ativar pra todas as conversas novas
+            if (eraNovaConversa) {
+              deveResponder = true;
+              await supabase.from("conversas").update({ ia_ativada: true }).eq("id", conversa.id);
+            }
+          } else {
+            // Tem gatilhos — verificar se a mensagem bate
+            const conteudoLower = conteudo.toLowerCase().trim();
+            const bateGatilho = gatilhos.some(g => {
+              const gatilhoLower = g.toLowerCase().trim();
+              return gatilhoLower && (conteudoLower.includes(gatilhoLower) || gatilhoLower.includes(conteudoLower));
+            });
+            if (bateGatilho) {
+              deveResponder = true;
+              await supabase.from("conversas").update({ ia_ativada: true }).eq("id", conversa.id);
+            }
+          }
         }
 
         if (deveResponder) {
