@@ -295,11 +295,8 @@ export async function POST(req: NextRequest) {
         }, { onConflict: "mensagem_id" });
       }
 
-      // Se mensagem histórica (sync inicial), pular rastreamento e pixel (mas NÃO pular IA)
-      if (isHistorica) {
-        // Salvar mensagem já foi feito acima, mas pular tracking/pixel/follow-up
-        // IA será verificada abaixo com lógica de gatilho
-      } else {
+      // Se mensagem histórica (sync inicial), pular rastreamento e pixel
+      if (!isHistorica) {
 
       // ============================================
       // RASTREAMENTO — cruzar com dados pendentes
@@ -745,7 +742,7 @@ export async function POST(req: NextRequest) {
           .then(() => {});
       }
 
-      } // fecha else do isHistorica
+      } // fecha !isHistorica
 
       // IA AUTO-RESPONDER (não-bloqueante)
       console.log(`[webhook-ia] conteudo="${(conteudo||'').slice(0,30)}" tipo=${tipo} conversa=${conversa?.id} ia_ativada=${conversa?.ia_ativada} isHistorica=${isHistorica}`);
