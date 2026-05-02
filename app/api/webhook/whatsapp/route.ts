@@ -779,8 +779,10 @@ export async function POST(req: NextRequest) {
           }
         }
 
+        console.log(`[webhook-ia] deveResponder=${deveResponder} ia_ativada=${conversa.ia_ativada} agencia=${agencia.id} conversa=${conversa.id}`);
         if (deveResponder) {
         try {
+          console.log(`[webhook-ia] chamando responder para conversa ${conversa.id}...`);
           const iaRes = await fetch(`${APP_URL}/api/ai/responder`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -791,9 +793,9 @@ export async function POST(req: NextRequest) {
             }),
           });
           const iaData = await iaRes.json();
-          console.log(`[webhook-ia] responder result: ok=${iaData.ok} motivo=${iaData.motivo || ''}`);
+          console.log(`[webhook-ia] resultado: ok=${iaData.ok} motivo=${iaData.motivo || ''} resposta=${(iaData.resposta || '').slice(0,50)}`);
         } catch (iaErr: any) {
-          console.error(`[webhook-ia] fetch error:`, iaErr.message);
+          console.error(`[webhook-ia] ERRO fetch:`, iaErr.message);
         }
 
         // FOLLOW-UP: agendar novas etapas (não-bloqueante)
