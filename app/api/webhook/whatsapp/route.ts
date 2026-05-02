@@ -780,15 +780,21 @@ export async function POST(req: NextRequest) {
         }
 
         if (deveResponder) {
-        fetch(`${APP_URL}/api/ai/responder`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            agencia_id: agencia.id,
-            conversa_id: conversa.id,
-            mensagem_lead: conteudo,
-          }),
-        }).catch(() => {});
+        try {
+          const iaRes = await fetch(`${APP_URL}/api/ai/responder`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              agencia_id: agencia.id,
+              conversa_id: conversa.id,
+              mensagem_lead: conteudo,
+            }),
+          });
+          const iaData = await iaRes.json();
+          console.log(`[webhook-ia] responder result: ok=${iaData.ok} motivo=${iaData.motivo || ''}`);
+        } catch (iaErr: any) {
+          console.error(`[webhook-ia] fetch error:`, iaErr.message);
+        }
 
         // FOLLOW-UP: agendar novas etapas (não-bloqueante)
         fetch(`${APP_URL}/api/ai/followup/agendar`, {
