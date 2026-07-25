@@ -8,7 +8,7 @@ interface Conversa {
   id: string; contato_numero: string; contato_nome: string; contato_foto?: string;
   contato_jid?: string; ultima_mensagem: string; ultima_mensagem_at: string;
   primeira_mensagem_at?: string; etapa_alterada_at?: string; nao_lidas: number;
-  origem?: string; etapa_jornada?: string; utm_source?: string; utm_medium?: string;
+  origem?: string; etapa_jornada?: string; leadgen_id?: string; utm_source?: string; utm_medium?: string;
   utm_campaign?: string; utm_content?: string; link_nome?: string; fbclid?: string;
   nome_anuncio?: string; created_at: string;
 }
@@ -45,14 +45,16 @@ function formatarNumero(n: string) {
 
 function toLocalDate(iso: string) {
   if (!iso) return "";
-  // Se já tem offset -03:00, extrair a data local direto sem converter
-  const matchOffset = iso.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})([+-]\d{2}:\d{2})$/);
-  if (matchOffset) return matchOffset[1];
-  // Se tem T mas sem offset (UTC), converter para BRT (-3h)
+  // Se já tem offset -03:00 (BRT), extrair a data local direto
+  const matchBRT = iso.match(/^(\d{4}-\d{2}-\d{2})T[\d:.]*-03:00$/);
+  if (matchBRT) return matchBRT[1];
+  // Para qualquer outro formato com T (UTC +00:00 ou outro offset), converter para BRT (-3h)
   if (iso.includes("T")) {
     const d = new Date(iso);
-    const brt = new Date(d.getTime() - 3 * 60 * 60 * 1000);
-    return `${brt.getUTCFullYear()}-${String(brt.getUTCMonth()+1).padStart(2,"0")}-${String(brt.getUTCDate()).padStart(2,"0")}`;
+    if (!isNaN(d.getTime())) {
+      const brt = new Date(d.getTime() - 3 * 60 * 60 * 1000);
+      return `${brt.getUTCFullYear()}-${String(brt.getUTCMonth()+1).padStart(2,"0")}-${String(brt.getUTCDate()).padStart(2,"0")}`;
+    }
   }
   // Só data, retornar direto
   return iso.split(" ")[0].split("T")[0];
@@ -72,8 +74,27 @@ function Avatar({ nome, foto, size=32 }: { nome: string; foto?: string; size?: n
 
 function OrigemBadge({ origem }: { origem?: string }) {
   if (!origem || origem==="Não Rastreada") return <span style={{ fontSize:"11px", color:"#505050" }}>Não rastreada</span>;
-  if (origem==="Meta Ads") return <span style={{ fontSize:"11px", color:"#1877f2" }}>🔷 Meta Ads</span>;
+  if (origem==="Meta Ads") return (
+    <span style={{ fontSize:"11px", display:"inline-flex", alignItems:"center", gap:"3px" }}>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z" fill="#1877f2"/>
+        <path d="M15.5 8H13.5V7C13.5 6.448 13.948 6 14.5 6H15.5V4H13.5C11.843 4 10.5 5.343 10.5 7V8H9V10H10.5V20H13.5V10H15.5L15.5 8Z" fill="white"/>
+      </svg>
+      <span style={{ color:"#1877f2", fontWeight:600 }}>Meta Ads</span>
+    </span>
+  );
   if (origem==="Google Ads") return <span style={{ fontSize:"11px", color:"#ea4335" }}>🔺 Google Ads</span>;
+  if (origem==="Social Selling") return (
+    <span style={{ fontSize:"11px", display:"inline-flex", alignItems:"center", gap:"3px" }}>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="ig-grad" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stopColor="#f09433"/><stop offset="50%" stopColor="#dc2743"/><stop offset="100%" stopColor="#bc1888"/></linearGradient></defs>
+        <rect x="2" y="2" width="20" height="20" rx="5" ry="5" fill="url(#ig-grad)"/>
+        <circle cx="12" cy="12" r="4.5" stroke="white" strokeWidth="1.8" fill="none"/>
+        <circle cx="17.5" cy="6.5" r="1.2" fill="white"/>
+      </svg>
+      <span style={{ background:"linear-gradient(45deg,#f09433,#dc2743,#bc1888)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", fontWeight:600 }}>Social Selling</span>
+    </span>
+  );
   return <span style={{ fontSize:"11px", color:"#a0a0a0" }}>🌐 {origem}</span>;
 }
 
@@ -126,15 +147,19 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, eta
       conversa_id: conversa.id, agencia_id: agId,
       etapa_anterior: etapaAnterior || null, etapa_nova: novaEtapa, alterado_por: "manual",
     });
-    // Disparar conversão no Meta CAPI
-    try {
-      const pixelRes = await fetch("/api/pixel", {
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ agencia_id:agId, conversa_id:conversa.id, etapa_nome:novaEtapa, phone:conversa.contato_numero, contato_nome:conversa.contato_nome, fbclid:editDados.fbclid||conversa.fbclid, utm_campaign:editDados.utm_campaign||conversa.utm_campaign, utm_content:editDados.utm_content||conversa.utm_content, is_ctwa: conversa.contato_jid?.includes("@lid") || conversa.origem === "Meta Ads" || !!(editDados.fbclid || conversa.fbclid) }),
-      });
-      const pixelData = await pixelRes.json();
-      if (!pixelData.ok) console.warn("Pixel:", pixelData.motivo || pixelData.error);
-    } catch(e) { console.error("Pixel erro:", e); }
+    console.log(`[salvarEtapa] ${conversa.contato_nome}: ${etapaAnterior} → ${novaEtapa}`);
+    // Disparar Pixel + Conversion Leads em paralelo (sem bloquear um ao outro)
+    const pixelPromise = fetch("/api/pixel", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ agencia_id:agId, conversa_id:conversa.id, etapa_nome:novaEtapa, phone:conversa.contato_numero, contato_nome:conversa.contato_nome, fbclid:editDados.fbclid||conversa.fbclid, utm_campaign:editDados.utm_campaign||conversa.utm_campaign, utm_content:editDados.utm_content||conversa.utm_content, is_ctwa: conversa.contato_jid?.includes("@lid") || conversa.origem === "Meta Ads" || !!(editDados.fbclid || conversa.fbclid) }),
+    }).then(r=>r.json()).then(d=>{ if(!d.ok) console.warn("Pixel:",d.motivo||d.error); }).catch(e=>console.error("Pixel erro:",e));
+
+    const convPromise = fetch("/api/meta/conversion-lead", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conversa_id: conversa.id, etapa_nova: novaEtapa, agencia_id: agId }),
+    }).then(r=>r.json()).then(d=>console.log("[Conversion Lead]",d)).catch(e=>console.error("Conversion Lead erro:",e));
+
+    await Promise.allSettled([pixelPromise, convPromise]);
     setSalvando(false);
   };
 
@@ -402,6 +427,7 @@ function ChatLateral({ conversa, onClose }: { conversa: Conversa; onClose:()=>vo
   const [showFunis, setShowFunis] = useState(false);
   const [funisDisponiveis, setFunisDisponiveis] = useState<{id:string;nome:string}[]>([]);
   const [disparandoFunil, setDisparandoFunil] = useState(false);
+  const [funilFeedback, setFunilFeedback] = useState("");
   const LIMIT = 50;
   const endRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
@@ -469,12 +495,26 @@ function ChatLateral({ conversa, onClose }: { conversa: Conversa; onClose:()=>vo
       }
       if (!evoUrl) return;
       const jid = conversa.contato_jid || `${conversa.contato_numero}@s.whatsapp.net`;
-      await fetch(`${evoUrl}/message/sendText/${ag.whatsapp_instancia}`,{
+      const textoEnviar = texto.trim();
+      const res = await fetch(`${evoUrl}/message/sendText/${ag.whatsapp_instancia}`,{
         method:"POST", headers:{"apikey":evoKey,"Content-Type":"application/json"},
-        body:JSON.stringify({number:jid,text:texto}),
+        body:JSON.stringify({number:jid,text:textoEnviar}),
+      });
+      if (!res.ok) {
+        const errBody = await res.text().catch(() => "");
+        alert(`Erro ao enviar mensagem (${res.status}): ${errBody || "Verifique a conexão WhatsApp"}`);
+        return;
+      }
+      // Salvar mensagem no banco imediatamente
+      await supabase.from("mensagens").insert({
+        conversa_id: conversa.id,
+        conteudo: textoEnviar,
+        de_mim: true,
+        enviada_por_ia: false,
+        created_at: new Date().toISOString(),
       });
       setTexto("");
-      setTimeout(carregar,500);
+      setTimeout(carregar, 300);
     } finally { setEnviando(false); }
   };
 
@@ -558,6 +598,12 @@ function ChatLateral({ conversa, onClose }: { conversa: Conversa; onClose:()=>vo
           ))}
           <div ref={endRef}/>
         </div>
+        {funilFeedback && (
+          <div style={{ padding:"6px 12px",background:"#1a2e1a",borderTop:"1px solid #22c55e33",display:"flex",alignItems:"center",gap:"6px",animation:"fadeIn 0.2s ease" }}>
+            <Zap size={12} color="#22c55e"/>
+            <span style={{ fontSize:"12px",color:"#22c55e" }}>{funilFeedback}</span>
+          </div>
+        )}
         <div style={{ padding:"10px 12px",borderTop:"1px solid #2e2e2e",background:"#1a1a1a",display:"flex",gap:"8px",position:"relative" }}>
           {/* Botão Funis */}
           {funisDisponiveis.length > 0 && (
@@ -572,15 +618,18 @@ function ChatLateral({ conversa, onClose }: { conversa: Conversa; onClose:()=>vo
                   {funisDisponiveis.map(f=>(
                     <button key={f.id} disabled={disparandoFunil} onClick={async()=>{
                       setDisparandoFunil(true);
+                      setShowFunis(false);
+                      setFunilFeedback(`Enviando "${f.nome}"...`);
                       try {
                         const agId = await getAgenciaId();
-                        await fetch("/api/funis/disparar",{
+                        fetch("/api/funis/disparar",{
                           method:"POST",headers:{"Content-Type":"application/json"},
                           body:JSON.stringify({agencia_id:agId,funil_id:f.id,conversa_id:conversa.id,contato_numero:conversa.contato_numero,contato_jid:conversa.contato_jid||conversa.contato_numero,disparado_por:"manual"}),
-                        });
-                        setShowFunis(false);
-                        alert(`Funil "${f.nome}" disparado!`);
-                        setTimeout(carregar,1000);
+                        }).catch(()=>{});
+                        setFunilFeedback(`✓ "${f.nome}" disparado!`);
+                        setTimeout(()=>carregar(),3000);
+                        setTimeout(()=>carregar(),8000);
+                        setTimeout(()=>setFunilFeedback(""),4000);
                       } catch{} finally{setDisparandoFunil(false);}
                     }}
                       style={{ display:"flex",alignItems:"center",gap:"8px",width:"100%",padding:"8px 10px",background:"none",border:"none",borderRadius:"6px",cursor:"pointer",color:"#f0f0f0",fontSize:"13px",textAlign:"left" }}
@@ -689,6 +738,7 @@ function FiltrosAvancados({ conversas, filtros, onChange, onClose, etapas }: { c
               <select className="form-input" value={local.origem||""} onChange={e=>set("origem",e.target.value)}>
                 <option value="">Todas</option>
                 <option value="Meta Ads">Meta Ads</option>
+                <option value="Formulário Meta">Formulário Meta</option>
                 <option value="Google Ads">Google Ads</option>
                 <option value="Outras Origens">Outras Origens</option>
                 <option value="Não Rastreada">Não Rastreada</option>
@@ -704,19 +754,26 @@ function FiltrosAvancados({ conversas, filtros, onChange, onClose, etapas }: { c
           </div>
 
           {/* Datas */}
-          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px" }}>
-            <div className="form-group">
-              <label className="form-label">Data da Primeira Mensagem</label>
-              <input className="form-input" type="date" value={local.dataPrimeiraDe||""} onChange={e=>set("dataPrimeiraDe",e.target.value)}/>
-            </div>
-            <div className="form-group">
-              <label className="form-label">Data da Última Alteração de Etapa</label>
-              <input className="form-input" type="date" value={local.dataEtapaDe||""} onChange={e=>set("dataEtapaDe",e.target.value)}/>
+          <div className="form-group">
+            <label className="form-label">Data da Última Mensagem</label>
+            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px" }}>
+              <input className="form-input" type="date" placeholder="De" value={local.dataUltimaDe||""} onChange={e=>set("dataUltimaDe",e.target.value)} title="De"/>
+              <input className="form-input" type="date" placeholder="Até" value={local.dataUltimaAte||""} onChange={e=>set("dataUltimaAte",e.target.value)} title="Até"/>
             </div>
           </div>
           <div className="form-group">
-            <label className="form-label">Data da Última Mensagem</label>
-            <input className="form-input" type="date" value={local.dataUltimaDe||""} onChange={e=>set("dataUltimaDe",e.target.value)}/>
+            <label className="form-label">Data da Primeira Mensagem</label>
+            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px" }}>
+              <input className="form-input" type="date" placeholder="De" value={local.dataPrimeiraDe||""} onChange={e=>set("dataPrimeiraDe",e.target.value)} title="De"/>
+              <input className="form-input" type="date" placeholder="Até" value={local.dataPrimeiraAte||""} onChange={e=>set("dataPrimeiraAte",e.target.value)} title="Até"/>
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Data da Última Alteração de Etapa</label>
+            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px" }}>
+              <input className="form-input" type="date" placeholder="De" value={local.dataEtapaDe||""} onChange={e=>set("dataEtapaDe",e.target.value)} title="De"/>
+              <input className="form-input" type="date" placeholder="Até" value={local.dataEtapaAte||""} onChange={e=>set("dataEtapaAte",e.target.value)} title="Até"/>
+            </div>
           </div>
 
           {/* UTMs */}
@@ -797,6 +854,7 @@ export default function InboxPage() {
   const [detalhes, setDetalhes] = useState<Conversa|null>(null);
   const [chatDireto, setChatDireto] = useState<Conversa|null>(null);
   const [sincronizandoTudo, setSincronizandoTudo] = useState(false);
+  const [syncLeadsMeta, setSyncLeadsMeta] = useState(false);
   const [syncProgresso, setSyncProgresso] = useState("");
   const [autoRastreando, setAutoRastreando] = useState(false);
   const [importandoTintim, setImportandoTintim] = useState(false);
@@ -963,7 +1021,8 @@ export default function InboxPage() {
     const f = filtros;
     if (f.origem && f.origem !== "") {
       if (f.origem === "Não Rastreada" && c.origem && c.origem !== "Não Rastreada") return false;
-      if (f.origem !== "Não Rastreada" && c.origem !== f.origem) return false;
+      else if (f.origem === "Outras Origens" && (!c.origem || c.origem === "Meta Ads" || c.origem === "Formulário Meta" || c.origem === "Google Ads" || c.origem === "Não Rastreada")) return false;
+      else if (f.origem !== "Não Rastreada" && f.origem !== "Outras Origens" && c.origem !== f.origem) return false;
     }
     if (f.etapas?.length && !f.etapas.includes(c.etapa_jornada)) return false;
     if (f.etapa && c.etapa_jornada !== f.etapa) return false;
@@ -987,8 +1046,9 @@ export default function InboxPage() {
   const kpis = {
     total: base.length,
     meta: base.filter(c=>c.origem==="Meta Ads").length,
+    formulario: base.filter(c=>c.origem==="Formulário Meta").length,
     google: base.filter(c=>c.origem==="Google Ads").length,
-    outras: base.filter(c=>c.origem&&c.origem!=="Meta Ads"&&c.origem!=="Google Ads"&&c.origem!=="Não Rastreada").length,
+    outras: base.filter(c=>c.origem&&c.origem!=="Meta Ads"&&c.origem!=="Google Ads"&&c.origem!=="Formulário Meta"&&c.origem!=="Não Rastreada").length,
     naoRastreada: base.filter(c=>!c.origem||c.origem==="Não Rastreada").length,
   };
 
@@ -1120,10 +1180,11 @@ export default function InboxPage() {
       </div>
 
       {/* KPIs clicáveis */}
-      <div style={{ display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:"10px",marginBottom:"20px" }}>
+      <div style={{ display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:"10px",marginBottom:"20px" }}>
         {[
           {icon:"💬",label:"Total",value:kpis.total,filtro:""},
           {icon:"🔷",label:"Meta Ads",value:kpis.meta,filtro:"Meta Ads"},
+          {icon:"📋",label:"Formulário Meta",value:kpis.formulario,filtro:"Formulário Meta"},
           {icon:"🔺",label:"Google Ads",value:kpis.google,filtro:"Google Ads"},
           {icon:"🌐",label:"Outras",value:kpis.outras,filtro:"Outras Origens"},
           {icon:"❌",label:"Não Rastreada",value:kpis.naoRastreada,filtro:"Não Rastreada"},
@@ -1166,6 +1227,21 @@ export default function InboxPage() {
           <button onClick={sincronizarTudo} disabled={sincronizandoTudo} className="btn-secondary" style={{ cursor:"pointer",fontSize:"12px",padding:"7px 12px" }}>
             <RefreshCw size={12} style={{ animation:sincronizandoTudo?"spin 1s linear infinite":"none" }}/>
             {sincronizandoTudo?(syncProgresso||"Importando..."):"Importar tudo"}
+          </button>
+          <button onClick={async()=>{
+            setSyncLeadsMeta(true);
+            try {
+              const agId = await getAgenciaId();
+              const res = await fetch("/api/meta/sync-leads",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({agencia_id:agId})});
+              const data = await res.json();
+              if(data.ok) alert(`Sync concluído! ${data.campanhas} campanhas, ${data.ads} anúncios, ${data.sincronizados} leads, ${data.novos} novos`);
+              else alert(`Erro: ${data.error||data.motivo}`);
+              carregar();
+            } catch(e:any){alert("Erro: "+e.message);}
+            setSyncLeadsMeta(false);
+          }} disabled={syncLeadsMeta} className="btn-secondary" style={{ cursor:"pointer",fontSize:"12px",padding:"7px 12px",borderColor:syncLeadsMeta?"#22c55e":"" }}>
+            <RefreshCw size={12} style={{ animation:syncLeadsMeta?"spin 1s linear infinite":"none" }}/>
+            {syncLeadsMeta?"Sincronizando...":"Sync Leads Meta"}
           </button>
           <input ref={fileInputRef} type="file" accept=".csv" style={{ display: "none" }}
             onChange={e => { if (e.target.files?.[0]) importarTintim(e.target.files[0]); e.target.value = ""; }} />
