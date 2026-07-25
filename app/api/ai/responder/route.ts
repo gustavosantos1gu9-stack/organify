@@ -435,6 +435,14 @@ ${funisAtivos.map(f => `- "${f.nome}"${f.descricao ? `: ${f.descricao}` : ""}`).
       if (!resposta) return NextResponse.json({ ok: false, motivo: "HANDOFF sem texto" });
     }
 
+    // Remover labels de instrução do prompt que a IA pode incluir erroneamente
+    // Ex: "Mensagem antes da mídia:\n\"texto\"" → "texto"
+    // Ex: "Mensagem após a mídia:\n\"texto\"" → "texto"
+    resposta = resposta
+      .replace(/^(?:Mensagem\s+)?(?:antes|após|depois)\s+da\s+mídia\s*:\s*\n?/gi, "")
+      .replace(/^Mensagem\s+(?:antes|após|depois|inicial|de\s+\w+)\s*:\s*\n?/gi, "")
+      .replace(/^["""'']/g, "").replace(/["""'']$/g, "")
+      .trim();
     // Remover qualquer tag de comando residual que não deveria ir pro lead
     resposta = resposta.replace(/\[SINALIZAR[^\]]*\]/gi, "").replace(/\[TRANSFERIR[^\]]*\]/gi, "").replace(/\[ENCAMINHAR[^\]]*\]/gi, "").trim();
     if (!resposta) return NextResponse.json({ ok: false, motivo: "Resposta ficou vazia após limpar comandos" });
