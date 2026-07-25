@@ -496,23 +496,26 @@ function ChatLateral({ conversa, onClose }: { conversa: Conversa; onClose:()=>vo
       if (!evoUrl) return;
       const jid = conversa.contato_jid || `${conversa.contato_numero}@s.whatsapp.net`;
       const textoEnviar = texto.trim();
+      console.log("[enviar] URL:", `${evoUrl}/message/sendText/${ag.whatsapp_instancia}`, "JID:", jid);
       const res = await fetch(`${evoUrl}/message/sendText/${ag.whatsapp_instancia}`,{
         method:"POST", headers:{"apikey":evoKey,"Content-Type":"application/json"},
         body:JSON.stringify({number:jid,text:textoEnviar}),
       });
+      const resBody = await res.text().catch(() => "");
+      console.log("[enviar] status:", res.status, "body:", resBody);
       if (!res.ok) {
-        const errBody = await res.text().catch(() => "");
-        alert(`Erro ao enviar mensagem (${res.status}): ${errBody || "Verifique a conexão WhatsApp"}`);
+        alert(`Erro ao enviar mensagem (${res.status}): ${resBody || "Verifique a conexão WhatsApp"}`);
         return;
       }
       // Salvar mensagem no banco imediatamente
-      await supabase.from("mensagens").insert({
+      const { error: insertErr } = await supabase.from("mensagens").insert({
         conversa_id: conversa.id,
         conteudo: textoEnviar,
         de_mim: true,
         enviada_por_ia: false,
         created_at: new Date().toISOString(),
       });
+      console.log("[enviar] insert erro:", insertErr);
       setTexto("");
       setTimeout(carregar, 300);
     } finally { setEnviando(false); }
