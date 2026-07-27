@@ -183,13 +183,12 @@ export async function POST(req: NextRequest) {
     const nomeWhatsApp = convDados?.contato_nome || "";
 
     // 5. Montar mensagens — injetar contexto de agendamento se ativo
-    let systemPromptFinal = ag.openai_prompt_sistema;
-
-    // Se já há respostas anteriores da IA, garantir que ela não aplique a regra de ativação
     const temRespostaAnterior = historico?.some(m => m.de_mim && m.enviada_por_ia);
-    if (temRespostaAnterior) {
-      systemPromptFinal += `\n\n⚠️ INSTRUÇÃO CRÍTICA: Esta conversa já está em andamento. Você JÁ enviou mensagens anteriores. NÃO aplique a regra de ativação nem o GATILHO DE ATIVAÇÃO. Ignore completamente a seção "GATILHO DE ATIVAÇÃO" do prompt. Continue a conversa normalmente a partir do histórico acima, seguindo o fluxo correto conforme a rota já iniciada.`;
-    }
+
+    // Se já há respostas anteriores da IA, sobrescrever regra de ativação ANTES do prompt
+    let systemPromptFinal = temRespostaAnterior
+      ? `CONVERSA JÁ ATIVA — REGRA ABSOLUTA: Esta conversa já foi iniciada e você já respondeu antes. A seção "GATILHO DE ATIVAÇÃO" NÃO se aplica aqui. Não use [SINALIZAR] nem fique em silêncio. Responda a mensagem atual continuando o fluxo de atendimento normalmente.\n\n---\n\n${ag.openai_prompt_sistema}`
+      : ag.openai_prompt_sistema;
 
     // Injetar nome do lead no contexto
     systemPromptFinal += `\n\nINFORMAÇÕES DO LEAD:
