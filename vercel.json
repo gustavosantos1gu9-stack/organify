@@ -11,6 +11,26 @@
     {
       "path": "/api/cron/funis",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/confirmacoes",
+      "schedule": "0 11 * * *"
+    },
+    {
+      "path": "/api/meta/sync-leads",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/ia-retomar",
+      "schedule": "5 12 * * *"
+    },
+    {
+      "path": "/api/cron/ia-retomar",
+      "schedule": "5 14 * * *"
+    },
+    {
+      "path": "/api/cron/ia-retomar",
+      "schedule": "5 16 * * *"
     }
   ]
 }
