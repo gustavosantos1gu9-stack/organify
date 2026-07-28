@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { getAvailableSlots, getAvailableSlotsMultipleDays, createEvent, findEvents, deleteEvent } from "@/lib/google-calendar";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,13 +17,13 @@ async function enviarComDigitacao(evoUrl: string, evoKey: string, instancia: str
     await fetch(`${evoUrl}/chat/sendPresence/${instancia}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: evoKey },
-      body: JSON.stringify({ number: destino, presence: "composing", delay: 1500 }),
+      body: JSON.stringify({ number: destino, presence: "composing", delay: Math.min(Math.max(texto.length * 10, 800), 1500) }),
     });
   } catch {}
 
   // 2. Delay curto para simular digitação (não bloquear resposta)
   const chars = texto.length;
-  const delay = Math.min(Math.max(chars * 15, 1000), 3000); // 1s mínimo, 3s máximo
+  const delay = Math.min(Math.max(chars * 10, 800), 1500); // 0.8s mínimo, 1.5s máximo
   await new Promise(resolve => setTimeout(resolve, delay));
 
   // 3. Enviar mensagem
@@ -51,9 +51,33 @@ export async function POST(req: NextRequest) {
     if (!ag.openai_ativo || !ag.openai_key) return NextResponse.json({ ok: false, motivo: "IA não ativa" });
     if (!ag.openai_prompt_sistema) return NextResponse.json({ ok: false, motivo: "Prompt não configurado" });
 
+    // 1a. Anti-duplicate: verificar ANTES do debounce se já existe resposta da IA
+    // após a mensagem atual do lead — evita chamadas concorrentes (webhook + poll-lid)
+    const { data: msgLeadAtual } = await supabase.from("mensagens")
+      .select("id, created_at")
+      .eq("conversa_id", conversa_id)
+      .eq("de_mim", false)
+      .eq("conteudo", mensagem_lead)
+      .order("created_at", { ascending: false })
+      .limit(1).single();
+    if (msgLeadAtual) {
+      const { data: respostaExistente } = await supabase.from("mensagens")
+        .select("id")
+        .eq("conversa_id", conversa_id)
+        .eq("enviada_por_ia", true)
+        .gt("created_at", msgLeadAtual.created_at)
+        .limit(1);
+      if (respostaExistente?.length) {
+        return NextResponse.json({ ok: false, motivo: "Já existe resposta IA para esta mensagem" });
+      }
+    }
+
     // 1b. Debounce: esperar X segundos pra agrupar mensagens consecutivas do lead
-    const debounceMs = ((ag as any).ia_debounce_segundos || 8) * 1000;
-    await new Promise(r => setTimeout(r, debounceMs));
+    // skip_delay=true pula o debounce (chamadas manuais, poll-lid, ia-retomar)
+    // Limite de 120s (maxDuration=300 dá margem suficiente pra OpenAI + envio)
+    const debounceRaw = skip_delay ? 0 : ((ag as any).ia_debounce_segundos || 8);
+    const debounceMs = Math.min(debounceRaw, 120) * 1000;
+    if (debounceMs > 0) await new Promise(r => setTimeout(r, debounceMs));
 
     // Verificar se chegaram mensagens mais recentes do lead (outra chamada responde)
     const { data: msgMaisRecente } = await supabase.from("mensagens")
@@ -63,22 +87,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, motivo: "Mensagem mais recente detectada, abortando" });
     }
 
-    // 1c. Delay extra em conversa ativa: se já tem respostas anteriores da IA, aguardar tempo configurado
-    const delayConversaAtiva = (!skip_delay && (ag as any).ia_delay_conversa_ativa_segundos || 0) * 1000;
-    if (delayConversaAtiva > 0) {
-      const { data: iaAnterior } = await supabase.from("mensagens")
-        .select("id").eq("conversa_id", conversa_id).eq("enviada_por_ia", true).limit(1);
-      if (iaAnterior?.length) {
-        await new Promise(r => setTimeout(r, delayConversaAtiva));
-        // Checar novamente se lead mandou algo durante o delay
-        const { data: msgAposDelay } = await supabase.from("mensagens")
-          .select("conteudo").eq("conversa_id", conversa_id).eq("de_mim", false)
-          .order("created_at", { ascending: false }).limit(1).single();
-        if (msgAposDelay && msgAposDelay.conteudo !== mensagem_lead) {
-          return NextResponse.json({ ok: false, motivo: "Mensagem mais recente detectada após delay, abortando" });
-        }
+    // Re-verificar após debounce: outra chamada concorrente pode ter respondido durante a espera
+    if (msgLeadAtual) {
+      const { data: respostaAposDebounce } = await supabase.from("mensagens")
+        .select("id")
+        .eq("conversa_id", conversa_id)
+        .eq("enviada_por_ia", true)
+        .gt("created_at", msgLeadAtual.created_at)
+        .limit(1);
+      if (respostaAposDebounce?.length) {
+        return NextResponse.json({ ok: false, motivo: "Resposta enviada durante debounce" });
       }
     }
+
+    // 1c. ia_delay_conversa_ativa removido: causa timeout sem benefício real
+    // O debounce (acima) já agrupa mensagens consecutivas do lead adequadamente.
 
     // 2. Verificar horário de funcionamento (horário de Brasília)
     if (ag.openai_horario_inicio && ag.openai_horario_fim) {
@@ -130,19 +153,35 @@ export async function POST(req: NextRequest) {
             if (parentE) { evoUrlT = parentE.evolution_url || ""; evoKeyT = parentE.evolution_key || ""; }
           }
 
+          // Buscar contato_jid da conversa para passar na chamada Evolution
+          const { data: convJid } = await supabase.from("conversas")
+            .select("contato_jid, contato_numero").eq("id", conversa_id).single();
+          const remoteJidAudio = convJid?.contato_jid || (convJid?.contato_numero ? `${convJid.contato_numero}@s.whatsapp.net` : "");
+
           for (const audio of audiosPendentes) {
             try {
-              // Buscar mensagem original com key/message via mensagem_id
-              // Usar Evolution getBase64 via convert endpoint
+              // Passar key completa com remoteJid e fromMe para a Evolution conseguir localizar a mídia
               const convertRes = await fetch(`${evoUrlT}/chat/getBase64FromMediaMessage/${ag.whatsapp_instancia}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", apikey: evoKeyT },
-                body: JSON.stringify({ message: { key: { id: audio.mensagem_id } } }),
+                body: JSON.stringify({
+                  message: {
+                    key: { id: audio.mensagem_id, remoteJid: remoteJidAudio, fromMe: false },
+                    messageType: "audioMessage",
+                  },
+                }),
               });
-              if (!convertRes.ok) continue;
+              if (!convertRes.ok) {
+                const errText = await convertRes.text();
+                console.error(`[IA] getBase64 falhou ${convertRes.status}:`, errText);
+                continue;
+              }
               const b64Data = await convertRes.json();
               const base64Audio = b64Data.base64 || b64Data.data;
-              if (!base64Audio) continue;
+              if (!base64Audio) {
+                console.error("[IA] getBase64 sem dados de áudio:", JSON.stringify(b64Data).slice(0, 200));
+                continue;
+              }
 
               const audioBuffer = Buffer.from(base64Audio, "base64");
               const formData = new FormData();
@@ -179,16 +218,23 @@ export async function POST(req: NextRequest) {
       .limit(limite);
 
     const { data: convDados } = await supabase.from("conversas")
-      .select("contato_nome, contato_numero").eq("id", conversa_id).single();
+      .select("contato_nome, contato_numero, ia_ativada").eq("id", conversa_id).single();
     const nomeWhatsApp = convDados?.contato_nome || "";
 
     // 5. Montar mensagens — injetar contexto de agendamento se ativo
     const temRespostaAnterior = historico?.some(m => m.de_mim && m.enviada_por_ia);
+    const iaJaAtivada = !!convDados?.ia_ativada;
 
     // Se já há respostas anteriores da IA, sobrescrever regra de ativação ANTES do prompt
-    let systemPromptFinal = temRespostaAnterior
-      ? `CONVERSA JÁ ATIVA — REGRA ABSOLUTA: Esta conversa já foi iniciada e você já respondeu antes. A seção "GATILHO DE ATIVAÇÃO" NÃO se aplica aqui. Não use [SINALIZAR] nem fique em silêncio. Responda a mensagem atual continuando o fluxo de atendimento normalmente.\n\n---\n\n${ag.openai_prompt_sistema}`
-      : ag.openai_prompt_sistema;
+    // Se ia_ativada=true mas sem respostas anteriores, adicionar prefix de primeira ativação
+    let systemPromptFinal: string;
+    if (temRespostaAnterior) {
+      systemPromptFinal = `CONVERSA JÁ ATIVA — REGRA ABSOLUTA: Esta conversa já foi iniciada e você já respondeu antes. A seção "GATILHO DE ATIVAÇÃO" NÃO se aplica aqui. Não use [SINALIZAR] nem fique em silêncio. Responda a mensagem atual continuando o fluxo de atendimento normalmente.\n\n---\n\n${ag.openai_prompt_sistema}`;
+    } else if (iaJaAtivada) {
+      systemPromptFinal = `ATIVAÇÃO CONFIRMADA — REGRA ABSOLUTA: A cliente já enviou a mensagem de ativação e esta conversa foi ativada. Inicie o atendimento com a MENSAGEM INICIAL e responda normalmente. NÃO use [SINALIZAR] nem fique em silêncio. Ignore qualquer regra da seção "GATILHO DE ATIVAÇÃO" — a ativação já ocorreu e você DEVE iniciar o fluxo.\n\n---\n\n${ag.openai_prompt_sistema}`;
+    } else {
+      systemPromptFinal = ag.openai_prompt_sistema;
+    }
 
     // Injetar nome do lead no contexto
     systemPromptFinal += `\n\nINFORMAÇÕES DO LEAD:
@@ -215,10 +261,10 @@ export async function POST(req: NextRequest) {
         intervalo_minutos: ag.reuniao_intervalo_minutos || 0,
       };
 
-      // Datas dos próximos 7 dias
+      // Datas dos próximos 14 dias (para garantir opções no próximo mês)
       const dates: string[] = [];
       const dateLabels: Record<string, string> = {};
-      for (let i = 1; i <= 7; i++) {
+      for (let i = 1; i <= 14; i++) {
         const d = new Date(Date.now() + i * 86400000);
         const dataStr = fmtDate(d);
         const brDate = new Date(d.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
@@ -266,7 +312,8 @@ REGRAS:
 - Sugira apenas 2 opções (manhã e tarde) do próximo dia disponível para o serviço escolhido.
 - ANTES de confirmar, SEMPRE pergunte o nome completo da pessoa.
 - No comando [AGENDAR:...], use DURACAO com o número de minutos do serviço escolhido.
-- Use EXATAMENTE o horário que a pessoa confirmou. Nunca troque.`;
+- Use EXATAMENTE o horário que a pessoa confirmou. Nunca troque.
+- CRÍTICO: Se o lead disser que não pode neste mês (ex: "esse mês não consigo", "esse mês não dá", "mês que vem"), ignore TODOS os horários do mês atual e ofereça apenas horários do próximo mês.`;
         } else {
           // MODO SIMPLES: duração única para todos
           const config = { ...baseConfig, duracao_minutos: ag.reuniao_duracao_minutos || 60 };
@@ -293,7 +340,8 @@ REGRAS DE SUGESTÃO DE HORÁRIOS:
 - Se não há horários na lista, diga que a agenda está cheia.
 - ANTES de confirmar, SEMPRE pergunte o nome completo da pessoa.
 - Só envie o comando [AGENDAR:...] DEPOIS que a pessoa confirmar o horário E informar o nome completo.
-- Use EXATAMENTE o horário que a pessoa escolheu. Nunca troque.`;
+- Use EXATAMENTE o horário que a pessoa escolheu. Nunca troque.
+- CRÍTICO: Se o lead disser que não pode neste mês (ex: "esse mês não consigo", "esse mês não dá", "mês que vem"), ignore TODOS os horários do mês atual e ofereça apenas horários do próximo mês.`;
         }
       } catch (e) {
         console.error("[IA] Erro ao buscar slots:", e);
@@ -515,6 +563,31 @@ ${funisAtivos.map(f => `- "${f.nome}"${f.descricao ? `: ${f.descricao}` : ""}`).
           evento_nome: nomeAgendamento,
         }).eq("id", conversa_id);
 
+        // Atualizar etapa da jornada para "Agendou" (ou etapa com evento_conversao="Lead")
+        try {
+          const { data: etapaAgendou } = await supabase.from("jornada_etapas")
+            .select("nome")
+            .eq("agencia_id", agencia_id)
+            .or('nome.ilike.%agendou%,nome.ilike.%agendamento%,evento_conversao.eq.Lead')
+            .not("eh_primeiro_contato", "is", true)
+            .limit(1).single();
+          if (etapaAgendou) {
+            const { data: convAtual } = await supabase.from("conversas")
+              .select("etapa_jornada").eq("id", conversa_id).single();
+            await supabase.from("conversas").update({
+              etapa_jornada: etapaAgendou.nome,
+              etapa_alterada_at: new Date().toISOString(),
+            }).eq("id", conversa_id);
+            await supabase.from("etapas_historico").insert({
+              conversa_id, agencia_id,
+              etapa_anterior: convAtual?.etapa_jornada || null,
+              etapa_nova: etapaAgendou.nome,
+              alterado_por: "ia",
+            });
+            console.log(`[IA] Etapa jornada atualizada para: ${etapaAgendou.nome}`);
+          }
+        } catch {}
+
         console.log(`[IA] Agendamento criado: ${dataAgendar} ${horarioAgendar} (${tipo})`);
       } catch (e) {
         console.error("[IA] Erro ao criar agendamento:", e);
@@ -570,8 +643,15 @@ ${funisAtivos.map(f => `- "${f.nome}"${f.descricao ? `: ${f.descricao}` : ""}`).
       const funilTag = funilMatch[0];
       const partes = resposta.split(funilTag);
       const textoAntes = partes[0].replace(/\[(?:FUNIL|DISPARAR FUNIL|DISPARAR_FUNIL)[:\s]+[^\]]+\]/gi, "").trim();
-      const textoDepois = (partes[1] || "").replace(/\[(?:FUNIL|DISPARAR FUNIL|DISPARAR_FUNIL)[:\s]+[^\]]+\]/gi, "").trim();
-      if (textoDepois) posTextoFunil = textoDepois;
+      const textoDepoisRaw = (partes[1] || "").replace(/\[(?:FUNIL|DISPARAR FUNIL|DISPARAR_FUNIL)[:\s]+[^\]]+\]/gi, "").trim();
+      if (textoDepoisRaw) {
+        // Limpar labels de instrução no pos_texto (mesmo tratamento do resposta principal)
+        posTextoFunil = textoDepoisRaw
+          .replace(/^(?:Mensagem\s+)?(?:antes|após|depois)\s+da\s+mídia\s*:\s*\n?/gi, "")
+          .replace(/^Mensagem\s+(?:antes|após|depois|inicial|de\s+\w+)\s*:\s*\n?/gi, "")
+          .replace(/^["""'']/g, "").replace(/["""'']$/g, "")
+          .trim();
+      }
       resposta = textoAntes; // Enviar só o texto antes do funil como resposta principal
 
       const { data: funil } = await supabase.from("funis")
@@ -606,6 +686,16 @@ ${funisAtivos.map(f => `- "${f.nome}"${f.descricao ? `: ${f.descricao}` : ""}`).
       }
     }
 
+    // Se o funil foi disparado e não sobrou texto para enviar, atualizar ultima_mensagem e sair
+    if (funilMatch && !resposta) {
+      const msgFunil = posTextoFunil || "[funil enviado]";
+      await supabase.from("conversas").update({
+        ultima_mensagem: msgFunil,
+        ultima_mensagem_at: new Date().toISOString(),
+      }).eq("id", conversa_id);
+      return NextResponse.json({ ok: true, motivo: "Funil disparado sem texto adicional" });
+    }
+
     // 7. Enviar via Evolution API
     let evoUrl = ag.evolution_url || "";
     let evoKey = ag.evolution_key || "";
@@ -636,7 +726,8 @@ ${funisAtivos.map(f => `- "${f.nome}"${f.descricao ? `: ${f.descricao}` : ""}`).
     }
 
     // 9. Quebrar resposta em múltiplas mensagens (por parágrafo / \n\n)
-    const delayEntreRespostas = ((ag as any).ia_delay_resposta_segundos || 3) * 1000;
+    // Delay limitado a 2s para não estourar maxDuration=60 com múltiplas mensagens
+    const delayEntreRespostas = Math.min(((ag as any).ia_delay_resposta_segundos || 2), 2) * 1000;
     const partes = resposta.split(/\n\n+/).map((p: string) => p.trim()).filter((p: string) => p.length > 0);
     // Se só tem 1 parte ou é curta, enviar tudo junto
     const mensagens = partes.length > 1 ? partes : [resposta];
@@ -686,20 +777,49 @@ ${funisAtivos.map(f => `- "${f.nome}"${f.descricao ? `: ${f.descricao}` : ""}`).
 
     // Pós-texto do funil agora é enviado pelo próprio /api/funis/disparar
 
-    // Agendar follow-up (se conversa ainda não agendou procedimento)
-    const { data: convFollowup } = await supabase.from("conversas")
-      .select("agendou_at").eq("id", conversa_id).single();
-    if (!convFollowup?.agendou_at) {
-      const APP_URL_FU = process.env.NEXT_PUBLIC_APP_URL || "https://salxconvert-blond.vercel.app";
-      fetch(`${APP_URL_FU}/api/ai/followup/agendar`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          agencia_id, conversa_id,
-          contato_numero: conv?.contato_numero,
-          contato_jid: conv?.contato_jid,
-        }),
-      }).catch(() => {});
+    // Detectar e atualizar fase de atendimento
+    {
+      const ordemFases: Record<string, number> = {
+        qualificacao: 1, viu_funil: 2, recebeu_preco: 3, recebeu_horarios: 4, agendou: 5,
+      };
+
+      const { data: convFaseAtual } = await supabase.from("conversas")
+        .select("fase_atendimento").eq("id", conversa_id).single();
+      const faseAtual = convFaseAtual?.fase_atendimento as string | null;
+
+      let novaFase: string | null = null;
+
+      // Prioridade: agendou > recebeu_horarios > viu_funil > recebeu_preco > qualificacao
+      if (agendarMatch && ag.agendamento_ativo && ag.google_calendar_refresh_token) {
+        novaFase = "agendou";
+      } else if (agendarMatch) {
+        novaFase = "recebeu_horarios";
+      } else if (funilMatch) {
+        novaFase = "viu_funil";
+      } else if (/\b69[,.]90\b|699[,.]00|R\$\s*69|\bR\$\s*699/i.test(resposta)) {
+        novaFase = "recebeu_preco";
+      } else if (!faseAtual) {
+        novaFase = "qualificacao"; // primeira resposta da IA
+      }
+
+      if (novaFase && novaFase !== faseAtual) {
+        const podeAtualizar =
+          novaFase === "agendou" ||
+          !faseAtual ||
+          faseAtual === "adiou" ||
+          (ordemFases[novaFase] || 0) > (ordemFases[faseAtual] || 0);
+
+        if (podeAtualizar) {
+          const updateFase: any = {
+            fase_atendimento: novaFase,
+            fase_atualizada_em: new Date().toISOString(),
+          };
+          if (novaFase !== "agendou") {
+            updateFase.followup_count = 0; // resetar contador ao avançar fase
+          }
+          await supabase.from("conversas").update(updateFase).eq("id", conversa_id);
+        }
+      }
     }
 
     return NextResponse.json({ ok: true, resposta });

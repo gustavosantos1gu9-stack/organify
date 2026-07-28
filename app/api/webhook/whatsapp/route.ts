@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { waitUntil } from "@vercel/functions";
+
+export const maxDuration = 300;
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -31,6 +34,12 @@ async function verificarTermoChave(agenciaId: string, conversaId: string, conteu
     etapa_jornada: etapaEncontrada.nome,
     etapa_alterada_at: new Date().toISOString(),
   }).eq("id", conversaId);
+
+  // Cancelar follow-ups pendentes da fase anterior (nova fase = novo follow-up)
+  await supabase.from("followup_fila")
+    .update({ status: "cancelado" })
+    .eq("conversa_id", conversaId)
+    .in("status", ["pendente", "processando"]);
 
   // Registrar histórico de transição
   await supabase.from("etapas_historico").insert({
@@ -92,6 +101,17 @@ export async function POST(req: NextRequest) {
           const conectado = state === "open" || state === "connected";
           await supabase.from("agencias").update({ whatsapp_conectado: conectado }).eq("id", ag.id);
 
+          // Quando conectar, puxar histórico de mensagens em background
+          if (conectado) {
+            waitUntil(
+              fetch(`${APP_URL}/api/evolution/sync-on-connect`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ agencia_id: ag.id, paginas_por_conversa: 2 }),
+              }).catch(e => console.error("[sync-on-connect] erro ao disparar:", e))
+            );
+          }
+
           // Se desconectou, tentar reconectar automaticamente (só se não foi deletada)
           // Não reconectar se state === "close" pois pode ser deleção intencional
           if (!conectado && state === "connecting") {
@@ -139,9 +159,12 @@ export async function POST(req: NextRequest) {
 
       const isLid = remoteJid.includes("@lid");
       const instanciaName = instance || body.instanceName || "";
-      const numero = isLid
-        ? remoteJid.replace("@lid", "")
-        : remoteJid.replace("@s.whatsapp.net", "");
+
+      // Se @lid, tentar usar remoteJidAlt (número real) para encontrar a conversa
+      const remoteJidAlt = msg.key?.remoteJidAlt || "";
+      const numeroReal = remoteJidAlt ? remoteJidAlt.replace("@s.whatsapp.net", "").replace("@lid", "") : "";
+      const numeroLid = isLid ? remoteJid.replace("@lid", "") : "";
+      const numero = (isLid && numeroReal) ? numeroReal : (isLid ? numeroLid : remoteJid.replace("@s.whatsapp.net", ""));
       const msgId = msg.key?.id;
       const timestamp = msg.messageTimestamp
         ? new Date(Number(msg.messageTimestamp) * 1000).toISOString()
@@ -169,13 +192,358 @@ export async function POST(req: NextRequest) {
       // Mensagens fromMe — salvar no banco e verificar termo-chave
       if (fromMe) {
         const { data: ag } = await supabase.from("agencias")
-          .select("id").eq("whatsapp_instancia", instanciaName).single();
+          .select("id, whatsapp_numero, parent_id, evolution_url, evolution_key").eq("whatsapp_instancia", instanciaName).single();
         if (ag) {
-          const { data: conv } = await supabase.from("conversas")
+          // ── COMANDOS MASTER: aprovar cadastro / enviar contrato (fluxo conversacional) ──
+          if (conteudo && !ag.parent_id) {
+            const cmdLower = conteudo.toLowerCase().trim();
+            let evoUrl = ag.evolution_url || "";
+            let evoKey = ag.evolution_key || "";
+            const sendMsg = async (txt: string) => {
+              if (evoUrl && evoKey) await fetch(`${evoUrl}/message/sendText/${instanciaName}`, {
+                method: "POST", headers: { "Content-Type": "application/json", apikey: evoKey },
+                body: JSON.stringify({ number: ag.whatsapp_numero, text: txt }),
+              });
+            };
+
+            // 1. Verificar se tem fluxo de contrato em andamento (excluir estados finais)
+            // Ignorar fluxo ativo se o comando é "ativar", "aprovar <nome>" ou "contrato <nome>"
+            // para que não seja bloqueado por fluxos travados
+            const isAtivarCmd = /^ativar\s+/i.test(cmdLower);
+            const isComandoExplicito = /^(aprovar|contrato)\s+[a-zA-ZÀ-ú]/i.test(cmdLower);
+            const { data: fluxoAtivo } = (!isAtivarCmd && !isComandoExplicito)
+              ? await supabase.from("cadastros_clientes")
+                  .select("*").like("status", "contrato_%")
+                  .not("status", "in", '("contrato_enviado","contrato_gerando")')
+                  .order("criado_em", { ascending: false }).limit(1).single()
+              : { data: null };
+
+            if (fluxoAtivo) {
+              const step = fluxoAtivo.status;
+              const idCurto = fluxoAtivo.id.slice(0, 8);
+
+              if (step === "contrato_modalidade") {
+                const opcoes: Record<string, string> = { "1": "mensal", "2": "trimestral", "3": "quinzenal" };
+                const modalidade = opcoes[cmdLower];
+                if (modalidade) {
+                  await supabase.from("cadastros_clientes").update({ status: `contrato_valor_${modalidade}` }).eq("id", fluxoAtivo.id);
+                  await sendMsg(`💰 *Qual o valor do contrato?*\n\n_Digite apenas o número (ex: 2000)_`);
+                } else {
+                  await sendMsg(`❌ Opção inválida. Responda *1*, *2* ou *3*`);
+                }
+                return NextResponse.json({ ok: true });
+              }
+
+              if (step.startsWith("contrato_valor_")) {
+                const modalidade = step.replace("contrato_valor_", "");
+                const valor = cmdLower.replace(/[^\d]/g, "");
+                if (valor && Number(valor) > 0) {
+                  await supabase.from("cadastros_clientes").update({ status: `contrato_data_${modalidade}_${valor}` }).eq("id", fluxoAtivo.id);
+                  await sendMsg(`📅 *Qual a data de vencimento?*\n\n_Digite a data (ex: 15/06/2026)_`);
+                } else {
+                  await sendMsg(`❌ Valor inválido. Digite apenas o número (ex: 2000)`);
+                }
+                return NextResponse.json({ ok: true });
+              }
+
+              if (step.startsWith("contrato_data_")) {
+                const parts = step.replace("contrato_data_", "").split("_");
+                const modalidade = parts[0];
+                const valor = parts[1];
+                const dataInput = cmdLower.trim();
+                const dataMatch = dataInput.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+                const dia = dataMatch ? dataInput : cmdLower.replace(/[^\d]/g, "");
+                const dataVencimento = dataMatch ? dataInput : dia;
+                if ((dataMatch) || (dia && Number(dia) >= 1 && Number(dia) <= 31)) {
+                  // Resetar status e gerar contrato
+                  await supabase.from("cadastros_clientes").update({ status: "contrato_gerando" }).eq("id", fluxoAtivo.id);
+                  await sendMsg(`⏳ Gerando contrato de *${fluxoAtivo.nome}*...\n\n📋 ${modalidade} | R$${valor} | vencimento ${dataVencimento}`);
+                  try {
+                    const res = await fetch(`${APP_URL}/api/contrato`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        nome: fluxoAtivo.nome, email: fluxoAtivo.email,
+                        cnpj: fluxoAtivo.cnpj, cpf: fluxoAtivo.cpf, rg: fluxoAtivo.rg,
+                        endereco_empresa: fluxoAtivo.endereco_empresa,
+                        endereco_pessoal: fluxoAtivo.endereco_pessoal,
+                        modalidade, valor, data_vencimento: dataVencimento,
+                      }),
+                    });
+                    const result = await res.json();
+                    await supabase.from("cadastros_clientes").update({ status: result.success ? "contrato_enviado" : "pendente" }).eq("id", fluxoAtivo.id);
+                    await sendMsg(result.success
+                      ? `✅ Contrato de *${fluxoAtivo.nome}* gerado e enviado para assinatura!`
+                      : `❌ Erro: ${result.error || "erro desconhecido"}`);
+                  } catch (e: any) {
+                    await supabase.from("cadastros_clientes").update({ status: "pendente" }).eq("id", fluxoAtivo.id);
+                    await sendMsg(`❌ Erro ao gerar contrato: ${e.message}`);
+                  }
+                } else {
+                  await sendMsg(`❌ Data inválida. Digite no formato dd/mm/aaaa (ex: 15/06/2026)`);
+                }
+                return NextResponse.json({ ok: true });
+              }
+            }
+
+            // 2. Resposta rápida (1=aprovar, 2=contrato) ou comandos com ID/nome
+            const aprovarMatch = cmdLower.match(/^aprovar\s+([a-f0-9]{8})/);
+            const aprovarNomeMatch = !aprovarMatch && cmdLower.match(/^aprovar\s+(.+)/);
+            const contratoIdMatch = cmdLower.match(/^contrato\s+([a-f0-9]{8})/);
+            const contratoNomeMatch = !contratoIdMatch && cmdLower.match(/^contrato\s+(.+)/);
+
+            // Buscar cadastro recente pra resposta por número (notificado ou aprovado)
+            let cadastro: any = null;
+            if (cmdLower === "1" || cmdLower === "2") {
+              const { data: notificado } = await supabase.from("cadastros_clientes")
+                .select("*").in("status", ["notificado", "aprovado"]).order("criado_em", { ascending: false }).limit(1).single();
+              cadastro = notificado;
+            } else if (aprovarNomeMatch) {
+              // Buscar por nome (ex: "aprovar maria")
+              const nomeBusca = aprovarNomeMatch[1].trim();
+              const { data: cadastros } = await supabase.from("cadastros_clientes")
+                .select("*").ilike("nome", `%${nomeBusca}%`).order("criado_em", { ascending: false }).limit(1);
+              cadastro = cadastros?.[0];
+              if (!cadastro) { await sendMsg(`❌ Nenhum cadastro encontrado com o nome *${nomeBusca}*`); return NextResponse.json({ ok: true }); }
+            } else if (contratoNomeMatch) {
+              // Buscar por nome (ex: "contrato aline")
+              const nomeBusca = contratoNomeMatch[1].trim();
+              const { data: cadastros } = await supabase.from("cadastros_clientes")
+                .select("*").ilike("nome", `%${nomeBusca}%`).order("criado_em", { ascending: false }).limit(1);
+              cadastro = cadastros?.[0];
+              if (!cadastro) { await sendMsg(`❌ Nenhum cadastro encontrado com o nome *${nomeBusca}*`); return NextResponse.json({ ok: true }); }
+            } else if (aprovarMatch || contratoIdMatch) {
+              const idCurto = aprovarMatch?.[1] || contratoIdMatch?.[1] || "";
+              const { data: cadastros } = await supabase.from("cadastros_clientes")
+                .select("*").like("id", `${idCurto}%`).limit(1);
+              cadastro = cadastros?.[0];
+            }
+
+            if (cadastro && (cmdLower === "1" || aprovarMatch || aprovarNomeMatch)) {
+              // Aprovar
+              try {
+                const res = await fetch(`${APP_URL}/api/cadastros/aprovar`, {
+                  method: "POST", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ id: cadastro.id }),
+                });
+                const result = await res.json();
+                const primeiroNome = cadastro.nome.split(" ")[0].toLowerCase();
+                await sendMsg(result.ok
+                  ? `✅ Cadastro de *${cadastro.nome}* aprovado com sucesso!\n\n_Próximos passos:_\n*2* — Enviar contrato\n*ativar ${primeiroNome} <valor> <mensal/trimestral/quinzenal>* — Criar cliente + recorrência\n_Ex: ativar ${primeiroNome} 997 mensal_`
+                  : `❌ Erro ao aprovar: ${result.error || "erro desconhecido"}`);
+              } catch (e: any) { console.error("[webhook] Erro aprovar:", e); }
+              return NextResponse.json({ ok: true });
+            }
+
+            if (cadastro && (cmdLower === "2" || contratoIdMatch || contratoNomeMatch)) {
+              // Iniciar fluxo contrato
+              await supabase.from("cadastros_clientes").update({ status: "contrato_modalidade" }).eq("id", cadastro.id);
+              await sendMsg(`📄 *Contrato para ${cadastro.nome}*\n\nQual a modalidade?\n\n*1* — Mensal\n*2* — Trimestral\n*3* — Quinzenal`);
+              return NextResponse.json({ ok: true });
+            }
+
+            // ── COMANDO ATIVAR: cria cliente + recorrência + lançamentos futuros ──
+            const ativarMatch = cmdLower.match(/^ativar\s+(.+?)\s+(\d+(?:[.,]\d+)?)\s*(mensal|quinzenal|trimestral)?$/i);
+            if (ativarMatch) {
+              const nomeBusca = ativarMatch[1].trim();
+              const valorStr = ativarMatch[2].replace(",", ".");
+              const valor = parseFloat(valorStr);
+              const frequencia = (ativarMatch[3] || "mensal").toLowerCase();
+
+              if (!valor || valor <= 0) {
+                await sendMsg(`❌ Valor inválido. Use: *ativar <nome> <valor> <frequencia>*\nEx: ativar aline 997 mensal`);
+                return NextResponse.json({ ok: true });
+              }
+
+              // Buscar cadastro por nome
+              const { data: cadArr } = await supabase.from("cadastros_clientes")
+                .select("*").ilike("nome", `%${nomeBusca}%`).order("criado_em", { ascending: false }).limit(1);
+              const cad = cadArr?.[0];
+              if (!cad) {
+                await sendMsg(`❌ Nenhum cadastro encontrado com o nome *${nomeBusca}*`);
+                return NextResponse.json({ ok: true });
+              }
+
+              // Verificar se já existe cliente com esse cadastro
+              const { data: clienteExiste } = await supabase.from("clientes")
+                .select("id").eq("cadastro_id", cad.id).maybeSingle();
+              if (clienteExiste) {
+                await sendMsg(`⚠️ *${cad.nome}* já foi ativado(a) como cliente.`);
+                return NextResponse.json({ ok: true });
+              }
+
+              const agenciaId = ag.id;
+
+              // 1. Criar cliente
+              const { data: novoCliente, error: errCliente } = await supabase.from("clientes").insert({
+                agencia_id: agenciaId,
+                nome: cad.nome,
+                email: cad.email,
+                documento: cad.cnpj || cad.cpf || "",
+                valor_oportunidade: valor,
+                faturamento: cad.faturamento_medio ? parseFloat(cad.faturamento_medio.replace(/[^\d.,]/g, "").replace(",", ".")) || 0 : 0,
+                servico: "assessoria",
+                frequencia,
+                status: "ativo",
+                status_recorrencia: "ativo",
+                cadastro_id: cad.id,
+              }).select().single();
+
+              if (errCliente || !novoCliente) {
+                await sendMsg(`❌ Erro ao criar cliente: ${errCliente?.message || "erro desconhecido"}`);
+                return NextResponse.json({ ok: true });
+              }
+
+              // 2. Criar recorrência
+              const hoje = new Date();
+              const diaVencimento = hoje.getDate();
+              const periodicidade = frequencia === "trimestral" ? "trimestral" : "mensal";
+              const valorRec = frequencia === "quinzenal" ? Math.round((valor / 2) * 100) / 100
+                             : frequencia === "trimestral" ? Math.round(valor * 3 * 100) / 100 : valor;
+
+              await supabase.from("recorrencias").insert({
+                agencia_id: agenciaId,
+                tipo: "entrada",
+                descricao: `Assessoria - ${cad.nome}`,
+                valor: valorRec,
+                periodicidade,
+                dia_vencimento: diaVencimento,
+                ativo: true,
+                cliente_id: novoCliente.id,
+              });
+
+              // 3. Gerar lançamentos futuros
+              const lancamentos: any[] = [];
+              if (frequencia === "mensal") {
+                for (let i = 0; i < 12; i++) {
+                  const data = new Date(hoje);
+                  data.setMonth(data.getMonth() + i);
+                  lancamentos.push({
+                    agencia_id: agenciaId, tipo: "entrada",
+                    descricao: `Assessoria - ${cad.nome}`,
+                    valor, data_vencimento: data.toISOString().split("T")[0],
+                    cliente_id: novoCliente.id, pago: false,
+                  });
+                }
+              } else if (frequencia === "quinzenal") {
+                const valorParcela = Math.round((valor / 2) * 100) / 100;
+                for (let i = 0; i < 24; i++) {
+                  const data = new Date(hoje);
+                  data.setDate(data.getDate() + (i * 15));
+                  lancamentos.push({
+                    agencia_id: agenciaId, tipo: "entrada",
+                    descricao: `Assessoria quinzenal - ${cad.nome} (parcela ${i + 1})`,
+                    valor: valorParcela, data_vencimento: data.toISOString().split("T")[0],
+                    cliente_id: novoCliente.id, pago: false,
+                  });
+                }
+              } else if (frequencia === "trimestral") {
+                const valorTrimestral = Math.round(valor * 3 * 100) / 100;
+                for (let i = 0; i < 4; i++) {
+                  const data = new Date(hoje);
+                  data.setMonth(data.getMonth() + (i * 3));
+                  lancamentos.push({
+                    agencia_id: agenciaId, tipo: "entrada",
+                    descricao: `Assessoria trimestral - ${cad.nome} (trimestre ${i + 1})`,
+                    valor: valorTrimestral, data_vencimento: data.toISOString().split("T")[0],
+                    cliente_id: novoCliente.id, pago: false,
+                  });
+                }
+              }
+
+              if (lancamentos.length > 0) {
+                await supabase.from("lancamentos_futuros").insert(lancamentos);
+              }
+
+              // 4. Vincular cadastro_id no controle_clientes (se existir)
+              await supabase.from("controle_clientes")
+                .update({ cadastro_id: cad.id })
+                .eq("agencia_id", agenciaId)
+                .ilike("nome", `%${nomeBusca}%`)
+                .is("cadastro_id", null);
+
+              // 5. Atualizar cadastro
+              await supabase.from("cadastros_clientes").update({ status: "ativado" }).eq("id", cad.id);
+
+              const freqLabel = frequencia === "quinzenal" ? "quinzenal" : frequencia === "trimestral" ? "trimestral" : "mensal";
+              await sendMsg(`✅ *${cad.nome}* ativado(a) com sucesso!\n\n💰 Valor: R$${valor}\n📅 Frequência: ${freqLabel}\n📋 ${lancamentos.length} lançamentos futuros gerados\n🔄 Recorrência criada`);
+              return NextResponse.json({ ok: true });
+            }
+          }
+
+          let { data: conv } = await supabase.from("conversas")
             .select("id, fbclid, utm_campaign, utm_content, contato_jid, origem")
             .eq("agencia_id", ag.id).eq("contato_numero", numero).single();
+          // Criar conversa se não existe (mensagem enviada por mim pra contato novo)
+          if (!conv) {
+            // Para fromMe, pushName é o nome do REMETENTE (eu), não do destinatário
+            // Tentar buscar o nome real do contato via perfil
+            let nome = numero;
+            try {
+              let evoUrl = ag.evolution_url || "";
+              let evoKey = ag.evolution_key || "";
+              if (!evoUrl && ag.parent_id) {
+                const { data: parent } = await supabase.from("agencias")
+                  .select("evolution_url, evolution_key")
+                  .eq("id", ag.parent_id).single();
+                if (parent) { evoUrl = parent.evolution_url || ""; evoKey = parent.evolution_key || ""; }
+              }
+              if (evoUrl && evoKey) {
+                const resPerfil = await fetch(`${evoUrl}/chat/fetchProfile/${instanciaName}`, {
+                  method: "POST",
+                  headers: { apikey: evoKey, "Content-Type": "application/json" },
+                  body: JSON.stringify({ number: numero }),
+                });
+                const perfil = await resPerfil.json();
+                if (perfil?.name) nome = perfil.name;
+              }
+            } catch {}
+            const { data: etapaPrimeira } = await supabase.from("jornada_etapas")
+              .select("nome").eq("agencia_id", ag.id).eq("eh_primeiro_contato", true).single();
+            const { data: nova } = await supabase.from("conversas").insert({
+              agencia_id: ag.id, instancia: instanciaName,
+              contato_numero: numero, contato_nome: nome,
+              contato_jid: remoteJid || null,
+              ultima_mensagem: conteudo || "", ultima_mensagem_at: timestamp,
+              nao_lidas: 0, etapa_jornada: etapaPrimeira?.nome || "Fez Contato",
+            }).select("id, fbclid, utm_campaign, utm_content, contato_jid, origem").single();
+            if (nova) conv = nova;
+          }
+          // Detectar Social Selling quando Gustavo envia "Gustavo aqui!" para um contato
+          if (conv && conteudo && conteudo.includes("Gustavo aqui!")) {
+            const semRastreio = !conv.origem || conv.origem === "Não Rastreada";
+            if (semRastreio) {
+              await supabase.from("conversas").update({
+                origem: "Social Selling",
+                utm_source: "social_selling",
+                utm_medium: "direct",
+                utm_campaign: "Social Selling",
+              }).eq("id", conv.id);
+              console.log(`[webhook] Social Selling detectado (fromMe): ${numero}`);
+            }
+          }
+
           if (conv) {
             if (msgId && conteudo) {
+              // Verificar se é eco de mensagem da IA (mesmo conteúdo, sem limite de tempo — cobre reconexões tardias)
+              const { data: iaExistente } = await supabase.from("mensagens")
+                .select("id").eq("conversa_id", conv.id).eq("enviada_por_ia", true)
+                .eq("conteudo", conteudo).limit(1);
+
+              // Fallback: verificar também qualquer fromMe recente com mesmo conteúdo
+              // Cobre race condition (eco chega antes da IA salvar) e diferenças de encoding
+              const tresMinAtras = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+              const { data: fromMeRecente } = !iaExistente?.length
+                ? await supabase.from("mensagens")
+                    .select("id").eq("conversa_id", conv.id).eq("de_mim", true)
+                    .eq("conteudo", conteudo).gt("created_at", tresMinAtras).limit(1)
+                : { data: null };
+
+              if (iaExistente?.length || fromMeRecente?.length) {
+                // É eco da IA — não salvar duplicata
+                return NextResponse.json({ ok: true });
+              }
+
               await supabase.from("mensagens").upsert({
                 conversa_id: conv.id, agencia_id: ag.id,
                 mensagem_id: msgId, de_mim: true, tipo, conteudo, created_at: timestamp,
@@ -195,7 +563,7 @@ export async function POST(req: NextRequest) {
 
       // Mensagens do lead — processar normalmente
       const { data: agencia } = await supabase.from("agencias")
-        .select("id, evolution_url, evolution_key, whatsapp_numero, meta_pixel_id, meta_token, meta_ativo, meta_business_token, meta_ad_account_id")
+        .select("id, evolution_url, evolution_key, whatsapp_numero, meta_pixel_id, meta_token, meta_ativo, meta_business_token, meta_ad_account_id, parent_id, openai_key, openai_whisper_key")
         .eq("whatsapp_instancia", instanciaName).single();
       if (!agencia) {
         console.error("Webhook: agência não encontrada para instância:", instanciaName);
@@ -207,10 +575,17 @@ export async function POST(req: NextRequest) {
         const meuNumero = msg.key?.participant?.replace("@s.whatsapp.net", "").replace(/\D/g, "")
           || remoteJid.replace("@s.whatsapp.net", "").replace(/\D/g, "");
         // O número do dono é quem NÃO é o remetente (se !fromMe, o remetente é o lead)
-        // Buscar da instância via Evolution
+        // Buscar da instância via Evolution (com fallback para agência pai)
         try {
-          const instRes = await fetch(`${agencia.evolution_url}/instance/fetchInstances`, {
-            headers: { apikey: agencia.evolution_key },
+          let evoUrlNum = agencia.evolution_url || "";
+          let evoKeyNum = agencia.evolution_key || "";
+          if (!evoUrlNum && agencia.parent_id) {
+            const { data: parentNum } = await supabase.from("agencias")
+              .select("evolution_url, evolution_key").eq("id", agencia.parent_id).single();
+            if (parentNum) { evoUrlNum = parentNum.evolution_url || ""; evoKeyNum = parentNum.evolution_key || ""; }
+          }
+          const instRes = await fetch(`${evoUrlNum}/instance/fetchInstances`, {
+            headers: { apikey: evoKeyNum },
           });
           const instances = await instRes.json();
           if (Array.isArray(instances)) {
@@ -225,18 +600,29 @@ export async function POST(req: NextRequest) {
         } catch {}
       }
 
-      const nome = msg.pushName || numero;
+      let nome = msg.pushName || numero;
 
-      // Buscar foto
+      // Buscar foto e nome do perfil (com fallback para agência pai se sub-agência sem evolution_url)
       let foto = null;
       try {
-        const resPerfil = await fetch(`${agencia.evolution_url}/chat/fetchProfile/${instanciaName}`, {
-          method: "POST",
-          headers: { "apikey": agencia.evolution_key, "Content-Type": "application/json" },
-          body: JSON.stringify({ number: numero }),
-        });
-        const perfil = await resPerfil.json();
-        if (perfil?.picture) foto = perfil.picture;
+        let evoUrl = agencia.evolution_url || "";
+        let evoKey = agencia.evolution_key || "";
+        if (!evoUrl && agencia.parent_id) {
+          const { data: parent } = await supabase.from("agencias")
+            .select("evolution_url, evolution_key").eq("id", agencia.parent_id).single();
+          if (parent) { evoUrl = parent.evolution_url || ""; evoKey = parent.evolution_key || ""; }
+        }
+        if (evoUrl && evoKey) {
+          const resPerfil = await fetch(`${evoUrl}/chat/fetchProfile/${instanciaName}`, {
+            method: "POST",
+            headers: { "apikey": evoKey, "Content-Type": "application/json" },
+            body: JSON.stringify({ number: numero }),
+          });
+          const perfil = await resPerfil.json();
+          if (perfil?.picture) foto = perfil.picture;
+          // Usar nome do perfil quando pushName está vazio (contato sem nome identificado)
+          if (!msg.pushName && perfil?.name) nome = perfil.name;
+        }
       } catch {}
 
       // Buscar ou criar conversa
@@ -277,8 +663,17 @@ export async function POST(req: NextRequest) {
       } else {
         const updateConv: any = {
           ultima_mensagem: conteudo, ultima_mensagem_at: timestamp,
-          contato_nome: nome,
         };
+        // Só atualizar nome se o novo nome é real (não é número) e o atual é número ou vazio
+        const nomeAtualENumero = !conversa.contato_nome || /^\d+$/.test(conversa.contato_nome);
+        const nomeNovoEReal = nome && !/^\d+$/.test(nome);
+        if (nomeNovoEReal && nomeAtualENumero) {
+          updateConv.contato_nome = nome;
+        }
+        // Atualizar contato_jid se mudou para @lid (nunca sobrescrever @lid com @s.whatsapp.net)
+        if (isLid && conversa.contato_jid !== remoteJid) {
+          updateConv.contato_jid = remoteJid;
+        }
         if (!isHistorica) {
           updateConv.nao_lidas = (conversa.nao_lidas || 0) + 1;
         }
@@ -287,16 +682,25 @@ export async function POST(req: NextRequest) {
 
       if (!conversa) return NextResponse.json({ ok: false, error: "Conversa não criada" }, { status: 500 });
 
-      // Salvar mensagem
+      // Salvar mensagem (INSERT, não upsert — se já existe, é webhook duplicado)
+      let msgDuplicada = false;
       if (msgId) {
-        await supabase.from("mensagens").upsert({
+        const { error: msgInsertErr } = await supabase.from("mensagens").insert({
           conversa_id: conversa.id, agencia_id: agencia.id,
           mensagem_id: msgId, de_mim: false, tipo, conteudo, created_at: timestamp,
-        }, { onConflict: "mensagem_id" });
+        });
+        if (msgInsertErr) {
+          if (msgInsertErr.code === "23505") {
+            console.log(`[webhook] Mensagem duplicada ${msgId}, pulando rastreamento mas processando IA`);
+            msgDuplicada = true;
+          } else {
+            console.error(`[webhook] ERRO ao salvar mensagem: code=${msgInsertErr.code} msg=${msgInsertErr.message} details=${msgInsertErr.details}`);
+          }
+        }
       }
 
       // Se mensagem histórica (sync inicial), pular rastreamento e pixel
-      if (!isHistorica) {
+      if (!isHistorica && !msgDuplicada) {
 
       // ============================================
       // RASTREAMENTO — cruzar com dados pendentes
@@ -317,11 +721,15 @@ export async function POST(req: NextRequest) {
 
       // 0. Se @lid (Click-to-WhatsApp) e NÃO é CTWA, buscar rastreamento pendente
       //    Se passou pela página de 5s, tem rastreamento pendente → associar
+      //    IMPORTANTE: exigir link_id IS NOT NULL para nunca pegar rastreamentos de formulário
+      //    (formulários têm leadgen_id mas NÃO têm link_id, enquanto /c links sempre têm link_id)
       if (isLid && eraNovaConversa && !_isCTWA) {
         const dezMinAtras = new Date(Date.now() - 10 * 60 * 1000).toISOString();
         const { data: lidTrack } = await supabase.from("rastreamentos_pendentes")
           .select("*")
           .eq("wa_destino", agencia.whatsapp_numero)
+          .not("link_id", "is", null)        // só rastreamentos do /c link, nunca formulários
+          .neq("utm_medium", "leadform")      // dupla proteção contra formulários
           .gt("created_at", dezMinAtras)
           .order("created_at", { ascending: false })
           .limit(1)
@@ -331,30 +739,64 @@ export async function POST(req: NextRequest) {
 
       // 1. Tentar por número do lead (só se não é CTWA e sem tracking ainda)
       if (!tracking && !_isCTWA) {
+        let formCandidato: any = null; // form rastreamento guardado como candidato secundário
+
         // Tentar match exato primeiro
         const { data: t1 } = await supabase.from("rastreamentos_pendentes")
           .select("*").eq("wa_numero", numero).single();
-        if (t1) { tracking = t1; }
+        if (t1) {
+          if (t1.leadgen_id) formCandidato = t1; // form lead — não setar ainda, verificar conflito
+          else tracking = t1;
+        }
         // Fallback: variantes do número BR (com/sem 55, com/sem 9° dígito)
-        if (!tracking) {
+        if (!tracking && !formCandidato) {
           const numClean = numero.replace(/\D/g, "");
           const variantes = [numClean];
           if (numClean.startsWith("55")) {
             variantes.push(numClean.slice(2)); // sem 55
-            // sem 9° dígito: 55+DD+8dig
+            // sem 9° dígito: 55+DD+8dig (de 13 para 12)
             if (numClean.length === 13) variantes.push("55" + numClean.slice(2,4) + numClean.slice(5));
+            // com 9° dígito: 55+DD+9+8dig (de 12 para 13)
+            if (numClean.length === 12) variantes.push("55" + numClean.slice(2,4) + "9" + numClean.slice(4));
           } else {
             variantes.push("55" + numClean); // com 55
             // com 9° dígito: DD+9+8dig
             if (numClean.length === 10) variantes.push(numClean.slice(0,2) + "9" + numClean.slice(2));
             if (numClean.length === 10) variantes.push("55" + numClean.slice(0,2) + "9" + numClean.slice(2));
+            // sem 9° dígito: DD+8dig (de 11 para 10)
+            if (numClean.length === 11) variantes.push(numClean.slice(0,2) + numClean.slice(3));
+            if (numClean.length === 11) variantes.push("55" + numClean.slice(0,2) + numClean.slice(3));
           }
           for (const v of variantes) {
             if (v === numero) continue;
             const { data: tv } = await supabase.from("rastreamentos_pendentes")
               .select("*").eq("wa_numero", v).single();
-            if (tv) { tracking = tv; break; }
+            if (tv) {
+              if (tv.leadgen_id) { formCandidato = tv; break; }
+              else { tracking = tv; break; }
+            }
           }
+        }
+
+        // Se só achamos um rastreamento de FORMULÁRIO, verificar se a mensagem bate com algum /c link
+        // Se bater → lead veio pelo link, não pelo formulário → não usar o form tracking aqui
+        // (step 6b vai associar ao link correto pela mensagem)
+        if (!tracking && formCandidato) {
+          const msgNorm = (conteudo || "").toLowerCase().replace(/\s+/g, " ").trim();
+          let msgBateLink = false;
+          if (msgNorm.length >= 5) {
+            const { data: linksAtivos } = await supabase.from("links_campanha")
+              .select("wa_mensagem").eq("agencia_id", agencia.id).not("wa_mensagem", "is", null);
+            msgBateLink = (linksAtivos || []).some((l: any) => {
+              const lmsg = (l.wa_mensagem || "").toLowerCase().replace(/\s+/g, " ").trim();
+              return lmsg.length >= 5 && (msgNorm === lmsg || msgNorm.includes(lmsg));
+            });
+          }
+          if (!msgBateLink) {
+            // Mensagem não é de link /c → lead provavelmente veio mesmo pelo formulário
+            tracking = formCandidato;
+          }
+          // Se msgBateLink: não setar tracking → step 6b vai encontrar pelo link+mensagem
         }
       }
 
@@ -417,16 +859,28 @@ export async function POST(req: NextRequest) {
           let conjunto = "";
           let criativo = "";
 
-          // Se tem sourceId, tentar buscar dados do anúncio
-          const adsToken = agencia.meta_business_token || agencia.meta_token;
+          // Se tem sourceId, tentar buscar dados do anúncio/conjunto/campanha via Meta API
+          // meta_token tem permissão de leitura de ads; meta_business_token é só CAPI
+          const adsToken = agencia.meta_token || agencia.meta_business_token;
           if (sourceId && adsToken) {
             try {
-              const adRes = await fetch(`https://graph.facebook.com/v21.0/${sourceId}?fields=name,adset{name},campaign{name}&access_token=${adsToken}`);
+              // sourceId é o ID do anúncio — buscar nome, adset_id e campaign_id
+              const adRes = await fetch(`https://graph.facebook.com/v21.0/${sourceId}?fields=name,adset_id,campaign_id&access_token=${adsToken}`);
               const adData = await adRes.json();
               if (adData && !adData.error) {
-                criativo = adData.name || "";
-                conjunto = adData.adset?.name || "";
-                campanha = adData.campaign?.name || "";
+                criativo = adData.name || ""; // nome do anúncio
+                // Buscar nome do conjunto (adset)
+                if (adData.adset_id) {
+                  const adsetRes = await fetch(`https://graph.facebook.com/v21.0/${adData.adset_id}?fields=name&access_token=${adsToken}`);
+                  const adsetData = await adsetRes.json();
+                  if (!adsetData.error) conjunto = adsetData.name || "";
+                }
+                // Buscar nome da campanha
+                if (adData.campaign_id) {
+                  const campRes = await fetch(`https://graph.facebook.com/v21.0/${adData.campaign_id}?fields=name&access_token=${adsToken}`);
+                  const campData = await campRes.json();
+                  if (!campData.error) campanha = campData.name || "";
+                }
               }
             } catch {}
           }
@@ -434,10 +888,10 @@ export async function POST(req: NextRequest) {
           // sourceId via Meta API é a fonte mais confiável — confiar nos dados retornados
           // A pessoa pode ter mudado a mensagem mas veio pelo anúncio/link
           tracking = {
-            utm_source: externalAdReply.mediaType || "meta",
+            utm_source: "facebook",
             utm_campaign: campanha || externalAdReply.title || externalAdReply.body || "",
             utm_content: conjunto ? `${conjunto}_${criativo}` : sourceId || "",
-            utm_medium: externalAdReply.mediaType || "",
+            utm_medium: "cpc",
             fbclid: ctwaClid || "",
             origem: "Meta Ads",
             link_id: null,
@@ -501,8 +955,26 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // 6b. Buscar rastreamento pendente genérico — só se CTWA não resolveu e NÃO é @lid
-      if (!tracking && !isLid) {
+      // 6a3. Detectar Social Selling — gatilho: mensagem contém "Gustavo aqui!" (exato)
+      if (!tracking) {
+        const temSocialSelling = (conteudo || "").includes("Gustavo aqui!");
+        if (temSocialSelling) {
+          tracking = {
+            utm_source: "social_selling",
+            utm_medium: "direct",
+            utm_campaign: "Social Selling",
+            utm_content: "",
+            fbclid: "",
+            origem: "Social Selling",
+            link_id: null,
+          };
+        }
+      }
+
+      // 6b. Buscar rastreamento pendente genérico por mensagem
+      // Roda para todos os leads sem tracking (incluindo @lid que não achou match no step 0)
+      // Valida obrigatoriamente pela mensagem para evitar falsos positivos
+      if (!tracking) {
         const cincoMinAtras = new Date(Date.now() - 5 * 60 * 1000).toISOString();
         const { data: recentes } = await supabase.from("rastreamentos_pendentes")
           .select("*")
@@ -558,32 +1030,34 @@ export async function POST(req: NextRequest) {
       // APLICAR RASTREAMENTO
       // ============================================
 
-      // 8. ENRIQUECER: se tem sourceId no externalAdReply, resolver campanha/conjunto/criativo
-      //    Independente de qual passo definiu o tracking
-      if (tracking && _externalAdReply?.sourceId) {
-        const _sourceId = _externalAdReply.sourceId;
-        const _ctwaClid = _externalAdReply.ctwaClid || msg.message?.extendedTextMessage?.contextInfo?.ctwaClid || "";
-        const adsToken = agencia.meta_business_token || agencia.meta_token;
-        if (adsToken) {
+      // 8. ENRIQUECER: resolver nomes reais de anúncio/conjunto/campanha via Meta API
+      //    Roda para CTWA (sourceId) e para leads do /c link (utm_content numérico = ad ID)
+      if (tracking) {
+        const _ctwaClid = _externalAdReply?.ctwaClid || msg.message?.extendedTextMessage?.contextInfo?.ctwaClid || "";
+        // meta_token tem ads_read; meta_business_token é só CAPI
+        const adsToken = agencia.meta_token || agencia.meta_business_token;
+        // ID a resolver: sourceId do CTWA ou utm_content se for numérico (ad ID do Meta)
+        const adIdToResolve = _externalAdReply?.sourceId
+          || (/^\d{15,20}$/.test(tracking.utm_content || "") ? tracking.utm_content : null);
+
+        if (adIdToResolve && adsToken) {
           try {
-            const adRes = await fetch(`https://graph.facebook.com/v21.0/${_sourceId}?fields=name,adset%7Bname%7D,campaign%7Bname,objective%7D&access_token=${adsToken}`);
+            const adRes = await fetch(`https://graph.facebook.com/v21.0/${adIdToResolve}?fields=name,adset_id,campaign_id&access_token=${adsToken}`);
             const adData = await adRes.json();
-            if (adData && !adData.error) {
-              tracking.utm_campaign = adData.campaign?.name || tracking.utm_campaign;
-              tracking.utm_content = adData.adset?.name ? `${adData.adset.name}_${adData.name}` : tracking.utm_content;
-              tracking._nome_anuncio = adData.name || tracking._nome_anuncio;
-              // Auto-classificar tipo de campanha pelo objetivo
-              const objective = adData.campaign?.objective || "";
-              if (objective === "OUTCOME_LEADS") {
-                tracking.origem = "Formulário Meta";
-                tracking.utm_medium = "leadform";
-              } else if (objective === "OUTCOME_ENGAGEMENT") {
-                tracking.origem = "Meta Ads";
-                tracking.utm_medium = "ctwa";
-              } else if (objective === "OUTCOME_TRAFFIC" || objective === "OUTCOME_SALES") {
-                tracking.origem = "Meta Ads";
-                tracking.utm_medium = "link";
+            if (adData && !adData.error && adData.adset_id) {
+              const nomeAnuncio = adData.name || "";
+              // Buscar nome do conjunto
+              const adsetRes = await fetch(`https://graph.facebook.com/v21.0/${adData.adset_id}?fields=name&access_token=${adsToken}`);
+              const adsetData = await adsetRes.json();
+              const nomeConjunto = adsetData.error ? "" : (adsetData.name || "");
+              // Buscar nome da campanha (só sobrescreve se utm_campaign não veio da URL /c)
+              if (adData.campaign_id && !tracking.link_id) {
+                const campRes = await fetch(`https://graph.facebook.com/v21.0/${adData.campaign_id}?fields=name&access_token=${adsToken}`);
+                const campData = await campRes.json();
+                if (!campData.error && campData.name) tracking.utm_campaign = campData.name;
               }
+              if (nomeConjunto) tracking.utm_content = nomeConjunto;
+              if (nomeAnuncio) tracking._nome_anuncio = nomeAnuncio;
             }
           } catch {}
         }
@@ -628,6 +1102,7 @@ export async function POST(req: NextRequest) {
             utm_term: tracking.utm_term,
             fbclid: tracking.fbclid,
             link_id: linkIdFromTerm,
+            leadgen_id: tracking.leadgen_id || null,
           };
 
           if (isPrimeiro) {
@@ -682,11 +1157,13 @@ export async function POST(req: NextRequest) {
         }).eq("id", conversa.id).is("primeira_mensagem_at", null);
 
         if (eraNovaConversa) {
-          fetch(`${APP_URL}/api/webhook/retentar-rastreamento`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ conversa_id: conversa.id, numero, agencia_id: agencia.id, timestamp }),
-          }).catch(() => {});
+          waitUntil(
+            fetch(`${APP_URL}/api/webhook/retentar-rastreamento`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ conversa_id: conversa.id, numero, agencia_id: agencia.id, timestamp }),
+            }).catch(() => {})
+          );
         }
       }
 
@@ -697,11 +1174,8 @@ export async function POST(req: NextRequest) {
         _isCTWA || isLid
       );
 
-      // Disparar pixel se veio de anúncio (SOMENTE na primeira mensagem da conversa)
-      const veioDeAnuncio = tracking?.fbclid || tracking?.utm_source ||
-        tracking?.origem === "Meta Ads" || tracking?.origem === "Google Ads";
-
-      if (veioDeAnuncio && eraNovaConversa) {
+      // Disparar pixel em toda conversa nova (orgânico + anúncio) pra enriquecer o pixel
+      if (eraNovaConversa) {
         const { data: etapaPrimeiro } = await supabase.from("jornada_etapas")
           .select("nome").eq("agencia_id", agencia.id).eq("eh_primeiro_contato", true).single();
         const nomeEtapa = etapaPrimeiro?.nome || "Entrou em contato";
@@ -728,13 +1202,8 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // FOLLOW-UP + FUNIS: cancelar pendentes quando lead responde (não-bloqueante)
+      // FUNIS: cancelar pendentes quando lead responde
       if (conversa?.id) {
-        supabase.from("followup_fila")
-          .update({ status: "cancelado" })
-          .eq("conversa_id", conversa.id)
-          .eq("status", "pendente")
-          .then(() => {});
         supabase.from("funil_fila")
           .update({ status: "cancelado" })
           .eq("conversa_id", conversa.id)
@@ -742,10 +1211,30 @@ export async function POST(req: NextRequest) {
           .then(() => {});
       }
 
+      // FASE: detectar sinal de adiamento na mensagem do lead
+      if (conversa?.id && conteudo) {
+        const sinaisAdiamento = [
+          "mês que vem", "mes que vem", "vou pensar", "vou ver com",
+          "depois te chamo", "vou falar com", "deixa eu pensar",
+          "não tenho dinheiro", "nao tenho dinheiro", "tô sem dinheiro", "to sem dinheiro",
+          "não posso agora", "nao posso agora", "mais pra frente", "mais para frente",
+          "semana que vem", "próxima semana", "proxima semana", "depois eu vejo",
+          "nao vou conseguir", "não vou conseguir", "esse mes nao", "esse mês não",
+        ];
+        const lower = conteudo.toLowerCase();
+        if (sinaisAdiamento.some(s => lower.includes(s))) {
+          supabase.from("conversas").update({
+            fase_atendimento: "adiou",
+            fase_atualizada_em: new Date().toISOString(),
+            followup_count: 0,
+          }).eq("id", conversa.id).then(() => {});
+        }
+      }
+
       } // fecha !isHistorica
 
       // IA AUTO-RESPONDER (não-bloqueante)
-      console.log(`[webhook-ia] conteudo="${(conteudo||'').slice(0,30)}" tipo=${tipo} conversa=${conversa?.id} ia_ativada=${conversa?.ia_ativada} isHistorica=${isHistorica}`);
+      console.log(`[webhook-ia] conteudo="${(conteudo||'').slice(0,30)}" tipo=${tipo} conversa=${conversa?.id} ia_ativada=${conversa?.ia_ativada} isHistorica=${isHistorica} msgDuplicada=${msgDuplicada}`);
       if (conteudo && conversa?.id) {
         let deveResponder = false;
 
@@ -766,11 +1255,12 @@ export async function POST(req: NextRequest) {
               await supabase.from("conversas").update({ ia_ativada: true }).eq("id", conversa.id);
             }
           } else {
-            // Tem gatilhos — verificar se a mensagem bate
-            const conteudoLower = conteudo.toLowerCase().trim();
+            // Tem gatilhos — verificar se a mensagem bate (ignora acentos, pontuação e espaços extras)
+            const normalizar = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, " ").trim();
+            const conteudoNorm = normalizar(conteudo);
             const bateGatilho = gatilhos.some(g => {
-              const gatilhoLower = g.toLowerCase().trim();
-              return gatilhoLower && (conteudoLower.includes(gatilhoLower) || gatilhoLower.includes(conteudoLower));
+              const gatilhoNorm = normalizar(g);
+              return gatilhoNorm && (conteudoNorm.includes(gatilhoNorm) || gatilhoNorm.includes(conteudoNorm));
             });
             if (bateGatilho) {
               deveResponder = true;
@@ -781,35 +1271,103 @@ export async function POST(req: NextRequest) {
 
         console.log(`[webhook-ia] deveResponder=${deveResponder} ia_ativada=${conversa.ia_ativada} agencia=${agencia.id} conversa=${conversa.id}`);
         if (deveResponder) {
-        try {
           console.log(`[webhook-ia] chamando responder para conversa ${conversa.id}...`);
-          const iaRes = await fetch(`${APP_URL}/api/ai/responder`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              agencia_id: agencia.id,
-              conversa_id: conversa.id,
-              mensagem_lead: conteudo,
-            }),
-          });
-          const iaData = await iaRes.json();
-          console.log(`[webhook-ia] resultado: ok=${iaData.ok} motivo=${iaData.motivo || ''} resposta=${(iaData.resposta || '').slice(0,50)}`);
-        } catch (iaErr: any) {
-          console.error(`[webhook-ia] ERRO fetch:`, iaErr.message);
-        }
 
-        // FOLLOW-UP: agendar novas etapas (não-bloqueante)
-        fetch(`${APP_URL}/api/ai/followup/agendar`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            agencia_id: agencia.id,
-            conversa_id: conversa.id,
-            contato_numero: numero,
-            contato_jid: remoteJid,
-          }),
-        }).catch(() => {});
+          // Capturar variáveis necessárias para o closure
+          const _agenciaId = agencia.id;
+          const _conversaId = conversa.id;
+          const _msgId = msgId;
+          const _remoteJid = remoteJid;
+          const _instanciaName = instanciaName;
+          const _tipo = tipo;
+          let _conteudo = conteudo;
+
+          // Resolver Evolution URL/key (pode ser do parent)
+          let _evoUrl = agencia.evolution_url || "";
+          let _evoKey = agencia.evolution_key || "";
+          if (!_evoUrl && agencia.parent_id) {
+            try {
+              const { data: parentEvo } = await supabase.from("agencias")
+                .select("evolution_url, evolution_key").eq("id", agencia.parent_id).single();
+              if (parentEvo) { _evoUrl = parentEvo.evolution_url || ""; _evoKey = parentEvo.evolution_key || ""; }
+            } catch {}
+          }
+
+          // Resolver chave Whisper
+          let _whisperKey = (agencia as any).openai_whisper_key || "";
+          if (!_whisperKey) {
+            const k = agencia.openai_key || "";
+            if (k && !k.startsWith("sk-ant-")) _whisperKey = k;
+          }
+
+          // waitUntil: retorna resposta ao Evolution mas mantém função viva
+          waitUntil((async () => {
+            // 1. Transcrever áudio imediatamente (antes do debounce do responder)
+            if (_tipo === "audio" && _whisperKey && _evoUrl && _evoKey && _msgId) {
+              try {
+                const convertRes = await fetch(`${_evoUrl}/chat/getBase64FromMediaMessage/${_instanciaName}`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", apikey: _evoKey },
+                  body: JSON.stringify({
+                    message: {
+                      key: { id: _msgId, remoteJid: _remoteJid, fromMe: false },
+                      message: msg.message,
+                      messageType: "audioMessage",
+                    },
+                  }),
+                });
+                if (convertRes.ok) {
+                  const b64Data = await convertRes.json();
+                  const base64Audio = b64Data.base64 || b64Data.data;
+                  if (base64Audio) {
+                    const audioBuffer = Buffer.from(base64Audio, "base64");
+                    const formData = new FormData();
+                    formData.append("file", new Blob([audioBuffer], { type: "audio/ogg" }), "audio.ogg");
+                    formData.append("model", "whisper-1");
+                    formData.append("language", "pt");
+                    const whisperRes = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+                      method: "POST",
+                      headers: { Authorization: `Bearer ${_whisperKey}` },
+                      body: formData,
+                    });
+                    const whisperData = await whisperRes.json();
+                    if (whisperData.text) {
+                      _conteudo = `[Áudio transcrito]: ${whisperData.text}`;
+                      await supabase.from("mensagens").update({ conteudo: _conteudo })
+                        .eq("conversa_id", _conversaId).eq("mensagem_id", _msgId);
+                      console.log(`[webhook] Áudio transcrito: ${whisperData.text.slice(0, 80)}`);
+                    } else {
+                      console.error("[webhook] Whisper sem texto:", whisperData);
+                    }
+                  } else {
+                    console.error("[webhook] getBase64 sem dados de áudio");
+                  }
+                } else {
+                  const errText = await convertRes.text();
+                  console.error("[webhook] getBase64 falhou:", convertRes.status, errText);
+                }
+              } catch (audioErr: any) {
+                console.error("[webhook] Erro transcrição áudio:", audioErr.message);
+              }
+            }
+
+            // 2. Chamar responder com conteúdo atualizado (transcrito ou original)
+            await fetch(`${APP_URL}/api/ai/responder`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                agencia_id: _agenciaId,
+                conversa_id: _conversaId,
+                mensagem_lead: _conteudo,
+              }),
+            }).catch((iaErr) => {
+              console.error(`[webhook-ia] ERRO fetch:`, iaErr.message);
+            });
+          })());
+
         } // fecha deveResponder
+
+        // FOLLOW-UP: agora controlado pelo cron (não pré-agenda mais)
       }
     }
 

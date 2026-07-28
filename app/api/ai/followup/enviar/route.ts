@@ -6,9 +6,19 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+const faseDescricoes: Record<string, string> = {
+  qualificacao:    "O lead iniciou contato e está na etapa de qualificação (ainda não recebeu o funil ou o preço).",
+  viu_funil:       "O lead recebeu o funil com imagens/resultados mas não avançou.",
+  recebeu_preco:   "O lead recebeu o preço mas parou de responder.",
+  adiou:           "O lead sinalizou adiamento (\"vou pensar\", \"mês que vem\", \"vou ver com o marido\", etc.).",
+  recebeu_horarios:"O lead recebeu os horários disponíveis mas não confirmou.",
+  agendou:         "O lead agendou. (follow-up não deveria ter chegado aqui)",
+};
+
 export async function POST(req: NextRequest) {
   try {
-    const { followup_fila_id } = await req.json();
+    const body = await req.json();
+    const { followup_fila_id, tentativa } = body;
     if (!followup_fila_id) return NextResponse.json({ ok: false, motivo: "ID obrigatório" });
 
     // 1. Buscar item da fila + etapa + agência
@@ -92,9 +102,16 @@ export async function POST(req: NextRequest) {
       const { data: conv } = await supabase.from("conversas")
         .select("contato_nome").eq("id", fila.conversa_id).single();
 
+      // Injetar contexto da fase no prompt de follow-up
+      const faseCtx = fila.fase_jornada
+        ? `\n\nCONTEXTO DO FOLLOW-UP — FASE: ${faseDescricoes[fila.fase_jornada] || fila.fase_jornada} Esta é a ${tentativa || etapa.ordem}ª tentativa de retomada. Adapte a mensagem ao contexto desta fase.`
+        : "";
+
+      const promptFase = (etapa.prompt_ia || `Envie uma mensagem de follow-up amigável. Esta é a ${tentativa || etapa.ordem}ª tentativa. Seja breve e natural. Nome do lead: ${conv?.contato_nome || "cliente"}.`) + faseCtx;
+
       const messages: { role: string; content: string }[] = [
         { role: "system", content: ag.openai_prompt_sistema || "Você é uma assistente virtual." },
-        { role: "system", content: etapa.prompt_ia || `Envie uma mensagem de follow-up amigável. Este é o follow-up #${etapa.ordem}. Seja breve e natural. Nome do lead: ${conv?.contato_nome || "cliente"}.` },
+        { role: "system", content: promptFase },
       ];
       for (const msg of (historico || []).reverse()) {
         if (!msg.conteudo) continue;
