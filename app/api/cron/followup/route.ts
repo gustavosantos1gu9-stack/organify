@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
 
       // 2. Candidatos T1: followup_count=0, fase_atualizada_em > 4h atrás
       const { data: t1 } = await supabase.from("conversas")
-        .select("id, agencia_id, contato_numero, contato_jid, fase_atendimento, followup_count, fase_atualizada_em")
+        .select("id, agencia_id, contato_numero, contato_jid, fase_atendimento, followup_count, fase_atualizada_em, followup_ultimo_at")
         .eq("agencia_id", ag.id)
         .eq("ia_ativada", true)
         .is("agendou_at", null)
@@ -52,16 +52,20 @@ export async function GET(req: NextRequest) {
         .lt("fase_atualizada_em", cutoff4h)
         .limit(20);
 
-      // 3. Candidatos T2: followup_count=1, fase_atualizada_em > 24h atrás
+      // 3. Candidatos T2: followup_count=1 E T1 foi enviado há pelo menos 20h
+      //    Usa followup_ultimo_at (quando T1 foi enviado) em vez de fase_atualizada_em
+      //    para garantir intervalo mínimo entre T1 e T2, mesmo que T1 tenha sido
+      //    atrasado pelo horário de funcionamento
+      const cutoff20h = new Date(agora.getTime() - 20 * 60 * 60 * 1000).toISOString();
       const { data: t2 } = await supabase.from("conversas")
-        .select("id, agencia_id, contato_numero, contato_jid, fase_atendimento, followup_count, fase_atualizada_em")
+        .select("id, agencia_id, contato_numero, contato_jid, fase_atendimento, followup_count, fase_atualizada_em, followup_ultimo_at")
         .eq("agencia_id", ag.id)
         .eq("ia_ativada", true)
         .is("agendou_at", null)
         .not("fase_atendimento", "is", null)
         .neq("fase_atendimento", "agendou")
         .eq("followup_count", 1)
-        .lt("fase_atualizada_em", cutoff24h)
+        .lt("followup_ultimo_at", cutoff20h)
         .limit(20);
 
       const candidatos = [
@@ -146,9 +150,12 @@ export async function GET(req: NextRequest) {
 
           if (data.ok) {
             totalEnviados++;
-            // Incrementar contador de follow-ups na conversa
+            // Incrementar contador e registrar quando foi enviado (usado no T2)
             await supabase.from("conversas")
-              .update({ followup_count: (conv.followup_count || 0) + 1 })
+              .update({
+                followup_count: (conv.followup_count || 0) + 1,
+                followup_ultimo_at: new Date().toISOString(),
+              })
               .eq("id", conv.id);
           } else {
             totalErros++;
