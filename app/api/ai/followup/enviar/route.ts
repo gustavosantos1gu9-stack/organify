@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
       .eq("id", followup_fila_id).single();
 
     if (!fila) return NextResponse.json({ ok: false, motivo: "Item não encontrado" });
-    if (fila.status !== "pendente") return NextResponse.json({ ok: false, motivo: "Já processado" });
+    if (fila.status !== "pendente" && fila.status !== "processando") return NextResponse.json({ ok: false, motivo: "Já processado" });
 
     const etapa = fila.etapa;
     if (!etapa) return NextResponse.json({ ok: false, motivo: "Etapa não encontrada" });
@@ -32,14 +32,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, motivo: "Agência não encontrada" });
     }
 
+    // Verificar se IA está ativa na agência
+    if (!ag.openai_ativo) {
+      await supabase.from("followup_fila").update({ status: "cancelado" }).eq("id", followup_fila_id);
+      return NextResponse.json({ ok: false, motivo: "IA desativada, follow-up cancelado" });
+    }
+
     // 3. Verificar horário de funcionamento
     if (ag.openai_horario_inicio && ag.openai_horario_fim) {
       const agora = new Date();
       const brTime = new Date(agora.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
       const hhmm = `${String(brTime.getHours()).padStart(2, "0")}:${String(brTime.getMinutes()).padStart(2, "0")}`;
       if (hhmm < ag.openai_horario_inicio || hhmm > ag.openai_horario_fim) {
-        return NextResponse.json({ ok: false, motivo: "Fora do horário" }); // cron tentará novamente
+        // Reverter para pendente para o cron tentar novamente no próximo horário
+        await supabase.from("followup_fila").update({ status: "pendente" }).eq("id", followup_fila_id);
+        return NextResponse.json({ ok: false, motivo: "Fora do horário" });
       }
+    }
+
+    // 3b. Verificar se conversa já tem agendamento — não precisa de follow-up
+    const { data: convCheck } = await supabase.from("conversas")
+      .select("agendou_at").eq("id", fila.conversa_id).single();
+    if (convCheck?.agendou_at) {
+      await supabase.from("followup_fila").update({ status: "cancelado" }).eq("id", followup_fila_id);
+      return NextResponse.json({ ok: false, motivo: "Conversa já agendou, cancelado" });
     }
 
     // 4. Verificar se lead respondeu desde que o follow-up foi agendado
@@ -48,8 +64,10 @@ export async function POST(req: NextRequest) {
       .gt("created_at", fila.created_at).limit(1);
 
     if (respostas?.length) {
-      await supabase.from("followup_fila").update({ status: "cancelado" }).eq("id", followup_fila_id);
-      return NextResponse.json({ ok: false, motivo: "Lead respondeu, cancelado" });
+      // Cancelar TODOS os follow-ups pendentes dessa conversa
+      await supabase.from("followup_fila").update({ status: "cancelado" })
+        .eq("conversa_id", fila.conversa_id).in("status", ["pendente", "processando"]);
+      return NextResponse.json({ ok: false, motivo: "Lead respondeu, todos cancelados" });
     }
 
     // 5. Verificar se humano respondeu manualmente
@@ -132,8 +150,11 @@ export async function POST(req: NextRequest) {
       const { data: conv } = await supabase.from("conversas")
         .select("contato_nome").eq("id", fila.conversa_id).single();
 
+      const nomeCompleto = conv?.contato_nome || "";
+      const primeiroNome = nomeCompleto.split(" ")[0] || nomeCompleto;
       texto = (etapa.texto_template || "")
-        .replace(/\{nome\}/g, conv?.contato_nome || "")
+        .replace(/\{nome\}/g, primeiroNome)
+        .replace(/\{nome_completo\}/g, nomeCompleto)
         .replace(/\{empresa\}/g, ag.nome || "");
     }
 
