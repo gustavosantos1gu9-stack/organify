@@ -796,7 +796,7 @@ ${funisAtivos.map(f => `- "${f.nome}"${f.descricao ? `: ${f.descricao}` : ""}`).
         novaFase = "recebeu_horarios";
       } else if (funilMatch) {
         novaFase = "viu_funil";
-      } else if (/\b69[,.]90\b|699[,.]00|R\$\s*69|\bR\$\s*699/i.test(resposta)) {
+      } else if (/R\$\s*\d/.test(resposta)) {
         novaFase = "recebeu_preco";
       } else if (!faseAtual) {
         novaFase = "qualificacao"; // primeira resposta da IA
