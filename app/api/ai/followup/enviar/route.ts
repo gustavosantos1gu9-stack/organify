@@ -102,17 +102,37 @@ export async function POST(req: NextRequest) {
       const { data: conv } = await supabase.from("conversas")
         .select("contato_nome").eq("id", fila.conversa_id).single();
 
-      // Injetar contexto da fase no prompt de follow-up
-      const faseCtx = fila.fase_jornada
-        ? `\n\nCONTEXTO DO FOLLOW-UP — FASE: ${faseDescricoes[fila.fase_jornada] || fila.fase_jornada} Esta é a ${tentativa || etapa.ordem}ª tentativa de retomada. Adapte a mensagem ao contexto desta fase.`
-        : "";
+      // Mapear fase para o número/nome que o prompt espera
+      const faseNumeros: Record<string, string> = {
+        qualificacao:     "FASE 1 — PAROU NA QUALIFICAÇÃO",
+        viu_funil:        "FASE 2 — VIU O FUNIL E SUMIU",
+        recebeu_preco:    "FASE 3 — RECEBEU O PREÇO DA MICRO E SUMIU",
+        adiou:            "FASE 4 — ADIOU",
+        recebeu_horarios: "FASE 5 — RECEBEU HORÁRIOS E NÃO CONFIRMOU",
+      };
+      const numTentativa = tentativa || etapa.ordem;
+      const faseLabel = fila.fase_jornada ? (faseNumeros[fila.fase_jornada] || fila.fase_jornada) : "NÃO IDENTIFICADA";
 
-      const promptFase = (etapa.prompt_ia || `Envie uma mensagem de follow-up amigável. Esta é a ${tentativa || etapa.ordem}ª tentativa. Seja breve e natural. Nome do lead: ${conv?.contato_nome || "cliente"}.`) + faseCtx;
+      // Bloco de contexto injetado antes do histórico
+      const ctxBlock = `---\nFASE: ${faseLabel}\nTENTATIVA: ${numTentativa}ª tentativa\n---`;
 
-      const messages: { role: string; content: string }[] = [
-        { role: "system", content: ag.openai_prompt_sistema || "Você é uma assistente virtual." },
-        { role: "system", content: promptFase },
-      ];
+      const promptBase = etapa.prompt_ia
+        || `Envie uma mensagem de follow-up amigável. ${ctxBlock} Seja breve e natural. Nome do lead: ${conv?.contato_nome || "cliente"}.`;
+
+      // Se o prompt_ia é autocontido (tem identidade própria), não usar openai_prompt_sistema
+      const isAutocontido = etapa.prompt_ia && (
+        etapa.prompt_ia.includes("Você é") ||
+        etapa.prompt_ia.includes("REGRAS ABSOLUTAS") ||
+        etapa.prompt_ia.includes("PROMPT DE FOLLOW-UP")
+      );
+
+      const messages: { role: string; content: string }[] = [];
+      if (!isAutocontido) {
+        messages.push({ role: "system", content: ag.openai_prompt_sistema || "Você é uma assistente virtual." });
+      }
+      messages.push({ role: "system", content: promptBase });
+      // Injetar contexto de fase/tentativa como bloco separado
+      messages.push({ role: "system", content: ctxBlock });
       for (const msg of (historico || []).reverse()) {
         if (!msg.conteudo) continue;
         messages.push({ role: msg.de_mim ? "assistant" : "user", content: msg.conteudo });
