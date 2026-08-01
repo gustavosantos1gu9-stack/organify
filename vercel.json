@@ -1,36 +1,36 @@
 {
   "crons": [
     {
-      "path": "/api/cron/churn",
-      "schedule": "0 3 28-31 * *"
-    },
-    {
       "path": "/api/cron/followup",
-      "schedule": "0 8 * * *"
+      "schedule": "*/5 * * * *"
     },
     {
       "path": "/api/cron/funis",
-      "schedule": "0 9 * * *"
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/ia-retomar",
+      "schedule": "*/30 * * * *"
     },
     {
       "path": "/api/cron/confirmacoes",
-      "schedule": "0 11 * * *"
+      "schedule": "0 */2 * * *"
+    },
+    {
+      "path": "/api/cron/poll-lid",
+      "schedule": "0 12-20 * * *"
     },
     {
       "path": "/api/meta/sync-leads",
       "schedule": "0 6 * * *"
     },
     {
-      "path": "/api/cron/ia-retomar",
-      "schedule": "5 12 * * *"
+      "path": "/api/cron/churn",
+      "schedule": "0 3 28-31 * *"
     },
     {
-      "path": "/api/cron/ia-retomar",
-      "schedule": "5 14 * * *"
-    },
-    {
-      "path": "/api/cron/ia-retomar",
-      "schedule": "5 16 * * *"
+      "path": "/api/cron/financas-notificacoes",
+      "schedule": "0 11 * * *"
     }
   ]
 }
