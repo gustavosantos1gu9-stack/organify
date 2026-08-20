@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import { waitUntil } from "@vercel/functions";
 import { createClient } from "@supabase/supabase-js";
+
+export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,7 +25,7 @@ export async function GET() {
     // Buscar agências com IA ativa e horário configurado
     const { data: agencias, error: errAg } = await supabase
       .from("agencias")
-      .select("id, nome, openai_horario_inicio, openai_horario_fim")
+      .select("id, nome, openai_horario_inicio, openai_horario_fim, ia_delay_conversa_ativa_segundos")
       .eq("openai_ativo", true)
       .not("openai_horario_inicio", "is", null)
       .not("openai_horario_fim", "is", null);
@@ -60,64 +62,130 @@ export async function GET() {
       if (!conversas?.length) continue;
 
       for (const conv of conversas) {
-        // Buscar última mensagem da conversa
+        // Buscar últimas mensagens da conversa (pegar mais para ignorar placeholders)
         const { data: ultimaMsgs, error: errMsg } = await supabase
           .from("mensagens")
           .select("id, conteudo, de_mim, enviada_por_ia, created_at")
           .eq("conversa_id", conv.id)
           .order("created_at", { ascending: false })
-          .limit(1);
+          .limit(10);
 
         if (errMsg) { log(`[ia-retomar] ERRO msg ${conv.id}: ${errMsg.message}`); continue; }
+        if (!ultimaMsgs?.length) { log(`[ia-retomar] conv ${conv.id}: sem mensagens`); continue; }
 
-        const ultimaMsg = ultimaMsgs?.[0];
-        if (!ultimaMsg) { log(`[ia-retomar] conv ${conv.id}: sem mensagens`); continue; }
+        // "[Áudio transcrito]:" é conteúdo real — não tratar como placeholder
+        const isPlaceholder = (c: string) => !c || c === "Mensagem" || c === "😄 Sticker" || c === "Mensagem apagada" || c.length < 2
+          || (c.startsWith("[") && !c.startsWith("[Áudio transcrito]"));
 
-        // Se a última mensagem é do lead (não respondida) e tem conteúdo real
-        // "Mensagem" é o placeholder para eventos sem texto (deleções, protocolMessages) — ignorar
-        const semConteudoReal = !ultimaMsg.conteudo || ultimaMsg.conteudo === "Mensagem" || ultimaMsg.conteudo === "😄 Sticker" || ultimaMsg.conteudo === "Mensagem apagada" || ultimaMsg.conteudo.startsWith("[") || ultimaMsg.conteudo.length < 2;
-        const isUltimaDoLead = ultimaMsg.de_mim === false && !ultimaMsg.enviada_por_ia && !semConteudoReal;
+        // Última mensagem REAL do lead (de_mim=false, não-IA, não-placeholder)
+        const ultimaMsgLead = ultimaMsgs.find(m => !m.de_mim && !m.enviada_por_ia && !isPlaceholder(m.conteudo));
 
-        log(`[ia-retomar] conv ${conv.id.slice(0, 8)}: de_mim=${ultimaMsg.de_mim} ia=${ultimaMsg.enviada_por_ia} semConteudo=${semConteudoReal} isUltimaDoLead=${isUltimaDoLead} msg="${(ultimaMsg.conteudo || "").slice(0, 40)}"`);
+        if (!ultimaMsgLead) { log(`[ia-retomar] conv ${conv.id.slice(0, 8)}: sem msg real do lead`); continue; }
 
-        if (isUltimaDoLead) {
-          // Verificar se não há resposta de IA após essa mensagem
+        // Última mensagem de qualquer tipo (para detectar auto-saudação após msg do lead)
+        const ultimaMsg = ultimaMsgs.find(m => !isPlaceholder(m.conteudo)) || ultimaMsgs[0];
+
+        // Última msg é do lead (ainda não respondida)
+        const isUltimaDoLead = !ultimaMsg?.de_mim && !ultimaMsg?.enviada_por_ia && !isPlaceholder(ultimaMsg?.conteudo || "");
+        // Última msg é "fromMe" não-IA (pode ser auto-saudação WA Business ou humano) — sem limite de tempo
+        const ultimaMsgEFromMeNaoIA = ultimaMsg?.de_mim && !ultimaMsg?.enviada_por_ia;
+
+        log(`[ia-retomar] conv ${conv.id.slice(0, 8)}: ultimaLead="${ultimaMsgLead.conteudo.slice(0,30)}" isUltimaDoLead=${isUltimaDoLead} fromMeNaoIA=${ultimaMsgEFromMeNaoIA}`);
+
+        // Disparar se: última msg é do lead OU última fromMe não veio da IA (auto-saudação ou humano)
+        if (isUltimaDoLead || ultimaMsgEFromMeNaoIA) {
+          // Verificar se não há resposta de IA após a última msg do lead
           const { data: respostaIA } = await supabase
             .from("mensagens")
             .select("id")
             .eq("conversa_id", conv.id)
             .eq("enviada_por_ia", true)
-            .gt("created_at", ultimaMsg.created_at)
+            .gt("created_at", ultimaMsgLead.created_at)
             .limit(1);
 
-          log(`[ia-retomar] conv ${conv.id.slice(0, 8)}: respostaIA após msg = ${respostaIA?.length || 0}`);
+          log(`[ia-retomar] conv ${conv.id.slice(0, 8)}: respostaIA após msg lead = ${respostaIA?.length || 0}`);
 
           if (!respostaIA?.length) {
-            // Nenhuma resposta da IA depois da mensagem do lead → disparar
-            log(`[ia-retomar] Disparando IA para conversa ${conv.id} (msg: ${ultimaMsg.conteudo?.slice(0, 40)})`);
-            const _agId = ag.id;
-            const _convId = conv.id;
-            const _conteudo = ultimaMsg.conteudo;
-            waitUntil(
-              fetch(`${APP_URL}/api/ai/responder`, {
+            // Verificar se o delay de conversa ativa ainda não passou (não disparar antes da hora)
+            const delayAtivoS = (ag as any).ia_delay_conversa_ativa_segundos || 0;
+            const tempoDesdeMsg = Date.now() - new Date(ultimaMsgLead.created_at).getTime();
+            if (delayAtivoS > 0 && tempoDesdeMsg < delayAtivoS * 1000) {
+              const restantes = Math.round((delayAtivoS * 1000 - tempoDesdeMsg) / 1000);
+              log(`[ia-retomar] conv ${conv.id.slice(0, 8)}: aguardando delay (${restantes}s restantes)`);
+              continue;
+            }
+
+            // Verificar se a IA já respondeu alguma vez nesta conversa
+            // Se nunca respondeu, a msg "fromMe" provavelmente é auto-saudação do WA Business (não takeover humano)
+            const { data: iaAlgumaDia } = await supabase
+              .from("mensagens")
+              .select("id")
+              .eq("conversa_id", conv.id)
+              .eq("enviada_por_ia", true)
+              .limit(1);
+            const iaJaRespondeu = (iaAlgumaDia?.length || 0) > 0;
+
+            // Verificar se humano respondeu REAL (>= 30s depois da msg do lead)
+            // Só considerar takeover se a IA já tinha respondido antes (senão é auto-saudação WA)
+            if (iaJaRespondeu) {
+              const referenciaHumano = new Date(new Date(ultimaMsgLead.created_at).getTime() + 30 * 1000).toISOString();
+              const { data: respostaHumano } = await supabase
+                .from("mensagens")
+                .select("id")
+                .eq("conversa_id", conv.id)
+                .eq("de_mim", true)
+                .eq("enviada_por_ia", false)
+                .gt("created_at", referenciaHumano)
+                .limit(1);
+
+              if (respostaHumano?.length) {
+                log(`[ia-retomar] conv ${conv.id.slice(0, 8)}: humano respondeu (>= 30s), pulando`);
+                continue;
+              }
+            }
+
+            // Nenhuma resposta da IA nem humana real → disparar
+            log(`[ia-retomar] Disparando IA para conversa ${conv.id} (msg: ${ultimaMsgLead.conteudo?.slice(0, 40)})`);
+            try {
+              await fetch(`${APP_URL}/api/ai/responder`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  agencia_id: _agId,
-                  conversa_id: _convId,
-                  mensagem_lead: _conteudo,
+                  agencia_id: ag.id,
+                  conversa_id: conv.id,
+                  mensagem_lead: ultimaMsgLead.conteudo,
                   skip_delay: true,
                 }),
-              }).catch((e) => log(`[ia-retomar] ERRO responder conv ${_convId}: ${e.message}`))
-            );
+              });
+            } catch (e: any) {
+              log(`[ia-retomar] ERRO responder conv ${conv.id}: ${e.message}`);
+            }
             totalDisparadas++;
           }
         }
       }
     }
 
+    // ── CTWA RETRO: marcar @lid sem rastreio como Meta Ads (max 200 por rodada) ──
+    let ctwaRastreadas = 0;
+    try {
+      const { data: lidSemRastreio } = await supabase.from("conversas")
+        .select("id")
+        .like("contato_jid", "%@lid")
+        .or("origem.is.null,origem.eq.Não Rastreada")
+        .limit(200);
+      if (lidSemRastreio?.length) {
+        const lidIds = lidSemRastreio.map((c: any) => c.id);
+        await supabase.from("conversas")
+          .update({ origem: "Meta Ads", utm_source: "meta", utm_medium: "ctwa" })
+          .in("id", lidIds);
+        ctwaRastreadas = lidIds.length;
+        log(`[ctwa-retro] ${ctwaRastreadas} conversas marcadas como Meta Ads`);
+      }
+    } catch {}
+
     log(`[ia-retomar] finalizado: ${totalDisparadas} conversas retomadas`);
-    return NextResponse.json({ ok: true, processadas: totalDisparadas, debug: debugLog });
+    return NextResponse.json({ ok: true, processadas: totalDisparadas, ctwaRastreadas, debug: debugLog });
   } catch (e: any) {
     console.error("[ia-retomar] Erro:", e);
     return NextResponse.json({ ok: false, error: e.message, debug: debugLog }, { status: 500 });
