@@ -55,10 +55,12 @@ function IntegracoesCliente() {
   // Modal de seleção pós-OAuth
   const [showSelector, setShowSelector] = useState(false);
   const [contasDisponiveis, setContasDisponiveis] = useState<any[]>([]);
+  const [buscarConta, setBuscarConta] = useState("");
   const [pixelsDisponiveis, setPixelsDisponiveis] = useState<any[]>([]);
   const [contaSelecionada, setContaSelecionada] = useState("");
   const [pixelSelecionado, setPixelSelecionado] = useState("");
   const [carregandoMeta, setCarregandoMeta] = useState(false);
+  const [agenciaIdSeletor, setAgenciaIdSeletor] = useState<string | null>(null); // agência alvo do seletor (pode ser filha)
 
   // Helper para chamar Evolution API sempre com agencia_id
   const evoCall = useCallback(async (action: string, instanceName?: string, payload?: Record<string, unknown>) => {
@@ -122,6 +124,9 @@ function IntegracoesCliente() {
               }
             }
           } catch {}
+
+          // Marcar retroativamente conversas @lid como "Meta Ads" (CTWA)
+          fetch(`/api/rastreamento/ctwa-retro?agencia_id=${agenciaId}`).catch(() => {});
         }
       } catch {}
     }, 5000);
@@ -175,41 +180,19 @@ function IntegracoesCliente() {
         setOpenaiHorarioInicioC(data.openai_horario_inicio || "");
         setOpenaiHorarioFimC(data.openai_horario_fim || "");
 
-        // Detectar retorno do OAuth Meta — abrir seletor
-        if (typeof window !== "undefined") {
-          const params = new URLSearchParams(window.location.search);
-          if (params.get("meta_success") === "true" && data.meta_business_token) {
-            setCarregandoMeta(true);
-            try {
-              const resContas = await fetch("/api/meta-ads/contas-pixels", {
-                method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ token: data.meta_business_token }),
-              });
-              const { contas } = await resContas.json();
-              setContasDisponiveis(contas || []);
-              setShowSelector(true);
-              window.history.replaceState({}, "", "/configuracoes/integracoes");
-            } catch {}
-            setCarregandoMeta(false);
-          }
-        }
-
-        // Verificar status do token
+        // Validar token contra a API do Meta (1 chamada leve no carregamento)
         if (data.meta_business_token) {
           try {
-            const tRes = await fetch(`https://graph.facebook.com/v21.0/debug_token?input_token=${data.meta_business_token}&access_token=${data.meta_business_token}`);
-            const tData = await tRes.json();
-            if (tData?.data) {
-              const exp = tData.data.expires_at;
-              setTokenStatus({
-                valid: tData.data.is_valid,
-                expires: exp === 0 ? "Nunca expira" : new Date(exp * 1000).toLocaleDateString("pt-BR"),
-                name: tData.data.application || "",
-              });
-            } else {
+            const meRes = await fetch(`https://graph.facebook.com/v21.0/me?fields=name&access_token=${data.meta_business_token}`);
+            const meData = await meRes.json();
+            if (meData.error) {
               setTokenStatus({ valid: false });
+            } else {
+              setTokenStatus({ valid: true, expires: "—", name: meData.name || "" });
             }
-          } catch { setTokenStatus({ valid: false }); }
+          } catch {
+            setTokenStatus({ valid: false });
+          }
         }
         // Verificar instância salva desta agência
         const instSalva = data.whatsapp_instancia || "";
@@ -250,6 +233,39 @@ function IntegracoesCliente() {
             }
           } catch {}
         }
+
+        // Detectar retorno do OAuth Meta — abrir seletor (após setLoading(false) para não bloquear a página)
+        setLoading(false);
+        if (typeof window !== "undefined") {
+          const params = new URLSearchParams(window.location.search);
+          if (params.get("meta_success") === "true") {
+            // Usar agencia_id da URL se disponível (caso de agência filha onde sessionStorage tem o master)
+            const agenciaIdUrl = params.get("agencia_id");
+            let tokenParaSeletor = data.meta_business_token;
+            if (agenciaIdUrl && agenciaIdUrl !== agId) {
+              // Buscar token da agência correta (filha)
+              const { data: agFilha } = await supabase.from("agencias")
+                .select("meta_business_token").eq("id", agenciaIdUrl).single();
+              if (agFilha?.meta_business_token) tokenParaSeletor = agFilha.meta_business_token;
+            }
+            if (tokenParaSeletor) {
+              setCarregandoMeta(true);
+              try {
+                const resContas = await fetch("/api/meta-ads/contas-pixels", {
+                  method: "POST", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ token: tokenParaSeletor, agencia_id: agenciaIdUrl || agId }),
+                });
+                const { contas } = await resContas.json();
+                setContasDisponiveis(contas || []);
+                setAgenciaIdSeletor(agenciaIdUrl || agId);
+                setShowSelector(true);
+                window.history.replaceState({}, "", "/configuracoes/integracoes");
+              } catch {}
+              setCarregandoMeta(false);
+            }
+          }
+        }
+        return;
       }
       setLoading(false);
     }
@@ -358,7 +374,8 @@ function IntegracoesCliente() {
 
   // Salvar seleção final
   const salvarSelecao = async () => {
-    if (!contaSelecionada || !agenciaId) return alert("Selecione uma conta de anúncio");
+    const agIdAlvo = agenciaIdSeletor || agenciaId;
+    if (!contaSelecionada || !agIdAlvo) return alert("Selecione uma conta de anúncio");
     setCarregandoMeta(true);
     try {
       await supabase.from("agencias").update({
@@ -366,7 +383,7 @@ function IntegracoesCliente() {
         meta_pixel_id: pixelSelecionado || null,
         meta_ativo: true,
         meta_ads_ativo: true,
-      }).eq("id", agenciaId);
+      }).eq("id", agIdAlvo);
 
       setMetaAdAccountId(contaSelecionada);
       setPixelId(pixelSelecionado || "");
@@ -406,13 +423,22 @@ function IntegracoesCliente() {
             {/* Conta de anúncio */}
             <div className="form-group" style={{ marginBottom: "16px" }}>
               <label className="form-label">Conta de Anúncio *</label>
+              <input
+                className="form-input"
+                placeholder="Pesquisar conta pelo nome..."
+                value={buscarConta}
+                onChange={e => setBuscarConta(e.target.value)}
+                style={{ marginBottom: "6px" }}
+              />
               <select className="form-input" value={contaSelecionada} onChange={e => selecionarConta(e.target.value)}>
                 <option value="">Selecione uma conta...</option>
-                {contasDisponiveis.map((c: any) => (
-                  <option key={c.id} value={c.id_clean}>
-                    {c.name} {c.business ? `(${c.business})` : ""} — {c.currency}
-                  </option>
-                ))}
+                {contasDisponiveis
+                  .filter(c => !buscarConta || (c.name || "").toLowerCase().includes(buscarConta.toLowerCase()) || (c.business || "").toLowerCase().includes(buscarConta.toLowerCase()))
+                  .map((c: any) => (
+                    <option key={c.id} value={c.id_clean}>
+                      {c.name} {c.business ? `(${c.business})` : ""} — {c.currency}
+                    </option>
+                  ))}
               </select>
               {contasDisponiveis.length === 0 && !carregandoMeta && (
                 <p style={{ fontSize: "11px", color: "#ef4444", marginTop: "6px" }}>Nenhuma conta de anúncio disponível.</p>
@@ -531,25 +557,23 @@ function IntegracoesCliente() {
         </div>
         <p style={{ fontSize: "13px", color: "#606060", marginBottom: "20px" }}>Pixel e Conversions API para rastrear e otimizar campanhas</p>
 
-        {/* Botão OAuth — conectar com 1 clique */}
+        {/* Botão OAuth — conectar/reconectar com 1 clique */}
+        <button onClick={() => {
+          window.location.href = `/api/auth/meta?agencia_id=${agenciaId}&return_to=/configuracoes/integracoes`;
+        }} style={{
+          width: "100%", padding: "14px", borderRadius: "10px", cursor: "pointer",
+          background: metaAtivo ? "#1a1a2e" : "#1877f2", color: metaAtivo ? "#29ABE2" : "#fff",
+          border: metaAtivo ? "1px solid #1877f2" : "none",
+          fontSize: "15px", fontWeight: "600", marginBottom: "16px",
+          display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
+        }}>
+          <Target size={18} /> {metaAtivo ? "Reconectar Facebook (renovar token)" : "Conectar com Facebook"}
+        </button>
         {!metaAtivo && (
-          <>
-            <button onClick={async () => {
-              const agId = agenciaId;
-              window.location.href = `/api/auth/meta?agencia_id=${agId}&return_to=/configuracoes/integracoes`;
-            }} style={{
-              width: "100%", padding: "14px", borderRadius: "10px", cursor: "pointer",
-              background: "#1877f2", color: "#fff", border: "none",
-              fontSize: "15px", fontWeight: "600", marginBottom: "16px",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
-            }}>
-              <Target size={18} /> Conectar com Facebook
-            </button>
-            <div style={{ textAlign: "center", fontSize: "11px", color: "#606060", margin: "16px 0", position: "relative" }}>
-              <span style={{ background: "#141414", padding: "0 12px", position: "relative", zIndex: 1 }}>ou preencha manualmente</span>
-              <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: "1px", background: "#2e2e2e" }} />
-            </div>
-          </>
+          <div style={{ textAlign: "center", fontSize: "11px", color: "#606060", margin: "16px 0", position: "relative" }}>
+            <span style={{ background: "#141414", padding: "0 12px", position: "relative", zIndex: 1 }}>ou preencha manualmente</span>
+            <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: "1px", background: "#2e2e2e" }} />
+          </div>
         )}
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
@@ -604,7 +628,7 @@ function IntegracoesCliente() {
                   color: tokenStatus.valid ? "#22c55e" : "#ef4444",
                 }}>
                   {tokenStatus.valid
-                    ? `Token válido — ${tokenStatus.expires}${tokenStatus.name ? ` (${tokenStatus.name})` : ""}`
+                    ? `Token válido${tokenStatus.expires && tokenStatus.expires !== "—" ? ` — expira ${tokenStatus.expires}` : ""}${tokenStatus.name ? ` (${tokenStatus.name})` : ""}`
                     : `Token expirado ou inválido — gere um novo token seguindo o passo a passo abaixo`
                   }
                 </div>
@@ -788,22 +812,19 @@ function IntegracoesMaster() {
         setOpenaiHorarioInicio(data.openai_horario_inicio || "");
         setOpenaiHorarioFim(data.openai_horario_fim || "");
         setAsaasToken(data.asaas_token || "");
-        // Verificar status do token
+        // Validar token contra a API do Meta (1 chamada leve no carregamento)
         if (data.meta_business_token) {
           try {
-            const tRes = await fetch(`https://graph.facebook.com/v21.0/debug_token?input_token=${data.meta_business_token}&access_token=${data.meta_business_token}`);
-            const tData = await tRes.json();
-            if (tData?.data) {
-              const exp = tData.data.expires_at;
-              setTokenStatus({
-                valid: tData.data.is_valid,
-                expires: exp === 0 ? "Nunca expira" : new Date(exp * 1000).toLocaleDateString("pt-BR"),
-                name: tData.data.application || "",
-              });
-            } else {
+            const meRes = await fetch(`https://graph.facebook.com/v21.0/me?fields=name&access_token=${data.meta_business_token}`);
+            const meData = await meRes.json();
+            if (meData.error) {
               setTokenStatus({ valid: false });
+            } else {
+              setTokenStatus({ valid: true, expires: "—", name: meData.name || "" });
             }
-          } catch { setTokenStatus({ valid: false }); }
+          } catch {
+            setTokenStatus({ valid: false });
+          }
         }
       }
     }
@@ -1179,7 +1200,17 @@ function IntegracoesMaster() {
             {metaAtivo?"Ativo":"Inativo"}
           </label>
         </div>
-        <p style={{fontSize:"13px",color:"#606060",marginBottom:"20px"}}>Pixel e Conversions API para rastrear e otimizar campanhas</p>
+        <p style={{fontSize:"13px",color:"#606060",marginBottom:"16px"}}>Pixel e Conversions API para rastrear eventos do inbox do master</p>
+        <button onClick={async () => {
+          const agId = await getAgenciaId();
+          window.location.href = `/api/auth/meta?agencia_id=${agId}&return_to=/configuracoes/integracoes&token_type=pixel`;
+        }} style={{
+          width:"100%", padding:"12px", borderRadius:"10px", cursor:"pointer", marginBottom:"16px",
+          background:"#1a1a2e", color:"#29ABE2", border:"1px solid #1877f2",
+          fontSize:"14px", fontWeight:"600", display:"flex", alignItems:"center", justifyContent:"center", gap:"8px",
+        }}>
+          <Target size={16}/> Conectar Facebook para rastreamento do Inbox
+        </button>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"16px",marginBottom:"16px"}}>
           <div className="form-group">
             <label className="form-label">Pixel ID</label>
@@ -1231,7 +1262,7 @@ function IntegracoesMaster() {
                   color: tokenStatus.valid ? "#22c55e" : "#ef4444",
                 }}>
                   {tokenStatus.valid
-                    ? `Token válido — ${tokenStatus.expires}${tokenStatus.name ? ` (${tokenStatus.name})` : ""}`
+                    ? `Token válido${tokenStatus.expires && tokenStatus.expires !== "—" ? ` — expira ${tokenStatus.expires}` : ""}${tokenStatus.name ? ` (${tokenStatus.name})` : ""}`
                     : `Token expirado ou inválido — gere um novo token seguindo o passo a passo abaixo`
                   }
                 </div>

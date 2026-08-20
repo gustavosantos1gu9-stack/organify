@@ -25,10 +25,14 @@ export async function GET(req: NextRequest) {
 
   // Decodificar state
   let agenciaId: string | null = null;
+  let returnTo = "/relatorios-meta/conexoes";
+  let tokenType = "business"; // "pixel" | "business"
   if (stateParam) {
     try {
       const state = JSON.parse(Buffer.from(stateParam, "base64url").toString());
       agenciaId = state.agencia_id;
+      if (state.return_to) returnTo = state.return_to;
+      if (state.token_type) tokenType = state.token_type;
     } catch {}
   }
 
@@ -44,7 +48,7 @@ export async function GET(req: NextRequest) {
     const tokenData = await tokenRes.json();
 
     if (tokenData.error) {
-      return NextResponse.redirect(`${url.origin}/relatorios-meta/conexoes?meta_error=${encodeURIComponent(tokenData.error.message)}`);
+      return NextResponse.redirect(`${url.origin}${returnTo}?meta_error=${encodeURIComponent(tokenData.error.message)}`);
     }
 
     const shortToken = tokenData.access_token;
@@ -63,7 +67,7 @@ export async function GET(req: NextRequest) {
     const meData = await meRes.json();
 
     if (meData.error) {
-      return NextResponse.redirect(`${url.origin}/relatorios-meta/conexoes?meta_error=${encodeURIComponent(meData.error.message)}`);
+      return NextResponse.redirect(`${url.origin}${returnTo}?meta_error=${encodeURIComponent(meData.error.message)}`);
     }
 
     // 4. Salvar token na conexão de relatórios
@@ -93,24 +97,34 @@ export async function GET(req: NextRequest) {
         });
       }
 
-      // Salvar token na agência — NÃO sobrescrever meta_token (pixel) se já existe
-      const { data: ag } = await supabase.from("agencias").select("meta_token").eq("id", agenciaId).single();
-      const updateData: Record<string, string> = { meta_business_token: longToken };
-      if (!ag?.meta_token) updateData.meta_token = longToken;
+      // token_type=pixel  → salva em meta_token (Conversions API / rastreamento inbox)
+      // token_type=business → salva em meta_business_token (BM / relatórios de ads)
+      let updateData: Record<string, string>;
+      if (tokenType === "pixel") {
+        // Conectando para rastrear eventos do inbox — salva só no meta_token
+        updateData = { meta_token: longToken };
+      } else {
+        // Conectando para relatórios / BM — salva no meta_business_token
+        updateData = { meta_business_token: longToken };
+        // Preenche meta_token só se ainda estiver vazio (não sobrescreve pixel configurado)
+        const { data: agAtual } = await supabase.from("agencias").select("meta_token").eq("id", agenciaId).single();
+        if (!agAtual?.meta_token) updateData.meta_token = longToken;
+      }
       await supabase.from("agencias").update(updateData).eq("id", agenciaId);
+
+      // Sincronizar leads de formulário do Meta (fire-and-forget)
+      // Associa conversas existentes com leadgen_id quando tem campanha de formulário
+      fetch(`${url.origin}/api/meta/sync-leads`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agencia_id: agenciaId }),
+      }).catch(() => {});
     }
 
-    // 5. Redirecionar de volta. Voltar pra Integrações se veio de lá, senão pra Conexões
-    const returnTo = stateParam ? (() => {
-      try {
-        const state = JSON.parse(Buffer.from(stateParam, "base64url").toString());
-        return state.return_to || "/relatorios-meta/conexoes";
-      } catch { return "/relatorios-meta/conexoes"; }
-    })() : "/relatorios-meta/conexoes";
-
-    return NextResponse.redirect(`${url.origin}${returnTo}?meta_success=true&meta_nome=${encodeURIComponent(meData.name)}`);
+    const agenciaParam = agenciaId ? `&agencia_id=${agenciaId}` : "";
+    return NextResponse.redirect(`${url.origin}${returnTo}?meta_success=true&meta_nome=${encodeURIComponent(meData.name)}${agenciaParam}`);
 
   } catch (e: any) {
-    return NextResponse.redirect(`${url.origin}/relatorios-meta/conexoes?meta_error=${encodeURIComponent(e.message || "Erro na autenticação")}`);
+    return NextResponse.redirect(`${url.origin}${returnTo}?meta_error=${encodeURIComponent(e.message || "Erro na autenticação")}`);
   }
 }

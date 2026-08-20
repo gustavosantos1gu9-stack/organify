@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     const trintaDiasAtras = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     let query = supabase
       .from("conversas")
-      .select("id, contato_numero, contato_nome, origem, utm_campaign, utm_content, fbclid")
+      .select("id, contato_numero, contato_nome, contato_jid, origem, utm_campaign, utm_content, fbclid")
       .eq("agencia_id", agencia_id);
 
     if (conversa_id) {
@@ -117,6 +117,19 @@ export async function POST(req: NextRequest) {
         // Sem sourceId ou sem token — não tem como resolver
         resultados.push({ id: conv.id, nome: conv.contato_nome, status: "sem_match" });
         continue;
+      }
+
+      // ── CTWA via @lid JID → marcar como Meta Ads ──
+      if (conv.contato_jid?.endsWith("@lid") || (conv.contato_jid || "").includes("@lid")) {
+        if (!conv.origem || conv.origem === "Não Rastreada") {
+          await supabase.from("conversas").update({
+            origem: "Meta Ads",
+            utm_source: "meta",
+            utm_medium: "ctwa",
+          }).eq("id", conv.id);
+          resultados.push({ id: conv.id, nome: conv.contato_nome, status: "rastreado", campanha: "Meta Ads (CTWA)" });
+          continue;
+        }
       }
 
       // ── Já rastreado ou CTWA com fbclid → não sobrescrever ──

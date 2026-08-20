@@ -9,8 +9,8 @@ interface Conversa {
   contato_jid?: string; ultima_mensagem: string; ultima_mensagem_at: string;
   primeira_mensagem_at?: string; etapa_alterada_at?: string; nao_lidas: number;
   origem?: string; etapa_jornada?: string; leadgen_id?: string; utm_source?: string; utm_medium?: string;
-  utm_campaign?: string; utm_content?: string; link_nome?: string; fbclid?: string;
-  nome_anuncio?: string; created_at: string;
+  utm_campaign?: string; utm_content?: string; utm_term?: string; link_nome?: string; fbclid?: string;
+  nome_anuncio?: string; created_at: string; finalizado_at?: string | null;
 }
 interface Mensagem {
   id: string; de_mim: boolean; tipo: string; conteudo: string;
@@ -114,6 +114,8 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, eta
   const [salvando, setSalvando] = useState(false);
   const [chatAberto, setChatAberto] = useState(false);
   const [editando, setEditando] = useState(false);
+  const [finalizando, setFinalizando] = useState(false);
+  const [finalizado, setFinalizado] = useState(!!conversa.finalizado_at);
   const [historico, setHistorico] = useState<{etapa_anterior:string|null;etapa_nova:string;alterado_por:string;created_at:string}[]>([]);
   const [editDados, setEditDados] = useState({
     origem: conversa.origem || "Não Rastreada",
@@ -121,6 +123,7 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, eta
     utm_medium: conversa.utm_medium || "",
     utm_campaign: conversa.utm_campaign || "",
     utm_content: conversa.utm_content || "",
+    utm_term: conversa.utm_term || "",
     link_nome: conversa.link_nome || "",
     fbclid: conversa.fbclid || "",
   });
@@ -180,6 +183,23 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, eta
     setSalvandoRastreio(false);
   };
 
+  const toggleFinalizar = async () => {
+    setFinalizando(true);
+    const novoFinalizado = !finalizado;
+    const novoValor = novoFinalizado ? new Date().toISOString() : null;
+    await supabase.from("conversas").update({ finalizado_at: novoValor }).eq("id", conversa.id);
+    if (novoFinalizado) {
+      // Cancelar todos os follow-ups pendentes dessa conversa
+      await supabase.from("followup_fila")
+        .update({ status: "cancelado" })
+        .eq("conversa_id", conversa.id)
+        .in("status", ["pendente", "processando"]);
+    }
+    setFinalizado(novoFinalizado);
+    onConversaUpdate({ finalizado_at: novoValor });
+    setFinalizando(false);
+  };
+
   const inputStyle = { background:"#222", border:"1px solid #333", borderRadius:"6px", padding:"5px 8px", color:"#f0f0f0", fontSize:"12px", width:"100%" };
 
   const camposVisuais = [
@@ -190,7 +210,7 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, eta
     { label:"Meio (utm_medium)", value: editDados.utm_medium || "—" },
     { label:"Campanha", value: editDados.utm_campaign || "—" },
     { label:"Conjunto de Anúncio", value: editDados.utm_content ? editDados.utm_content.split("_")[0].trim() : "—" },
-    { label:"Nome do Anúncio", value: (conversa as any).nome_anuncio || (editDados.utm_content && editDados.utm_content.includes("_") ? editDados.utm_content.split("_").slice(1).join("_").trim() : "—") },
+    { label:"Nome do Anúncio", value: (conversa as any).nome_anuncio || (conversa as any).utm_term || editDados.utm_term || (editDados.utm_content && editDados.utm_content.includes("_") ? editDados.utm_content.split("_").slice(1).join("_").trim() : "—") },
     { label:"Primeira Mensagem", value: formatarData(conversa.primeira_mensagem_at || conversa.created_at) },
     { label:"Última Alteração Etapa", value: formatarData(conversa.etapa_alterada_at || "") },
     ...(editDados.fbclid ? [{ label:"fbclid", value: editDados.fbclid.substring(0,40)+"..." }] : []),
@@ -331,6 +351,25 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, eta
             </div>
           </div>
         )}
+
+        {/* Finalizar Atendimento */}
+        <div style={{ marginTop:"20px", borderTop:"1px solid #2e2e2e", paddingTop:"16px" }}>
+          {finalizado ? (
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+              <span style={{ fontSize:"12px", color:"#22c55e", display:"flex", alignItems:"center", gap:"6px" }}>
+                <span style={{ width:"8px", height:"8px", borderRadius:"50%", background:"#22c55e", display:"inline-block" }}/>
+                Atendimento finalizado
+              </span>
+              <button onClick={toggleFinalizar} disabled={finalizando} style={{ fontSize:"11px", color:"#606060", background:"none", border:"1px solid #2e2e2e", borderRadius:"6px", padding:"4px 12px", cursor:"pointer" }}>
+                {finalizando ? "..." : "Reabrir"}
+              </button>
+            </div>
+          ) : (
+            <button onClick={toggleFinalizar} disabled={finalizando} style={{ width:"100%", padding:"9px", borderRadius:"8px", background:"transparent", border:"1px solid #ef444440", color:"#ef4444", fontSize:"13px", fontWeight:"600", cursor:"pointer" }}>
+              {finalizando ? "Finalizando..." : "Finalizar Atendimento"}
+            </button>
+          )}
+        </div>
       </div>
       {chatAberto && <ChatLateral conversa={conversa} onClose={()=>setChatAberto(false)}/>}
     </>
