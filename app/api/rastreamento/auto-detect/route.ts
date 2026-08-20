@@ -119,15 +119,43 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // ── CTWA via @lid JID → marcar como Meta Ads ──
-      if (conv.contato_jid?.endsWith("@lid") || (conv.contato_jid || "").includes("@lid")) {
-        if (!conv.origem || conv.origem === "Não Rastreada") {
-          await supabase.from("conversas").update({
-            origem: "Meta Ads",
-            utm_source: "meta",
-            utm_medium: "ctwa",
-          }).eq("id", conv.id);
-          resultados.push({ id: conv.id, nome: conv.contato_nome, status: "rastreado", campanha: "Meta Ads (CTWA)" });
+      // ── CTWA via @lid JID → marcar como Meta Ads e tentar buscar campanha ──
+      if (conv.contato_jid?.includes("@lid")) {
+        if (!conv.origem || conv.origem === "Não Rastreada" || (conv.origem === "Meta Ads" && !conv.utm_campaign)) {
+          // Buscar primeira mensagem recebida para tentar extrair externalAdReply
+          const { data: primeiraMsgs } = await supabase.from("mensagens")
+            .select("conteudo, mensagem_id").eq("conversa_id", conv.id).eq("de_mim", false)
+            .order("created_at", { ascending: true }).limit(1);
+
+          // Tentar buscar campanha via sourceId se tiver utm_content numérico
+          let campanha = conv.utm_campaign || "";
+          let conjunto = "";
+          let criativo = "";
+          const sourceId = conv.utm_content && /^\d+$/.test(conv.utm_content) ? conv.utm_content : null;
+          if (sourceId && adsToken && !campanha) {
+            try {
+              const adRes = await fetch(`https://graph.facebook.com/v21.0/${sourceId}?fields=name,adset_id,campaign_id&access_token=${adsToken}`);
+              const adData = await adRes.json();
+              if (adData?.campaign_id) {
+                const [campRes, conjRes] = await Promise.all([
+                  fetch(`https://graph.facebook.com/v21.0/${adData.campaign_id}?fields=name&access_token=${adsToken}`),
+                  fetch(`https://graph.facebook.com/v21.0/${adData.adset_id}?fields=name&access_token=${adsToken}`),
+                ]);
+                campanha = (await campRes.json())?.name || "";
+                const conjData = await conjRes.json();
+                conjunto = conjData?.name || "";
+                criativo = adData.name || "";
+              }
+            } catch {}
+          }
+
+          const updateData: Record<string, string> = { origem: "Meta Ads", utm_source: "meta", utm_medium: "ctwa" };
+          if (campanha) updateData.utm_campaign = campanha;
+          if (conjunto || criativo) updateData.utm_content = conjunto ? `${conjunto}_${criativo}` : criativo;
+          if (criativo) updateData.utm_term = criativo;
+
+          await supabase.from("conversas").update(updateData).eq("id", conv.id);
+          resultados.push({ id: conv.id, nome: conv.contato_nome, status: "rastreado", campanha: campanha || "Meta Ads (CTWA)" });
           continue;
         }
       }

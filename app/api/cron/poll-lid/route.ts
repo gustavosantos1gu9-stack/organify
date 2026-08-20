@@ -208,23 +208,7 @@ export async function GET() {
       });
     } catch {}
 
-    // ── CTWA RETRO: marcar conversas @lid sem rastreio como "Meta Ads" ──
-    let ctwaRastreadas = 0;
-    try {
-      const { data: lidSemRastreio } = await supabase.from("conversas")
-        .select("id")
-        .like("contato_jid", "%@lid")
-        .or("origem.is.null,origem.eq.Não Rastreada");
-      if (lidSemRastreio?.length) {
-        const lidIds = lidSemRastreio.map((c: any) => c.id);
-        const { error: lidErr } = await supabase.from("conversas")
-          .update({ origem: "Meta Ads", utm_source: "meta", utm_medium: "ctwa" })
-          .in("id", lidIds);
-        if (!lidErr) ctwaRastreadas = lidIds.length;
-      }
-    } catch {}
-
-    return NextResponse.json({ ok: true, processadas, iaFallbackEnviados, followupEnviados, funisEnviados, ctwaRastreadas, debug });
+    return NextResponse.json({ ok: true, processadas, iaFallbackEnviados, followupEnviados, funisEnviados, debug });
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
   }

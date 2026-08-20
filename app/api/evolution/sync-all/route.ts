@@ -60,12 +60,20 @@ function resolverNome(chat: any, contact: any, msgs: any[]): string {
 
 async function getEvoConfig(agenciaId: string) {
   let { data: agencia } = await supabase.from("agencias")
-    .select("id, evolution_url, evolution_key, whatsapp_instancia, whatsapp_numero, parent_id")
+    .select("id, evolution_url, evolution_key, whatsapp_instancia, whatsapp_numero, parent_id, meta_business_token, meta_token")
     .eq("id", agenciaId).single();
   if (agencia && !agencia.evolution_url && agencia.parent_id) {
     const { data: parent } = await supabase.from("agencias")
-      .select("evolution_url, evolution_key").eq("id", agencia.parent_id).single();
-    if (parent) agencia = { ...agencia, evolution_url: parent.evolution_url, evolution_key: parent.evolution_key };
+      .select("evolution_url, evolution_key, meta_business_token, meta_token").eq("id", agencia.parent_id).single();
+    if (parent) {
+      agencia = {
+        ...agencia,
+        evolution_url: parent.evolution_url,
+        evolution_key: parent.evolution_key,
+        meta_business_token: agencia.meta_business_token || parent.meta_business_token,
+        meta_token: agencia.meta_token || parent.meta_token,
+      };
+    }
   }
   return agencia;
 }
@@ -220,9 +228,55 @@ async function syncConversa(agencia: any, jid: string, info: any) {
     });
   }
 
+  // ── Detectar CTWA via externalAdReply nas primeiras mensagens recebidas ──
+  let ctwaData: Record<string, string> | null = null;
+  if (jid.includes("@lid")) {
+    const adsToken = agencia.meta_business_token || agencia.meta_token || null;
+    const primeirasRecebidas = msgsValidas.filter((m: any) => !m.key?.fromMe).slice(0, 5);
+    for (const msg of primeirasRecebidas) {
+      const ctx = msg.message?.extendedTextMessage?.contextInfo
+        || msg.message?.imageMessage?.contextInfo
+        || msg.message?.videoMessage?.contextInfo
+        || msg.contextInfo;
+      const adReply = ctx?.externalAdReply;
+      if (!adReply) continue;
+      const sourceId = adReply.sourceId || null;
+      const ctwaClid = ctx?.ctwaClid || null;
+      let campanha = "", conjunto = "", criativo = "";
+      if (sourceId && adsToken) {
+        try {
+          const adRes = await fetch(`https://graph.facebook.com/v21.0/${sourceId}?fields=name,adset_id,campaign_id&access_token=${adsToken}`);
+          const adData = await adRes.json();
+          if (adData?.campaign_id) {
+            const [campRes, conjRes] = await Promise.all([
+              fetch(`https://graph.facebook.com/v21.0/${adData.campaign_id}?fields=name&access_token=${adsToken}`),
+              fetch(`https://graph.facebook.com/v21.0/${adData.adset_id}?fields=name&access_token=${adsToken}`),
+            ]);
+            campanha = (await campRes.json())?.name || "";
+            const conjData = await conjRes.json();
+            conjunto = conjData?.name || "";
+            criativo = adData.name || "";
+          }
+        } catch {}
+      }
+      ctwaData = {
+        origem: "Meta Ads",
+        utm_source: "meta",
+        utm_medium: "ctwa",
+        utm_campaign: campanha || adReply.title || "",
+        utm_content: conjunto ? `${conjunto}_${criativo}` : (sourceId || ""),
+        utm_term: criativo || adReply.title || "",
+        ...(ctwaClid ? { fbclid: ctwaClid } : {}),
+      };
+      break;
+    }
+    // Se @lid mas sem externalAdReply, marcar ao menos como Meta Ads CTWA
+    if (!ctwaData) ctwaData = { origem: "Meta Ads", utm_source: "meta", utm_medium: "ctwa" };
+  }
+
   // Criar/atualizar conversa
   let { data: conversa } = await supabase.from("conversas")
-    .select("id").eq("agencia_id", agencia.id).eq("contato_numero", numeroFinal).single();
+    .select("id, origem").eq("agencia_id", agencia.id).eq("contato_numero", numeroFinal).single();
 
   const conversaData: any = { contato_jid: jid, nao_lidas: info.naoLidas || 0 };
   if (nome) conversaData.contato_nome = nome;
@@ -230,6 +284,9 @@ async function syncConversa(agencia: any, jid: string, info: any) {
   if (ultimaMsgConteudo) conversaData.ultima_mensagem = ultimaMsgConteudo;
   if (ultimaMsgAt || info.ultimaAt) conversaData.ultima_mensagem_at = ultimaMsgAt || info.ultimaAt;
   if (primeiraMsgAt || info.primeiraAt) conversaData.primeira_mensagem_at = primeiraMsgAt || info.primeiraAt;
+  // Aplicar dados CTWA se disponível (só sobrescreve se ainda não rastreada)
+  const jaRastreada = conversa && (conversa as any).origem && (conversa as any).origem !== "Não Rastreada";
+  if (ctwaData && !jaRastreada) Object.assign(conversaData, ctwaData);
 
   if (!conversa) {
     const { data: nova, error: insertErr } = await supabase.from("conversas").insert({
@@ -240,6 +297,7 @@ async function syncConversa(agencia: any, jid: string, info: any) {
       ultima_mensagem_at: ultimaMsgAt || info.ultimaAt || new Date().toISOString(),
       primeira_mensagem_at: primeiraMsgAt || info.primeiraAt,
       nao_lidas: info.naoLidas || 0,
+      ...(ctwaData || {}),
     }).select("id").single();
     if (insertErr) {
       // Duplicata (race condition) — buscar existente
