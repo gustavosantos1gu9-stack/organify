@@ -276,7 +276,7 @@ async function syncConversa(agencia: any, jid: string, info: any) {
 
   // Criar/atualizar conversa
   let { data: conversa } = await supabase.from("conversas")
-    .select("id, origem").eq("agencia_id", agencia.id).eq("contato_numero", numeroFinal).single();
+    .select("id, origem").eq("agencia_id", agencia.id).eq("contato_numero", numeroFinal).single() as { data: { id: any; origem?: string } | null };
 
   const conversaData: any = { contato_jid: jid, nao_lidas: info.naoLidas || 0 };
   if (nome) conversaData.contato_nome = nome;
