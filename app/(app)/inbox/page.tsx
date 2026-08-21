@@ -965,13 +965,25 @@ export default function InboxPage() {
     setAutoRastreando(true);
     try {
       const agId = await getAgenciaId();
-      const res = await fetch("/api/rastreamento/auto-detect", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agencia_id: agId }),
-      });
-      const data = await res.json();
-      if (data.rastreados > 0) {
-        alert(`${data.rastreados} conversa(s) rastreada(s) automaticamente!`);
+      let totalRastreados = 0;
+      let offset = 0;
+      let temMais = true;
+      // Processa em lotes de 30 até não ter mais (max 10 lotes = 300 contatos)
+      let rodadas = 0;
+      while (temMais && rodadas < 10) {
+        const res = await fetch("/api/rastreamento/auto-detect", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agencia_id: agId, offset }),
+        });
+        const data = await res.json();
+        totalRastreados += data.rastreados || 0;
+        temMais = !!data.tem_mais;
+        offset = data.proximo_offset || offset + 30;
+        rodadas++;
+        if (!temMais) break;
+      }
+      if (totalRastreados > 0) {
+        alert(`${totalRastreados} conversa(s) rastreada(s) automaticamente!`);
         carregar();
       } else {
         alert("Nenhuma conversa foi rastreada. Verifique se há links criados no Gerador de Links.");

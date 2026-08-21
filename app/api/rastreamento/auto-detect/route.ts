@@ -32,9 +32,11 @@ function extrairUtms(linkGerado: string): Record<string, string> {
   return result;
 }
 
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   try {
-    const { agencia_id, conversa_id } = await req.json();
+    const { agencia_id, conversa_id, offset: batchOffset = 0 } = await req.json();
     if (!agencia_id) {
       return NextResponse.json({ error: "agencia_id obrigatório" }, { status: 400 });
     }
@@ -67,24 +69,37 @@ export async function POST(req: NextRequest) {
       .eq("agencia_id", agencia_id)
       .order("created_at", { ascending: false });
 
-    // Buscar conversas: não rastreadas OU Meta Ads sem campanha (CTWA incompleto)
+    // Buscar conversas @lid sem campanha (sem limite de data) + não rastreadas dos últimos 30 dias
     const trintaDiasAtras = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    let query = supabase
-      .from("conversas")
-      .select("id, contato_numero, contato_nome, contato_jid, instancia, origem, utm_campaign, utm_content, fbclid")
-      .eq("agencia_id", agencia_id);
+    let conversas: any[] = [];
 
     if (conversa_id) {
-      query = query.eq("id", conversa_id);
+      const { data } = await supabase.from("conversas")
+        .select("id, contato_numero, contato_nome, contato_jid, instancia, origem, utm_campaign, utm_content, fbclid")
+        .eq("agencia_id", agencia_id).eq("id", conversa_id);
+      conversas = data || [];
     } else {
-      // Não rastreadas OU Meta Ads sem campanha preenchida
-      query = query.or("origem.is.null,origem.eq.Não Rastreada,and(origem.eq.Meta Ads,utm_campaign.is.null)")
-        .gte("created_at", trintaDiasAtras);
+      // 1. @lid sem campanha — sem limite de data, processa em lotes de 30
+      const { data: lidSemCamp } = await supabase.from("conversas")
+        .select("id, contato_numero, contato_nome, contato_jid, instancia, origem, utm_campaign, utm_content, fbclid")
+        .eq("agencia_id", agencia_id)
+        .like("contato_jid", "%@lid")
+        .or("utm_campaign.is.null,utm_campaign.eq.")
+        .order("created_at", { ascending: false })
+        .range(batchOffset, batchOffset + 29);
+      // 2. Não rastreadas dos últimos 30 dias (sem @lid — já cobertos acima)
+      const { data: naoRastreadas } = await supabase.from("conversas")
+        .select("id, contato_numero, contato_nome, contato_jid, instancia, origem, utm_campaign, utm_content, fbclid")
+        .eq("agencia_id", agencia_id)
+        .or("origem.is.null,origem.eq.Não Rastreada")
+        .not("contato_jid", "like", "%@lid")
+        .gte("created_at", trintaDiasAtras)
+        .limit(20);
+      conversas = [...(lidSemCamp || []), ...(naoRastreadas || [])];
     }
 
-    const { data: conversas } = await query;
     if (!conversas?.length) {
-      return NextResponse.json({ ok: true, msg: "Nenhuma conversa para rastrear", resultados: [] });
+      return NextResponse.json({ ok: true, msg: "Nenhuma conversa para rastrear", resultados: [], tem_mais: false });
     }
 
     const resultados: { id: string; nome: string; status: string; link_nome?: string; campanha?: string; utms?: Record<string, string> }[] = [];
@@ -280,10 +295,16 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const rastreados = resultados.filter(r => r.status === "rastreado").length;
+    // Se processou o lote completo de @lid (30), pode ter mais
+    const tem_mais = !conversa_id && conversas.filter(c => c.contato_jid?.includes("@lid")).length >= 30;
+
     return NextResponse.json({
       ok: true,
       total: conversas.length,
-      rastreados: resultados.filter(r => r.status === "rastreado").length,
+      rastreados,
+      tem_mais,
+      proximo_offset: batchOffset + 30,
       resultados,
     });
   } catch (e: any) {
