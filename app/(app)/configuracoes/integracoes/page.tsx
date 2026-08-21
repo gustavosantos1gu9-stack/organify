@@ -125,8 +125,12 @@ function IntegracoesCliente() {
             }
           } catch {}
 
-          // Marcar retroativamente conversas @lid como "Meta Ads" (CTWA)
-          fetch(`/api/rastreamento/ctwa-retro?agencia_id=${agenciaId}`).catch(() => {});
+          // Auto-rastrear: busca campanha/anúncio para contatos @lid via Evolution + Meta API
+          fetch("/api/rastreamento/auto-detect", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ agencia_id: agenciaId }),
+          }).catch(() => {});
         }
       } catch {}
     }, 5000);
