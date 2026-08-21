@@ -39,11 +39,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "agencia_id obrigatório" }, { status: 400 });
     }
 
-    // Buscar token e links da agência
-    const { data: agencia } = await supabase.from("agencias")
-      .select("meta_business_token, meta_token")
+    // Buscar token, Evolution e links da agência
+    let { data: agencia } = await supabase.from("agencias")
+      .select("meta_business_token, meta_token, evolution_url, evolution_key, whatsapp_instancia, parent_id")
       .eq("id", agencia_id).single();
+    // Herdar Evolution do master se for agência filha
+    if (agencia?.parent_id && !agencia.evolution_url) {
+      const { data: parent } = await supabase.from("agencias")
+        .select("evolution_url, evolution_key, whatsapp_instancia, meta_business_token, meta_token")
+        .eq("id", agencia.parent_id).single();
+      if (parent) agencia = {
+        ...agencia,
+        evolution_url: parent.evolution_url,
+        evolution_key: parent.evolution_key,
+        whatsapp_instancia: agencia.whatsapp_instancia || parent.whatsapp_instancia,
+        meta_business_token: agencia.meta_business_token || parent.meta_business_token,
+        meta_token: agencia.meta_token || parent.meta_token,
+      };
+    }
     const adsToken = agencia?.meta_business_token || agencia?.meta_token || null;
+    const evoUrl = agencia?.evolution_url || null;
+    const evoKey = agencia?.evolution_key || null;
 
     const { data: links } = await supabase
       .from("links_campanha")
@@ -55,7 +71,7 @@ export async function POST(req: NextRequest) {
     const trintaDiasAtras = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     let query = supabase
       .from("conversas")
-      .select("id, contato_numero, contato_nome, contato_jid, origem, utm_campaign, utm_content, fbclid")
+      .select("id, contato_numero, contato_nome, contato_jid, instancia, origem, utm_campaign, utm_content, fbclid")
       .eq("agencia_id", agencia_id);
 
     if (conversa_id) {
@@ -122,16 +138,36 @@ export async function POST(req: NextRequest) {
       // ── CTWA via @lid JID → marcar como Meta Ads e tentar buscar campanha ──
       if (conv.contato_jid?.includes("@lid")) {
         if (!conv.origem || conv.origem === "Não Rastreada" || (conv.origem === "Meta Ads" && !conv.utm_campaign)) {
-          // Buscar primeira mensagem recebida para tentar extrair externalAdReply
-          const { data: primeiraMsgs } = await supabase.from("mensagens")
-            .select("conteudo, mensagem_id").eq("conversa_id", conv.id).eq("de_mim", false)
-            .order("created_at", { ascending: true }).limit(1);
-
-          // Tentar buscar campanha via sourceId se tiver utm_content numérico
           let campanha = conv.utm_campaign || "";
           let conjunto = "";
           let criativo = "";
-          const sourceId = conv.utm_content && /^\d+$/.test(conv.utm_content) ? conv.utm_content : null;
+
+          // 1. Tentar sourceId salvo em utm_content
+          let sourceId = conv.utm_content && /^\d+$/.test(conv.utm_content) ? conv.utm_content : null;
+
+          // 2. Se não tem sourceId, buscar externalAdReply direto na Evolution API
+          if (!sourceId && evoUrl && evoKey) {
+            const instancia = conv.instancia || agencia?.whatsapp_instancia || "";
+            try {
+              const res = await fetch(`${evoUrl}/chat/findMessages/${instancia}`, {
+                method: "POST",
+                headers: { "apikey": evoKey, "Content-Type": "application/json" },
+                body: JSON.stringify({ where: { key: { remoteJid: conv.contato_jid, fromMe: false } }, limit: 5 }),
+              });
+              const data = await res.json();
+              const records = data?.messages?.records || data?.records || [];
+              for (const msg of records) {
+                const ctx = msg.message?.extendedTextMessage?.contextInfo
+                  || msg.message?.imageMessage?.contextInfo
+                  || msg.message?.videoMessage?.contextInfo
+                  || msg.contextInfo;
+                const adReply = ctx?.externalAdReply;
+                if (adReply?.sourceId) { sourceId = adReply.sourceId; break; }
+              }
+            } catch {}
+          }
+
+          // 3. Buscar campanha/conjunto/anúncio via Meta API com sourceId
           if (sourceId && adsToken && !campanha) {
             try {
               const adRes = await fetch(`https://graph.facebook.com/v21.0/${sourceId}?fields=name,adset_id,campaign_id&access_token=${adsToken}`);
@@ -142,8 +178,7 @@ export async function POST(req: NextRequest) {
                   fetch(`https://graph.facebook.com/v21.0/${adData.adset_id}?fields=name&access_token=${adsToken}`),
                 ]);
                 campanha = (await campRes.json())?.name || "";
-                const conjData = await conjRes.json();
-                conjunto = conjData?.name || "";
+                conjunto = (await conjRes.json())?.name || "";
                 criativo = adData.name || "";
               }
             } catch {}
@@ -153,6 +188,7 @@ export async function POST(req: NextRequest) {
           if (campanha) updateData.utm_campaign = campanha;
           if (conjunto || criativo) updateData.utm_content = conjunto ? `${conjunto}_${criativo}` : criativo;
           if (criativo) updateData.utm_term = criativo;
+          if (sourceId && !conv.utm_content) updateData.utm_content = sourceId;
 
           await supabase.from("conversas").update(updateData).eq("id", conv.id);
           resultados.push({ id: conv.id, nome: conv.contato_nome, status: "rastreado", campanha: campanha || "Meta Ads (CTWA)" });
