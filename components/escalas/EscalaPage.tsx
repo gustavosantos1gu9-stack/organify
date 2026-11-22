@@ -1,5 +1,7 @@
 "use client";
 
+import { Faixa } from "@/components/ui/Canvas";
+
 import { useState, useMemo, useEffect } from "react";
 import {
   useEscalas,
@@ -285,42 +287,19 @@ export default function EscalaPage({ tipo, titulo, subtitulo, gestor, gestorEsca
 
   return (
     <div className="animate-in" style={{ padding: "0" }}>
-      {/* Header */}
-      <div style={{ marginBottom: "24px" }}>
-        <h1 style={{ fontSize: "22px", fontWeight: "700", color: "var(--navy)", margin: 0 }}>{titulo}</h1>
-        <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginTop: "4px" }}>{subtitulo}</p>
-      </div>
-
-      {/* KPIs de renovação e churn por gestor */}
+      {/* Resumo da escala (faixa escura do canvas) */}
       {kpisGestor && (
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"12px", marginBottom:"20px" }}>
-          <div className="card" style={{ padding:"14px 16px" }}>
-            <p style={{ fontSize:"11px", color:"var(--text-secondary)", margin:"0 0 4px" }}>Clientes +30 dias</p>
-            <p style={{ fontSize:"22px", fontWeight:"700", color:"var(--navy)", margin:0 }}>{kpisGestor.totalMais30}</p>
-            <p style={{ fontSize:"11px", color:"var(--text-secondary)", margin:"4px 0 0" }}>de {kpisGestor.totalGestor} ativos</p>
-          </div>
-          <div className="card" style={{ padding:"14px 16px" }}>
-            <p style={{ fontSize:"11px", color:"var(--text-secondary)", margin:"0 0 4px" }}>Fase 3 ou 4</p>
-            <p style={{ fontSize:"22px", fontWeight:"700", color: kpisGestor.pctFase34 >= 50 ? "var(--success)" : kpisGestor.pctFase34 >= 30 ? "var(--caution-text)" : "var(--alert-text)", margin:0 }}>
-              {kpisGestor.pctFase34}%
-            </p>
-            <p style={{ fontSize:"11px", color:"var(--text-secondary)", margin:"4px 0 0" }}>{kpisGestor.fase34} de {kpisGestor.totalMais30} (+30 dias)</p>
-          </div>
-          <div className="card" style={{ padding:"14px 16px" }}>
-            <p style={{ fontSize:"11px", color:"var(--text-secondary)", margin:"0 0 4px" }}>Churn mês atual</p>
-            <p style={{ fontSize:"22px", fontWeight:"700", color: kpisGestor.churnMes === 0 ? "var(--success)" : "var(--alert-text)", margin:0 }}>
-              {kpisGestor.churnMes}
-            </p>
-            <p style={{ fontSize:"11px", color:"var(--text-secondary)", margin:"4px 0 0" }}>saídas este mês</p>
-          </div>
-          <div className="card" style={{ padding:"14px 16px" }}>
-            <p style={{ fontSize:"11px", color:"var(--text-secondary)", margin:"0 0 4px" }}>Taxa de Churn</p>
-            <p style={{ fontSize:"22px", fontWeight:"700", color: kpisGestor.pctChurn === 0 ? "var(--success)" : kpisGestor.pctChurn <= 5 ? "var(--caution-text)" : "var(--alert-text)", margin:0 }}>
-              {kpisGestor.pctChurn}%
-            </p>
-            <p style={{ fontSize:"11px", color:"var(--text-secondary)", margin:"4px 0 0" }}>base: {kpisGestor.totalGestor + kpisGestor.churnMes} clientes</p>
-          </div>
-        </div>
+        <Faixa
+          contexto={`${new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" }).replace(/^./, (c) => c.toUpperCase())} · ${kpisGestor.totalGestor} clientes ativas`}
+          titulo={`${kpisGestor.pctFase34}% na Fase 3 ou 4,`}
+          destaque="rumo à escala"
+          numeros={[
+            { label: "Clientes com mais de 30 dias", valor: kpisGestor.totalMais30, detalhe: `de ${kpisGestor.totalGestor} ativas` },
+            { label: "Fase 3 ou 4", valor: `${kpisGestor.pctFase34}%`, detalhe: `${kpisGestor.fase34} de ${kpisGestor.totalMais30}` },
+            { label: "Churn do mês", valor: kpisGestor.churnMes, detalhe: "saídas este mês" },
+            { label: "Taxa de churn", valor: `${kpisGestor.pctChurn}%`, detalhe: `base de ${kpisGestor.totalGestor + kpisGestor.churnMes} clientes` },
+          ]}
+        />
       )}
 
       {/* Painel de clientes + Calendário */}

@@ -78,6 +78,71 @@ const JORNADAS: { value: string; label: string; cor: string; bg: string; descric
   },
 ];
 
+// Cores do canvas para cada fase: ponto, fundo da pílula e texto
+const VISUAL_FASE: Record<string, { dot: string; tint: string; ink: string }> = {
+  etapa0: { dot: "#D9534F", tint: "#FBE3E1", ink: "#B42318" },
+  etapa1: { dot: "#E8915A", tint: "#FCE9DA", ink: "#8A3B12" },
+  etapa2: { dot: "#E6C44F", tint: "#FBF3D5", ink: "#7A5B00" },
+  etapa3: { dot: "#1C6CA6", tint: "#DCEBF6", ink: "#144E73" },
+  etapa4: { dot: "#0A1826", tint: "#0A1826", ink: "#FFFFFF" },
+  resultado_oscilando: { dot: "#8B6FD6", tint: "#EFE9FB", ink: "#4A2E9E" },
+  sem: { dot: "#CBD5DF", tint: "#F3F5F7", ink: "#4A5B6C" },
+};
+
+/** Trilho da jornada: Fase 0 → Fase 4, mais Oscilando e Sem fase. Clicar filtra a lista. */
+function TrilhoFases({ clientes, filtro, onFiltro, total, pctResposta, totalUti }: {
+  clientes: { escala_jornada: string | null }[]; filtro: string | null; onFiltro: (v: string | null) => void;
+  total: number; pctResposta: number; totalUti: number;
+}) {
+  const contar = (v: string) => clientes.filter(c => v === "sem" ? !c.escala_jornada : c.escala_jornada === v).length;
+  const etapas = JORNADAS.filter(j => j.value !== "resultado_oscilando");
+  const extras = [
+    { value: "resultado_oscilando", label: "Oscilando", descricao: ["Resultado oscilando"] },
+    { value: "sem", label: "Sem fase", descricao: ["Definir a fase"] },
+  ];
+  const segs = [...JORNADAS.map(j => j.value), "sem"].map(v => ({ v, n: contar(v) })).filter(x => x.n > 0);
+  const Passo = ({ value, label, descricao, idx }: { value: string; label: string; descricao: string[]; idx?: number }) => {
+    const n = contar(value);
+    const on = filtro === value;
+    const vis = VISUAL_FASE[value];
+    return (
+      <button type="button" className={`esc-step${on ? " on" : ""}${n === 0 ? " vazio" : ""}`} style={{ ["--c" as any]: vis.dot, ["--t" as any]: vis.tint }}
+        onClick={() => onFiltro(on ? null : value)} title={on ? "Mostrar todas" : `Mostrar só ${label}`}>
+        <span className="esc-step-dot">{idx !== undefined ? idx : value === "sem" ? "?" : "~"}</span>
+        <span className="esc-step-label">{label}</span>
+        <span className="esc-step-n">{n}</span>
+        <span className="esc-step-desc">{descricao.join(", ")}</span>
+      </button>
+    );
+  };
+  return (
+    <section className="esc-trilho">
+      <div className="esc-trilho-head">
+        <div>
+          <h2>Fases da jornada</h2>
+          <span>{filtro ? "Mostrando só uma fase." : "Clique numa fase para filtrar a lista."}{filtro && <button type="button" className="esc-limpar" onClick={() => onFiltro(null)}>Mostrar todas</button>}</span>
+        </div>
+        <div className="esc-mini">
+          <span><b>{total}</b> clientes</span>
+          <span><b>{pctResposta}%</b> responderam a planilha</span>
+          {totalUti > 0 && <span className="esc-mini-uti"><b>{totalUti}</b> na UTI</span>}
+        </div>
+      </div>
+      <div className="esc-barra" aria-hidden="true">
+        {segs.map((x, i) => <div key={x.v} className="bar" style={{ flex: x.n, background: VISUAL_FASE[x.v].dot, animationDelay: `${0.1 + i * 0.05}s` }} />)}
+      </div>
+      <div className="esc-steps">
+        <div className="esc-track">
+          {etapas.map((j, i) => <Passo key={j.value} value={j.value} label={j.label} descricao={j.descricao} idx={i} />)}
+        </div>
+        <div className="esc-extras">
+          {extras.map(x => <Passo key={x.value} value={x.value} label={x.label} descricao={x.descricao} />)}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const MESES_CAL = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -161,6 +226,7 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
   const [calMes, setCalMes] = useState(hoje.getMonth());
   const [calAno, setCalAno] = useState(hoje.getFullYear());
   const [aba, setAba] = useState<"painel" | "calendario">("painel");
+  const [filtroFase, setFiltroFase] = useState<string | null>(null);
   const [expandido, setExpandido] = useState<Record<string, boolean>>({});
 
   const dragId = useRef<string | null>(null);
@@ -455,15 +521,11 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
   return (
     <div>
       {/* Abas */}
-      <div style={{
-        display: "flex", gap: "4px", marginBottom: "24px",
-        background: "var(--card-bg)", border: "1px solid #E6EBF0",
-        borderRadius: "10px", padding: "4px", width: "fit-content",
-      }}>
-        <button style={tabStyle(aba === "painel")} onClick={() => setAba("painel")}>
+      <div className="esc-abas">
+        <button className={aba === "painel" ? "on" : ""} onClick={() => setAba("painel")}>
           <LayoutList size={14} /> Painel
         </button>
-        <button style={tabStyle(aba === "calendario")} onClick={() => setAba("calendario")}>
+        <button className={aba === "calendario" ? "on" : ""} onClick={() => setAba("calendario")}>
           <CalendarDays size={14} /> Calendário
         </button>
       </div>
@@ -472,63 +534,17 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
       {aba === "painel" && (
         <div style={{ marginBottom: "32px" }}>
 
-          {/* KPIs */}
-          <div style={{ display: "flex", gap: "12px", marginBottom: "24px", flexWrap: "wrap" }}>
-            <div style={{ background: "var(--card-bg)", border: "1px solid #E6EBF0", borderRadius: "10px", padding: "14px 20px", minWidth: "130px" }}>
-              <div style={{ fontSize: "11px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>Total de clientes</div>
-              <div style={{ fontSize: "26px", fontWeight: "700", color: "var(--navy)", lineHeight: 1 }}>{total}</div>
-            </div>
-
-            <div style={{ background: "var(--card-bg)", border: "1px solid #E6EBF0", borderRadius: "10px", padding: "14px 20px", minWidth: "180px" }}>
-              <div style={{ fontSize: "11px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>Resposta da planilha</div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-                <span style={{ fontSize: "26px", fontWeight: "700", color: "var(--navy)", lineHeight: 1 }}>{pctResposta}%</span>
-                <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{respostaSim + respostaParcial}/{total}</span>
-              </div>
-              <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
-                <span style={{ fontSize: "11px", color: "var(--success)" }}>✓ Sim: {respostaSim}</span>
-                <span style={{ fontSize: "11px", color: "var(--caution-text)" }}>~ Parcial: {respostaParcial}</span>
-                <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>✗ Não: {respostaNao}</span>
-              </div>
-            </div>
-
-            {totalUti > 0 && (
-              <div style={{ background: "rgba(180,35,24,0.08)", border: "1px solid rgba(180,35,24,0.25)", borderRadius: "10px", padding: "14px 20px", minWidth: "120px" }}>
-                <div style={{ fontSize: "11px", color: "#a05050", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>UTI</div>
-                <div style={{ fontSize: "26px", fontWeight: "700", color: "var(--alert-text)", lineHeight: 1 }}>{totalUti}</div>
-                <div style={{ fontSize: "11px", color: "#a05050", marginTop: "6px" }}>em atenção crítica</div>
-              </div>
-            )}
-          </div>
-
-          {/* Legenda de jornada */}
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "20px" }}>
-            {JORNADAS.map(j => (
-              <div key={j.value} style={{
-                background: j.bg, border: `1px solid ${j.cor}40`,
-                borderLeft: `3px solid ${j.cor}`,
-                borderRadius: "8px", padding: "8px 12px", minWidth: "140px", flex: "1 1 140px", maxWidth: "220px",
-              }}>
-                <div style={{ fontSize: "12px", fontWeight: "700", color: j.cor, marginBottom: "5px" }}>{j.label}</div>
-                <ul style={{ margin: 0, padding: "0 0 0 14px", display: "flex", flexDirection: "column", gap: "2px" }}>
-                  {j.descricao.map((d, i) => (
-                    <li key={i} style={{ fontSize: "11px", color: "#909090", lineHeight: "1.4" }}>{d}</li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
+          <TrilhoFases clientes={clientes} filtro={filtroFase} onFiltro={setFiltroFase} total={total} pctResposta={pctResposta} totalUti={totalUti} />
 
           {/* Título + subtítulo */}
-          <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginBottom: "8px" }}>
-            <h2 style={{ fontSize: "16px", fontWeight: "600", color: "var(--navy)", margin: 0 }}>Painel de Clientes</h2>
-            <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
-              {total} cliente{total !== 1 ? "s" : ""} · arraste para reordenar
-            </span>
+          <div className="esc-lista">
+          <div className="esc-lista-head">
+            <h2>Painel de clientes</h2>
+            <span>{filtroFase ? `${clientes.filter(c => filtroFase === "sem" ? !c.escala_jornada : c.escala_jornada === filtroFase).length} de ${total} clientes` : `${total} cliente${total !== 1 ? "s" : ""}`} · arraste para reordenar a prioridade</span>
           </div>
 
           {/* Cabeçalho colunas */}
-          <div style={{ display: "grid", gridTemplateColumns: GRID, gap: "10px", alignItems: "center", padding: "6px 14px", marginBottom: "4px" }}>
+          <div className="esc-cols" style={{ display: "grid", gridTemplateColumns: GRID, gap: "10px", alignItems: "center", padding: "10px 16px" }}>
             <div />
             <div style={{ fontSize: "10px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Cliente</div>
             <div style={{ fontSize: "10px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Renovação</div>
@@ -551,8 +567,8 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
               Nenhum cliente encontrado.
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              {clientes.map(cliente => {
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              {clientes.filter(c => !filtroFase || (filtroFase === "sem" ? !c.escala_jornada : c.escala_jornada === filtroFase)).map(cliente => {
                 const p = PRIO[cliente.prioridade || "Media"] || PRIO.Media;
                 const log = atualizacoes[cliente.id] || [];
                 const isDragTarget = dragOver === cliente.id;
@@ -582,38 +598,31 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
                     onDragOver={e => onDragOver(e, cliente.id)}
                     onDrop={() => onDrop(cliente.id)}
                     onDragEnd={() => { setDragOver(null); dragId.current = null; }}
-                    style={{
-                      background: isDragTarget ? "var(--hover-row)" : "var(--card-bg)",
-                      border: "1px solid #E6EBF0",
-                      borderLeft: `4px solid ${p.cor}`,
-                      borderRadius: "8px",
-                      opacity: isDragging ? 0.4 : 1,
-                      transition: "opacity 0.15s, background 0.15s",
-                      overflow: "hidden",
-                    }}
+                    className={`esc-row${cliente.uti ? " esc-uti" : ""}${isDragTarget ? " alvo" : ""}`}
+                    style={{ opacity: isDragging ? 0.4 : 1 }}
                   >
                     {/* Linha sempre visível */}
                     <div
                       onClick={() => toggleExpandido(cliente.id)}
-                      style={{ display: "grid", gridTemplateColumns: GRID, gap: "10px", alignItems: "center", padding: "10px 14px", cursor: "pointer", userSelect: "none" }}
+                      style={{ display: "grid", gridTemplateColumns: GRID, gap: "10px", alignItems: "center", padding: "12px 16px", cursor: "pointer", userSelect: "none" }}
                     >
                       <div style={{ cursor: "grab", color: "var(--border)" }} onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
                         <GripVertical size={14} />
                       </div>
 
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0 }}>
-                        <span style={{ fontSize: "13px", fontWeight: "600", color: "var(--navy)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {cliente.nome}
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
+                        <span className="cc-avatar" style={{ ["--st" as any]: (VISUAL_FASE[cliente.escala_jornada || "sem"] || VISUAL_FASE.sem).dot }}>
+                          {cliente.nome.trim().split(/\s+/).slice(0, 2).map(x => x[0]).join("").toUpperCase()}
                         </span>
-                        {alertaAtualizacao && (
-                          <span
-                            title={diasSemAtualizar === null ? "Sem atualizações" : `${diasSemAtualizar} dias sem atualização`}
-                            style={{ fontSize: "13px", lineHeight: 1, flexShrink: 0 }}
-                          >
-                            ⚠️
+                        <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                          <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--navy)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {cliente.nome}
                           </span>
-                        )}
-                        {log.length > 0 && <MessageSquare size={10} color="var(--border)" />}
+                          <span className={alertaAtualizacao ? "esc-upd atrasada" : "esc-upd"}>
+                            {diasSemAtualizar === null ? "Sem atualização" : diasSemAtualizar === 0 ? "Atualizada hoje" : `Atualizada há ${diasSemAtualizar} dia${diasSemAtualizar > 1 ? "s" : ""}`}
+                            {log.length > 0 && <> · {log.length} nota{log.length > 1 ? "s" : ""}</>}
+                          </span>
+                        </div>
                       </div>
 
                       <div><RenovacaoDisplay renovou={cliente.renovou} dataInicio={cliente.data_inicio_campanha} /></div>
@@ -626,9 +635,10 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
                         <select
                           value={cliente.escala_jornada || ""}
                           onChange={e => agenciaId && atualizarJornada(cliente.id, e.target.value, agenciaId)}
-                          style={{ ...selectInline(jAtual?.cor), fontWeight: jAtual ? "600" : "400" }}
+                          className="esc-fase-sel"
+                          style={{ ["--t" as any]: (VISUAL_FASE[cliente.escala_jornada || "sem"] || VISUAL_FASE.sem).tint, ["--i" as any]: (VISUAL_FASE[cliente.escala_jornada || "sem"] || VISUAL_FASE.sem).ink }}
                         >
-                          <option value="">— Fase —</option>
+                          <option value="">Sem fase</option>
                           {JORNADAS.map(j => (
                             <option key={j.value} value={j.value} style={{ background: "var(--card-bg)", color: "var(--navy)" }}>{j.label}</option>
                           ))}
@@ -722,14 +732,7 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
                         <button
                           onClick={() => toggleUti(cliente.id, cliente.uti)}
                           title={cliente.uti ? "Remover da UTI" : "Colocar na UTI (Urgente)"}
-                          style={{
-                            background: cliente.uti ? "rgba(180,35,24,0.18)" : "transparent",
-                            border: `1px solid ${cliente.uti ? "var(--alert-text)" : "var(--border)"}`,
-                            borderRadius: "5px", padding: "2px 6px", cursor: "pointer",
-                            fontSize: "10px", fontWeight: "700",
-                            color: cliente.uti ? "var(--alert-text)" : "var(--text-secondary)",
-                            transition: "all 0.15s",
-                          }}
+                          className={cliente.uti ? "cc-uti-btn on" : "cc-uti-btn"}
                         >
                           UTI
                         </button>
@@ -742,7 +745,7 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
 
                     {/* Expandido: apenas atualizações */}
                     {aberto && (
-                      <div style={{ padding: "0 14px 14px 44px", borderTop: "1px solid #242424" }}>
+                      <div className="esc-exp">
                         <div style={{ paddingTop: "12px", marginBottom: "12px" }}>
                           <div style={{ fontSize: "10px", color: "var(--text-secondary)", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>O que foi feito hoje</div>
                           <div style={{ display: "flex", gap: "6px", alignItems: "flex-end" }}>
@@ -776,7 +779,7 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
                                 <span style={{ fontSize: "10px", color: "var(--text-secondary)", whiteSpace: "nowrap", marginTop: "2px", flexShrink: 0, fontStyle: "italic" }}>
                                   {a.gestor?.split(" ")[0]}
                                 </span>
-                                <span style={{ fontSize: "13px", color: "#c8c8c8", lineHeight: "1.45" }}>{a.texto}</span>
+                                <span style={{ fontSize: "13px", color: "var(--navy)", lineHeight: "1.45" }}>{a.texto}</span>
                               </div>
                             ))}
                             {log.length > 5 && (
@@ -794,6 +797,7 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
               })}
             </div>
           )}
+          </div>
         </div>
       )}
 
