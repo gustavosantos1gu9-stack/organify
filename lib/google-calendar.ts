@@ -123,3 +123,31 @@ export async function createEvent(refreshToken: string, opts: CreateEventOpts) {
 
   return res.json();
 }
+
+export async function getAvailableSlotsMultipleDays(refreshToken: string, dates: string[], config: MeetingConfig): Promise<{ data: string; slots: string[] }[]> {
+  const result: { data: string; slots: string[] }[] = [];
+  for (const date of dates) {
+    result.push({ data: date, slots: await getAvailableSlots(refreshToken, date, config) });
+  }
+  return result;
+}
+
+export async function findEvents(refreshToken: string, query: string, timeMin: string, timeMax: string): Promise<{ id: string; summary: string }[]> {
+  const accessToken = await getAccessToken(refreshToken);
+  if (!accessToken) return [];
+  const params = new URLSearchParams({ q: query, timeMin, timeMax, singleEvents: "true" });
+  const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const data = await res.json();
+  return (data.items || []).map((e: any) => ({ id: e.id, summary: e.summary }));
+}
+
+export async function deleteEvent(refreshToken: string, eventId: string): Promise<void> {
+  const accessToken = await getAccessToken(refreshToken);
+  if (!accessToken) return;
+  await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}

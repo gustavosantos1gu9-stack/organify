@@ -418,7 +418,7 @@ ${ag.openai_prompt_sistema}`;
       try {
         if (servicosAgenda.length > 0) {
           // MODO MULTI-SERVIÇO: calcular slots por duração única (agrupa serviços de mesma duração)
-          const duracoesUnicas = [...new Set(servicosAgenda.map(s => s.duracao_minutos))];
+          const duracoesUnicas = Array.from(new Set(servicosAgenda.map(s => s.duracao_minutos)));
 
           let blocoServicos = "";
           for (const dur of duracoesUnicas) {
