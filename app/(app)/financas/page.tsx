@@ -34,13 +34,36 @@ export default function FinancasPage() {
   const [instanciaInput, setInstanciaInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
+  const [isMaster, setIsMaster] = useState<boolean | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ criados: number; pulados: number } | null>(null);
 
   useEffect(() => {
+    async function checkMaster() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setIsMaster(false); return; }
+      // Usuários da equipe têm registro em "usuarios" — dono não tem
+      const { data: usuarios } = await supabase
+        .from("usuarios")
+        .select("agencia_id")
+        .eq("auth_user_id", user.id)
+        .limit(1);
+      if (usuarios && usuarios.length > 0) { setIsMaster(false); return; }
+      // Dono: verificar se a agência não é filha
+      const { data: agencias } = await supabase
+        .from("agencias")
+        .select("id, parent_id")
+        .is("parent_id", null)
+        .limit(1);
+      setIsMaster(!!(agencias && agencias.length > 0));
+    }
+    checkMaster();
+
     const params = new URLSearchParams(window.location.search);
     if (params.get("success") === "true") setSuccessMsg("Google Sheets conectado com sucesso!");
     if (params.get("error")) setSuccessMsg(`Erro: ${params.get("error")}`);
     loadData();
-  }, []);
+  }, [])
 
   async function loadData() {
     setLoading(true);
@@ -65,6 +88,26 @@ export default function FinancasPage() {
       console.error(e);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function sincronizarAgenda() {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await fetch("/api/financas/sincronizar-agenda");
+      const data = await res.json();
+      if (data.ok) {
+        setSyncResult({ criados: data.criados, pulados: data.pulados });
+      } else {
+        setSuccessMsg(`Erro ao sincronizar: ${data.error || "tente novamente"}`);
+        setTimeout(() => setSuccessMsg(""), 5000);
+      }
+    } catch {
+      setSuccessMsg("Erro ao sincronizar com a agenda");
+      setTimeout(() => setSuccessMsg(""), 5000);
+    } finally {
+      setSyncing(false);
     }
   }
 
@@ -99,29 +142,35 @@ export default function FinancasPage() {
     return v.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
   }
 
-  if (loading) {
+  if (isMaster === null || loading) {
     return (
-      <div style={{ padding: "32px", color: "#a0a0a0" }}>Carregando...</div>
+      <div style={{ padding: "32px", color: "var(--text-secondary)" }}>Carregando...</div>
+    );
+  }
+
+  if (!isMaster) {
+    return (
+      <div style={{ padding: "32px", color: "var(--text-secondary)" }}>Acesso restrito.</div>
     );
   }
 
   return (
-    <div style={{ padding: "32px", maxWidth: "860px", color: "#e0e0e0" }}>
-      <h1 style={{ fontSize: "22px", fontWeight: "700", marginBottom: "8px", color: "#f0f0f0" }}>
+    <div style={{ padding: "32px", maxWidth: "860px", color: "var(--navy)" }}>
+      <h1 style={{ fontSize: "22px", fontWeight: "700", marginBottom: "8px", color: "var(--navy)" }}>
         💰 Finanças Pessoais
       </h1>
-      <p style={{ fontSize: "13px", color: "#707070", marginBottom: "28px" }}>
+      <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "28px" }}>
         Agente financeiro via WhatsApp + Google Sheets
       </p>
 
       {successMsg && (
         <div style={{
-          background: successMsg.startsWith("Erro") ? "#3a1515" : "#153a15",
-          border: `1px solid ${successMsg.startsWith("Erro") ? "#6a2020" : "#206a20"}`,
+          background: successMsg.startsWith("Erro") ? "rgba(239,68,68,0.1)" : "rgba(34,197,94,0.1)",
+          border: `1px solid ${successMsg.startsWith("Erro") ? "rgba(239,68,68,0.3)" : "rgba(34,197,94,0.3)"}`,
           borderRadius: "8px",
           padding: "12px 16px",
           marginBottom: "20px",
-          color: successMsg.startsWith("Erro") ? "#f87171" : "#4ade80",
+          color: successMsg.startsWith("Erro") ? "var(--alert-text)" : "var(--success)",
           fontSize: "13px",
         }}>
           {successMsg}
@@ -130,20 +179,20 @@ export default function FinancasPage() {
 
       {/* ─── Google Sheets ─────────────────────────────────── */}
       <section style={{
-        background: "#1a1a1a",
-        border: "1px solid #2e2e2e",
+        background: "var(--card-bg)",
+        border: "1px solid var(--border)",
         borderRadius: "10px",
         padding: "20px",
         marginBottom: "16px",
       }}>
-        <h2 style={{ fontSize: "15px", fontWeight: "600", marginBottom: "14px", color: "#f0f0f0" }}>
+        <h2 style={{ fontSize: "15px", fontWeight: "600", marginBottom: "14px", color: "var(--navy)" }}>
           📊 Google Sheets
         </h2>
 
         {config?.google_email ? (
           <div>
-            <div style={{ fontSize: "13px", color: "#a0a0a0", marginBottom: "8px" }}>
-              Conectado como: <span style={{ color: "#29ABE2" }}>{config.google_email}</span>
+            <div style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "8px" }}>
+              Conectado como: <span style={{ color: "var(--brand)" }}>{config.google_email}</span>
             </div>
             {config.spreadsheet_url && (
               <a
@@ -152,12 +201,12 @@ export default function FinancasPage() {
                 rel="noreferrer"
                 style={{
                   display: "inline-block",
-                  background: "#1e3a4a",
-                  border: "1px solid #2a5a6a",
+                  background: "rgba(28,108,166,0.1)",
+                  border: "1px solid rgba(28,108,166,0.3)",
                   borderRadius: "6px",
                   padding: "7px 14px",
                   fontSize: "12px",
-                  color: "#29ABE2",
+                  color: "var(--brand)",
                   textDecoration: "none",
                   marginBottom: "12px",
                 }}
@@ -165,38 +214,60 @@ export default function FinancasPage() {
                 Abrir Planilha →
               </a>
             )}
-            <div>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
               <button
                 onClick={() => window.location.href = "/api/auth/google/financas"}
                 style={{
-                  background: "#2a2a2a",
-                  border: "1px solid #3a3a3a",
+                  background: "var(--hover-row)",
+                  border: "1px solid var(--border)",
                   borderRadius: "6px",
                   padding: "7px 14px",
                   fontSize: "12px",
-                  color: "#a0a0a0",
+                  color: "var(--text-secondary)",
                   cursor: "pointer",
                 }}
               >
                 Reconectar Google
               </button>
+              <button
+                onClick={sincronizarAgenda}
+                disabled={syncing}
+                style={{
+                  background: syncing ? "rgba(34,197,94,0.07)" : "rgba(34,197,94,0.12)",
+                  border: "1px solid rgba(34,197,94,0.3)",
+                  borderRadius: "6px",
+                  padding: "7px 14px",
+                  fontSize: "12px",
+                  color: syncing ? "rgba(34,197,94,0.6)" : "var(--success)",
+                  cursor: syncing ? "not-allowed" : "pointer",
+                  opacity: syncing ? 0.8 : 1,
+                }}
+              >
+                {syncing ? "Sincronizando..." : "📅 Sincronizar com Agenda"}
+              </button>
+              {syncResult && (
+                <span style={{ fontSize: "12px", color: "var(--success)" }}>
+                  ✓ {syncResult.criados} evento{syncResult.criados !== 1 ? "s" : ""} criado{syncResult.criados !== 1 ? "s" : ""}
+                  {syncResult.pulados > 0 ? `, ${syncResult.pulados} já existiam` : ""}
+                </span>
+              )}
             </div>
           </div>
         ) : (
           <div>
-            <p style={{ fontSize: "13px", color: "#707070", marginBottom: "12px" }}>
+            <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "12px" }}>
               Conecte sua conta Google para registrar lançamentos automaticamente na planilha.
             </p>
             <button
               onClick={() => window.location.href = "/api/auth/google/financas"}
               style={{
-                background: "#29ABE2",
+                background: "var(--brand)",
                 border: "none",
                 borderRadius: "7px",
                 padding: "9px 18px",
                 fontSize: "13px",
                 fontWeight: "600",
-                color: "#fff",
+                color: "#FFFFFF",
                 cursor: "pointer",
               }}
             >
@@ -208,27 +279,27 @@ export default function FinancasPage() {
 
       {/* ─── WhatsApp / Evolution ──────────────────────────── */}
       <section style={{
-        background: "#1a1a1a",
-        border: "1px solid #2e2e2e",
+        background: "var(--card-bg)",
+        border: "1px solid var(--border)",
         borderRadius: "10px",
         padding: "20px",
         marginBottom: "16px",
       }}>
-        <h2 style={{ fontSize: "15px", fontWeight: "600", marginBottom: "14px", color: "#f0f0f0" }}>
+        <h2 style={{ fontSize: "15px", fontWeight: "600", marginBottom: "14px", color: "var(--navy)" }}>
           💬 WhatsApp
         </h2>
 
         <div style={{ marginBottom: "16px" }}>
-          <div style={{ fontSize: "12px", color: "#606060", marginBottom: "4px" }}>
+          <div style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "4px" }}>
             Grupo JID
           </div>
-          <div style={{ fontSize: "13px", color: config?.grupo_jid ? "#4ade80" : "#a0a0a0" }}>
+          <div style={{ fontSize: "13px", color: config?.grupo_jid ? "var(--success)" : "var(--text-secondary)" }}>
             {config?.grupo_jid || "Aguardando primeira mensagem do grupo"}
           </div>
         </div>
 
         <div style={{ marginBottom: "16px" }}>
-          <label style={{ fontSize: "12px", color: "#606060", display: "block", marginBottom: "6px" }}>
+          <label style={{ fontSize: "12px", color: "var(--text-secondary)", display: "block", marginBottom: "6px" }}>
             Instância Evolution
           </label>
           <div style={{ display: "flex", gap: "8px" }}>
@@ -237,12 +308,12 @@ export default function FinancasPage() {
               onChange={(e) => setInstanciaInput(e.target.value)}
               placeholder="nome-da-instancia"
               style={{
-                background: "#141414",
-                border: "1px solid #3a3a3a",
+                background: "var(--off-white)",
+                border: "1px solid var(--border)",
                 borderRadius: "6px",
                 padding: "7px 12px",
                 fontSize: "13px",
-                color: "#e0e0e0",
+                color: "var(--navy)",
                 flex: 1,
                 outline: "none",
               }}
@@ -251,13 +322,13 @@ export default function FinancasPage() {
               onClick={saveInstancia}
               disabled={saving}
               style={{
-                background: "#29ABE2",
+                background: "var(--brand)",
                 border: "none",
                 borderRadius: "6px",
                 padding: "7px 14px",
                 fontSize: "13px",
                 fontWeight: "600",
-                color: "#fff",
+                color: "#FFFFFF",
                 cursor: saving ? "not-allowed" : "pointer",
                 opacity: saving ? 0.7 : 1,
               }}
@@ -268,23 +339,23 @@ export default function FinancasPage() {
         </div>
 
         <div style={{
-          background: "#141414",
-          border: "1px solid #2e2e2e",
+          background: "var(--off-white)",
+          border: "1px solid var(--border)",
           borderRadius: "8px",
           padding: "14px",
         }}>
-          <div style={{ fontSize: "12px", color: "#606060", marginBottom: "6px" }}>
+          <div style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "6px" }}>
             Webhook URL para configurar no Evolution API
           </div>
           <div style={{
             fontFamily: "monospace",
             fontSize: "12px",
-            color: "#29ABE2",
+            color: "var(--brand)",
             wordBreak: "break-all",
           }}>
             {WEBHOOK_URL}
           </div>
-          <div style={{ fontSize: "11px", color: "#505050", marginTop: "8px" }}>
+          <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "8px" }}>
             Configure este URL no Evolution API para a instância desejada, com evento: <strong>MESSAGES_UPSERT</strong>
           </div>
         </div>
@@ -292,18 +363,18 @@ export default function FinancasPage() {
 
       {/* ─── Lançamentos recentes ──────────────────────────── */}
       <section style={{
-        background: "#1a1a1a",
-        border: "1px solid #2e2e2e",
+        background: "var(--card-bg)",
+        border: "1px solid var(--border)",
         borderRadius: "10px",
         padding: "20px",
         marginBottom: "16px",
       }}>
-        <h2 style={{ fontSize: "15px", fontWeight: "600", marginBottom: "14px", color: "#f0f0f0" }}>
+        <h2 style={{ fontSize: "15px", fontWeight: "600", marginBottom: "14px", color: "var(--navy)" }}>
           📋 Lançamentos Recentes
         </h2>
 
         {lancamentos.length === 0 ? (
-          <p style={{ fontSize: "13px", color: "#505050" }}>
+          <p style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
             Nenhum lançamento ainda. Mande uma mensagem no grupo para começar!
           </p>
         ) : (
@@ -316,16 +387,16 @@ export default function FinancasPage() {
                   alignItems: "center",
                   justifyContent: "space-between",
                   padding: "10px 12px",
-                  background: "#141414",
+                  background: "var(--off-white)",
                   borderRadius: "7px",
-                  border: "1px solid #252525",
+                  border: "1px solid var(--border)",
                 }}
               >
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: "13px", color: "#e0e0e0", fontWeight: "500" }}>
+                  <div style={{ fontSize: "13px", color: "var(--navy)", fontWeight: "500" }}>
                     {l.descricao}
                   </div>
-                  <div style={{ fontSize: "11px", color: "#606060", marginTop: "2px" }}>
+                  <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "2px" }}>
                     {tipoLabel(l.tipo)} · {categoriaLabel(l.categoria)} · {l.mes_referencia}
                     {l.criado_por ? ` · por ${l.criado_por}` : ""}
                   </div>
@@ -334,14 +405,14 @@ export default function FinancasPage() {
                   <div style={{
                     fontSize: "13px",
                     fontWeight: "600",
-                    color: l.tipo === "receita" ? "#4ade80" : "#f0f0f0",
+                    color: l.tipo === "receita" ? "var(--success)" : "var(--navy)",
                   }}>
                     R${formatMoney(l.valor)}
                   </div>
                   {l.tipo === "conta" && (
                     <div style={{
                       fontSize: "11px",
-                      color: l.pago ? "#4ade80" : "#f87171",
+                      color: l.pago ? "var(--success)" : "var(--alert-text)",
                       marginTop: "2px",
                     }}>
                       {l.pago ? "Pago ✓" : l.dia_vencimento ? `Vence dia ${l.dia_vencimento}` : "Pendente"}
@@ -356,23 +427,23 @@ export default function FinancasPage() {
 
       {/* ─── Instruções ───────────────────────────────────── */}
       <section style={{
-        background: "#141414",
-        border: "1px solid #2e2e2e",
+        background: "var(--off-white)",
+        border: "1px solid var(--border)",
         borderRadius: "10px",
         padding: "20px",
       }}>
-        <h2 style={{ fontSize: "14px", fontWeight: "600", marginBottom: "12px", color: "#a0a0a0" }}>
+        <h2 style={{ fontSize: "14px", fontWeight: "600", marginBottom: "12px", color: "var(--text-secondary)" }}>
           Como usar
         </h2>
-        <div style={{ fontSize: "12px", color: "#606060", lineHeight: "1.8" }}>
+        <div style={{ fontSize: "12px", color: "var(--text-secondary)", lineHeight: "1.8" }}>
           <p>1. Conecte o Google Sheets acima (cria a planilha automaticamente)</p>
           <p>2. Configure a instância Evolution e copie o webhook URL</p>
           <p>3. No Evolution API, adicione o webhook para a instância escolhida</p>
           <p>4. Adicione a instância em um grupo do WhatsApp</p>
           <p>5. Mande &quot;ajuda&quot; no grupo para ver os comandos disponíveis</p>
         </div>
-        <div style={{ marginTop: "14px", fontSize: "12px", color: "#505050" }}>
-          Notificações de vencimento são enviadas diariamente às <strong style={{ color: "#a0a0a0" }}>08:00</strong> (horário de Brasília).
+        <div style={{ marginTop: "14px", fontSize: "12px", color: "var(--text-secondary)" }}>
+          Notificações de vencimento são enviadas diariamente às <strong style={{ color: "var(--text-secondary)" }}>08:00</strong> (horário de Brasília).
         </div>
       </section>
     </div>

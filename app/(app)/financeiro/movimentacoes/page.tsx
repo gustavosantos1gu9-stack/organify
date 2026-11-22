@@ -61,11 +61,31 @@ function NovaMovModal({ tipo, onClose, onSave, clientes }: { tipo:"entrada"|"sai
   );
 }
 
+const MESES_NOMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+
+function getMesAtual() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+}
+
+function mesParaDatas(mes: string): { de: string; ate: string } {
+  if (!mes) return { de: "", ate: "" };
+  const [ano, m] = mes.split("-").map(Number);
+  const de = `${ano}-${String(m).padStart(2,"0")}-01`;
+  const ultimoDia = new Date(ano, m, 0).getDate();
+  const ate = `${ano}-${String(m).padStart(2,"0")}-${String(ultimoDia).padStart(2,"0")}`;
+  return { de, ate };
+}
+
 export default function MovimentacoesPage() {
   const [showModal, setShowModal] = useState<"entrada"|"saida"|null>(null);
   const [busca, setBusca] = useState("");
   const [filtros, setFiltros] = useState<Record<string,string>>({});
-  const { data: movs, loading, refresh } = useMovimentacoes(busca, filtros.data_de||"", filtros.data_ate||"");
+  const [mesSelecionado, setMesSelecionado] = useState(getMesAtual());
+  const mesDatas = mesParaDatas(mesSelecionado);
+  const dataDeEfetiva = filtros.data_de || mesDatas.de;
+  const dataAteEfetiva = filtros.data_ate || mesDatas.ate;
+  const { data: movs, loading, refresh } = useMovimentacoes(busca, dataDeEfetiva, dataAteEfetiva);
   const { data: clientes } = useClientes();
 
   const filtrados = (movs??[]).filter((m)=>{
@@ -92,7 +112,7 @@ export default function MovimentacoesPage() {
 
   return (
     <div className="animate-in">
-      <div className="breadcrumb"><a href="/">Início</a><span>›</span><span style={{ color:"#a0a0a0" }}>Financeiro</span><span>›</span><span className="current">Movimentações</span></div>
+      <div className="breadcrumb"><a href="/">Início</a><span>›</span><span style={{ color:"var(--text-secondary)" }}>Financeiro</span><span>›</span><span className="current">Movimentações</span></div>
       <h1 style={{ fontSize:"22px",fontWeight:"600",marginBottom:"24px" }}>Movimentações</h1>
 
       <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"16px",marginBottom:"28px" }}>
@@ -102,14 +122,27 @@ export default function MovimentacoesPage() {
       </div>
 
       <div className="table-wrapper">
-        <div style={{ padding:"16px",display:"flex",gap:"12px",borderBottom:"1px solid #2e2e2e",flexWrap:"wrap" }}>
+        <div style={{ padding:"16px",display:"flex",gap:"12px",borderBottom:"1px solid var(--border)",flexWrap:"wrap" }}>
           <div style={{ position:"relative",flex:1,minWidth:"200px" }}>
-            <Search size={14} style={{ position:"absolute",left:"12px",top:"50%",transform:"translateY(-50%)",color:"#606060" }}/>
+            <Search size={14} style={{ position:"absolute",left:"12px",top:"50%",transform:"translateY(-50%)",color:"var(--text-secondary)" }}/>
             <input className="search-input" placeholder="Buscar movimentações..." value={busca} onChange={(e)=>setBusca(e.target.value)}/>
           </div>
+          <select
+            className="form-input"
+            style={{width:"auto",minWidth:"160px",fontSize:"13px",padding:"8px 12px"}}
+            value={mesSelecionado}
+            onChange={e=>setMesSelecionado(e.target.value)}
+          >
+            <option value="">Todos</option>
+            {Array.from({length:12},(_,i)=>{
+              const d = new Date(); d.setMonth(d.getMonth()-i);
+              const v = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+              return <option key={v} value={v}>{MESES_NOMES[d.getMonth()]} {d.getFullYear()}</option>;
+            })}
+          </select>
           <Filtros grupos={FILTROS_GRUPOS} valores={filtros} onChange={(k,v)=>setFiltros((f)=>({...f,[k]:v}))} onLimpar={()=>setFiltros({})}/>
           <button className="btn-primary" onClick={()=>setShowModal("entrada")}><Plus size={14}/> Nova entrada</button>
-          <button onClick={()=>setShowModal("saida")} style={{ background:"rgba(239,68,68,0.12)",color:"#ef4444",border:"1px solid rgba(239,68,68,0.2)",padding:"8px 16px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px" }}>
+          <button onClick={()=>setShowModal("saida")} style={{ background:"rgba(239,68,68,0.12)",color:"var(--alert-text)",border:"1px solid rgba(239,68,68,0.2)",padding:"8px 16px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px" }}>
             <Plus size={14}/> Nova saída
           </button>
         </div>
@@ -119,17 +152,17 @@ export default function MovimentacoesPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={7} style={{ textAlign:"center",color:"#606060",padding:"40px" }}>Carregando...</td></tr>
+              <tr><td colSpan={7} style={{ textAlign:"center",color:"var(--text-secondary)",padding:"40px" }}>Carregando...</td></tr>
             ) : !filtrados.length ? (
-              <tr><td colSpan={7} style={{ textAlign:"center",color:"#606060",padding:"48px" }}>Nenhuma movimentação encontrada.</td></tr>
+              <tr><td colSpan={7} style={{ textAlign:"center",color:"var(--text-secondary)",padding:"48px" }}>Nenhuma movimentação encontrada.</td></tr>
             ) : filtrados.map((m)=>(
               <tr key={m.id}>
                 <td><input type="checkbox" style={{ width:"14px",height:"14px" }}/></td>
                 <td><span className={`badge ${m.tipo==="entrada"?"badge-green":"badge-red"}`}>{m.tipo==="entrada"?"Entrada":"Saída"}</span></td>
                 <td style={{ fontWeight:"500" }}>{m.descricao}</td>
-                <td style={{ color:"#a0a0a0",fontSize:"12px" }}>{m.clientes?.nome||"—"}</td>
-                <td style={{ color:"#a0a0a0" }}>{new Date(m.data).toLocaleDateString("pt-BR")}</td>
-                <td style={{ color:m.tipo==="entrada"?"#22c55e":"#ef4444",fontWeight:"600" }}>
+                <td style={{ color:"var(--text-secondary)",fontSize:"12px" }}>{m.clientes?.nome||"—"}</td>
+                <td style={{ color:"var(--text-secondary)" }}>{new Date(m.data).toLocaleDateString("pt-BR")}</td>
+                <td style={{ color:m.tipo==="entrada"?"var(--success)":"var(--alert-text)",fontWeight:"600" }}>
                   {m.tipo==="saida"?"- ":""}{formatCurrency(m.valor)}
                 </td>
                 <td>
