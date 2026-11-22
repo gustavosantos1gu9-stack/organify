@@ -4,8 +4,6 @@ import { waitUntil } from "@vercel/functions";
 import { getMetaToken, resolverAnuncioMeta, resolverIdsMeta, temMacroInvalida, AD_ID_REGEX, NUMERIC_ID_REGEX, isTextoPadraoCTWA, getTokenMetaDaAgencia } from "@/lib/meta-tracking";
 import { podeAplicarRastreio } from "@/lib/rastreio";
 
-export const dynamic = "force-dynamic";
-
 export const maxDuration = 300;
 
 const supabase = createClient(
