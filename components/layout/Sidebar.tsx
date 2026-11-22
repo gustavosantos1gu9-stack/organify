@@ -319,14 +319,23 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
   // Destaque que desliza até o item ativo
   useLayoutEffect(() => {
     const medir = () => {
-      const el = navRef.current?.querySelector<HTMLElement>(".nav-item.is-active");
-      if (!el) { setPill(p => ({ ...p, on: false })); return; }
-      setPill({ top: el.offsetTop, height: el.offsetHeight, on: true });
+      const nav = navRef.current;
+      const el = nav?.querySelector<HTMLElement>(".nav-item.is-active");
+      if (!nav || !el) { setPill(p => ({ ...p, on: false })); return; }
+      // posição real na tela (offsetTop erra enquanto os grupos animam a entrada)
+      const top = el.getBoundingClientRect().top - nav.getBoundingClientRect().top + nav.scrollTop;
+      setPill({ top, height: el.offsetHeight, on: true });
     };
     medir();
-    const t = setTimeout(medir, 350);
+    const t = setTimeout(medir, 700);
+    const nav = navRef.current;
+    nav?.addEventListener("animationend", medir);
     window.addEventListener("resize", medir);
-    return () => { clearTimeout(t); window.removeEventListener("resize", medir); };
+    return () => {
+      clearTimeout(t);
+      nav?.removeEventListener("animationend", medir);
+      window.removeEventListener("resize", medir);
+    };
   }, [pathname, permLoaded, allowedModulos, modulosAgencia, isFilha]);
 
   const isModuloAllowed = (key: string) => {
