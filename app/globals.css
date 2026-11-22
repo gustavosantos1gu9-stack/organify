@@ -819,3 +819,7 @@ input[type="checkbox"], input[type="radio"] { height: auto; accent-color: var(--
 /* Menu lateral: hover dos itens (o ativo fica branco) */
 .nav-item { transition: background .2s ease, color .2s ease; }
 .nav-item:not([style*="font-weight: 600"]):hover { background: rgba(255,255,255,.10) !important; color: #FFFFFF !important; }
+
+/* Quando o cabeçalho do canvas aparece, o título antigo da página sai */
+.app-main:has(> .auto-head) > div .breadcrumb,
+.app-main:has(> .auto-head) > div h1 { display: none !important; }

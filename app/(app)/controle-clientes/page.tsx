@@ -1,5 +1,6 @@
 "use client";
 
+import { Faixa } from "@/components/ui/Canvas";
 import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { Search, RefreshCw, ChevronDown, ChevronRight, ChevronUp, MessageSquare, X, Send, Check, UserCircle2, Pencil, Trash2, Plus, FileText, ArrowUp, ArrowDown, BarChart2 } from "lucide-react";
@@ -1150,25 +1151,24 @@ export default function ControleClientesPage() {
         .th-group:hover .th-actions{opacity:1!important;}
       `}</style>
 
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"20px" }}>
-        <div>
-          <div className="breadcrumb"><a href="/">Início</a><span>›</span><span className="current">Carteira</span></div>
-          <h1 style={{ fontSize:"22px", fontWeight:"600", whiteSpace:"nowrap" }}>Carteira de clientes</h1>
-          <p style={{ fontSize:"13px", color:"var(--text-secondary)", marginTop:"4px" }}>{filtrados.length} clientes ativos</p>
+      <header className="pg-head">
+        <div className="pg-head-txt">
+          <span className="pg-ctx">Clientes · {clientes.length} na carteira</span>
+          <h1 className="pg-title">Carteira <span className="font-serif-accent pg-accent">de clientes</span></h1>
         </div>
-        <div style={{ display:"flex", gap:"8px", alignItems:"center" }}>
+        <div className="pg-actions">
           <div style={{ position:"relative" }}>
             <Search size={13} style={{ position:"absolute", left:"10px", top:"50%", transform:"translateY(-50%)", color:"var(--text-secondary)" }}/>
-            <input className="search-input" placeholder="Buscar cliente..." value={busca} onChange={e=>setBusca(e.target.value)} style={{ paddingLeft:"32px", width:"200px" }}/>
+            <input className="search-input" placeholder="Buscar cliente" value={busca} onChange={e=>setBusca(e.target.value)} style={{ paddingLeft:"34px", width:"220px" }}/>
           </div>
-          <select value={sort} onChange={e=>setSort(e.target.value)} style={{ background:"var(--card-bg)", border:"1px solid var(--border)", borderRadius:"8px", padding:"7px 10px", color:"var(--navy)", fontSize:"12px", cursor:"pointer" }}>
+          <select value={sort} onChange={e=>setSort(e.target.value)} style={{ background:"var(--card-bg)", border:"0", borderRadius:"999px", height:"44px", padding:"0 16px", color:"var(--navy)", fontSize:"14px", cursor:"pointer", boxShadow:"var(--shadow-soft)" }}>
             {SORT_OPTS.map(s=><option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
           <button onClick={()=>setSortDir(d=>d==="asc"?"desc":"asc")} className="btn-ghost" style={{ padding:"7px 10px", cursor:"pointer", fontSize:"12px" }}>
             {sortDir==="asc"?"↑ Crescente":"↓ Decrescente"}
           </button>
           <button onClick={carregar} className="btn-ghost" style={{ padding:"8px", cursor:"pointer" }}><RefreshCw size={14}/></button>
-          <button onClick={()=>setModalColunas(true)} style={{ background:"var(--hover-row)", border:"1px solid var(--border)", borderRadius:"8px", padding:"8px 14px", cursor:"pointer", color:"var(--text-secondary)", fontWeight:"500", fontSize:"13px", display:"flex", alignItems:"center", gap:"6px" }}>
+          <button onClick={()=>setModalColunas(true)} className="btn-secondary" style={{ height:"44px", padding:"0 18px", cursor:"pointer", fontSize:"14px", display:"flex", alignItems:"center", gap:"6px" }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
             Colunas
           </button>
@@ -1181,9 +1181,9 @@ export default function ControleClientesPage() {
               </button>
             ) : null;
           })()}
-          <button onClick={()=>setModalNovoCliente(true)} style={{ background:"var(--brand)", border:"none", borderRadius:"8px", padding:"8px 14px", cursor:"pointer", color:"#FFFFFF", fontWeight:"600", fontSize:"13px", display:"flex", alignItems:"center", gap:"6px" }}><Plus size={14}/> Novo Cliente</button>
+          <button onClick={()=>setModalNovoCliente(true)} className="btn-primary" style={{ height:"44px", padding:"0 18px", cursor:"pointer", fontSize:"14px", display:"flex", alignItems:"center", gap:"6px" }}><Plus size={14}/> Nova cliente</button>
         </div>
-      </div>
+      </header>
 
       {/* KPIs */}
       {(() => {
@@ -1213,15 +1213,23 @@ export default function ControleClientesPage() {
           { label:"Tempo Médio (meses)", value:tempoMedioDias > 0 ? tempoMedioDias.toFixed(1) : "—", cor:"var(--navy)" },
           { label:`Churn ${mesAtualStr2}`, value: churnsMes.filter((c:any) => c.data_churn === mesAtualStr2).length, cor:"var(--alert-text)" },
         ];
+        void kpis;
+        const mesLongo = hoje.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+        const churnMesAtual = churnsMes.filter((c:any) => c.data_churn === mesAtualStr2).length;
         return (
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"12px", marginBottom:"20px" }}>
-            {kpis.map(k=>(
-              <div key={k.label} className="card" style={{ padding:"12px 16px" }}>
-                <p style={{ fontSize:"11px", color:"var(--text-secondary)", margin:0 }}>{k.label}</p>
-                <p style={{ fontSize:"20px", fontWeight:"700", color:k.cor, margin:0 }}>{k.value}</p>
-              </div>
-            ))}
-          </div>
+          <Faixa
+            contexto={`${mesLongo.charAt(0).toUpperCase() + mesLongo.slice(1).replace(" de ", " de ")} · base de ${mesPassadoStr}: ${basePassada || "—"}`}
+            titulo={`${ativos.length} ativas,`}
+            destaque={`${entrada.length} em entrada`}
+            link={{ label: "Ver churn", href: "/gerador-de-leads" }}
+            numeros={[
+              { label: "Clientes totais", valor: clientes.length },
+              { label: "Ativas", valor: ativos.length },
+              { label: "Pausadas", valor: pausados.length },
+              { label: "Tempo médio", valor: tempoMedioDias > 0 ? `${tempoMedioDias.toFixed(1).replace(".", ",")} meses` : "—" },
+              { label: `Churn de ${hoje.toLocaleDateString("pt-BR", { month: "long" })}`, valor: churnMesAtual },
+            ]}
+          />
         );
       })()}
 
