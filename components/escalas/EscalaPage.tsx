@@ -589,14 +589,14 @@ function RelatorioModal({ historico, onClose }: RelatorioProps) {
                       <thead>
                         <tr style={{ borderBottom: "1px solid #E6EBF0" }}>
                           <th style={{ padding: "10px 14px", textAlign: "left", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "500", position: "sticky", left: 0, background: "var(--card-bg)", zIndex: 1 }}>MÊS</th>
-                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "500" }}>AGEND.</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "500" }}>Agend.</th>
                           <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "500" }}>% AGEND.</th>
-                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "500" }}>INVESTIMENTO</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "500" }}>Investimento</th>
                           <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "500" }}>% INVEST.</th>
-                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "500" }}>CUSTO/AGEND.</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "500" }}>Custo/agend.</th>
                           <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "500" }}>% CUSTO</th>
-                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "500" }}>PLANILHA</th>
-                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "500" }}>ESCALA</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "500" }}>Planilha</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "500" }}>Escala</th>
                         </tr>
                       </thead>
                       <tbody>

@@ -154,10 +154,10 @@ export default function WhatsAppStatusPage() {
         <table>
           <thead>
             <tr>
-              <th>INSTÂNCIA</th>
-              <th>STATUS</th>
-              <th>ÚLTIMA MENSAGEM RECEBIDA</th>
-              <th>ÚLTIMO RESOLVIDO</th>
+              <th>Instância</th>
+              <th>Status</th>
+              <th>Última mensagem recebida</th>
+              <th>Último resolvido</th>
             </tr>
           </thead>
           <tbody>

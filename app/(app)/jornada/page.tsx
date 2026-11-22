@@ -275,11 +275,11 @@ export default function JornadaPage() {
           <thead>
             <tr>
               <th>ID</th>
-              <th>ORDEM NO FUNIL</th>
-              <th>NOME DA ETAPA</th>
-              <th>EVENTO DE CONVERSÃO</th>
-              <th>CRIADO EM</th>
-              <th>AÇÕES</th>
+              <th>Ordem no funil</th>
+              <th>Nome da etapa</th>
+              <th>Evento de conversão</th>
+              <th>Criado em</th>
+              <th>Ações</th>
             </tr>
           </thead>
           <tbody>

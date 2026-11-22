@@ -197,7 +197,7 @@ export default function UsuariosPage() {
           </button>
         </div>
         <table>
-          <thead><tr><th>NOME</th><th>CPF</th><th>E-MAIL</th><th>TIME</th><th>STATUS</th><th></th></tr></thead>
+          <thead><tr><th>Nome</th><th>CPF</th><th>E-mail</th><th>Time</th><th>Status</th><th></th></tr></thead>
           <tbody>
             {loading ? (
               <tr><td colSpan={6} style={{textAlign:"center",color:"#4A5B6C",padding:"40px"}}>Carregando...</td></tr>

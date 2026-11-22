@@ -230,11 +230,11 @@ export default function CadastrosPage() {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
           <thead>
             <tr style={{ background: "#FFFFFF", borderBottom: "1px solid #E6EBF0" }}>
-              <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "11px", color: "#4A5B6C", fontWeight: "600" }}>NOME</th>
-              <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "11px", color: "#4A5B6C", fontWeight: "600" }}>EMAIL</th>
-              <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "11px", color: "#4A5B6C", fontWeight: "600" }}>DATA DE ENTRADA</th>
-              <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "11px", color: "#4A5B6C", fontWeight: "600" }}>INVESTIMENTO</th>
-              <th style={{ padding: "12px 16px", textAlign: "right", fontSize: "11px", color: "#4A5B6C", fontWeight: "600" }}>AÇÕES</th>
+              <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "11px", color: "#4A5B6C", fontWeight: "600" }}>Nome</th>
+              <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "11px", color: "#4A5B6C", fontWeight: "600" }}>Email</th>
+              <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "11px", color: "#4A5B6C", fontWeight: "600" }}>Data de entrada</th>
+              <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "11px", color: "#4A5B6C", fontWeight: "600" }}>Investimento</th>
+              <th style={{ padding: "12px 16px", textAlign: "right", fontSize: "11px", color: "#4A5B6C", fontWeight: "600" }}>Ações</th>
             </tr>
           </thead>
           <tbody>

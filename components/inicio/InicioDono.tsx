@@ -19,6 +19,7 @@ export default function InicioDono({ nome }: { nome: string }) {
   const [carteira, setCarteira] = useState<ClienteCarteira[]>([]);
   const [receita, setReceita] = useState({ total: 0, ativos: 0 });
   const [conv, setConv] = useState({ total: 0, rastreadas: 0, naoRastreadas: 0 });
+  const [baseMesPassado, setBaseMesPassado] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -33,6 +34,16 @@ export default function InicioDono({ nome }: { nome: string }) {
       const ativos = ((cli as any[]) || []).filter((x) => x.status === "ativo");
       setReceita({ total: ativos.reduce((s, x) => s + (Number(x.valor_oportunidade) || 0), 0), ativos: ativos.length });
       setCarteira(cart);
+      try {
+        // Base de clientes ativos do mês passado (snapshot mensal), para a taxa de churn
+        const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+        const h = new Date();
+        const idx = h.getMonth() === 0 ? 11 : h.getMonth() - 1;
+        const ano = h.getMonth() === 0 ? h.getFullYear() - 1 : h.getFullYear();
+        const snaps = await fetch(`/api/snapshots?agencia_id=${agId}`).then((r) => r.json());
+        const snap = (snaps?.data || []).find((x: any) => x.mes_ano === `${MESES[idx]}/${ano}`);
+        setBaseMesPassado(snap?.clientes_ativos || 0);
+      } catch { /* sem snapshot, a taxa fica 0 */ }
       setConv(c);
       setCarregado(true);
     })();
@@ -43,9 +54,23 @@ export default function InicioDono({ nome }: { nome: string }) {
   const desde = inicioDoMes();
   const naCarteira = carteira.filter((c) => c.status !== "saiu");
   const ativos = carteira.filter((c) => c.status === "ativo");
-  const novos = carteira.filter((c) => c.data_entrada && c.data_entrada >= desde);
-  const churnMes = carteira.filter((c) => c.status === "saiu" && c.data_churn && c.data_churn >= desde);
-  const churnPct = naCarteira.length + churnMes.length > 0 ? (churnMes.length / (naCarteira.length + churnMes.length)) * 100 : 0;
+  // Mesmas regras da Base mensal: data_entrada vem como dd/mm/aa(aa) ou ISO; data_churn como "Nov/2026"
+  const hoje = new Date();
+  const mm = String(hoje.getMonth() + 1).padStart(2, "0");
+  const aaaa = String(hoje.getFullYear());
+  const novos = carteira.filter((c) => {
+    const de = c.data_entrada;
+    if (!de) return false;
+    if (de.includes("/")) {
+      const p = de.split("/");
+      if (p.length === 3) return p[1].padStart(2, "0") === mm && (p[2].length === 2 ? "20" + p[2] : p[2]) === aaaa;
+      return false;
+    }
+    return de.split("T")[0] >= desde;
+  });
+  const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+  const churnMes = carteira.filter((c) => c.status === "saiu" && c.data_churn === `${MESES[hoje.getMonth()]}/${aaaa}`);
+  const churnPct = baseMesPassado > 0 ? (churnMes.length / baseMesPassado) * 100 : 0;
   const { contagem, semFase } = contarFases(naCarteira);
 
   const uti = naCarteira.filter((c) => c.uti);
@@ -91,27 +116,12 @@ export default function InicioDono({ nome }: { nome: string }) {
         ]}
       />
 
-      <div className="ui-grid-2">
-        <Painel titulo="Fases da carteira" extra={<LinkSutil href="/escala-nicolas">Abrir escalas</LinkSutil>} delay={0.12}>
-          <BarraFases contagem={contagem} semFase={semFase} />
-        </Painel>
+      <div className="ui-grid-2" style={{ alignItems: "start" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 20, minWidth: 0 }}>
+          <Painel titulo="Fases da carteira" extra={<LinkSutil href="/escala-nicolas">Abrir escalas</LinkSutil>} delay={0.12}>
+            <BarraFases contagem={contagem} semFase={semFase} />
+          </Painel>
 
-        <Painel
-          titulo="Precisa de atenção hoje"
-          extra={<span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{uti.length} na UTI, {oscilando.length} oscilando</span>}
-          delay={0.18}
-        >
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {atencao.length === 0 && <Vazio>Nenhum cliente em alerta agora.</Vazio>}
-            {atencao.map((a) => <ItemAtencao key={a.tag + a.titulo} {...a} />)}
-            {semFase > 0 && (
-              <ItemAtencao tag="Cadastro" tom="neutro" titulo={`${semFase} clientes sem fase definida`} detalhe="Definir a fase nas escalas" direita="Resolver" href="/controle-clientes" />
-            )}
-          </div>
-        </Painel>
-      </div>
-
-      <div className="ui-grid-2">
         <Painel titulo="Equipe" extra={<span style={{ fontSize: 13, color: "var(--ink-3)" }}>Clientes por gestor</span>} delay={0.24}>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {gestores.length === 0 && <Vazio>Nenhum cliente na carteira.</Vazio>}
@@ -129,7 +139,23 @@ export default function InicioDono({ nome }: { nome: string }) {
           </div>
         </Painel>
 
-        <Painel titulo="Atendimento no mês" extra={<LinkSutil href="/inbox">Abrir inbox</LinkSutil>} delay={0.3}>
+        </div>
+        <Painel
+          titulo="Precisa de atenção hoje"
+          extra={<span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{uti.length} na UTI, {oscilando.length} oscilando</span>}
+          delay={0.18}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {atencao.length === 0 && <Vazio>Nenhum cliente em alerta agora.</Vazio>}
+            {atencao.map((a) => <ItemAtencao key={a.tag + a.titulo} {...a} />)}
+            {semFase > 0 && (
+              <ItemAtencao tag="Cadastro" tom="neutro" titulo={`${semFase} clientes sem fase definida`} detalhe="Definir a fase nas escalas" direita="Resolver" href="/controle-clientes" />
+            )}
+          </div>
+        </Painel>
+      </div>
+
+        <Painel titulo="Atendimento no mês" style={{}} extra={<LinkSutil href="/inbox">Abrir inbox</LinkSutil>} delay={0.3}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12 }}>
             {[
               { l: "Conversas novas", v: conv.total, c: "var(--navy)" },
@@ -144,7 +170,6 @@ export default function InicioDono({ nome }: { nome: string }) {
           </div>
           <BarraLinha label="Rastreio das conversas" valor={pctRastreio} max={100} cor="var(--success)" direita={`${pctRastreio}%`} delay={0.35} />
         </Painel>
-      </div>
 
       <Painel titulo="Atalhos" delay={0.36} lift={false}>
         <Atalhos grupos={[

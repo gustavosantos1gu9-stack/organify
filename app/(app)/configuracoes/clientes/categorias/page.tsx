@@ -71,8 +71,8 @@ export default function CategoriasClientesPage() {
           <thead>
             <tr>
               <th><input type="checkbox" style={{ width: "14px", height: "14px" }} /></th>
-              <th>TODOS</th>
-              <th>NOME</th>
+              <th>Todos</th>
+              <th>Nome</th>
               <th></th>
             </tr>
           </thead>

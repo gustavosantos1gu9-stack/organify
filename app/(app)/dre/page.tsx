@@ -205,7 +205,7 @@ export default function DREPage() {
                 ))}
                 {/* Linha de totais */}
                 <tr style={{ borderTop:"2px solid rgba(28,108,166,0.25)",background:"rgba(28,108,166,0.04)" }}>
-                  <td style={{ padding:"10px 14px",fontWeight:"700",color:"var(--brand)",textAlign:"right",borderRight:"1px solid rgba(28,108,166,0.1)" }}>TOTAL</td>
+                  <td style={{ padding:"10px 14px",fontWeight:"700",color:"var(--brand)",textAlign:"right",borderRight:"1px solid rgba(28,108,166,0.1)" }}>Total</td>
                   <td style={{ padding:"10px 14px",color:"var(--success)",fontWeight:"700",textAlign:"right",borderRight:"1px solid rgba(28,108,166,0.1)" }}>{formatCurrency(dadosMensais.reduce((a,d)=>a+d.entradas,0))}</td>
                   <td style={{ padding:"10px 14px",color:"var(--alert-text)",fontWeight:"700",textAlign:"right",borderRight:"1px solid rgba(28,108,166,0.1)" }}>{formatCurrency(dadosMensais.reduce((a,d)=>a+d.saidas,0))}</td>
                   <td style={{ padding:"10px 14px",color:dadosMensais.reduce((a,d)=>a+d.lucro,0)>=0?"var(--success)":"var(--alert-text)",fontWeight:"700",textAlign:"right",borderRight:"1px solid rgba(28,108,166,0.1)" }}>{formatCurrency(dadosMensais.reduce((a,d)=>a+d.lucro,0))}</td>

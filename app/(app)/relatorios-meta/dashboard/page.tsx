@@ -1086,7 +1086,7 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
                     {pfmtDateShort(s.semana_inicio)} - {pfmtDateShort(s.semana_fim)}
                   </th>
                 ))}
-                <th style={{ ...headerCellStyle, color: "#0A1826", background: "rgba(41,171,226,0.1)" }}>TOTAL</th>
+                <th style={{ ...headerCellStyle, color: "#0A1826", background: "rgba(41,171,226,0.1)" }}>Total</th>
               </tr>
             </thead>
             <tbody>

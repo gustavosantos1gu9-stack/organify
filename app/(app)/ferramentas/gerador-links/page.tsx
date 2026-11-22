@@ -527,10 +527,10 @@ export default function GeradorLinksPage() {
         <table>
           <thead>
             <tr>
-              <th>NOME</th>
-              <th>CLIQUES</th>
-              <th>CRIADO EM</th>
-              <th>LINK</th>
+              <th>Nome</th>
+              <th>Cliques</th>
+              <th>Criado em</th>
+              <th>Link</th>
               <th></th>
             </tr>
           </thead>

@@ -88,7 +88,7 @@ export default function CategoriasEntradaPage() {
           <thead>
             <tr>
               <th><input type="checkbox" style={{ width: "14px", height: "14px" }} /></th>
-              <th>NOME</th>
+              <th>Nome</th>
               <th></th>
             </tr>
           </thead>

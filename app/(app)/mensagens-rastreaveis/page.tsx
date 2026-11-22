@@ -70,13 +70,13 @@ export default function MensagensRastreavesPage() {
         <table>
           <thead>
             <tr>
-              <th>DATA</th>
-              <th>CONTATO</th>
-              <th>MENSAGEM</th>
-              <th>ORIGEM</th>
-              <th>CAMPANHA</th>
-              <th>RASTREADA</th>
-              <th>ETAPA</th>
+              <th>Data</th>
+              <th>Contato</th>
+              <th>Mensagem</th>
+              <th>Origem</th>
+              <th>Campanha</th>
+              <th>Rastreada</th>
+              <th>Etapa</th>
             </tr>
           </thead>
           <tbody>

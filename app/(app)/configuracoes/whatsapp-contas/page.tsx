@@ -287,10 +287,10 @@ export default function WhatsAppContasPage() {
         <table>
           <thead>
             <tr>
-              <th>CONTA</th>
-              <th>STATUS</th>
+              <th>Conta</th>
+              <th>Status</th>
               <th>WHATSAPP</th>
-              <th>CONEXÃO</th>
+              <th>Conexão</th>
               <th></th>
             </tr>
           </thead>

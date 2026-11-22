@@ -467,11 +467,11 @@ export default function LancamentosFuturosPage() {
                   <tr>
                     <th style={{width:"30px"}}><input type="checkbox" style={{width:"14px",height:"14px"}}/></th>
                     <th style={{width:"30px"}}></th>
-                    <th>CATEGORIA</th>
-                    <th>CLIENTE/FORNECEDOR</th>
-                    <th>VENCIMENTO</th>
-                    <th>DESCRIÇÃO</th>
-                    <th>VALOR</th>
+                    <th>Categoria</th>
+                    <th>Cliente/fornecedor</th>
+                    <th>Vencimento</th>
+                    <th>Descrição</th>
+                    <th>Valor</th>
                     <th></th>
                   </tr>
                 </thead>

@@ -74,9 +74,9 @@ export default function OrigensPage() {
           <thead>
             <tr>
               <th><input type="checkbox" style={{ width: "14px", height: "14px" }} /></th>
-              <th>TODOS</th>
-              <th>NOME</th>
-              <th>STATUS</th>
+              <th>Todos</th>
+              <th>Nome</th>
+              <th>Status</th>
               <th></th>
             </tr>
           </thead>

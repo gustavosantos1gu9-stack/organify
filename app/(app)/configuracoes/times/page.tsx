@@ -157,7 +157,7 @@ export default function TimesPage() {
           </button>
         </div>
         <table>
-          <thead><tr><th>NOME</th><th>MÓDULOS COM ACESSO</th><th></th></tr></thead>
+          <thead><tr><th>Nome</th><th>Módulos com acesso</th><th></th></tr></thead>
           <tbody>
             {loading ? (
               <tr><td colSpan={3} style={{textAlign:"center",color:"#4A5B6C",padding:"40px"}}>Carregando...</td></tr>

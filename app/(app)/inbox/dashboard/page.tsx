@@ -613,7 +613,7 @@ export default function InboxDashboardPage() {
               <thead>
                 <tr>
                   <th style={{ padding: "10px 14px", textAlign: "left", fontSize: "11px", color: "#4A5B6C", fontWeight: "600", textTransform: "uppercase", borderBottom: "1px solid #E6EBF0" }}>
-                    CAMPANHA
+                    Campanha
                   </th>
                   {etapas.map((et) => (
                     <th key={et.id} style={{ padding: "10px", textAlign: "center", fontSize: "11px", color: "#4A5B6C", fontWeight: "600", textTransform: "uppercase", borderBottom: "1px solid #E6EBF0", whiteSpace: "nowrap" }}>
@@ -621,7 +621,7 @@ export default function InboxDashboardPage() {
                     </th>
                   ))}
                   <th style={{ padding: "10px", textAlign: "center", fontSize: "11px", color: "#4A5B6C", fontWeight: "600", textTransform: "uppercase", borderBottom: "1px solid #E6EBF0" }}>
-                    TOTAL
+                    Total
                   </th>
                 </tr>
               </thead>

@@ -148,7 +148,7 @@ export default function MovimentacoesPage() {
         </div>
         <table>
           <thead>
-            <tr><th><input type="checkbox" style={{ width:"14px",height:"14px" }}/></th><th>TIPO</th><th>DESCRIÇÃO</th><th>CLIENTE</th><th>DATA</th><th>VALOR</th><th></th></tr>
+            <tr><th><input type="checkbox" style={{ width:"14px",height:"14px" }}/></th><th>Tipo</th><th>Descrição</th><th>Cliente</th><th>Data</th><th>Valor</th><th></th></tr>
           </thead>
           <tbody>
             {loading ? (

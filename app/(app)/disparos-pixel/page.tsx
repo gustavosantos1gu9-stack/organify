@@ -135,12 +135,12 @@ export default function DisparosPixelPage() {
         <table>
           <thead>
             <tr>
-              <th>DATA / HORA</th>
-              <th>CONTATO</th>
-              <th>ETAPA</th>
-              <th>EVENTO</th>
-              <th>STATUS</th>
-              <th>RETORNO</th>
+              <th>Data / hora</th>
+              <th>Contato</th>
+              <th>Etapa</th>
+              <th>Evento</th>
+              <th>Status</th>
+              <th>Retorno</th>
             </tr>
           </thead>
           <tbody>

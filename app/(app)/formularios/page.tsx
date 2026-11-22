@@ -352,7 +352,7 @@ function FormulariosPageInner() {
       {!editando && !verRespostas && (
         <div className="table-wrapper">
           <table>
-            <thead><tr><th>NOME</th><th>SLUG</th><th>PERGUNTAS</th><th>STATUS</th><th></th></tr></thead>
+            <thead><tr><th>Nome</th><th>Slug</th><th>Perguntas</th><th>Status</th><th></th></tr></thead>
             <tbody>
               {loading ? (
                 <tr><td colSpan={5} style={{ textAlign: "center", color: "#4A5B6C", padding: 40 }}>Carregando...</td></tr>
@@ -411,7 +411,7 @@ function FormulariosPageInner() {
                 <table>
                   <thead>
                     <tr>
-                      <th style={{ whiteSpace: "nowrap" }}>DATA</th>
+                      <th style={{ whiteSpace: "nowrap" }}>Data</th>
                       {perguntas.map(p => (
                         <th key={p.id} style={{ whiteSpace: "nowrap", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis" }}>
                           {p.label.length > 30 ? p.label.slice(0, 30) + "…" : p.label}
@@ -626,7 +626,7 @@ function FormulariosPageInner() {
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <GripVertical size={14} style={{ color: "#404040", flexShrink: 0 }} />
                           <span style={{ fontSize: 11, color: "#4A5B6C", fontWeight: 600 }}>CAMPO {idx + 1}</span>
-                          {temLogica && <span style={{ fontSize: 10, background: "#29ABE215", color: "#1C6CA6", padding: "2px 6px", borderRadius: 6, fontWeight: 600 }}>LÓGICA</span>}
+                          {temLogica && <span style={{ fontSize: 10, background: "#29ABE215", color: "#1C6CA6", padding: "2px 6px", borderRadius: 6, fontWeight: 600 }}>Lógica</span>}
                         </div>
                         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                           {p.tipo !== "welcome" && p.tipo !== "obrigado" && p.tipo !== "video" && (

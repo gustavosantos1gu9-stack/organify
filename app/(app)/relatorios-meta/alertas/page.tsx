@@ -315,7 +315,7 @@ export default function AlertasPage() {
 
       <div className="table-wrapper">
         <table>
-          <thead><tr><th>CLIENTE / CONTA</th><th>SALDO ATUAL</th><th>LIMITE</th><th>PAGAMENTO</th><th>STATUS</th><th>GRUPO</th><th>ÚLTIMO ALERTA</th><th>AÇÕES</th></tr></thead>
+          <thead><tr><th>Cliente / conta</th><th>Saldo atual</th><th>Limite</th><th>Pagamento</th><th>Status</th><th>Grupo</th><th>Último alerta</th><th>Ações</th></tr></thead>
           <tbody>
             {loading ? (
               <tr><td colSpan={8} style={{ textAlign: "center", color: "#4A5B6C", padding: "48px" }}>Carregando...</td></tr>
@@ -406,15 +406,15 @@ export default function AlertasPage() {
                 <div style={{ background: "#FFFFFF", borderRadius: "8px", padding: "12px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
                   {isCartao() ? (
                     <>
-                      <div><span style={{ fontSize: "10px", color: "#4A5B6C" }}>PAGAMENTO</span><p style={{ fontSize: "14px", fontWeight: "600", color: "#C2620E", margin: "2px 0 0" }}>Cartão de Crédito</p></div>
-                      <div><span style={{ fontSize: "10px", color: "#4A5B6C" }}>STATUS</span><p style={{ fontSize: "12px", color: contaInfo[form.ad_account_id].account_status === 1 ? "#1E6B52" : "#B42318", margin: "2px 0 0" }}>{contaInfo[form.ad_account_id].status}</p></div>
+                      <div><span style={{ fontSize: "10px", color: "#4A5B6C" }}>Pagamento</span><p style={{ fontSize: "14px", fontWeight: "600", color: "#C2620E", margin: "2px 0 0" }}>Cartão de Crédito</p></div>
+                      <div><span style={{ fontSize: "10px", color: "#4A5B6C" }}>Status</span><p style={{ fontSize: "12px", color: contaInfo[form.ad_account_id].account_status === 1 ? "#1E6B52" : "#B42318", margin: "2px 0 0" }}>{contaInfo[form.ad_account_id].status}</p></div>
                     </>
                   ) : (
                     <>
-                      <div><span style={{ fontSize: "10px", color: "#4A5B6C" }}>SALDO</span><p style={{ fontSize: "14px", fontWeight: "600", color: "#0A1826", margin: "2px 0 0" }}>{formatMoney(contaInfo[form.ad_account_id].balance)}</p></div>
-                      <div><span style={{ fontSize: "10px", color: "#4A5B6C" }}>PAGAMENTO</span><p style={{ fontSize: "12px", color: "#4A5B6C", margin: "2px 0 0" }}>{contaInfo[form.ad_account_id].forma_pagamento}</p></div>
-                      <div><span style={{ fontSize: "10px", color: "#4A5B6C" }}>STATUS</span><p style={{ fontSize: "12px", color: contaInfo[form.ad_account_id].account_status === 1 ? "#1E6B52" : "#B42318", margin: "2px 0 0" }}>{contaInfo[form.ad_account_id].status}</p></div>
-                      <div><span style={{ fontSize: "10px", color: "#4A5B6C" }}>MOEDA</span><p style={{ fontSize: "12px", color: "#4A5B6C", margin: "2px 0 0" }}>{contaInfo[form.ad_account_id].currency}</p></div>
+                      <div><span style={{ fontSize: "10px", color: "#4A5B6C" }}>Saldo</span><p style={{ fontSize: "14px", fontWeight: "600", color: "#0A1826", margin: "2px 0 0" }}>{formatMoney(contaInfo[form.ad_account_id].balance)}</p></div>
+                      <div><span style={{ fontSize: "10px", color: "#4A5B6C" }}>Pagamento</span><p style={{ fontSize: "12px", color: "#4A5B6C", margin: "2px 0 0" }}>{contaInfo[form.ad_account_id].forma_pagamento}</p></div>
+                      <div><span style={{ fontSize: "10px", color: "#4A5B6C" }}>Status</span><p style={{ fontSize: "12px", color: contaInfo[form.ad_account_id].account_status === 1 ? "#1E6B52" : "#B42318", margin: "2px 0 0" }}>{contaInfo[form.ad_account_id].status}</p></div>
+                      <div><span style={{ fontSize: "10px", color: "#4A5B6C" }}>Moeda</span><p style={{ fontSize: "12px", color: "#4A5B6C", margin: "2px 0 0" }}>{contaInfo[form.ad_account_id].currency}</p></div>
                     </>
                   )}
                 </div>
@@ -504,7 +504,7 @@ export default function AlertasPage() {
 
               {/* Variáveis disponíveis */}
               <div style={{ background: "#FFFFFF", borderRadius: "8px", padding: "12px" }}>
-                <p style={{ fontSize: "11px", fontWeight: "600", color: "#4A5B6C", margin: "0 0 8px" }}>VARIÁVEIS</p>
+                <p style={{ fontSize: "11px", fontWeight: "600", color: "#4A5B6C", margin: "0 0 8px" }}>Variáveis</p>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
                   {(isCartao() ? [
                     { var: "<CA>", desc: "Nome da cliente" },
@@ -530,7 +530,7 @@ export default function AlertasPage() {
 
               {/* Preview */}
               <div>
-                <p style={{ fontSize: "11px", fontWeight: "600", color: "#4A5B6C", margin: "0 0 8px" }}>PRÉ-VISUALIZAÇÃO</p>
+                <p style={{ fontSize: "11px", fontWeight: "600", color: "#4A5B6C", margin: "0 0 8px" }}>Pré-visualização</p>
                 <div style={{ background: "#FFFFFF", borderRadius: "8px", padding: "14px", fontSize: "13px", color: "#0A1826", whiteSpace: "pre-wrap", lineHeight: "1.5", borderLeft: "3px solid #1C6CA6" }}>
                   {previewMsg()}
                 </div>

@@ -403,13 +403,13 @@ export default function CRMPage() {
               <tr>
                 <th style={{ width:"40px" }}></th>
                 <th style={{ width:"40px" }}></th>
-                <th style={{ width:"60px" }}>STATUS</th>
-                <th>NOME</th>
-                <th>EMPRESA</th>
-                <th>ETAPA</th>
-                <th>ORIGEM</th>
-                <th>TELEFONE</th>
-                <th>CRIADO EM</th>
+                <th style={{ width:"60px" }}>Status</th>
+                <th>Nome</th>
+                <th>Empresa</th>
+                <th>Etapa</th>
+                <th>Origem</th>
+                <th>Telefone</th>
+                <th>Criado em</th>
                 <th></th>
               </tr>
             </thead>

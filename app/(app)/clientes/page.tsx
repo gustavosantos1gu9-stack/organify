@@ -516,29 +516,29 @@ export default function ClientesPage() {
               <tr>
                 <th><input type="checkbox" style={{ width:"14px",height:"14px" }}/></th>
                 <th onClick={() => handleSort("status")} style={thStyle("status")}>
-                  STATUS <SortIcon col="status" sortKey={sortKey} sortDir={sortDir}/>
+                  Status <SortIcon col="status" sortKey={sortKey} sortDir={sortDir}/>
                 </th>
                 <th></th>
                 <th onClick={() => handleSort("nome")} style={thStyle("nome")}>
-                  NOME <SortIcon col="nome" sortKey={sortKey} sortDir={sortDir}/>
+                  Nome <SortIcon col="nome" sortKey={sortKey} sortDir={sortDir}/>
                 </th>
                 <th onClick={() => handleSort("servico")} style={thStyle("servico")}>
-                  CATEGORIA <SortIcon col="servico" sortKey={sortKey} sortDir={sortDir}/>
+                  Categoria <SortIcon col="servico" sortKey={sortKey} sortDir={sortDir}/>
                 </th>
                 <th onClick={() => handleSort("frequencia")} style={thStyle("frequencia")}>
-                  FREQUÊNCIA <SortIcon col="frequencia" sortKey={sortKey} sortDir={sortDir}/>
+                  Frequência <SortIcon col="frequencia" sortKey={sortKey} sortDir={sortDir}/>
                 </th>
                 <th onClick={() => handleSort("valor_oportunidade")} style={thStyle("valor_oportunidade")}>
-                  TICKET <SortIcon col="valor_oportunidade" sortKey={sortKey} sortDir={sortDir}/>
+                  Ticket <SortIcon col="valor_oportunidade" sortKey={sortKey} sortDir={sortDir}/>
                 </th>
                 <th onClick={() => handleSort("cidade")} style={thStyle("cidade")}>
-                  CIDADE <SortIcon col="cidade" sortKey={sortKey} sortDir={sortDir}/>
+                  Cidade <SortIcon col="cidade" sortKey={sortKey} sortDir={sortDir}/>
                 </th>
                 <th onClick={() => handleSort("estado")} style={thStyle("estado")}>
-                  ESTADO <SortIcon col="estado" sortKey={sortKey} sortDir={sortDir}/>
+                  Estado <SortIcon col="estado" sortKey={sortKey} sortDir={sortDir}/>
                 </th>
                 <th onClick={() => handleSort("created_at")} style={thStyle("created_at")}>
-                  CRIADO EM <SortIcon col="created_at" sortKey={sortKey} sortDir={sortDir}/>
+                  Criado em <SortIcon col="created_at" sortKey={sortKey} sortDir={sortDir}/>
                 </th>
                 <th></th>
               </tr>

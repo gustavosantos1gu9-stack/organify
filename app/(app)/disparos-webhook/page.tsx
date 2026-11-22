@@ -96,7 +96,7 @@ export default function DisparosWebhookPage() {
       <div className="table-wrapper">
         <table>
           <thead>
-            <tr><th>NOME</th><th>URL</th><th>EVENTOS</th><th>STATUS</th><th>AÇÕES</th></tr>
+            <tr><th>Nome</th><th>URL</th><th>Eventos</th><th>Status</th><th>Ações</th></tr>
           </thead>
           <tbody>
             {loading ? (

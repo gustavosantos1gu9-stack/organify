@@ -259,7 +259,7 @@ export default function PageUTI() {
 
                 {/* Ações rápidas */}
                 <div style={{ borderTop: "1px solid #FFFFFF", paddingTop: "12px" }}>
-                  <div style={{ fontSize: "11px", color: "#6B7A89", marginBottom: "8px", fontWeight: 600 }}>ADICIONAR AÇÃO</div>
+                  <div style={{ fontSize: "11px", color: "#6B7A89", marginBottom: "8px", fontWeight: 600 }}>Adicionar ação</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "8px" }}>
                     {padrao.map(texto => (
                       <button key={texto} onClick={() => adicionarAcaoPadrao(c.id, texto)}

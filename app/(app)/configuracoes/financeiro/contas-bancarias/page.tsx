@@ -248,11 +248,11 @@ export default function ContasBancariasPage() {
         <table>
           <thead>
             <tr>
-              <th>BANCO</th>
-              <th>APELIDO</th>
-              <th>TIPO</th>
-              <th>AGÊNCIA</th>
-              <th>CONTA</th>
+              <th>Banco</th>
+              <th>Apelido</th>
+              <th>Tipo</th>
+              <th>Agência</th>
+              <th>Conta</th>
               <th></th>
             </tr>
           </thead>

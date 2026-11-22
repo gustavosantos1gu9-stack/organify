@@ -218,7 +218,7 @@ export default function CRMDashboardPage() {
           <table style={{ width:"100%", borderCollapse:"collapse" }}>
             <thead>
               <tr>
-                <th style={{ padding:"10px 14px", textAlign:"left", fontSize:"11px", color:"#4A5B6C", fontWeight:"600", textTransform:"uppercase", borderBottom:"1px solid #E6EBF0" }}>ORIGEM</th>
+                <th style={{ padding:"10px 14px", textAlign:"left", fontSize:"11px", color:"#4A5B6C", fontWeight:"600", textTransform:"uppercase", borderBottom:"1px solid #E6EBF0" }}>Origem</th>
                 {ETAPAS_LABELS.map((l) => (
                   <th key={l} style={{ padding:"10px", textAlign:"center", fontSize:"11px", color:"#4A5B6C", fontWeight:"600", textTransform:"uppercase", borderBottom:"1px solid #E6EBF0" }}>{l.toUpperCase()}</th>
                 ))}

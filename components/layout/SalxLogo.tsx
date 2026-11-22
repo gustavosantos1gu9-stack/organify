@@ -92,7 +92,7 @@ export function SalxLogo({ showText = true, size = 'md', collapsed = false }: Sa
               marginTop: '2px',
             }}
           >
-            CONVERT
+            Convert
           </span>
         </div>
       )}

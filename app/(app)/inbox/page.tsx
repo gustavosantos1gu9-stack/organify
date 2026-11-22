@@ -267,7 +267,7 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, eta
         {/* Rastreamento */}
         <div style={{ background:"var(--hover-row)", borderRadius:"8px", padding:"14px", marginBottom:"16px" }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"10px" }}>
-            <p style={{ fontSize:"12px", fontWeight:"600", color:"var(--text-secondary)", margin:0 }}>INFORMAÇÕES DE RASTREAMENTO</p>
+            <p style={{ fontSize:"12px", fontWeight:"600", color:"var(--text-secondary)", margin:0 }}>Informações de rastreamento</p>
             {!editando ? (
               <button onClick={()=>setEditando(true)} style={{ fontSize:"11px", color:"var(--brand)", background:"none", border:"1px solid rgba(28,108,166,0.3)", borderRadius:"6px", padding:"3px 10px", cursor:"pointer" }}>Editar</button>
             ) : (
@@ -332,7 +332,7 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, eta
         {respostasForm && (
           <div style={{ background:"var(--hover-row)", borderRadius:"8px", padding:"14px", marginBottom:"16px" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"10px" }}>
-              <p style={{ fontSize:"12px", fontWeight:"600", color:"var(--text-secondary)", margin:0 }}>FORMULÁRIO PREENCHIDO</p>
+              <p style={{ fontSize:"12px", fontWeight:"600", color:"var(--text-secondary)", margin:0 }}>Formulário preenchido</p>
               <span style={{ fontSize:"10px", color:"var(--text-secondary)" }}>
                 {new Date(respostasForm.created_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}
               </span>
@@ -354,7 +354,7 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, eta
 
         {/* Etapas da jornada */}
         <div>
-          <p style={{ fontSize:"12px", fontWeight:"600", color:"var(--text-secondary)", marginBottom:"10px" }}>ETAPA DA JORNADA</p>
+          <p style={{ fontSize:"12px", fontWeight:"600", color:"var(--text-secondary)", marginBottom:"10px" }}>Etapa da jornada</p>
           <div style={{ display:"flex", flexWrap:"wrap", gap:"8px" }}>
             {etapas.map(e => {
               const cor = getCorEtapa(e.nome);
@@ -376,7 +376,7 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, eta
         {/* Histórico de transições */}
         {historico.length > 0 && (
           <div style={{ marginTop:"16px" }}>
-            <p style={{ fontSize:"12px", fontWeight:"600", color:"var(--text-secondary)", marginBottom:"10px" }}>HISTÓRICO DE TRANSIÇÕES</p>
+            <p style={{ fontSize:"12px", fontWeight:"600", color:"var(--text-secondary)", marginBottom:"10px" }}>Histórico de transições</p>
             <div style={{ background:"var(--hover-row)", borderRadius:"8px", padding:"12px" }}>
               {historico.map((h, i) => {
                 const data = new Date(h.created_at);
@@ -1461,12 +1461,12 @@ export default function InboxPage() {
         <table>
           <thead>
             <tr>
-              <th>CONTATO</th>
-              <th>ORIGEM</th>
-              <th>ETAPA DA JORNADA</th>
-              <th>PRIMEIRA MENSAGEM</th>
+              <th>Contato</th>
+              <th>Origem</th>
+              <th>Etapa da jornada</th>
+              <th>Primeira mensagem</th>
               <th>ÚLTIMA MENSAGEM ↓</th>
-              <th>AÇÕES</th>
+              <th>Ações</th>
             </tr>
           </thead>
           <tbody>

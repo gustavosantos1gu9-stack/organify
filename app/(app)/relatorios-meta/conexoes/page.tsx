@@ -922,7 +922,7 @@ export default function ConexoesPage() {
         <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
           <Target size={18} color="#25d366" />
           <h2 style={{ fontSize: "16px", fontWeight: "600" }}>WhatsApp Cloud API (Oficial)</h2>
-          <span style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "10px", background: "rgba(37,211,102,0.15)", color: "#25d366", fontWeight: "600" }}>OFICIAL</span>
+          <span style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "10px", background: "rgba(37,211,102,0.15)", color: "#25d366", fontWeight: "600" }}>Oficial</span>
         </div>
 
         <p style={{ fontSize: "12px", color: "#4A5B6C", marginBottom: "16px" }}>

@@ -1152,8 +1152,8 @@ export default function ControleClientesPage() {
 
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"20px" }}>
         <div>
-          <div className="breadcrumb"><a href="/">Início</a><span>›</span><span className="current">Controle de Clientes</span></div>
-          <h1 style={{ fontSize:"22px", fontWeight:"600" }}>Controle de Clientes</h1>
+          <div className="breadcrumb"><a href="/">Início</a><span>›</span><span className="current">Carteira</span></div>
+          <h1 style={{ fontSize:"22px", fontWeight:"600", whiteSpace:"nowrap" }}>Carteira de clientes</h1>
           <p style={{ fontSize:"13px", color:"var(--text-secondary)", marginTop:"4px" }}>{filtrados.length} clientes ativos</p>
         </div>
         <div style={{ display:"flex", gap:"8px", alignItems:"center" }}>
@@ -1272,7 +1272,7 @@ export default function ControleClientesPage() {
           <div className="card" style={{ padding:"16px", marginBottom:"20px" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"12px" }}>
               <div>
-                <p style={{ fontSize:"12px", fontWeight:"600", color:"var(--text-secondary)", margin:"0 0 4px" }}>DIAS PARA INICIAR CAMPANHA</p>
+                <p style={{ fontSize:"12px", fontWeight:"600", color:"var(--text-secondary)", margin:"0 0 4px" }}>Dias para iniciar campanha</p>
                 <p style={{ fontSize:"11px", color:"var(--text-secondary)", margin:0 }}>Média do mês atual — {iniciaram.length} cliente{iniciaram.length !== 1 ? "s" : ""} iniciaram</p>
               </div>
               <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
@@ -1336,9 +1336,9 @@ export default function ControleClientesPage() {
             <tr style={{ background:"var(--card-bg)", borderBottom:"1px solid var(--border)" }}>
               <th style={{ width:"30px", padding:"10px 6px" }}></th>
               {sort==="ordem" && <th style={{ width:"50px", padding:"10px 4px", textAlign:"center", fontSize:"11px", color:"var(--text-secondary)", fontWeight:"600" }}>↕</th>}
-              <th style={{ padding:"10px 12px", textAlign:"left", fontSize:"11px", color:"var(--text-secondary)", fontWeight:"600", position:"sticky", left:0, background:"var(--card-bg)", zIndex:2, width:"160px", whiteSpace:"nowrap" }}>NOME</th>
+              <th style={{ padding:"10px 12px", textAlign:"left", fontSize:"11px", color:"var(--text-secondary)", fontWeight:"600", position:"sticky", left:0, background:"var(--card-bg)", zIndex:2, width:"160px", whiteSpace:"nowrap" }}>Nome</th>
               {/* Coluna Info. Cliente */}
-              <th style={{ padding:"10px 8px", textAlign:"center", fontSize:"11px", color:"var(--text-secondary)", fontWeight:"600", width:"60px", whiteSpace:"nowrap" }}>INFO.</th>
+              <th style={{ padding:"10px 8px", textAlign:"center", fontSize:"11px", color:"var(--text-secondary)", fontWeight:"600", width:"60px", whiteSpace:"nowrap" }}>Info.</th>
               {/* Coluna UTI fixa */}
               <th style={{ padding:"10px 8px", textAlign:"center", fontSize:"11px", color:"var(--alert-text)", fontWeight:"700", width:"48px", whiteSpace:"nowrap", borderLeft:"1px solid rgba(180,35,24,0.18)" }}>UTI</th>
               {colunas.map((col: any)=>(
@@ -1612,7 +1612,7 @@ export default function ControleClientesPage() {
             </div>
             <div style={{ padding:"20px", display:"flex", flexDirection:"column", gap:"12px" }}>
               <div>
-                <label style={{ display:"block", fontSize:"11px", color:"var(--text-secondary)", marginBottom:"6px" }}>CONDIÇÃO</label>
+                <label style={{ display:"block", fontSize:"11px", color:"var(--text-secondary)", marginBottom:"6px" }}>Condição</label>
                 <select value={finFreq} onChange={e=>{setFinFreq(e.target.value);setFinDia2("");}}
                   style={{ width:"100%", background:"var(--card-bg)", border:"1px solid var(--border)", borderRadius:"8px", padding:"9px 12px", color:"var(--navy)", fontSize:"13px", cursor:"pointer" }}>
                   <option value="mensal">Mensal</option>

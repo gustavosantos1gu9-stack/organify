@@ -136,7 +136,7 @@ export default function FornecedoresPage() {
           </button>
         </div>
         <table>
-          <thead><tr><th>TIPO</th><th>NOME</th><th>CNPJ/CPF</th><th>E-MAIL</th><th>TELEFONE</th><th></th></tr></thead>
+          <thead><tr><th>Tipo</th><th>Nome</th><th>Cnpj/cpf</th><th>E-mail</th><th>Telefone</th><th></th></tr></thead>
           <tbody>
             {loading ? (
               <tr><td colSpan={6} style={{textAlign:"center",color:"#4A5B6C",padding:"40px"}}>Carregando...</td></tr>

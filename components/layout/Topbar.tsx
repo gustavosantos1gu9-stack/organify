@@ -280,7 +280,7 @@ export default function Topbar({ onMenuToggle }: TopbarProps) {
                       background: "var(--brand)",
                       color: "#0A1826",
                       marginLeft: "auto",
-                    }}>MASTER</span>
+                    }}>Master</span>
                   )}
                 </button>
               ))}

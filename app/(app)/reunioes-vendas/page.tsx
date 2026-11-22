@@ -36,14 +36,14 @@ function MetaBar({ label, realizado, meta }: { label: string; realizado: number;
         <span style={{ fontSize: "13px", fontWeight: "700", color: cor }}>{pctReal}%</span>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "3px" }}>
-        <span style={{ fontSize: "10px", color: "#4A5B6C", width: "58px" }}>REALIZADO</span>
+        <span style={{ fontSize: "10px", color: "#4A5B6C", width: "58px" }}>Realizado</span>
         <div style={{ flex: 1, height: "5px", background: "#E6EBF0", borderRadius: "3px" }}>
           <div style={{ width: `${pctVal}%`, height: "100%", background: cor, borderRadius: "3px", transition: "width 0.5s" }} />
         </div>
         <span style={{ fontSize: "11px", color: "#4A5B6C", width: "28px", textAlign: "right" }}>{realizado}</span>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-        <span style={{ fontSize: "10px", color: "#4A5B6C", width: "58px" }}>META</span>
+        <span style={{ fontSize: "10px", color: "#4A5B6C", width: "58px" }}>Meta</span>
         <div style={{ flex: 1, height: "5px", background: "#E6EBF0", borderRadius: "3px" }}>
           <div style={{ width: "100%", height: "100%", background: "#E6EBF0", borderRadius: "3px" }} />
         </div>
@@ -593,7 +593,7 @@ export default function ReunioesVendasPage() {
         <div className="table-wrapper">
           <table>
             <thead>
-              <tr><th>NOME</th><th>ORIGEM</th><th>STATUS</th><th>DATA</th></tr>
+              <tr><th>Nome</th><th>Origem</th><th>Status</th><th>Data</th></tr>
             </thead>
             <tbody>
               {loadingLista ? (
@@ -637,7 +637,7 @@ export default function ReunioesVendasPage() {
           {/* INVESTIMENTO */}
           <div className="card" style={{ padding: "14px 16px" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"4px" }}>
-              <span style={{ fontSize:"9px", fontWeight:"700", color:"#4A5B6C", letterSpacing:"0.07em" }}>INVESTIMENTO</span>
+              <span style={{ fontSize:"9px", fontWeight:"700", color:"#4A5B6C", letterSpacing:"0.07em" }}>Investimento</span>
               <button onClick={() => { setEditConfig(config); setEditando(true); }} style={{ background:"none", border:"none", color:"#6B7A89", cursor:"pointer", padding:"0" }}><Edit2 size={11}/></button>
             </div>
             <p style={{ fontSize:"18px", fontWeight:"700", color:"#0A1826", margin:"4px 0 8px", wordBreak:"break-all" }}>{fmt(config.investimento)}</p>
@@ -652,7 +652,7 @@ export default function ReunioesVendasPage() {
           {/* LEADS */}
           <div className="card" style={{ padding:"14px 16px" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"4px" }}>
-              <span style={{ fontSize:"9px", fontWeight:"700", color:"#4A5B6C", letterSpacing:"0.07em" }}>LEADS</span>
+              <span style={{ fontSize:"9px", fontWeight:"700", color:"#4A5B6C", letterSpacing:"0.07em" }}>Leads</span>
               <Users size={12} style={{ color:"#6B7A89" }}/>
             </div>
             <div style={{ display:"flex", alignItems:"baseline", gap:"8px", margin:"4px 0 8px" }}>
@@ -693,7 +693,7 @@ export default function ReunioesVendasPage() {
             </div>
             <div style={{ borderTop:"1px solid #E6EBF0", paddingTop:"7px" }}>
               <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"2px" }}>
-                <span style={{ fontSize:"10px", color:"#4A5B6C" }}>CPMQL</span>
+                <span style={{ fontSize:"10px", color:"#4A5B6C" }}>Cpmql</span>
                 <span style={{ fontSize:"10px", fontWeight:"600", color:"#4A5B6C" }}>{kpis.cpmql > 0 ? fmt(kpis.cpmql) : "—"}</span>
               </div>
               <div style={{ display:"flex", justifyContent:"space-between" }}>
@@ -706,7 +706,7 @@ export default function ReunioesVendasPage() {
           {/* AGENDAMENTOS */}
           <div className="card" style={{ padding:"14px 16px" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"4px" }}>
-              <span style={{ fontSize:"9px", fontWeight:"700", color:"#4A5B6C", letterSpacing:"0.07em" }}>AGENDAMENTOS</span>
+              <span style={{ fontSize:"9px", fontWeight:"700", color:"#4A5B6C", letterSpacing:"0.07em" }}>Agendamentos</span>
               <Calendar size={12} style={{ color:"#6B7A89" }}/>
             </div>
             <div style={{ display:"flex", alignItems:"baseline", gap:"8px", margin:"4px 0 8px" }}>
@@ -732,7 +732,7 @@ export default function ReunioesVendasPage() {
           {/* REUNIÕES */}
           <div className="card" style={{ padding:"14px 16px" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"4px" }}>
-              <span style={{ fontSize:"9px", fontWeight:"700", color:"#4A5B6C", letterSpacing:"0.07em" }}>REUNIÕES REALIZADAS</span>
+              <span style={{ fontSize:"9px", fontWeight:"700", color:"#4A5B6C", letterSpacing:"0.07em" }}>Reuniões realizadas</span>
               <Video size={12} style={{ color:"#6B7A89" }}/>
             </div>
             <div style={{ display:"flex", alignItems:"baseline", gap:"8px", margin:"4px 0 8px" }}>
@@ -754,7 +754,7 @@ export default function ReunioesVendasPage() {
           {/* VENDAS */}
           <div className="card" style={{ padding:"14px 16px" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"4px" }}>
-              <span style={{ fontSize:"9px", fontWeight:"700", color:"#4A5B6C", letterSpacing:"0.07em" }}>VENDAS</span>
+              <span style={{ fontSize:"9px", fontWeight:"700", color:"#4A5B6C", letterSpacing:"0.07em" }}>Vendas</span>
               <TrendingUp size={12} style={{ color:"#1E6B52" }}/>
             </div>
             <div style={{ display:"flex", alignItems:"baseline", gap:"8px", margin:"4px 0 8px" }}>
@@ -790,14 +790,14 @@ export default function ReunioesVendasPage() {
 
         {/* ── Resultado Financeiro ── */}
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"8px" }}>
-          <span style={{ fontSize:"12px", fontWeight:"700", color:"#6B7A89", letterSpacing:"0.07em" }}>RESULTADO FINANCEIRO</span>
+          <span style={{ fontSize:"12px", fontWeight:"700", color:"#6B7A89", letterSpacing:"0.07em" }}>Resultado financeiro</span>
           <button onClick={() => { setEditConfig(config); setEditando(true); }} style={{ display:"flex", alignItems:"center", gap:"4px", background:"none", border:"1px solid #E6EBF0", borderRadius:"6px", padding:"4px 10px", color:"#4A5B6C", cursor:"pointer", fontSize:"12px" }}>
             <Edit2 size={11}/> Editar valores
           </button>
         </div>
         <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:"10px", marginBottom:"20px" }}>
           <div className="card" style={{ padding:"16px 18px" }}>
-            <span style={{ fontSize:"9px", fontWeight:"700", color:"#4A5B6C", letterSpacing:"0.07em" }}>RECEITA GERADA</span>
+            <span style={{ fontSize:"9px", fontWeight:"700", color:"#4A5B6C", letterSpacing:"0.07em" }}>Receita gerada</span>
             <div style={{ display:"flex", alignItems:"baseline", gap:"8px", margin:"6px 0 4px" }}>
               <p style={{ fontSize:"20px", fontWeight:"700", color:"#6B4FC8", margin:0, wordBreak:"break-all" }}>{dados.receitaGerada > 0 ? fmt(dados.receitaGerada) : "—"}</p>
               {dados.receitaGerada > 0 && <Delta curr={dados.receitaGerada} prev={dadosPrev.receitaGerada} />}
@@ -808,7 +808,7 @@ export default function ReunioesVendasPage() {
             </div>
           </div>
           <div className="card" style={{ padding:"16px 18px" }}>
-            <span style={{ fontSize:"9px", fontWeight:"700", color:"#4A5B6C", letterSpacing:"0.07em" }}>CAIXA COLETADO</span>
+            <span style={{ fontSize:"9px", fontWeight:"700", color:"#4A5B6C", letterSpacing:"0.07em" }}>Caixa coletado</span>
             <div style={{ display:"flex", alignItems:"baseline", gap:"8px", margin:"6px 0 4px" }}>
               <p style={{ fontSize:"20px", fontWeight:"700", color:"#1C6CA6", margin:0, wordBreak:"break-all" }}>{dados.caixaColetado > 0 ? fmt(dados.caixaColetado) : dados.receitaGerada > 0 ? "R$ 0,00" : "—"}</p>
               {dados.caixaColetado > 0 && <Delta curr={dados.caixaColetado} prev={dadosPrev.caixaColetado} />}

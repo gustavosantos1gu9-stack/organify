@@ -312,12 +312,12 @@ export default function RecorrenciasPage() {
         <table>
           <thead>
             <tr>
-              <th>TIPO</th>
-              <th>DESCRIÇÃO</th>
-              <th>PERIODICIDADE</th>
-              <th>DIA VENC.</th>
-              <th>VALOR</th>
-              <th>STATUS</th>
+              <th>Tipo</th>
+              <th>Descrição</th>
+              <th>Periodicidade</th>
+              <th>Dia venc.</th>
+              <th>Valor</th>
+              <th>Status</th>
               <th></th>
             </tr>
           </thead>
