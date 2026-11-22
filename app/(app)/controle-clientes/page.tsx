@@ -3,7 +3,7 @@
 import { Faixa } from "@/components/ui/Canvas";
 import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
-import { Search, RefreshCw, ChevronDown, ChevronRight, ChevronUp, MessageSquare, X, Send, Check, UserCircle2, Pencil, Trash2, Plus, FileText, ArrowUp, ArrowDown, BarChart2, AlertTriangle } from "lucide-react";
+import { Search, RefreshCw, ChevronDown, ChevronRight, ChevronUp, MessageSquare, X, Send, Check, UserCircle2, Pencil, Trash2, Plus, FileText, ArrowUp, ArrowDown, BarChart2, AlertTriangle, ExternalLink } from "lucide-react";
 import ModalContrato from "@/components/controle/ModalContrato";
 import ModalNovoCliente from "@/components/controle/ModalNovoCliente";
 import { supabase, getAgenciaId, gerarLancamentosRecorrencia } from "@/lib/hooks";
@@ -1413,9 +1413,9 @@ export default function ControleClientesPage() {
                 )}
                 <td className="cc-sticky cc-name-cell" style={{ padding:"8px 12px", whiteSpace:"nowrap", width:"280px" }}>
                   <div style={{ display:"flex", alignItems:"center", gap:"10px" }}>
-                    <span className="cc-avatar" style={{ ["--st" as any]: (STATUS_OPTS.find(s=>s.value===c.status)||STATUS_OPTS[0]).cor }}>
+                    <a href={`/controle-clientes/${c.id}`} title="Abrir ficha da cliente" className="cc-avatar cc-avatar-link" style={{ ["--st" as any]: (STATUS_OPTS.find(s=>s.value===c.status)||STATUS_OPTS[0]).cor }}>
                       {(c.nome||"?").trim().split(/\s+/).slice(0,2).map((p:string)=>p[0]).join("").toUpperCase()}
-                    </span>
+                    </a>
                     <div style={{ flex:1, minWidth:0, display:"flex", flexDirection:"column" }}>
                       <div className="cc-name">
                         <CelulaEditavel valor={c.nome||""} onSave={v=>atualizar(c.id,"nome",v,c.nome)} placeholder="Nome do cliente"/>
@@ -1431,6 +1431,9 @@ export default function ControleClientesPage() {
                           <AlertTriangle size={13}/>
                         </button>
                       )}
+                      <a href={`/controle-clientes/${c.id}`} className="cc-icon" title="Abrir ficha da cliente">
+                        <ExternalLink size={14}/>
+                      </a>
                       <button onClick={()=>{ setPainelAberto(painelAberto?.id===c.id?null:c); setPerfilAberto(null); }}
                         className={painelAberto?.id===c.id ? "cc-icon on" : "cc-icon"}
                         title="Atualizações">
