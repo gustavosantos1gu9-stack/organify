@@ -767,7 +767,7 @@ function IntegracoesCliente() {
           window.location.href = `/api/auth/meta?agencia_id=${agenciaId}&return_to=/configuracoes/integracoes&token_type=master`;
         }} style={{
           width: "100%", padding: "14px", borderRadius: "10px", cursor: "pointer",
-          background: metaAtivo ? "#1a1a2e" : "#1877f2", color: metaAtivo ? "#1C6CA6" : "#fff",
+          background: metaAtivo ? "#EFE9FB" : "#1877f2", color: metaAtivo ? "#1C6CA6" : "#fff",
           border: metaAtivo ? "1px solid #1877f2" : "none",
           fontSize: "15px", fontWeight: "600", marginBottom: "16px",
           display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
@@ -1526,7 +1526,7 @@ function IntegracoesMaster() {
             window.location.href = `/api/auth/meta?agencia_id=${agId}&return_to=/configuracoes/integracoes&token_type=pixel`;
           }} style={{
             width:"100%", padding:"12px", borderRadius:"10px", cursor:"pointer", marginBottom:"8px",
-            background:"#1a1a2e", color:"#1C6CA6", border:"1px solid #1877f2",
+            background:"#EFE9FB", color:"#1C6CA6", border:"1px solid #1877f2",
             fontSize:"14px", fontWeight:"600", display:"flex", alignItems:"center", justifyContent:"center", gap:"8px",
           }}>
             <Target size={16}/> Conectar Facebook (Inbox / Formulários)
@@ -1556,7 +1556,7 @@ function IntegracoesMaster() {
             window.location.href = `/api/auth/meta?agencia_id=${agId}&return_to=/configuracoes/integracoes&token_type=gerenciador`;
           }} style={{
             width:"100%", padding:"12px", borderRadius:"10px", cursor:"pointer", marginBottom:"8px",
-            background:"#1a1a2e", color:"#1C6CA6", border:"1px solid #1877f2",
+            background:"#EFE9FB", color:"#1C6CA6", border:"1px solid #1877f2",
             fontSize:"14px", fontWeight:"600", display:"flex", alignItems:"center", justifyContent:"center", gap:"8px",
           }}>
             <Target size={16}/> Conectar Facebook (Gerenciador de Anúncios)

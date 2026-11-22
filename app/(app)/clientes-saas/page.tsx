@@ -139,7 +139,7 @@ function AgenciaModal({ item, onClose, onSave }: { item?: Agencia; onClose: () =
                       background: ativo ? "#1C6CA6" : "transparent",
                       display: "flex", alignItems: "center", justifyContent: "center",
                     }}>
-                      {ativo && <Check size={12} color="#000" />}
+                      {ativo && <Check size={12} color="#0A1826" />}
                     </div>
                     <span style={{ fontSize: "13px", color: ativo ? "#0A1826" : "#808080" }}>{m.label}</span>
                   </div>

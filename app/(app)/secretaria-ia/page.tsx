@@ -607,16 +607,16 @@ export default function SecretariaIAPage() {
               )}
             </div>
 
-            <div style={{ background: "#0d0d0d", borderRadius: 8, border: "1px solid #FFFFFF", minHeight: 200, maxHeight: 300, overflowY: "auto", padding: 12, marginBottom: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ background: "#F6F9FC", borderRadius: 8, border: "1px solid #FFFFFF", minHeight: 200, maxHeight: 300, overflowY: "auto", padding: 12, marginBottom: 8, display: "flex", flexDirection: "column", gap: 8 }}>
               {testMsgs.length === 0 && (
-                <p style={{ color: "#404040", fontSize: 12, textAlign: "center", margin: "auto 0" }}>Envie uma mensagem para testar a secretária</p>
+                <p style={{ color: "#7E93A8", fontSize: 12, textAlign: "center", margin: "auto 0" }}>Envie uma mensagem para testar a secretária</p>
               )}
               {testMsgs.map((m, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
                   <div style={{
                     maxWidth: "80%", padding: "8px 12px", borderRadius: 12, fontSize: 13, lineHeight: "1.5",
                     background: m.role === "user" ? "#1C6CA6" : "#FFFFFF",
-                    color: m.role === "user" ? "#000" : "#0A1826",
+                    color: m.role === "user" ? "#0A1826" : "#0A1826",
                     borderBottomRightRadius: m.role === "user" ? 4 : 12,
                     borderBottomLeftRadius: m.role === "assistant" ? 4 : 12,
                   }}>
@@ -637,7 +637,7 @@ export default function SecretariaIAPage() {
                 onKeyDown={e => e.key === "Enter" && !testLoading && testar()}
                 disabled={testLoading} />
               <button onClick={testar} disabled={testLoading || !testInput.trim()}
-                style={{ background: testInput.trim() ? "#1C6CA6" : "#E6EBF0", border: "none", borderRadius: 8, padding: "0 14px", cursor: testInput.trim() ? "pointer" : "default", color: testInput.trim() ? "#000" : "#4A5B6C" }}>
+                style={{ background: testInput.trim() ? "#1C6CA6" : "#E6EBF0", border: "none", borderRadius: 8, padding: "0 14px", cursor: testInput.trim() ? "pointer" : "default", color: testInput.trim() ? "#0A1826" : "#4A5B6C" }}>
                 <Send size={14} />
               </button>
             </div>
@@ -756,7 +756,7 @@ export default function SecretariaIAPage() {
           )}
 
           {/* Google Calendar */}
-          <div style={{ background: "#0d0d0d", borderRadius: 8, border: `1px solid ${!googleCalAtivo && googleCalEmail ? "rgba(180,35,24,0.3)" : "#FFFFFF"}`, padding: 14, marginBottom: 12 }}>
+          <div style={{ background: "#F6F9FC", borderRadius: 8, border: `1px solid ${!googleCalAtivo && googleCalEmail ? "rgba(180,35,24,0.3)" : "#FFFFFF"}`, padding: 14, marginBottom: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Calendar size={14} color={googleCalAtivo ? "#1E6B52" : (!googleCalEmail ? "#4A5B6C" : "#B42318")} />
@@ -936,7 +936,7 @@ export default function SecretariaIAPage() {
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 12, marginBottom: 12 }}>
           {followupEtapas.map((etapa, idx) => (
-            <div key={idx} style={{ background: "#0d0d0d", borderRadius: 8, border: "1px solid #FFFFFF", padding: 14 }}>
+            <div key={idx} style={{ background: "#F6F9FC", borderRadius: 8, border: "1px solid #FFFFFF", padding: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: "#4A5B6C" }}>Tentativa {idx + 1}</span>
                 <button onClick={() => removeEtapa(idx)} style={{ background: "none", border: "none", cursor: "pointer", color: "#B42318", padding: 2 }}>
@@ -1051,7 +1051,7 @@ export default function SecretariaIAPage() {
         </button>
 
         <button onClick={salvarFollowup} disabled={salvandoFollowup}
-          style={{ width: "100%", background: "#C2620E", border: "none", borderRadius: 8, padding: "10px 0", color: "#000", fontWeight: 600, fontSize: 13, cursor: "pointer", opacity: salvandoFollowup ? 0.6 : 1 }}>
+          style={{ width: "100%", background: "#C2620E", border: "none", borderRadius: 8, padding: "10px 0", color: "#0A1826", fontWeight: 600, fontSize: 13, cursor: "pointer", opacity: salvandoFollowup ? 0.6 : 1 }}>
           {salvandoFollowup ? "Salvando..." : "Salvar Follow-up"}
         </button>
       </div>

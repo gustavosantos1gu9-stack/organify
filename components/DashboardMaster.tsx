@@ -1,5 +1,7 @@
 "use client";
 
+import { Faixa, Cartao } from "@/components/ui/Canvas";
+
 import { useState, useEffect } from "react";
 import {
   Users, UserX, UserPlus, TrendingUp, RotateCcw,
@@ -19,7 +21,17 @@ import { formatCurrency } from "@/lib/utils";
 const tooltipStyle = { background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px", color: "var(--navy)" };
 function fmt(n: number) { return formatCurrency(n); }
 
+function Stat({ label, valor, tom }: { label: string; valor: React.ReactNode; tom?: "ok" | "alerta" }) {
+  return (
+    <div className="fin-stat">
+      <span className="fin-stat-l">{label}</span>
+      <span className={`fin-stat-v${tom ? " " + tom : ""}`}>{valor}</span>
+    </div>
+  );
+}
+
 export default function DashboardMaster() {
+  const [verTodosPublicos, setVerTodosPublicos] = useState(false);
   const hoje = new Date();
   const [from, setFrom] = useState(new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split("T")[0]);
   const [to, setTo] = useState(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split("T")[0]);
@@ -154,103 +166,48 @@ export default function DashboardMaster() {
 
   return (
     <div className="animate-in">
-      <h1 style={{ fontSize: "22px", fontWeight: "600", marginBottom: "24px", color: "var(--navy)" }}>Dashboard</h1>
       <PeriodSelector onChange={(_, f, t) => { setFrom(f); setTo(t); }} />
 
       {loading && <p style={{ color: "var(--text-secondary)", fontSize: "13px", marginBottom: "16px" }}>Carregando dados...</p>}
 
-      {/* Snapshots mensais */}
-      {(() => {
-        const hoje = new Date();
-        const mesesNomes = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-        const mesAtualNome = mesesNomes[hoje.getMonth()];
-        const anoAtualNum = hoje.getFullYear();
-        const mesAtualStr = `${mesAtualNome}/${anoAtualNum}`;
-        const ultimoDiaMesAtual = new Date(anoAtualNum, hoje.getMonth() + 1, 0).getDate();
-        const linhaAtual = {
-          id: "atual", mes: mesAtualNome, ano: anoAtualNum, mes_ano: mesAtualStr,
-          clientes_ativos: controleClientes.filter((c: any) => c.status === "ativo").length,
-          clientes_pausados: controleClientes.filter((c: any) => c.status === "pausado").length,
-          clientes_entrada: controleClientes.filter((c: any) => c.status === "entrada").length,
-          clientes_total: controleClientes.filter((c: any) => c.status !== "saiu").length,
-          isAtual: true,
-        };
-        const chaveMes = (ma: string) => { const [m, a] = String(ma || "").split("/"); return Number(a || 0) * 12 + mesesNomes.indexOf(m); };
-        const todasLinhas = [linhaAtual, ...snapshots.filter(s => s.mes_ano !== mesAtualStr).sort((a: any, b: any) => chaveMes(b.mes_ano) - chaveMes(a.mes_ano))];
-        return (
-          <div className="card" style={{ marginBottom: "20px", padding: "16px 20px" }}>
-            <h3 style={{ fontSize: "13px", fontWeight: "600", color: "var(--navy)", marginBottom: "14px", display: "flex", alignItems: "center", gap: "8px" }}>
-              <Calendar size={15} color="var(--brand)" /> Base de Clientes por Mês
-              <span style={{ fontSize: "11px", color: "var(--text-secondary)", fontWeight: "400" }}>Atualiza em tempo real até o último dia de cada mês</span>
-            </h3>
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
-                <thead>
-                  <tr style={{ borderBottom: "1px solid var(--border)" }}>
-                    {["Mês/Ano", "Data Base", "Ativos", "Pausados", "Em Entrada", "Total", "Churn do Mês", "Churn Rate"].map(h => (
-                      <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "600", borderRight: "1px solid var(--border)" }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {todasLinhas.map((s: any, idx: number) => {
-                    const mIdx = mesesNomes.indexOf(s.mes);
-                    const mBaseIdx = mIdx === 0 ? 11 : mIdx - 1;
-                    const mBaseAno = mIdx === 0 ? s.ano - 1 : s.ano;
-                    const snapBase = snapshots.find((x: any) => x.mes_ano === `${mesesNomes[mBaseIdx]}/${mBaseAno}`);
-                    const baseAtivos = snapBase?.clientes_ativos;
-                    const ultimoDia = s.isAtual ? ultimoDiaMesAtual : new Date(s.ano, mIdx + 1, 0).getDate();
-                    const churnDoMes = todosChurns.filter((c: any) => c.data_churn === s.mes_ano).length;
-                    const churnRate = baseAtivos > 0 ? `${((churnDoMes / (baseAtivos as number)) * 100).toFixed(1)}%` : "—";
-                    return (
-                      <tr key={s.id} style={{ borderBottom: "1px solid var(--border)", background: s.isAtual ? "rgba(28,108,166,0.04)" : idx % 2 === 0 ? "transparent" : "var(--hover-row)" }}>
-                        <td style={{ padding: "8px 12px", fontWeight: "600", borderRight: "1px solid var(--border)" }}>
-                          <span style={{ color: s.isAtual ? "var(--brand)" : "var(--navy)" }}>{s.mes_ano}</span>
-                          {s.isAtual && <span style={{ fontSize: "10px", color: "var(--brand)", marginLeft: "6px", background: "rgba(28,108,166,0.1)", padding: "1px 6px", borderRadius: "10px" }}>ao vivo</span>}
-                        </td>
-                        <td style={{ padding: "8px 12px", color: "var(--text-secondary)", fontSize: "11px", borderRight: "1px solid var(--border)" }}>
-                          {s.isAtual ? `Até dia ${hoje.getDate()}/${String(hoje.getMonth() + 1).padStart(2, "0")}/${s.ano}` : `Dia ${ultimoDia}/${String(mIdx + 1).padStart(2, "0")}/${s.ano}`}
-                        </td>
-                        <td style={{ padding: "8px 12px", color: "var(--success)", fontWeight: s.isAtual ? "600" : "400", borderRight: "1px solid var(--border)" }}>{s.clientes_ativos}</td>
-                        <td style={{ padding: "8px 12px", color: "var(--caution-text)", borderRight: "1px solid var(--border)" }}>{s.clientes_pausados}</td>
-                        <td style={{ padding: "8px 12px", color: "var(--warning-text)", borderRight: "1px solid var(--border)" }}>{s.clientes_entrada}</td>
-                        <td style={{ padding: "8px 12px", color: "var(--navy)", borderRight: "1px solid var(--border)" }}>{s.clientes_total}</td>
-                        <td style={{ padding: "8px 12px", color: "var(--alert-text)", borderRight: "1px solid var(--border)" }}>{churnDoMes}</td>
-                        <td style={{ padding: "8px 12px", color: "var(--text-secondary)" }}>{churnRate}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        );
-      })()}
+      {/* Resumo do mês (faixa escura do canvas) */}
+      <Faixa
+        contexto={`${from.split("-").reverse().join("/")} a ${to.split("-").reverse().join("/")}`}
+        titulo={`${fmt(kpis?.lucro ?? 0)} de lucro,`}
+        destaque={`${novosClientes ?? 0} clientes novos`}
+        link={{ label: "Ver movimentações", href: "/financeiro/movimentacoes" }}
+        numeros={[
+          { label: "Receita recorrente", valor: fmt(receitaRecorrente) },
+          { label: "Clientes recorrentes", valor: kpis?.clientes_recorrentes ?? 0 },
+          { label: "Receita média por cliente", valor: fmt(recorrentes > 0 ? (kpis?.total_entradas ?? 0) / recorrentes : 0) },
+          { label: "Churn do mês", valor: `${String(churnRateCorreto).replace(".", ",")}%` },
+        ]}
+      />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: "16px", marginBottom: "16px" }}>
-        <KPICard label="Clientes novos" value={novosClientes ?? 0} change={0} icon={<UserPlus size={16} />} iconBg="green" />
-        <KPICard label="Clientes recorrentes" value={kpis?.clientes_recorrentes ?? 0} change={0} icon={<Users size={16} />} iconBg="green" />
-        <KPICard label="Clientes inadimplentes" value={kpis?.clientes_inadimplentes ?? 0} change={0} icon={<UserX size={16} />} iconBg="red" />
-        <KPICard label="Lucro" value={fmt(kpis?.lucro ?? 0)} change={0} icon={<TrendingUp size={16} />} iconBg="green" />
-        <KPICard label="Churn rate" value={`${churnRateCorreto}%`} change={0} icon={<RotateCcw size={16} />} iconBg="red" />
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "16px", marginBottom: "16px" }}>
-        <KPICard label="Entradas previstas" value={fmt(entradasPrev)} change={0} icon={<ArrowDownToLine size={16} />} iconBg="green" />
-        <KPICard label="Saídas previstas" value={fmt(saidasPrev)} change={0} icon={<ArrowUpFromLine size={16} />} iconBg="red" />
-        <KPICard label="Receita recorrente" value={fmt(receitaRecorrente)} change={0} icon={<DollarSign size={16} />} iconBg="green" />
-        <KPICard label="Receita média por cliente" value={fmt(recorrentes > 0 ? (kpis?.total_entradas ?? 0) / recorrentes : 0)} change={0} icon={<UserCheck size={16} />} iconBg="green" />
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: "16px", marginBottom: "16px" }}>
-        <KPICard label="CAC" value={fmt(cac)} change={0} icon={<ShoppingBag size={16} />} iconBg="green" />
-        <KPICard label="Projeção de vendas" value={fmt(projecaoVendas)} change={0} icon={<TrendingUp size={16} />} iconBg="amber" />
-        <KPICard label="Taxa de conversão" value={`${(() => { const base = (leads || []).filter(l => l.etapa === "proposta_enviada" || l.etapa === "ganho").length; const g = (leads || []).filter(l => l.etapa === "ganho").length; return base > 0 ? Math.round(g / base * 100) : 0; })()}%`} change={0} icon={<Percent size={16} />} iconBg="amber" />
-        <KPICard label="Taxa de no-show" value={`${(() => { const ag = (leads || []).filter(l => ["reuniao_agendada", "nao_compareceu", "proposta_enviada", "ganho"].includes(l.etapa)).length; const ns = (leads || []).filter(l => l.etapa === "nao_compareceu").length; return ag > 0 ? Math.round(ns / ag * 100) : 0; })()}%`} change={0} icon={<Percent size={16} />} iconBg="red" />
-        <KPICard label="Tempo médio antes de sair (meses)" value={`${tempoMedioChurn}m`} change={0} icon={<Clock size={16} />} iconBg="blue" />
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "16px", marginBottom: "32px" }}>
-        <KPICard label="Custo fixo" value={fmt(custoFixo)} change={0} icon={<MinusCircle size={16} />} iconBg="red" />
-        <KPICard label="Custo variável" value={fmt(custoVariavel)} change={0} icon={<AlertCircle size={16} />} iconBg="red" />
-        <KPICard label="Inadimplência" value={fmt(valorInadimplencia)} change={0} icon={<PlusCircle size={16} />} iconBg="red" />
+      <div className="fin-grid">
+        <Cartao titulo="Caixa previsto" extra={<a className="ui-link" href="/financeiro/lancamentos-futuros">Lançamentos</a>}>
+          <div className="fin-stats">
+            <Stat label="Entradas previstas" valor={fmt(entradasPrev)} tom="ok" />
+            <Stat label="Saídas previstas" valor={fmt(saidasPrev)} tom="alerta" />
+            <Stat label="Custo fixo" valor={fmt(custoFixo)} />
+            <Stat label="Custo variável" valor={fmt(custoVariavel)} />
+          </div>
+        </Cartao>
+        <Cartao titulo="Clientes" extra={<a className="ui-link" href="/clientes">Clientes do financeiro</a>}>
+          <div className="fin-stats">
+            <Stat label="Inadimplentes" valor={kpis?.clientes_inadimplentes ?? 0} tom={(kpis?.clientes_inadimplentes ?? 0) > 0 ? "alerta" : undefined} />
+            <Stat label="Valor em aberto" valor={fmt(valorInadimplencia)} tom={valorInadimplencia > 0 ? "alerta" : undefined} />
+            <Stat label="Tempo médio antes de sair" valor={`${tempoMedioChurn} meses`} />
+            <Stat label="CAC" valor={fmt(cac)} />
+          </div>
+        </Cartao>
+        <Cartao titulo="Comercial" extra={<a className="ui-link" href="/crm">CRM</a>}>
+          <div className="fin-stats">
+            <Stat label="Projeção de vendas" valor={fmt(projecaoVendas)} />
+            <Stat label="Taxa de conversão" valor={`${(() => { const base = (leads || []).filter(l => l.etapa === "proposta_enviada" || l.etapa === "ganho").length; const g = (leads || []).filter(l => l.etapa === "ganho").length; return base > 0 ? Math.round(g / base * 100) : 0; })()}%`} tom="ok" />
+            <Stat label="Taxa de no-show" valor={`${(() => { const ag = (leads || []).filter(l => ["reuniao_agendada", "nao_compareceu", "proposta_enviada", "ganho"].includes(l.etapa)).length; const ns = (leads || []).filter(l => l.etapa === "nao_compareceu").length; return ag > 0 ? Math.round(ns / ag * 100) : 0; })()}%`} tom="alerta" />
+          </div>
+        </Cartao>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
@@ -306,13 +263,81 @@ export default function DashboardMaster() {
         </div>
       </div>
 
+      {/* Snapshots mensais */}
+      {(() => {
+        const hoje = new Date();
+        const mesesNomes = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+        const mesAtualNome = mesesNomes[hoje.getMonth()];
+        const anoAtualNum = hoje.getFullYear();
+        const mesAtualStr = `${mesAtualNome}/${anoAtualNum}`;
+        const ultimoDiaMesAtual = new Date(anoAtualNum, hoje.getMonth() + 1, 0).getDate();
+        const linhaAtual = {
+          id: "atual", mes: mesAtualNome, ano: anoAtualNum, mes_ano: mesAtualStr,
+          clientes_ativos: controleClientes.filter((c: any) => c.status === "ativo").length,
+          clientes_pausados: controleClientes.filter((c: any) => c.status === "pausado").length,
+          clientes_entrada: controleClientes.filter((c: any) => c.status === "entrada").length,
+          clientes_total: controleClientes.filter((c: any) => c.status !== "saiu").length,
+          isAtual: true,
+        };
+        const chaveMes = (ma: string) => { const [m, a] = String(ma || "").split("/"); return Number(a || 0) * 12 + mesesNomes.indexOf(m); };
+        const todasLinhas = [linhaAtual, ...snapshots.filter(s => s.mes_ano !== mesAtualStr).sort((a: any, b: any) => chaveMes(b.mes_ano) - chaveMes(a.mes_ano))];
+        return (
+          <div className="card" style={{ marginBottom: "16px", padding: "24px" }}>
+            <h3 style={{ fontSize: "17px", fontWeight: "600", color: "var(--navy)", marginBottom: "14px", display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
+              Base de clientes por mês
+              <span style={{ fontSize: "13px", color: "var(--text-secondary)", fontWeight: "400" }}>Atualiza em tempo real até o último dia de cada mês</span>
+            </h3>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid var(--border)" }}>
+                    {["Mês/Ano", "Data Base", "Ativos", "Pausados", "Em Entrada", "Total", "Churn do Mês", "Churn Rate"].map(h => (
+                      <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "600" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {todasLinhas.map((s: any, idx: number) => {
+                    const mIdx = mesesNomes.indexOf(s.mes);
+                    const mBaseIdx = mIdx === 0 ? 11 : mIdx - 1;
+                    const mBaseAno = mIdx === 0 ? s.ano - 1 : s.ano;
+                    const snapBase = snapshots.find((x: any) => x.mes_ano === `${mesesNomes[mBaseIdx]}/${mBaseAno}`);
+                    const baseAtivos = snapBase?.clientes_ativos;
+                    const ultimoDia = s.isAtual ? ultimoDiaMesAtual : new Date(s.ano, mIdx + 1, 0).getDate();
+                    const churnDoMes = todosChurns.filter((c: any) => c.data_churn === s.mes_ano).length;
+                    const churnRate = baseAtivos > 0 ? `${((churnDoMes / (baseAtivos as number)) * 100).toFixed(1)}%` : "—";
+                    return (
+                      <tr key={s.id} style={{ borderBottom: "1px solid var(--border)", background: s.isAtual ? "rgba(28,108,166,0.04)" : "transparent" }}>
+                        <td style={{ padding: "8px 12px", fontWeight: "600" }}>
+                          <span style={{ color: s.isAtual ? "var(--brand)" : "var(--navy)" }}>{s.mes_ano}</span>
+                          {s.isAtual && <span style={{ fontSize: "10px", color: "var(--brand)", marginLeft: "6px", background: "rgba(28,108,166,0.1)", padding: "1px 6px", borderRadius: "10px" }}>ao vivo</span>}
+                        </td>
+                        <td style={{ padding: "8px 12px", color: "var(--text-secondary)", fontSize: "11px" }}>
+                          {s.isAtual ? `Até dia ${hoje.getDate()}/${String(hoje.getMonth() + 1).padStart(2, "0")}/${s.ano}` : `Dia ${ultimoDia}/${String(mIdx + 1).padStart(2, "0")}/${s.ano}`}
+                        </td>
+                        <td style={{ padding: "8px 12px", color: "var(--success)", fontWeight: s.isAtual ? "600" : "400" }}>{s.clientes_ativos}</td>
+                        <td style={{ padding: "8px 12px", color: "var(--caution-text)" }}>{s.clientes_pausados}</td>
+                        <td style={{ padding: "8px 12px", color: "var(--warning-text)" }}>{s.clientes_entrada}</td>
+                        <td style={{ padding: "8px 12px", color: "var(--navy)" }}>{s.clientes_total}</td>
+                        <td style={{ padding: "8px 12px", color: "var(--alert-text)" }}>{churnDoMes}</td>
+                        <td style={{ padding: "8px 12px", color: "var(--text-secondary)" }}>{churnRate}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
+
       <div className="card">
         <h3 style={{ fontSize: "14px", fontWeight: "600", marginBottom: "20px", color: "var(--navy)" }}>Conversão por público (UTM)</h3>
         {!conversao || conversao.length === 0 ? (
           <p style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Nenhum dado de UTM ainda.</p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            {conversao.map(c => (
+            {(verTodosPublicos ? conversao : conversao.slice(0, 8)).map(c => (
               <div key={c.publico} style={{ display: "flex", alignItems: "center", gap: "16px" }}>
                 <div style={{ minWidth: "200px" }}>
                   <p style={{ fontSize: "13px", fontWeight: "500", color: "var(--navy)" }}>{c.publico}</p>
@@ -325,6 +350,11 @@ export default function DashboardMaster() {
                 <span style={{ fontSize: "11px", color: "var(--text-secondary)", minWidth: "80px" }}>{c.total_convertidos}/{c.total_leads} leads</span>
               </div>
             ))}
+            {conversao.length > 8 && (
+              <button type="button" className="btn-secondary" style={{ alignSelf: "flex-start", padding: "8px 14px", cursor: "pointer", fontSize: "13px" }} onClick={() => setVerTodosPublicos(v => !v)}>
+                {verTodosPublicos ? "Mostrar só os 8 principais" : `Ver todos os ${conversao.length} públicos`}
+              </button>
+            )}
           </div>
         )}
       </div>

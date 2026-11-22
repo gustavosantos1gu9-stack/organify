@@ -43,7 +43,7 @@ type SortKey = "created_at" | "nome" | "status" | "servico" | "frequencia" | "ci
 type SortDir = "asc" | "desc";
 
 function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; sortDir: SortDir }) {
-  if (sortKey !== col) return <ChevronsUpDown size={12} style={{ color:"#404040", marginLeft:"4px", verticalAlign:"middle" }}/>;
+  if (sortKey !== col) return <ChevronsUpDown size={12} style={{ color:"#7E93A8", marginLeft:"4px", verticalAlign:"middle" }}/>;
   return sortDir === "asc"
     ? <ChevronUp size={12} style={{ color:"#1C6CA6", marginLeft:"4px", verticalAlign:"middle" }}/>
     : <ChevronDown size={12} style={{ color:"#1C6CA6", marginLeft:"4px", verticalAlign:"middle" }}/>;
@@ -553,7 +553,7 @@ export default function ClientesPage() {
                   <td><input type="checkbox" style={{ width:"14px",height:"14px" }}/></td>
                   <td><StatusSelect cliente={c} onRefresh={refresh}/></td>
                   <td>
-                    <div style={{ width:"32px",height:"32px",borderRadius:"50%",background:"#29ABE220",color:"#1C6CA6",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"12px",fontWeight:"600" }}>
+                    <div style={{ width:"32px",height:"32px",borderRadius:"50%",background:"#1C6CA620",color:"#1C6CA6",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"12px",fontWeight:"600" }}>
                       {c.nome.charAt(0).toUpperCase()}
                     </div>
                   </td>

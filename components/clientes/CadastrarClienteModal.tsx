@@ -81,7 +81,7 @@ export default function CadastrarClienteModal({ onClose, onSave }: CadastrarClie
               <span style={{ fontSize:"13px", color: cadastroVinculado ? "#0A1826" : "#4A5B6C", fontWeight: cadastroVinculado ? "600" : "400" }}>
                 {cadastroVinculado ? cadastroVinculado.nome : "Vincular formulário de cadastro"}
               </span>
-              {cadastroVinculado && <span style={{ fontSize:"11px", color:"#1E6B52", background:"#052e16", padding:"2px 6px", borderRadius:"8px" }}>vinculado</span>}
+              {cadastroVinculado && <span style={{ fontSize:"11px", color:"#1E6B52", background:"#E3F2EC", padding:"2px 6px", borderRadius:"8px" }}>vinculado</span>}
             </div>
             <div style={{ display:"flex", gap:"6px" }}>
               {cadastroVinculado && (
@@ -90,7 +90,7 @@ export default function CadastrarClienteModal({ onClose, onSave }: CadastrarClie
                 </button>
               )}
               <button onClick={() => setMostraBusca(v => !v)}
-                style={{ background: mostraBusca ? "#29ABE220" : "none", border:"1px solid #E6EBF0", borderRadius:"6px", padding:"4px 8px", cursor:"pointer", color:"#4A5B6C", fontSize:"11px", display:"flex", alignItems:"center", gap:"4px" }}>
+                style={{ background: mostraBusca ? "#1C6CA620" : "none", border:"1px solid #E6EBF0", borderRadius:"6px", padding:"4px 8px", cursor:"pointer", color:"#4A5B6C", fontSize:"11px", display:"flex", alignItems:"center", gap:"4px" }}>
                 <Search size={11}/> {cadastroVinculado ? "Trocar" : "Buscar"}
               </button>
             </div>

@@ -417,7 +417,7 @@ export default function WhatsAppContasPage() {
                 A conta será criada como agência filha. Depois configure o WhatsApp na página de Integrações dela.
               </p>
               <button onClick={criarConta} disabled={criando || !novoNome.trim()}
-                style={{ background: !novoNome.trim() ? "#E6EBF0" : "#1C6CA6", border: "none", borderRadius: 8, padding: 10, cursor: !novoNome.trim() ? "default" : "pointer", color: !novoNome.trim() ? "#4A5B6C" : "#000", fontWeight: 600, fontSize: 13 }}>
+                style={{ background: !novoNome.trim() ? "#E6EBF0" : "#1C6CA6", border: "none", borderRadius: 8, padding: 10, cursor: !novoNome.trim() ? "default" : "pointer", color: !novoNome.trim() ? "#4A5B6C" : "#0A1826", fontWeight: 600, fontSize: 13 }}>
                 {criando ? "Criando..." : "Criar Conta"}
               </button>
             </div>

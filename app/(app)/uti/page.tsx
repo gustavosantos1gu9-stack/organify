@@ -159,7 +159,7 @@ export default function PageUTI() {
       ) : !clientes.length ? (
         <div style={{ textAlign: "center", padding: "80px", color: "#4A5B6C" }}>
                     <div style={{ fontSize: "14px" }}>Nenhum cliente na UTI.</div>
-          <div style={{ fontSize: "12px", color: "#404040", marginTop: "6px" }}>
+          <div style={{ fontSize: "12px", color: "#7E93A8", marginTop: "6px" }}>
             Marque clientes com o ícone 🏥 no Controle de Clientes.
           </div>
         </div>
@@ -232,7 +232,7 @@ export default function PageUTI() {
                 {/* Lista de ações */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "12px" }}>
                   {acoesCliente.map(a => (
-                    <div key={a.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "7px 10px", background: a.feito ? "#0a1a0a" : "#FFFFFF", borderRadius: "6px", border: `1px solid ${a.feito ? "#22c55e30" : "#E6EBF0"}` }}>
+                    <div key={a.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "7px 10px", background: a.feito ? "#E3F2EC" : "#FFFFFF", borderRadius: "6px", border: `1px solid ${a.feito ? "#22c55e30" : "#E6EBF0"}` }}>
                       <input
                         type="checkbox"
                         checked={a.feito}
@@ -243,7 +243,7 @@ export default function PageUTI() {
                         {a.acao}
                       </span>
                       <button onClick={() => removerAcao(a)}
-                        style={{ background: "none", border: "none", cursor: "pointer", color: "#404040", padding: "2px", flexShrink: 0, lineHeight: 1 }}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "#7E93A8", padding: "2px", flexShrink: 0, lineHeight: 1 }}
                         title="Remover ação">
                         <X size={12}/>
                       </button>
@@ -251,7 +251,7 @@ export default function PageUTI() {
                   ))}
 
                   {!acoesCliente.length && (
-                    <div style={{ fontSize: "12px", color: "#404040", padding: "8px 0" }}>
+                    <div style={{ fontSize: "12px", color: "#7E93A8", padding: "8px 0" }}>
                       Nenhuma ação adicionada ainda.
                     </div>
                   )}

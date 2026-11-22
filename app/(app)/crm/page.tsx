@@ -100,7 +100,7 @@ function KanbanBoard({ leads, etapas, onEtapaChange, onRemover, onConverter, onE
                   <span style={{ fontSize:"11px", background:"#E6EBF0", color:"#4A5B6C", padding:"1px 7px", borderRadius:"10px" }}>{cards.length}</span>
                 </div>
               </div>
-              <p style={{ fontSize:"12px", color: total > 0 ? "#1C6CA6" : "#404040", fontWeight:"600", paddingLeft:"14px" }}>
+              <p style={{ fontSize:"12px", color: total > 0 ? "#1C6CA6" : "#7E93A8", fontWeight:"600", paddingLeft:"14px" }}>
                 {formatCurrency(total)}
               </p>
             </div>
@@ -157,7 +157,7 @@ function KanbanBoard({ leads, etapas, onEtapaChange, onRemover, onConverter, onE
 
                   {/* Valor */}
                   <div style={{ background:"#E6EBF0", borderRadius:"4px", padding:"4px 8px", marginBottom:"8px", textAlign:"center" }}>
-                    <span style={{ fontSize:"12px", color: lead.valor ? "#1C6CA6" : "#404040", fontWeight:"600" }}>
+                    <span style={{ fontSize:"12px", color: lead.valor ? "#1C6CA6" : "#7E93A8", fontWeight:"600" }}>
                       {lead.valor ? formatCurrency(lead.valor) : "R$ 0,00"}
                     </span>
                   </div>
@@ -200,7 +200,7 @@ function KanbanBoard({ leads, etapas, onEtapaChange, onRemover, onConverter, onE
 
                   {/* Anotação inline */}
                   {notaAberta===lead.id && (
-                    <div style={{ background:"#151515", border:"1px solid #E6EBF0", borderRadius:"6px", padding:"8px", marginBottom:"6px" }}
+                    <div style={{ background:"#F6F9FC", border:"1px solid #E6EBF0", borderRadius:"6px", padding:"8px", marginBottom:"6px" }}
                       onClick={(e)=>e.stopPropagation()}>
                       <textarea
                         autoFocus
@@ -232,7 +232,7 @@ function KanbanBoard({ leads, etapas, onEtapaChange, onRemover, onConverter, onE
                   )}
 
                   {/* Data */}
-                  <p style={{ fontSize:"10px", color:"#404040", textAlign:"right" }}>
+                  <p style={{ fontSize:"10px", color:"#7E93A8", textAlign:"right" }}>
                     {new Date(lead.created_at).toLocaleDateString("pt-BR")}
                   </p>
                 </div>
@@ -240,7 +240,7 @@ function KanbanBoard({ leads, etapas, onEtapaChange, onRemover, onConverter, onE
 
               {cards.length===0 && (
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:"80px" }}>
-                  <p style={{ fontSize:"12px", color:"#303030", textAlign:"center" }}>Sem leads</p>
+                  <p style={{ fontSize:"12px", color:"#E6EBF0", textAlign:"center" }}>Sem leads</p>
                 </div>
               )}
             </div>

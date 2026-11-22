@@ -139,7 +139,7 @@ export default function CRMDashboardPage() {
           ].map((item, i) => (
             <div key={i} style={{ textAlign:"center", padding:"0 16px", borderRight: i < 2 ? "1px solid #E6EBF0" : "none" }}>
               <p style={{ fontSize:"12px", color:"#4A5B6C", marginBottom:"6px" }}>{item.label}</p>
-              <p style={{ fontSize:"22px", fontWeight:"700", color: item.value === "0.0%" ? "#404040" : "#1E6B52" }}>{item.value}</p>
+              <p style={{ fontSize:"22px", fontWeight:"700", color: item.value === "0.0%" ? "#7E93A8" : "#1E6B52" }}>{item.value}</p>
             </div>
           ))}
         </div>
@@ -152,7 +152,7 @@ export default function CRMDashboardPage() {
           ].map((item) => (
             <div key={item.label} style={{ background:"#FFFFFF", borderRadius:"8px", padding:"14px 16px" }}>
               <p style={{ fontSize:"12px", color:"#4A5B6C", marginBottom:"6px" }}>{item.label}</p>
-              <p style={{ fontSize:"20px", fontWeight:"700", color: item.value > 0 ? "#0A1826" : "#404040" }}>{item.value}</p>
+              <p style={{ fontSize:"20px", fontWeight:"700", color: item.value > 0 ? "#0A1826" : "#7E93A8" }}>{item.value}</p>
             </div>
           ))}
         </div>
@@ -229,7 +229,7 @@ export default function CRMDashboardPage() {
                 <tr key={row.origem} style={{ borderBottom:"1px solid #E6EBF0" }}>
                   <td style={{ padding:"10px 14px", fontSize:"13px", fontWeight:"500" }}>{row.origem}</td>
                   {row.etapas.map((v, i) => (
-                    <td key={i} style={{ padding:"10px", textAlign:"center", fontSize:"13px", color: v > 0 ? "#1E6B52" : "#404040" }}>{v}</td>
+                    <td key={i} style={{ padding:"10px", textAlign:"center", fontSize:"13px", color: v > 0 ? "#1E6B52" : "#7E93A8" }}>{v}</td>
                   ))}
                 </tr>
               ))}

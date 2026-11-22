@@ -718,7 +718,7 @@ export default function RelatoriosMetaPage() {
               <div className="form-group">
                 <label className="form-label">Período dos dados</label>
                 {frequencia === "mensal" ? (
-                  <div className="form-input" style={{ background:"#0d0d0d", color:"#4A5B6C", cursor:"not-allowed" }}>
+                  <div className="form-input" style={{ background:"#F6F9FC", color:"#4A5B6C", cursor:"not-allowed" }}>
                     Mês anterior (automático)
                   </div>
                 ) : (
@@ -772,7 +772,7 @@ export default function RelatoriosMetaPage() {
 
             {/* Preview */}
             {showPreview && (
-              <div style={{ background: "#0d1117", border: "1px solid #E6EBF0", borderRadius: "8px", padding: "16px", marginBottom: "20px", maxHeight: "300px", overflowY: "auto" }}>
+              <div style={{ background: "#F6F9FC", border: "1px solid #E6EBF0", borderRadius: "8px", padding: "16px", marginBottom: "20px", maxHeight: "300px", overflowY: "auto" }}>
                 <p style={{ fontSize: "11px", fontWeight: "600", color: "#1C6CA6", marginBottom: "8px" }}>Preview:</p>
                 {previewLoading ? (
                   <p style={{ color: "#4A5B6C", fontSize: "12px" }}>Gerando...</p>

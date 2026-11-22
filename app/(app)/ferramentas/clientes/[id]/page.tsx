@@ -249,7 +249,7 @@ export default function ClienteExternoDetailPage() {
           <button key={t} onClick={() => setTab(t)} style={{
             padding: "8px 18px", borderRadius: 7, border: "none", fontSize: 13, fontWeight: 500, cursor: "pointer",
             background: tab === t ? "#1C6CA6" : "transparent",
-            color: tab === t ? "#000" : "#808080",
+            color: tab === t ? "#0A1826" : "#808080",
           }}>
             {t === "config" ? "Configuração" : t === "forms" ? `Formulários (${formularios.length})` : `Landing Pages (${lps.length})`}
           </button>
@@ -433,7 +433,7 @@ export default function ClienteExternoDetailPage() {
             </button>
           </div>
           {formularios.length === 0 ? (
-            <div style={{ textAlign: "center", padding: 60, color: "#404040" }}>
+            <div style={{ textAlign: "center", padding: 60, color: "#7E93A8" }}>
               <p style={{ fontSize: 15 }}>Nenhum formulário vinculado a este cliente.</p>
             </div>
           ) : (
@@ -480,7 +480,7 @@ export default function ClienteExternoDetailPage() {
             </button>
           </div>
           {lps.length === 0 ? (
-            <div style={{ textAlign: "center", padding: 60, color: "#404040" }}>
+            <div style={{ textAlign: "center", padding: 60, color: "#7E93A8" }}>
               <p style={{ fontSize: 15 }}>Nenhuma landing page vinculada a este cliente.</p>
             </div>
           ) : (

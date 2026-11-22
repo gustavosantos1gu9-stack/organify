@@ -126,9 +126,9 @@ export default function ClientesExternosPage() {
           <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
         </div>
       ) : clientes.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "80px 20px", color: "#404040" }}>
+        <div style={{ textAlign: "center", padding: "80px 20px", color: "#7E93A8" }}>
           <p style={{ fontSize: 16, margin: 0 }}>Nenhum cliente externo cadastrado.</p>
-          <p style={{ fontSize: 13, margin: "8px 0 0", color: "#303030" }}>Clique em "Novo Cliente" para começar.</p>
+          <p style={{ fontSize: 13, margin: "8px 0 0", color: "#E6EBF0" }}>Clique em "Novo Cliente" para começar.</p>
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
@@ -145,7 +145,7 @@ export default function ClientesExternosPage() {
                   {c.logo_url ? (
                     <img src={c.logo_url} alt="" style={{ width: 36, height: 36, borderRadius: 8, objectFit: "contain", background: "#E6EBF0" }} />
                   ) : (
-                    <div style={{ width: 36, height: 36, borderRadius: 8, background: "#29ABE220", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: "#1C6CA6" }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 8, background: "#1C6CA620", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: "#1C6CA6" }}>
                       {c.nome[0]?.toUpperCase()}
                     </div>
                   )}
@@ -171,7 +171,7 @@ export default function ClientesExternosPage() {
               </div>
 
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-                <span style={{ fontSize: 11, padding: "3px 8px", borderRadius: 6, background: c.meta_pixel_id ? "#29ABE215" : "#E6EBF0", color: c.meta_pixel_id ? "#1C6CA6" : "#6B7A89" }}>
+                <span style={{ fontSize: 11, padding: "3px 8px", borderRadius: 6, background: c.meta_pixel_id ? "#1C6CA615" : "#E6EBF0", color: c.meta_pixel_id ? "#1C6CA6" : "#6B7A89" }}>
                   Pixel {c.meta_pixel_id ? "✓" : "—"}
                 </span>
                 <span style={{ fontSize: 11, padding: "3px 8px", borderRadius: 6, background: c.whatsapp_notificacao ? "#22c55e15" : "#E6EBF0", color: c.whatsapp_notificacao ? "#1E6B52" : "#6B7A89" }}>

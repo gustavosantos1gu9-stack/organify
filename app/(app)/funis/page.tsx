@@ -324,7 +324,7 @@ export default function FunisPage() {
                   style={{
                     ...btnGhost,
                     color: f.ativo ? "#1C6CA6" : "#6B7A89",
-                    borderColor: f.ativo ? "#29ABE233" : "#E6EBF0",
+                    borderColor: f.ativo ? "#1C6CA633" : "#E6EBF0",
                   }}
                   title={f.ativo ? "Desativar" : "Ativar"}
                   onClick={() => toggleAtivo(f)}

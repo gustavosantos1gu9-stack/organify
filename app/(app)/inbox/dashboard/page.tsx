@@ -322,7 +322,7 @@ export default function InboxDashboardPage() {
             ].map((item, i) => (
               <div key={i} style={{ textAlign: "center", padding: "0 16px", borderRight: i < 2 ? "1px solid #E6EBF0" : "none" }}>
                 <p style={{ fontSize: "12px", color: "#4A5B6C", marginBottom: "6px" }}>{item.label}</p>
-                <p style={{ fontSize: "22px", fontWeight: "700", color: item.value === "0.0%" ? "#404040" : "#1E6B52" }}>{item.value}</p>
+                <p style={{ fontSize: "22px", fontWeight: "700", color: item.value === "0.0%" ? "#7E93A8" : "#1E6B52" }}>{item.value}</p>
               </div>
             ))}
           </div>
@@ -335,7 +335,7 @@ export default function InboxDashboardPage() {
             ].map((item) => (
               <div key={item.label} style={{ background: "#FFFFFF", borderRadius: "8px", padding: "14px 16px" }}>
                 <p style={{ fontSize: "12px", color: "#4A5B6C", marginBottom: "6px" }}>{item.label}</p>
-                <p style={{ fontSize: "20px", fontWeight: "700", color: item.value > 0 ? "#0A1826" : "#404040" }}>{item.value}</p>
+                <p style={{ fontSize: "20px", fontWeight: "700", color: item.value > 0 ? "#0A1826" : "#7E93A8" }}>{item.value}</p>
               </div>
             ))}
           </div>
@@ -394,7 +394,7 @@ export default function InboxDashboardPage() {
             ].map((item, i) => (
               <div key={i} style={{ textAlign: "center", padding: "0 16px", borderRight: i < 2 ? "1px solid #E6EBF0" : "none" }}>
                 <p style={{ fontSize: "12px", color: "#4A5B6C", marginBottom: "6px" }}>{item.label}</p>
-                <p style={{ fontSize: "22px", fontWeight: "700", color: item.value === "0.0%" ? "#404040" : "#1E6B52" }}>{item.value}</p>
+                <p style={{ fontSize: "22px", fontWeight: "700", color: item.value === "0.0%" ? "#7E93A8" : "#1E6B52" }}>{item.value}</p>
               </div>
             ))}
           </div>
@@ -407,7 +407,7 @@ export default function InboxDashboardPage() {
             ].map((item) => (
               <div key={item.label} style={{ background: "#FFFFFF", borderRadius: "8px", padding: "14px 16px" }}>
                 <p style={{ fontSize: "12px", color: "#4A5B6C", marginBottom: "6px" }}>{item.label}</p>
-                <p style={{ fontSize: "20px", fontWeight: "700", color: item.value > 0 ? "#0A1826" : "#404040" }}>{item.value}</p>
+                <p style={{ fontSize: "20px", fontWeight: "700", color: item.value > 0 ? "#0A1826" : "#7E93A8" }}>{item.value}</p>
               </div>
             ))}
           </div>
@@ -632,11 +632,11 @@ export default function InboxDashboardPage() {
                       {row.campaign}
                     </td>
                     {row.porEtapa.map((v, i) => (
-                      <td key={i} style={{ padding: "10px", textAlign: "center", fontSize: "13px", color: v > 0 ? "#1C6CA6" : "#404040" }}>
+                      <td key={i} style={{ padding: "10px", textAlign: "center", fontSize: "13px", color: v > 0 ? "#1C6CA6" : "#7E93A8" }}>
                         {v}
                       </td>
                     ))}
-                    <td style={{ padding: "10px", textAlign: "center", fontSize: "13px", fontWeight: "600", color: row.total > 0 ? "#0A1826" : "#404040" }}>
+                    <td style={{ padding: "10px", textAlign: "center", fontSize: "13px", fontWeight: "600", color: row.total > 0 ? "#0A1826" : "#7E93A8" }}>
                       {row.total}
                     </td>
                   </tr>

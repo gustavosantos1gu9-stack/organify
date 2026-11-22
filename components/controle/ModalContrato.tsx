@@ -74,7 +74,7 @@ export default function ModalContrato({ clienteId, nome, email, cnpj, cpf, rg, e
 
         {sucesso ? (
           <div style={{ padding:"40px 24px", textAlign:"center" }}>
-            <div style={{ width:"56px", height:"56px", borderRadius:"50%", background:"#052e16", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
+            <div style={{ width:"56px", height:"56px", borderRadius:"50%", background:"#E3F2EC", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
               <Check size={28} color="#1E6B52"/>
             </div>
             <p style={{ fontSize:"16px", fontWeight:"600", color:"#0A1826", margin:"0 0 8px" }}>Contrato enviado!</p>
@@ -101,7 +101,7 @@ export default function ModalContrato({ clienteId, nome, email, cnpj, cpf, rg, e
                     <button key={m.value} onClick={()=>setModalidade(m.value)}
                       style={{
                         flex:1, padding:"10px 8px", borderRadius:"8px", cursor:"pointer", fontSize:"12px", fontWeight:"500",
-                        background: modalidade === m.value ? "#29ABE215" : "#FFFFFF",
+                        background: modalidade === m.value ? "#1C6CA615" : "#FFFFFF",
                         border: modalidade === m.value ? "1px solid #1C6CA6" : "1px solid #E6EBF0",
                         color: modalidade === m.value ? "#1C6CA6" : "#808080",
                       }}>
@@ -130,14 +130,14 @@ export default function ModalContrato({ clienteId, nome, email, cnpj, cpf, rg, e
               </div>
 
               {erro && (
-                <p style={{ color:"#B42318", fontSize:"12px", margin:0, background:"#1a0a0a", border:"1px solid #3a1a1a", borderRadius:"6px", padding:"8px 12px" }}>{erro}</p>
+                <p style={{ color:"#B42318", fontSize:"12px", margin:0, background:"#FBE3E1", border:"1px solid #3a1a1a", borderRadius:"6px", padding:"8px 12px" }}>{erro}</p>
               )}
             </div>
 
             <div style={{ padding:"12px 16px", borderTop:"1px solid #E6EBF0", display:"flex", justifyContent:"flex-end", gap:"8px" }}>
               <button onClick={onClose} style={{ background:"#E6EBF0", border:"none", borderRadius:"8px", padding:"8px 16px", cursor:"pointer", color:"#0A1826", fontSize:"13px" }}>Cancelar</button>
               <button onClick={enviar} disabled={enviando}
-                style={{ background: enviando ? "#1a3a4a" : "#1C6CA6", border:"none", borderRadius:"8px", padding:"8px 20px", cursor: enviando ? "default" : "pointer", color:"#F3F5F7", fontWeight:"600", fontSize:"13px", display:"flex", alignItems:"center", gap:"6px", opacity: enviando ? 0.7 : 1 }}>
+                style={{ background: enviando ? "#E8F1F9" : "#1C6CA6", border:"none", borderRadius:"8px", padding:"8px 20px", cursor: enviando ? "default" : "pointer", color:"#F3F5F7", fontWeight:"600", fontSize:"13px", display:"flex", alignItems:"center", gap:"6px", opacity: enviando ? 0.7 : 1 }}>
                 {enviando ? <><Loader2 size={14} className="animate-spin"/> Enviando...</> : <><Send size={14}/> Enviar via Autentique</>}
               </button>
             </div>

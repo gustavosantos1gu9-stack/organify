@@ -771,7 +771,7 @@ export default function ConexoesPage() {
                 }} />
               ) : (
                 <div style={{ background: "#fff", padding: "20px", borderRadius: "8px", display: "inline-block" }}>
-                  <p style={{ fontSize: "11px", color: "#000", fontFamily: "monospace", wordBreak: "break-all", maxWidth: "220px" }}>
+                  <p style={{ fontSize: "11px", color: "#0A1826", fontFamily: "monospace", wordBreak: "break-all", maxWidth: "220px" }}>
                     {qrCode.replace("qr:", "")}
                   </p>
                 </div>
@@ -890,7 +890,7 @@ export default function ConexoesPage() {
               <img src={qrNovaInst} alt="QR" style={{ width: "220px", height: "220px", borderRadius: "8px" }} />
             ) : (
               <div style={{ background: "#fff", padding: "20px", borderRadius: "8px", display: "inline-block" }}>
-                <p style={{ fontSize: "11px", color: "#000", fontFamily: "monospace", wordBreak: "break-all", maxWidth: "220px" }}>
+                <p style={{ fontSize: "11px", color: "#0A1826", fontFamily: "monospace", wordBreak: "break-all", maxWidth: "220px" }}>
                   {qrNovaInst.replace("qr:", "")}
                 </p>
               </div>

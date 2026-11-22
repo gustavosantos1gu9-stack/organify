@@ -992,7 +992,7 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
   /* --- styles ----------------------------------------------------- */
   const inputStyle: React.CSSProperties = { background: "#E6EBF0", border: "1px solid #E6EBF0", borderRadius: 4, padding: "4px 8px", color: "#0A1826", fontSize: 13, width: 80, textAlign: "center" };
   const moneyInputStyle: React.CSSProperties = { ...inputStyle, width: 100 };
-  const manualCellBg: React.CSSProperties = { background: "#2a2a1a", border: "1px solid #3a3a2a" };
+  const manualCellBg: React.CSSProperties = { background: "#FBF3D5", border: "1px solid #3a3a2a" };
   const autoCellStyle: React.CSSProperties = { color: "#4A5B6C", textAlign: "center", padding: "8px 6px", fontSize: 13 };
   const totalColStyle: React.CSSProperties = { fontWeight: 700, color: "#0A1826", background: "rgba(41,171,226,0.05)", textAlign: "center", padding: "8px 6px", fontSize: 13 };
   const headerCellStyle: React.CSSProperties = { background: "#FFFFFF", fontWeight: 600, textAlign: "center", padding: "10px 6px", fontSize: 11, color: "#4A5B6C", borderBottom: "1px solid #E6EBF0", whiteSpace: "nowrap" };
@@ -1359,7 +1359,7 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
       <CriativosPanel relatorioId={relatorioId} dateFrom={dateFrom} dateTo={dateTo} />
 
       {/* Footer */}
-      <div style={{ textAlign: "center", padding: "20px 0", color: "#404040", fontSize: 12 }}>
+      <div style={{ textAlign: "center", padding: "20px 0", color: "#7E93A8", fontSize: 12 }}>
         Relatório gerado com <strong style={{ color: "#4A5B6C" }}>SALX Convert</strong>
       </div>
     </div>
@@ -1452,7 +1452,7 @@ function SimuladorCrescimento({
                   value={simInvestimento || ""}
                   onChange={e => setSimInvestimento(parseFloat(e.target.value) || 0)}
                   style={{
-                    background: "#2a2a3a", border: "2px solid #7c3aed", borderRadius: 8,
+                    background: "#EFE9FB", border: "2px solid #7c3aed", borderRadius: 8,
                     padding: "10px 12px 10px 36px", color: "#0A1826", fontSize: 18, fontWeight: 700,
                     width: 200, outline: "none",
                   }}
@@ -1661,7 +1661,7 @@ function CriativosPanel({ relatorioId, dateFrom, dateTo }: { relatorioId: string
                                   </td>
                                   <td style={{ textAlign: "center", padding: "8px" }}>
                                     <input type="number" min="0" value={ag || ""} onChange={e => setAgendEdit(prev => ({ ...prev, [cKey(ad)]: parseInt(e.target.value) || 0 }))}
-                                      style={{ width: 60, background: "#2a2a1a", border: "1px solid #3a3a2a", borderRadius: 4, padding: "3px 6px", color: "#0A1826", fontSize: 12, textAlign: "center" }} />
+                                      style={{ width: 60, background: "#FBF3D5", border: "1px solid #3a3a2a", borderRadius: 4, padding: "3px 6px", color: "#0A1826", fontSize: 12, textAlign: "center" }} />
                                   </td>
                                   <td style={{ textAlign: "center", padding: "8px", fontWeight: 600, color: isGoodCpa ? "#1E6B52" : cpaAd > avgCpa * 1.3 ? "#B42318" : "#4A5B6C" }}>
                                     {ag > 0 ? cfmtMoney(cpaAd) : "-"}
@@ -1934,7 +1934,7 @@ const thR: React.CSSProperties = { ...th, textAlign: "right" };
 const td: React.CSSProperties = {
   padding: "10px 14px",
   color: "#0A1826",
-  borderBottom: "1px solid #1f1f1f",
+  borderBottom: "1px solid #F6F9FC",
 };
 
 const tdR: React.CSSProperties = { ...td, textAlign: "right" };
@@ -2068,7 +2068,7 @@ const printCSS = `
   .dashboard-root table td[style*="#0A1826"],
   .dashboard-root table th[style*="color: rgb(240, 240, 240)"],
   .dashboard-root table th[style*="#0A1826"] {
-    color: #000 !important;
+    color: #0A1826 !important;
   }
 
   @page {

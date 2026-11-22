@@ -121,7 +121,7 @@ export default function DisparosPixelPage() {
         </div>
         <div className="card" style={{ padding: "16px", textAlign: "center" }}>
           <p style={{ fontSize: "12px", color: "#4A5B6C", marginBottom: "4px" }}>Erro</p>
-          <p style={{ fontSize: "24px", fontWeight: "700", color: erros > 0 ? "#B42318" : "#404040" }}>{erros}</p>
+          <p style={{ fontSize: "24px", fontWeight: "700", color: erros > 0 ? "#B42318" : "#7E93A8" }}>{erros}</p>
         </div>
       </div>
 

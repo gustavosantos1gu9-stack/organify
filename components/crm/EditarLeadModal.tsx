@@ -281,7 +281,7 @@ export default function EditarLeadModal({ lead, onClose, onSave }: EditarLeadMod
                     )}
                     {comentarios.map((c, i) => (
                       <div key={i} style={{ display: "flex", gap: "10px" }}>
-                        <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "#1E6B52", color: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700", flexShrink: 0 }}>G</div>
+                        <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "#1E6B52", color: "#0A1826", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700", flexShrink: 0 }}>G</div>
                         <div style={{ flex: 1, background: "#FFFFFF", borderRadius: "8px", padding: "10px 12px" }}>
                           <p style={{ fontSize: "13px", color: "#0A1826", marginBottom: "4px" }}>{c.texto}</p>
                           <p style={{ fontSize: "11px", color: "#4A5B6C" }}>{c.data}</p>
@@ -289,7 +289,7 @@ export default function EditarLeadModal({ lead, onClose, onSave }: EditarLeadMod
                       </div>
                     ))}
                     <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
-                      <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "#1E6B52", color: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700", flexShrink: 0 }}>G</div>
+                      <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "#1E6B52", color: "#0A1826", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700", flexShrink: 0 }}>G</div>
                       <div style={{ flex: 1 }}>
                         <textarea className="form-input" placeholder="Adicione um comentário..." value={comentario} onChange={(e) => setComentario(e.target.value)} rows={3} style={{ resize: "none", marginBottom: "8px" }} />
                         <div style={{ display: "flex", justifyContent: "flex-end" }}>

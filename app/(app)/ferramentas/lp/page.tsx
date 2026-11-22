@@ -144,7 +144,7 @@ function LandingPagesPageInner() {
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
       {clienteIdParam && clienteNome && (
-        <div style={{ background: "#0f1a2a", border: "1px solid #1a3a5a", borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 13, color: "#4a9aba" }}>
+        <div style={{ background: "#E8F1F9", border: "1px solid #1a3a5a", borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 13, color: "#4a9aba" }}>
           Criando para cliente: <strong style={{ color: "#1C6CA6" }}>{clienteNome}</strong>
           <a href="/ferramentas/lp" style={{ marginLeft: 12, fontSize: 12, color: "#4A5B6C", textDecoration: "underline" }}>Ver todas</a>
         </div>
@@ -180,7 +180,7 @@ function LandingPagesPageInner() {
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <label style={{ fontSize: 12, color: "#808080", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>URL da Página (slug)</label>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 13, color: "#404040", whiteSpace: "nowrap" }}>/lp/</span>
+                  <span style={{ fontSize: 13, color: "#7E93A8", whiteSpace: "nowrap" }}>/lp/</span>
                   <input
                     type="text"
                     value={editando.slug ?? ""}
@@ -201,7 +201,7 @@ function LandingPagesPageInner() {
 
               {input("logo_url", "URL da Logo", "https://... (link da imagem da logo)")}
               {editando.logo_url && (
-                <img src={editando.logo_url} alt="" style={{ height: 40, objectFit: "contain", maxWidth: 160, borderRadius: 6, background: "#0a0a0a", padding: "4px 8px" }} />
+                <img src={editando.logo_url} alt="" style={{ height: 40, objectFit: "contain", maxWidth: 160, borderRadius: 6, background: "#F6F9FC", padding: "4px 8px" }} />
               )}
               {input("titulo", "Título", "Ex: Descubra como triplicar suas vendas")}
               {input("subtitulo", "Subtítulo", "Uma frase de apoio para o visitante")}
@@ -218,7 +218,7 @@ function LandingPagesPageInner() {
                   onFocus={e => e.currentTarget.style.borderColor = "#1C6CA6"}
                   onBlur={e => e.currentTarget.style.borderColor = "#E6EBF0"}
                 />
-                <p style={{ fontSize: 11, color: "#404040", margin: 0 }}>YouTube ou Vimeo. Opcional — a página funciona só com texto e CTA.</p>
+                <p style={{ fontSize: 11, color: "#7E93A8", margin: 0 }}>YouTube ou Vimeo. Opcional — a página funciona só com texto e CTA.</p>
               </div>
 
               {/* CTA */}
@@ -264,7 +264,7 @@ function LandingPagesPageInner() {
                     onBlur={e => e.currentTarget.style.borderColor = "#E6EBF0"}
                   />
                 )}
-                <p style={{ fontSize: 11, color: "#404040", margin: 0 }}>Dispara no pixel quando alguém abre esta página.</p>
+                <p style={{ fontSize: 11, color: "#7E93A8", margin: 0 }}>Dispara no pixel quando alguém abre esta página.</p>
               </div>
 
               {/* Ativo */}
@@ -306,10 +306,10 @@ function LandingPagesPageInner() {
           <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
         </div>
       ) : pages.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "80px 20px", color: "#404040" }}>
+        <div style={{ textAlign: "center", padding: "80px 20px", color: "#7E93A8" }}>
           <Globe size={48} style={{ marginBottom: 16, opacity: 0.3 }} />
           <p style={{ fontSize: 16, margin: 0 }}>Nenhuma landing page criada ainda.</p>
-          <p style={{ fontSize: 13, margin: "8px 0 0", color: "#303030" }}>Clique em "Nova LP" para começar.</p>
+          <p style={{ fontSize: 13, margin: "8px 0 0", color: "#E6EBF0" }}>Clique em "Nova LP" para começar.</p>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -365,9 +365,9 @@ function LandingPagesPageInner() {
 
       {/* Dica: conectar com formulário */}
       {pages.length > 0 && (
-        <div style={{ marginTop: 24, background: "#0f1a2a", border: "1px solid #1a3a5a", borderRadius: 10, padding: 16 }}>
+        <div style={{ marginTop: 24, background: "#E8F1F9", border: "1px solid #1a3a5a", borderRadius: 10, padding: 16 }}>
           <p style={{ fontSize: 13, color: "#4a9aba", margin: 0 }}>
-            <strong>Dica:</strong> Para redirecionar um formulário para uma LP, vá em <strong>Formulários → Redirecionar URL</strong> e cole o link da LP (ex: <code style={{ background: "#0a1520", padding: "1px 6px", borderRadius: 4 }}>/lp/{pages[0]?.slug}</code>).
+            <strong>Dica:</strong> Para redirecionar um formulário para uma LP, vá em <strong>Formulários → Redirecionar URL</strong> e cole o link da LP (ex: <code style={{ background: "#E8F1F9", padding: "1px 6px", borderRadius: 4 }}>/lp/{pages[0]?.slug}</code>).
           </p>
         </div>
       )}

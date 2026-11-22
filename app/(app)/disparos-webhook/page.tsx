@@ -179,7 +179,7 @@ export default function DisparosWebhookPage() {
                           background: ativo ? "#1C6CA6" : "transparent",
                           display: "flex", alignItems: "center", justifyContent: "center",
                         }}>
-                          {ativo && <Check size={10} color="#000" />}
+                          {ativo && <Check size={10} color="#0A1826" />}
                         </div>
                         <span style={{ fontSize: "13px", color: ativo ? "#0A1826" : "#808080" }}>{ev.label}</span>
                       </div>

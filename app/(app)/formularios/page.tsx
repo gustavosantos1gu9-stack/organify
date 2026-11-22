@@ -337,7 +337,7 @@ function FormulariosPageInner() {
       <div className="breadcrumb"><a href="/">Início</a><span>›</span><span className="current">{clienteIdParam ? `Formulários — ${clienteNome}` : "Formulários Master"}</span></div>
 
       {clienteIdParam && clienteNome && (
-        <div style={{ background: "#0f1a2a", border: "1px solid #1a3a5a", borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 13, color: "#4a9aba" }}>
+        <div style={{ background: "#E8F1F9", border: "1px solid #1a3a5a", borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 13, color: "#4a9aba" }}>
           Criando formulário para cliente: <strong style={{ color: "#1C6CA6" }}>{clienteNome}</strong>
           <a href="/formularios" style={{ marginLeft: 12, fontSize: 12, color: "#4A5B6C", textDecoration: "underline" }}>Ver todos</a>
         </div>
@@ -427,7 +427,7 @@ function FormulariosPageInner() {
                         </td>
                         {perguntas.map(p => (
                           <td key={p.id} style={{ maxWidth: 200, fontSize: 13 }}>
-                            {r.respostas?.[p.id] || <span style={{ color: "#404040" }}>—</span>}
+                            {r.respostas?.[p.id] || <span style={{ color: "#7E93A8" }}>—</span>}
                           </td>
                         ))}
                       </tr>
@@ -544,18 +544,18 @@ function FormulariosPageInner() {
                   </div>
 
                   {/* Botão final */}
-                  <div style={{ background: "#0d0d0d", border: "1px solid #FFFFFF", borderRadius: 10, padding: 12 }}>
+                  <div style={{ background: "#F6F9FC", border: "1px solid #FFFFFF", borderRadius: 10, padding: 12 }}>
                     <p style={{ fontSize: 12, fontWeight: 600, color: "#4A5B6C", margin: "0 0 10px" }}>Botão na tela final</p>
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                       {/* Tipo do botão */}
                       <div style={{ display: "flex", gap: 8 }}>
                         <button
                           onClick={() => setEditando({ ...editando, redirecionar_whatsapp: true, redirecionar_url: "" })}
-                          style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: `1px solid ${editando.redirecionar_whatsapp ? "#1C6CA6" : "#E6EBF0"}`, background: editando.redirecionar_whatsapp ? "#29ABE215" : "transparent", color: editando.redirecionar_whatsapp ? "#1C6CA6" : "#4A5B6C", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                          style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: `1px solid ${editando.redirecionar_whatsapp ? "#1C6CA6" : "#E6EBF0"}`, background: editando.redirecionar_whatsapp ? "#1C6CA615" : "transparent", color: editando.redirecionar_whatsapp ? "#1C6CA6" : "#4A5B6C", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
                         >💬 WhatsApp</button>
                         <button
                           onClick={() => setEditando({ ...editando, redirecionar_whatsapp: false })}
-                          style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: `1px solid ${!editando.redirecionar_whatsapp && editando.redirecionar_url !== undefined ? "#1C6CA6" : "#E6EBF0"}`, background: !editando.redirecionar_whatsapp ? "#29ABE215" : "transparent", color: !editando.redirecionar_whatsapp ? "#1C6CA6" : "#4A5B6C", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                          style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: `1px solid ${!editando.redirecionar_whatsapp && editando.redirecionar_url !== undefined ? "#1C6CA6" : "#E6EBF0"}`, background: !editando.redirecionar_whatsapp ? "#1C6CA615" : "transparent", color: !editando.redirecionar_whatsapp ? "#1C6CA6" : "#4A5B6C", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
                         >🔗 Link personalizado</button>
                       </div>
                       {/* Texto do botão */}
@@ -613,8 +613,8 @@ function FormulariosPageInner() {
                       onDrop={() => { reorderPerguntas(dragIdx!, idx); setDragIdx(null); setDragOverIdx(null); }}
                       onDragEnd={() => { setDragIdx(null); setDragOverIdx(null); }}
                       style={{
-                        background: "#0d0d0d",
-                        border: `1px solid ${isDragOver ? "#1C6CA6" : temLogica ? "#29ABE230" : "#FFFFFF"}`,
+                        background: "#F6F9FC",
+                        border: `1px solid ${isDragOver ? "#1C6CA6" : temLogica ? "#1C6CA630" : "#FFFFFF"}`,
                         borderRadius: 10,
                         padding: 14,
                         opacity: isDragging ? 0.4 : 1,
@@ -624,9 +624,9 @@ function FormulariosPageInner() {
                     >
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <GripVertical size={14} style={{ color: "#404040", flexShrink: 0 }} />
+                          <GripVertical size={14} style={{ color: "#7E93A8", flexShrink: 0 }} />
                           <span style={{ fontSize: 11, color: "#4A5B6C", fontWeight: 600 }}>CAMPO {idx + 1}</span>
-                          {temLogica && <span style={{ fontSize: 10, background: "#29ABE215", color: "#1C6CA6", padding: "2px 6px", borderRadius: 6, fontWeight: 600 }}>Lógica</span>}
+                          {temLogica && <span style={{ fontSize: 10, background: "#1C6CA615", color: "#1C6CA6", padding: "2px 6px", borderRadius: 6, fontWeight: 600 }}>Lógica</span>}
                         </div>
                         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                           {p.tipo !== "welcome" && p.tipo !== "obrigado" && p.tipo !== "video" && (
@@ -723,17 +723,17 @@ function FormulariosPageInner() {
                       )}
 
                       {p.tipo === "obrigado" && (
-                        <div style={{ marginTop: 8, background: "#0d0d0d", border: "1px solid #FFFFFF", borderRadius: 10, padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+                        <div style={{ marginTop: 8, background: "#F6F9FC", border: "1px solid #FFFFFF", borderRadius: 10, padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
                           <p style={{ fontSize: 12, fontWeight: 600, color: "#4A5B6C", margin: 0 }}>Botão na tela de obrigado</p>
                           {/* Toggle WhatsApp / Link */}
                           <div style={{ display: "flex", gap: 8 }}>
                             <button
                               onClick={() => { updatePergunta(idx, "whatsappNumero", p.whatsappNumero || ""); updatePergunta(idx, "redirectUrl", ""); }}
-                              style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: `1px solid ${p.whatsappNumero !== undefined && p.whatsappNumero !== null && !p.redirectUrl ? "#1C6CA6" : "#E6EBF0"}`, background: (p.whatsappNumero !== undefined && !p.redirectUrl) ? "#29ABE215" : "transparent", color: (p.whatsappNumero !== undefined && !p.redirectUrl) ? "#1C6CA6" : "#4A5B6C", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                              style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: `1px solid ${p.whatsappNumero !== undefined && p.whatsappNumero !== null && !p.redirectUrl ? "#1C6CA6" : "#E6EBF0"}`, background: (p.whatsappNumero !== undefined && !p.redirectUrl) ? "#1C6CA615" : "transparent", color: (p.whatsappNumero !== undefined && !p.redirectUrl) ? "#1C6CA6" : "#4A5B6C", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
                             >💬 WhatsApp</button>
                             <button
                               onClick={() => { updatePergunta(idx, "redirectUrl", p.redirectUrl || ""); updatePergunta(idx, "whatsappNumero", undefined as any); updatePergunta(idx, "whatsappMensagem", undefined as any); }}
-                              style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: `1px solid ${p.redirectUrl ? "#1C6CA6" : "#E6EBF0"}`, background: p.redirectUrl ? "#29ABE215" : "transparent", color: p.redirectUrl ? "#1C6CA6" : "#4A5B6C", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                              style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: `1px solid ${p.redirectUrl ? "#1C6CA6" : "#E6EBF0"}`, background: p.redirectUrl ? "#1C6CA615" : "transparent", color: p.redirectUrl ? "#1C6CA6" : "#4A5B6C", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
                             >🔗 Link personalizado</button>
                           </div>
                           {/* Texto do botão */}
@@ -775,7 +775,7 @@ function FormulariosPageInner() {
                             <span style={{ fontSize: 14 }}>{p.semDisparo ? "🚫" : "⚡"}</span>
                             {p.semDisparo ? "Não dispara Lead nem salva no banco" : "Disparar Lead ao chegar aqui"}
                           </button>
-                          <p style={{ fontSize: 10, color: "#404040", margin: 0 }}>
+                          <p style={{ fontSize: 10, color: "#7E93A8", margin: 0 }}>
                             {p.semDisparo
                               ? "⚠ Lead desqualificado — não será salvo nem contabilizado."
                               : "💡 O pixel Lead dispara automaticamente ao chegar nesta tela."}
@@ -852,7 +852,7 @@ function FormulariosPageInner() {
                               </div>
                               {/* Lógica condicional por opção */}
                               <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, marginLeft: 4 }}>
-                                <span style={{ fontSize: 10, color: "#404040" }}>Se escolher esta opção →</span>
+                                <span style={{ fontSize: 10, color: "#7E93A8" }}>Se escolher esta opção →</span>
                                 <select
                                   style={{ ...inp, flex: 1, fontSize: 11, color: rotaOpcao ? "#1C6CA6" : "#6B7A89", padding: "5px 8px" }}
                                   value={rotaOpcao}
@@ -898,7 +898,7 @@ function FormulariosPageInner() {
                             </select>
                           </div>
                           {p.tipo === "select" || p.tipo === "radio" ? (
-                            <p style={{ fontSize: 10, color: "#303030", margin: "4px 0 0" }}>Esta lógica só aplica se a opção escolhida não tiver rota específica.</p>
+                            <p style={{ fontSize: 10, color: "#E6EBF0", margin: "4px 0 0" }}>Esta lógica só aplica se a opção escolhida não tiver rota específica.</p>
                           ) : null}
                         </div>
                       )}
@@ -935,19 +935,19 @@ function FormulariosPageInner() {
               </button>
             </div>
 
-            <p style={{ margin: "0 24px 8px", fontSize: 11, fontWeight: 600, color: "#404040", textTransform: "uppercase", letterSpacing: 1 }}>Usar como modelo</p>
+            <p style={{ margin: "0 24px 8px", fontSize: 11, fontWeight: 600, color: "#7E93A8", textTransform: "uppercase", letterSpacing: 1 }}>Usar como modelo</p>
 
             {/* Lista de formulários */}
             <div style={{ overflowY: "auto", padding: "0 24px 20px", display: "flex", flexDirection: "column", gap: 8 }}>
               {loadingModelos ? (
-                <p style={{ color: "#404040", fontSize: 13, textAlign: "center", padding: "20px 0" }}>Carregando...</p>
+                <p style={{ color: "#7E93A8", fontSize: 13, textAlign: "center", padding: "20px 0" }}>Carregando...</p>
               ) : todosFormularios.length === 0 ? (
-                <p style={{ color: "#404040", fontSize: 13, textAlign: "center", padding: "20px 0" }}>Nenhum formulário encontrado.</p>
+                <p style={{ color: "#7E93A8", fontSize: 13, textAlign: "center", padding: "20px 0" }}>Nenhum formulário encontrado.</p>
               ) : todosFormularios.map(f => (
                 <button
                   key={f.id}
                   onClick={() => novoFormulario(f)}
-                  style={{ background: "#0d0d0d", border: "1px solid #FFFFFF", borderRadius: 10, padding: "12px 16px", cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", transition: "border-color 0.15s" }}
+                  style={{ background: "#F6F9FC", border: "1px solid #FFFFFF", borderRadius: 10, padding: "12px 16px", cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", transition: "border-color 0.15s" }}
                   onMouseEnter={e => (e.currentTarget.style.borderColor = "#1C6CA6")}
                   onMouseLeave={e => (e.currentTarget.style.borderColor = "#FFFFFF")}
                 >
@@ -955,7 +955,7 @@ function FormulariosPageInner() {
                     <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: "#0A1826" }}>{f.nome}</p>
                     <p style={{ margin: "3px 0 0", fontSize: 11, color: "#4A5B6C" }}>{f.cliente_nome} · {f.perguntas?.length || 0} campos</p>
                   </div>
-                  <span style={{ fontSize: 11, color: "#1C6CA6", background: "#29ABE215", padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>Usar modelo</span>
+                  <span style={{ fontSize: 11, color: "#1C6CA6", background: "#1C6CA615", padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>Usar modelo</span>
                 </button>
               ))}
             </div>

@@ -56,7 +56,7 @@ export default function Filtros({ grupos, valores, onChange, onLimpar }: Filtros
         <SlidersHorizontal size={14}/>
         Filtros
         {totalAtivos > 0 && (
-          <span style={{ background:"#1E6B52", color:"#000", borderRadius:"50%", width:"16px", height:"16px", fontSize:"10px", fontWeight:"700", display:"flex", alignItems:"center", justifyContent:"center" }}>
+          <span style={{ background:"#1E6B52", color:"#0A1826", borderRadius:"50%", width:"16px", height:"16px", fontSize:"10px", fontWeight:"700", display:"flex", alignItems:"center", justifyContent:"center" }}>
             {totalAtivos}
           </span>
         )}

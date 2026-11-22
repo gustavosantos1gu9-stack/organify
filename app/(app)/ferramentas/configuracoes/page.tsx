@@ -60,7 +60,7 @@ export default function FerramentasConfigPage() {
         <div style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 12, padding: 24 }}>
           {/* Header da seção */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: "#29ABE215", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: "#1C6CA615", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Bell size={18} style={{ color: "#1C6CA6" }} />
             </div>
             <div>
@@ -95,7 +95,7 @@ export default function FerramentasConfigPage() {
               </div>
             </div>
 
-            <p style={{ fontSize: 12, color: "#404040", margin: "4px 0 0" }}>
+            <p style={{ fontSize: 12, color: "#7E93A8", margin: "4px 0 0" }}>
               Usado para: leads do Meta Lead Ads, formulários SALX e landing pages sem cliente externo configurado.
             </p>
           </div>
@@ -108,7 +108,7 @@ export default function FerramentasConfigPage() {
                 display: "flex", alignItems: "center", gap: 8,
                 padding: "10px 20px", borderRadius: 8, border: "none",
                 background: salvo ? "#1E6B52" : "#1C6CA6",
-                color: "#000", fontSize: 14, fontWeight: 700,
+                color: "#0A1826", fontSize: 14, fontWeight: 700,
                 cursor: "pointer", transition: "background 0.2s",
                 opacity: salvando ? 0.7 : 1,
               }}

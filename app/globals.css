@@ -988,3 +988,35 @@ input[type="checkbox"], input[type="radio"] { height: auto; accent-color: var(--
   .esc-track { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .esc-track::before { display: none; }
 }
+
+/* ═══ Financeiro: cartões de indicadores ═══ */
+.fin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 20px; }
+.fin-grid .cartao { margin-bottom: 0; }
+.fin-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 20px; }
+.fin-stat { display: flex; flex-direction: column; gap: 2px; }
+.fin-stat-l { font-size: 13px; color: var(--ink-2); }
+.fin-stat-v { font-size: 22px; font-weight: 600; letter-spacing: -.02em; color: var(--ink); }
+.fin-stat-v.ok { color: #1E6B52; }
+.fin-stat-v.alerta { color: #B42318; }
+
+/* Ações em pílula nas tabelas */
+.acao {
+  display: inline-flex; align-items: center; gap: 5px; border: 0; cursor: pointer; font: inherit;
+  font-size: 13px; font-weight: 500; padding: 7px 12px; border-radius: 999px;
+  background: var(--canvas); color: var(--ink); transition: background .15s ease, color .15s ease;
+}
+.acao:hover { background: #DCEBF6; }
+.acao-ok { background: #1E6B52; color: #FFFFFF; font-weight: 600; }
+.acao-ok:hover { background: #17543F; color: #FFFFFF; }
+.acao-nao { background: transparent; color: #B42318; box-shadow: inset 0 0 0 1px #F2C4BF; }
+.acao-nao:hover { background: #FBE3E1; }
+
+.aba-n { margin-left: 6px; font-size: 12px; font-weight: 600; background: var(--canvas); color: var(--ink-2); border-radius: 999px; padding: 1px 8px; }
+.esc-abas button.on .aba-n { background: rgba(255,255,255,.18); color: #FFFFFF; }
+
+/* Churn: meses em pílula */
+.churn-meses button { border: 0 !important; border-radius: 999px !important; padding: 7px 14px !important; font-size: 13px !important; background: var(--surface) !important; box-shadow: var(--shadow-soft); color: var(--ink) !important; }
+.churn-meses button[style*="opacity: 0.4"] { box-shadow: none; background: transparent !important; color: var(--ink-3) !important; }
+.churn-meses button[style*="rgba(180, 35, 24, 0.1)"] { background: var(--ink) !important; color: #FFFFFF !important; }
+.churn-meses button[style*="rgba(180, 35, 24, 0.1)"] span { color: #9FB3C6 !important; }
+.churn-tabela tbody td { padding-top: 12px !important; padding-bottom: 12px !important; }
