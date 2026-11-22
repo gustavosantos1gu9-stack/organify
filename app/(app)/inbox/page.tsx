@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Search, RefreshCw, Eye, Send, X, Filter, MessageCircle, ChevronDown, UserPlus, Upload, Zap } from "lucide-react";
+import { Search, RefreshCw, Eye, Send, X, Filter, MessageCircle, ChevronDown, UserPlus, Upload, Zap, AlertTriangle } from "lucide-react";
 import { supabase, getAgenciaId } from "@/lib/hooks";
 
 interface Conversa {
@@ -10,7 +10,7 @@ interface Conversa {
   primeira_mensagem_at?: string; etapa_alterada_at?: string; nao_lidas: number;
   origem?: string; etapa_jornada?: string; leadgen_id?: string; utm_source?: string; utm_medium?: string;
   utm_campaign?: string; utm_content?: string; utm_term?: string; link_nome?: string; fbclid?: string;
-  nome_anuncio?: string; created_at: string; finalizado_at?: string | null;
+  nome_anuncio?: string; created_at: string; finalizado_at?: string | null; agendou_at?: string | null;
 }
 interface Mensagem {
   id: string; de_mim: boolean; tipo: string; conteudo: string;
@@ -21,19 +21,19 @@ interface EtapaJornada {
 }
 
 const CORES_ETAPA: Record<string,string> = {
-  "Fez Contato": "#606060",
-  "Entrou em contato": "#606060",
-  "Qualificado": "#29ABE2",
-  "Agendou": "#f59e0b",
-  "Compareceu": "#8b5cf6",
-  "Fechou": "#22c55e",
-  "Comprou": "#22c55e",
-  "Perdido": "#ef4444",
+  "Fez Contato": "var(--text-secondary)",
+  "Entrou em contato": "var(--text-secondary)",
+  "Qualificado": "var(--brand)",
+  "Agendou": "var(--caution-text)",
+  "Compareceu": "var(--oscillating-text)",
+  "Fechou": "var(--success)",
+  "Comprou": "var(--success)",
+  "Perdido": "var(--alert-text)",
 };
 
 function getCorEtapa(etapa?: string) {
-  if (!etapa) return "#606060";
-  return CORES_ETAPA[etapa] || "#29ABE2";
+  if (!etapa) return "var(--text-secondary)";
+  return CORES_ETAPA[etapa] || "var(--brand)";
 }
 
 function formatarNumero(n: string) {
@@ -66,14 +66,14 @@ function formatarData(d: string) {
 }
 
 function Avatar({ nome, foto, size=32 }: { nome: string; foto?: string; size?: number }) {
-  const cores = ["#29ABE2","#3b82f6","#8b5cf6","#f59e0b","#ec4899","#06b6d4","#ef4444"];
+  const cores = ["var(--brand)","#3b82f6","var(--oscillating-text)","var(--caution-text)","#ec4899","#06b6d4","var(--alert-text)"];
   const cor = cores[(nome||"").charCodeAt(0) % cores.length];
   if (foto) return <img src={foto} alt={nome} style={{ width:size, height:size, borderRadius:"50%", objectFit:"cover", flexShrink:0 }}/>;
   return <div style={{ width:size, height:size, borderRadius:"50%", background:cor, display:"flex", alignItems:"center", justifyContent:"center", fontSize:size*0.38, fontWeight:"700", color:"#fff", flexShrink:0 }}>{(nome||"?").charAt(0).toUpperCase()}</div>;
 }
 
 function OrigemBadge({ origem }: { origem?: string }) {
-  if (!origem || origem==="Não Rastreada") return <span style={{ fontSize:"11px", color:"#505050" }}>Não rastreada</span>;
+  if (!origem || origem==="Não Rastreada") return <span style={{ fontSize:"11px", color:"var(--text-secondary)" }}>Não rastreada</span>;
   if (origem==="Meta Ads") return (
     <span style={{ fontSize:"11px", display:"inline-flex", alignItems:"center", gap:"3px" }}>
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -83,7 +83,7 @@ function OrigemBadge({ origem }: { origem?: string }) {
       <span style={{ color:"#1877f2", fontWeight:600 }}>Meta Ads</span>
     </span>
   );
-  if (origem==="Google Ads") return <span style={{ fontSize:"11px", color:"#ea4335" }}>🔺 Google Ads</span>;
+  if (origem==="Google Ads") return <span style={{ fontSize:"11px", color:"var(--alert-text)" }}>🔺 Google Ads</span>;
   if (origem==="Social Selling") return (
     <span style={{ fontSize:"11px", display:"inline-flex", alignItems:"center", gap:"3px" }}>
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -95,7 +95,7 @@ function OrigemBadge({ origem }: { origem?: string }) {
       <span style={{ background:"linear-gradient(45deg,#f09433,#dc2743,#bc1888)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", fontWeight:600 }}>Social Selling</span>
     </span>
   );
-  return <span style={{ fontSize:"11px", color:"#a0a0a0" }}>🌐 {origem}</span>;
+  return <span style={{ fontSize:"11px", color:"var(--text-secondary)" }}>🌐 {origem}</span>;
 }
 
 function EtapaBadge({ etapa }: { etapa?: string }) {
@@ -128,6 +128,32 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, eta
     fbclid: conversa.fbclid || "",
   });
   const [salvandoRastreio, setSalvandoRastreio] = useState(false);
+  const [respostasForm, setRespostasForm] = useState<{formulario: string; respostas: Record<string,string>; perguntas: any[]; created_at: string; desqualificado?: boolean} | null>(null);
+
+  // Carregar respostas de formulário pelo número do contato
+  useEffect(() => {
+    const numLimpo = conversa.contato_numero.replace(/\D/g, "");
+    const variantes = [numLimpo, numLimpo.replace(/^55/, "")];
+    supabase.from("formularios_respostas")
+      .select("respostas, created_at, formulario_id, formularios(nome, perguntas)")
+      .order("created_at", { ascending: false })
+      .limit(20)
+      .then(({ data }) => {
+        if (!data) return;
+        const match = data.find((r: any) => {
+          const vals = Object.values(r.respostas || {}) as string[];
+          return vals.some(v => variantes.some(n => (v || "").replace(/\D/g,"").endsWith(n.slice(-8))));
+        });
+        if (match) {
+          setRespostasForm({
+            formulario: (match as any).formularios?.nome || "Formulário",
+            respostas: match.respostas,
+            perguntas: (match as any).formularios?.perguntas || [],
+            created_at: match.created_at,
+          });
+        }
+      });
+  }, [conversa.id]);
 
   // Carregar histórico de transições
   useEffect(() => {
@@ -142,27 +168,31 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, eta
     setSalvando(true);
     const etapaAnterior = etapa;
     setEtapa(novaEtapa);
-    await supabase.from("conversas").update({ etapa_jornada: novaEtapa, etapa_alterada_at: new Date().toISOString() }).eq("id", conversa.id);
+    const updatePayload: Record<string, any> = { etapa_jornada: novaEtapa, etapa_alterada_at: new Date().toISOString() };
+    // Se movendo para "Agendou" manualmente e agendou_at ainda não foi setado, registrar agora
+    if (novaEtapa.toLowerCase().includes("agendou") && !conversa.agendou_at) {
+      updatePayload.agendou_at = new Date().toISOString();
+    }
+    await supabase.from("conversas").update(updatePayload).eq("id", conversa.id);
     onEtapaChange(novaEtapa);
     const agId = await getAgenciaId();
     // Registrar histórico de transição
-    await supabase.from("etapas_historico").insert({
+    const { data: histInsert } = await supabase.from("etapas_historico").insert({
       conversa_id: conversa.id, agencia_id: agId,
       etapa_anterior: etapaAnterior || null, etapa_nova: novaEtapa, alterado_por: "manual",
-    });
+    }).select("id").single();
+    const histId = histInsert?.id;
     console.log(`[salvarEtapa] ${conversa.contato_nome}: ${etapaAnterior} → ${novaEtapa}`);
-    // Disparar Pixel + Conversion Leads em paralelo (sem bloquear um ao outro)
-    const pixelPromise = fetch("/api/pixel", {
+    // Disparar Pixel (já inclui action_source crm + lead_id para Lead Ads)
+    fetch("/api/pixel", {
       method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ agencia_id:agId, conversa_id:conversa.id, etapa_nome:novaEtapa, phone:conversa.contato_numero, contato_nome:conversa.contato_nome, fbclid:editDados.fbclid||conversa.fbclid, utm_campaign:editDados.utm_campaign||conversa.utm_campaign, utm_content:editDados.utm_content||conversa.utm_content, is_ctwa: conversa.contato_jid?.includes("@lid") || conversa.origem === "Meta Ads" || !!(editDados.fbclid || conversa.fbclid) }),
-    }).then(r=>r.json()).then(d=>{ if(!d.ok) console.warn("Pixel:",d.motivo||d.error); }).catch(e=>console.error("Pixel erro:",e));
+      body: JSON.stringify({ agencia_id:agId, conversa_id:conversa.id, etapa_nome:novaEtapa, phone:conversa.contato_numero, contato_nome:conversa.contato_nome, fbclid:editDados.fbclid||conversa.fbclid, utm_campaign:editDados.utm_campaign||conversa.utm_campaign, utm_content:editDados.utm_content||conversa.utm_content, is_ctwa: !!(conversa.contato_jid?.includes("@lid")) }),
+    }).then(r=>r.json()).then(d=>{
+      if(!d.ok) console.warn("Pixel:",d.motivo||d.error);
+      // Marcar enviado_meta=true se ok, deixar null se falhou (cron retenta)
+      if (histId && d.ok) supabase.from("etapas_historico").update({ enviado_meta: true }).eq("id", histId).then(()=>{});
+    }).catch(e=>console.error("Pixel erro:",e));
 
-    const convPromise = fetch("/api/meta/conversion-lead", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ conversa_id: conversa.id, etapa_nova: novaEtapa, agencia_id: agId }),
-    }).then(r=>r.json()).then(d=>console.log("[Conversion Lead]",d)).catch(e=>console.error("Conversion Lead erro:",e));
-
-    await Promise.allSettled([pixelPromise, convPromise]);
     setSalvando(false);
   };
 
@@ -200,14 +230,14 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, eta
     setFinalizando(false);
   };
 
-  const inputStyle = { background:"#222", border:"1px solid #333", borderRadius:"6px", padding:"5px 8px", color:"#f0f0f0", fontSize:"12px", width:"100%" };
+  const inputStyle = { background:"var(--card-bg)", border:"1px solid var(--border)", borderRadius:"6px", padding:"5px 8px", color:"var(--navy)", fontSize:"12px", width:"100%" };
 
   const camposVisuais = [
     { label:"Origem", value:<OrigemBadge origem={editDados.origem}/> },
     { label:"Etapa da Jornada", value:<EtapaBadge etapa={etapa}/> },
     { label:"Nome do Link", value: editDados.link_nome || "—" },
-    { label:"Campanha (utm_source)", value: editDados.utm_source || "—" },
-    { label:"Meio (utm_medium)", value: editDados.utm_medium || "—" },
+    { label:"Origem (utm_source)", value: editDados.utm_source || "—" },
+    { label:"Meio", value: editDados.utm_medium || "—" },
     { label:"Campanha", value: editDados.utm_campaign || "—" },
     { label:"Conjunto de Anúncio", value: editDados.utm_content ? editDados.utm_content.split("_")[0].trim() : "—" },
     { label:"Nome do Anúncio", value: (conversa as any).nome_anuncio || (conversa as any).utm_term || editDados.utm_term || (editDados.utm_content && editDados.utm_content.includes("_") ? editDados.utm_content.split("_").slice(1).join("_").trim() : "—") },
@@ -218,32 +248,32 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, eta
 
   return (
     <>
-      <div onClick={onClose} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:100 }}/>
-      <div style={{ position:"fixed", top:"50%", left:"50%", transform:"translate(-50%,-50%)", width:"560px", maxHeight:"85vh", overflowY:"auto", background:"#141414", border:"1px solid #2e2e2e", borderRadius:"12px", zIndex:101, padding:"20px" }}>
+      <div onClick={onClose} style={{ position:"fixed", inset:0, background:"rgba(10,24,38,0.5)", zIndex:100 }}/>
+      <div style={{ position:"fixed", top:"50%", left:"50%", transform:"translate(-50%,-50%)", width:"560px", maxHeight:"85vh", overflowY:"auto", background:"var(--card-bg)", border:"1px solid var(--border)", borderRadius:"12px", zIndex:101, padding:"20px" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"16px" }}>
           <div style={{ display:"flex", alignItems:"center", gap:"10px" }}>
             <Avatar nome={conversa.contato_nome||conversa.contato_numero} foto={conversa.contato_foto} size={40}/>
             <div>
-              <p style={{ fontSize:"15px", fontWeight:"600", color:"#f0f0f0", margin:0 }}>{conversa.contato_nome||"—"}</p>
-              <p style={{ fontSize:"12px", color:"#606060", margin:0 }}>{formatarNumero(conversa.contato_numero)}</p>
+              <p style={{ fontSize:"15px", fontWeight:"600", color:"var(--navy)", margin:0 }}>{conversa.contato_nome||"—"}</p>
+              <p style={{ fontSize:"12px", color:"var(--text-secondary)", margin:0 }}>{formatarNumero(conversa.contato_numero)}</p>
             </div>
           </div>
           <div style={{ display:"flex", gap:"8px" }}>
             <button onClick={()=>setChatAberto(true)} className="btn-secondary" style={{ fontSize:"12px", cursor:"pointer" }}><MessageCircle size={13}/> Chat</button>
-            <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", color:"#606060" }}><X size={16}/></button>
+            <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--text-secondary)" }}><X size={16}/></button>
           </div>
         </div>
 
         {/* Rastreamento */}
-        <div style={{ background:"#1a1a1a", borderRadius:"8px", padding:"14px", marginBottom:"16px" }}>
+        <div style={{ background:"var(--hover-row)", borderRadius:"8px", padding:"14px", marginBottom:"16px" }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"10px" }}>
-            <p style={{ fontSize:"12px", fontWeight:"600", color:"#606060", margin:0 }}>INFORMAÇÕES DE RASTREAMENTO</p>
+            <p style={{ fontSize:"12px", fontWeight:"600", color:"var(--text-secondary)", margin:0 }}>INFORMAÇÕES DE RASTREAMENTO</p>
             {!editando ? (
-              <button onClick={()=>setEditando(true)} style={{ fontSize:"11px", color:"#29ABE2", background:"none", border:"1px solid rgba(41,171,226,0.3)", borderRadius:"6px", padding:"3px 10px", cursor:"pointer" }}>Editar</button>
+              <button onClick={()=>setEditando(true)} style={{ fontSize:"11px", color:"var(--brand)", background:"none", border:"1px solid rgba(28,108,166,0.3)", borderRadius:"6px", padding:"3px 10px", cursor:"pointer" }}>Editar</button>
             ) : (
               <div style={{ display:"flex", gap:"6px" }}>
-                <button onClick={()=>setEditando(false)} style={{ fontSize:"11px", color:"#606060", background:"none", border:"1px solid #2e2e2e", borderRadius:"6px", padding:"3px 10px", cursor:"pointer" }}>Cancelar</button>
-                <button onClick={salvarRastreio} disabled={salvandoRastreio} style={{ fontSize:"11px", color:"#000", background:"#29ABE2", border:"none", borderRadius:"6px", padding:"3px 10px", cursor:"pointer", fontWeight:"600" }}>{salvandoRastreio?"Salvando...":"Salvar"}</button>
+                <button onClick={()=>setEditando(false)} style={{ fontSize:"11px", color:"var(--text-secondary)", background:"none", border:"1px solid var(--border)", borderRadius:"6px", padding:"3px 10px", cursor:"pointer" }}>Cancelar</button>
+                <button onClick={salvarRastreio} disabled={salvandoRastreio} style={{ fontSize:"11px", color:"#FFFFFF", background:"var(--brand)", border:"none", borderRadius:"6px", padding:"3px 10px", cursor:"pointer", fontWeight:"600" }}>{salvandoRastreio?"Salvando...":"Salvar"}</button>
               </div>
             )}
           </div>
@@ -251,37 +281,38 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, eta
           {editando ? (
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"10px" }}>
               <div>
-                <p style={{ fontSize:"10px", color:"#505050", margin:"0 0 4px" }}>Origem</p>
+                <p style={{ fontSize:"10px", color:"var(--text-secondary)", margin:"0 0 4px" }}>Origem</p>
                 <select value={editDados.origem} onChange={e=>setEditDados(d=>({...d,origem:e.target.value}))}
                   style={{ ...inputStyle, cursor:"pointer" }}>
                   <option value="Meta Ads">Meta Ads</option>
-                  <option value="Google Ads">Google Ads</option>
+                  <option value="Formulário Meta">Formulário Meta</option>
+                  <option value="Social Selling">Social Selling</option>
                   <option value="Outras Origens">Outras Origens</option>
                   <option value="Não Rastreada">Não Rastreada</option>
                 </select>
               </div>
               <div>
-                <p style={{ fontSize:"10px", color:"#505050", margin:"0 0 4px" }}>Nome do Link</p>
+                <p style={{ fontSize:"10px", color:"var(--text-secondary)", margin:"0 0 4px" }}>Nome do Link</p>
                 <input value={editDados.link_nome} onChange={e=>setEditDados(d=>({...d,link_nome:e.target.value}))} style={inputStyle} placeholder="Ex: Link Instagram"/>
               </div>
               <div>
-                <p style={{ fontSize:"10px", color:"#505050", margin:"0 0 4px" }}>utm_source</p>
+                <p style={{ fontSize:"10px", color:"var(--text-secondary)", margin:"0 0 4px" }}>Origem (utm_source)</p>
                 <input value={editDados.utm_source} onChange={e=>setEditDados(d=>({...d,utm_source:e.target.value}))} style={inputStyle} placeholder="Ex: facebook"/>
               </div>
               <div>
-                <p style={{ fontSize:"10px", color:"#505050", margin:"0 0 4px" }}>utm_medium</p>
+                <p style={{ fontSize:"10px", color:"var(--text-secondary)", margin:"0 0 4px" }}>Meio (utm_medium)</p>
                 <input value={editDados.utm_medium} onChange={e=>setEditDados(d=>({...d,utm_medium:e.target.value}))} style={inputStyle} placeholder="Ex: cpc"/>
               </div>
               <div>
-                <p style={{ fontSize:"10px", color:"#505050", margin:"0 0 4px" }}>Campanha (utm_campaign)</p>
+                <p style={{ fontSize:"10px", color:"var(--text-secondary)", margin:"0 0 4px" }}>Campanha (utm_campaign)</p>
                 <input value={editDados.utm_campaign} onChange={e=>setEditDados(d=>({...d,utm_campaign:e.target.value}))} style={inputStyle} placeholder="Ex: campanha-vendas"/>
               </div>
               <div>
-                <p style={{ fontSize:"10px", color:"#505050", margin:"0 0 4px" }}>Conjunto/Anúncio (utm_content)</p>
+                <p style={{ fontSize:"10px", color:"var(--text-secondary)", margin:"0 0 4px" }}>Conteúdo (utm_content)</p>
                 <input value={editDados.utm_content} onChange={e=>setEditDados(d=>({...d,utm_content:e.target.value}))} style={inputStyle} placeholder="Ex: conjunto_anuncio"/>
               </div>
               <div style={{ gridColumn:"1 / -1" }}>
-                <p style={{ fontSize:"10px", color:"#505050", margin:"0 0 4px" }}>fbclid</p>
+                <p style={{ fontSize:"10px", color:"var(--text-secondary)", margin:"0 0 4px" }}>fbclid</p>
                 <input value={editDados.fbclid} onChange={e=>setEditDados(d=>({...d,fbclid:e.target.value}))} style={inputStyle} placeholder="Ex: abc123..."/>
               </div>
             </div>
@@ -289,25 +320,49 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, eta
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"10px" }}>
               {camposVisuais.map(c => (
                 <div key={c.label}>
-                  <p style={{ fontSize:"10px", color:"#505050", margin:"0 0 2px" }}>{c.label}</p>
-                  <div style={{ fontSize:"12px", color:"#f0f0f0" }}>{c.value}</div>
+                  <p style={{ fontSize:"10px", color:"var(--text-secondary)", margin:"0 0 2px" }}>{c.label}</p>
+                  <div style={{ fontSize:"12px", color:"var(--navy)" }}>{c.value}</div>
                 </div>
               ))}
             </div>
           )}
         </div>
 
+        {/* Respostas do formulário */}
+        {respostasForm && (
+          <div style={{ background:"var(--hover-row)", borderRadius:"8px", padding:"14px", marginBottom:"16px" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"10px" }}>
+              <p style={{ fontSize:"12px", fontWeight:"600", color:"var(--text-secondary)", margin:0 }}>FORMULÁRIO PREENCHIDO</p>
+              <span style={{ fontSize:"10px", color:"var(--text-secondary)" }}>
+                {new Date(respostasForm.created_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}
+              </span>
+            </div>
+            <p style={{ fontSize:"11px", color:"var(--brand)", fontWeight:"600", margin:"0 0 10px" }}>{respostasForm.formulario}</p>
+            <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
+              {respostasForm.perguntas
+                .filter((p:any) => !["welcome","video","obrigado","galeria"].includes(p.tipo) && respostasForm.respostas[p.id])
+                .map((p:any) => (
+                  <div key={p.id}>
+                    <p style={{ fontSize:"10px", color:"var(--text-secondary)", margin:"0 0 2px" }}>{p.label}</p>
+                    <p style={{ fontSize:"12px", color:"var(--navy)", margin:0 }}>{respostasForm.respostas[p.id]}</p>
+                  </div>
+                ))
+              }
+            </div>
+          </div>
+        )}
+
         {/* Etapas da jornada */}
         <div>
-          <p style={{ fontSize:"12px", fontWeight:"600", color:"#606060", marginBottom:"10px" }}>ETAPA DA JORNADA</p>
+          <p style={{ fontSize:"12px", fontWeight:"600", color:"var(--text-secondary)", marginBottom:"10px" }}>ETAPA DA JORNADA</p>
           <div style={{ display:"flex", flexWrap:"wrap", gap:"8px" }}>
             {etapas.map(e => {
               const cor = getCorEtapa(e.nome);
               const ativa = etapa === e.nome;
               return (
                 <button key={e.id} onClick={()=>salvarEtapa(e.nome)} style={{
-                  padding:"6px 14px", borderRadius:"20px", border:`1px solid ${ativa?cor:"#2e2e2e"}`,
-                  background:ativa?`${cor}20`:"transparent", color:ativa?cor:"#606060",
+                  padding:"6px 14px", borderRadius:"20px", border:`1px solid ${ativa?cor:"var(--border)"}`,
+                  background:ativa?`${cor}18`:"transparent", color:ativa?cor:"var(--text-secondary)",
                   cursor:"pointer", fontSize:"12px", fontWeight:ativa?"600":"400",
                 }}>
                   {e.nome}
@@ -321,28 +376,28 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, eta
         {/* Histórico de transições */}
         {historico.length > 0 && (
           <div style={{ marginTop:"16px" }}>
-            <p style={{ fontSize:"12px", fontWeight:"600", color:"#606060", marginBottom:"10px" }}>HISTÓRICO DE TRANSIÇÕES</p>
-            <div style={{ background:"#1a1a1a", borderRadius:"8px", padding:"12px" }}>
+            <p style={{ fontSize:"12px", fontWeight:"600", color:"var(--text-secondary)", marginBottom:"10px" }}>HISTÓRICO DE TRANSIÇÕES</p>
+            <div style={{ background:"var(--hover-row)", borderRadius:"8px", padding:"12px" }}>
               {historico.map((h, i) => {
                 const data = new Date(h.created_at);
                 const dataStr = data.toLocaleString("pt-BR", { day:"2-digit", month:"2-digit", year:"2-digit", hour:"2-digit", minute:"2-digit" });
                 const corNova = getCorEtapa(h.etapa_nova);
                 return (
-                  <div key={i} style={{ display:"flex", alignItems:"flex-start", gap:"10px", paddingBottom: i < historico.length - 1 ? "10px" : "0", marginBottom: i < historico.length - 1 ? "10px" : "0", borderBottom: i < historico.length - 1 ? "1px solid #2e2e2e" : "none" }}>
+                  <div key={i} style={{ display:"flex", alignItems:"flex-start", gap:"10px", paddingBottom: i < historico.length - 1 ? "10px" : "0", marginBottom: i < historico.length - 1 ? "10px" : "0", borderBottom: i < historico.length - 1 ? "1px solid var(--border)" : "none" }}>
                     <div style={{ width:"8px", height:"8px", borderRadius:"50%", background:corNova, marginTop:"4px", flexShrink:0 }}/>
                     <div style={{ flex:1 }}>
                       <div style={{ display:"flex", alignItems:"center", gap:"6px", flexWrap:"wrap" }}>
                         {h.etapa_anterior && (
                           <>
-                            <span style={{ fontSize:"12px", color:"#606060" }}>{h.etapa_anterior}</span>
-                            <span style={{ fontSize:"10px", color:"#404040" }}>→</span>
+                            <span style={{ fontSize:"12px", color:"var(--text-secondary)" }}>{h.etapa_anterior}</span>
+                            <span style={{ fontSize:"10px", color:"var(--text-secondary)" }}>→</span>
                           </>
                         )}
                         <span style={{ fontSize:"12px", fontWeight:"600", color:corNova }}>{h.etapa_nova}</span>
                       </div>
                       <div style={{ display:"flex", gap:"8px", marginTop:"2px" }}>
-                        <span style={{ fontSize:"10px", color:"#505050" }}>{dataStr}</span>
-                        <span style={{ fontSize:"10px", color:"#404040" }}>{h.alterado_por === "automatico" ? "via termo-chave" : "manual"}</span>
+                        <span style={{ fontSize:"10px", color:"var(--text-secondary)" }}>{dataStr}</span>
+                        <span style={{ fontSize:"10px", color:"var(--text-secondary)" }}>{h.alterado_por === "automatico" ? "via termo-chave" : "manual"}</span>
                       </div>
                     </div>
                   </div>
@@ -353,19 +408,19 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, eta
         )}
 
         {/* Finalizar Atendimento */}
-        <div style={{ marginTop:"20px", borderTop:"1px solid #2e2e2e", paddingTop:"16px" }}>
+        <div style={{ marginTop:"20px", borderTop:"1px solid var(--border)", paddingTop:"16px" }}>
           {finalizado ? (
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-              <span style={{ fontSize:"12px", color:"#22c55e", display:"flex", alignItems:"center", gap:"6px" }}>
-                <span style={{ width:"8px", height:"8px", borderRadius:"50%", background:"#22c55e", display:"inline-block" }}/>
+              <span style={{ fontSize:"12px", color:"var(--success)", display:"flex", alignItems:"center", gap:"6px" }}>
+                <span style={{ width:"8px", height:"8px", borderRadius:"50%", background:"var(--success)", display:"inline-block" }}/>
                 Atendimento finalizado
               </span>
-              <button onClick={toggleFinalizar} disabled={finalizando} style={{ fontSize:"11px", color:"#606060", background:"none", border:"1px solid #2e2e2e", borderRadius:"6px", padding:"4px 12px", cursor:"pointer" }}>
+              <button onClick={toggleFinalizar} disabled={finalizando} style={{ fontSize:"11px", color:"var(--text-secondary)", background:"none", border:"1px solid var(--border)", borderRadius:"6px", padding:"4px 12px", cursor:"pointer" }}>
                 {finalizando ? "..." : "Reabrir"}
               </button>
             </div>
           ) : (
-            <button onClick={toggleFinalizar} disabled={finalizando} style={{ width:"100%", padding:"9px", borderRadius:"8px", background:"transparent", border:"1px solid #ef444440", color:"#ef4444", fontSize:"13px", fontWeight:"600", cursor:"pointer" }}>
+            <button onClick={toggleFinalizar} disabled={finalizando} style={{ width:"100%", padding:"9px", borderRadius:"8px", background:"transparent", border:"1px solid rgba(180,35,24,0.25)", color:"var(--alert-text)", fontSize:"13px", fontWeight:"600", cursor:"pointer" }}>
               {finalizando ? "Finalizando..." : "Finalizar Atendimento"}
             </button>
           )}
@@ -404,7 +459,7 @@ function MidiaMsg({ msg, conversa }: { msg: Mensagem; conversa: Conversa }) {
 
   useEffect(() => { carregar(); }, []);
 
-  const corTexto = msg.de_mim ? "#000" : "#f0f0f0";
+  const corTexto = msg.de_mim ? "#FFFFFF" : "var(--navy)";
 
   if (erro) return <p style={{ fontSize:"12px", color:"#606060", margin:0, fontStyle:"italic" }}>{msg.conteudo}</p>;
   if (loading) return <p style={{ fontSize:"12px", color:"#606060", margin:0 }}>Carregando mídia...</p>;
@@ -447,7 +502,7 @@ function MidiaMsg({ msg, conversa }: { msg: Mensagem; conversa: Conversa }) {
   if (msg.tipo === "document" && media) {
     const src = media.startsWith("data:") ? media : `data:${mime || "application/pdf"};base64,${media}`;
     return (
-      <a href={src} download={msg.conteudo || "documento"} style={{ color:"#29ABE2", fontSize:"13px", textDecoration:"underline" }}>
+      <a href={src} download={msg.conteudo || "documento"} style={{ color:"var(--brand)", fontSize:"13px", textDecoration:"underline" }}>
         📄 {msg.conteudo || "Documento"}
       </a>
     );
@@ -473,9 +528,10 @@ function ChatLateral({ conversa, onClose }: { conversa: Conversa; onClose:()=>vo
 
   const carregar = async (scrollToEnd = true) => {
     const { data, count } = await supabase.from("mensagens").select("*", { count: "exact" })
-      .eq("conversa_id", conversa.id).order("created_at",{ascending:true});
-    setMensagens(data||[]);
-    setTodasCarregadas((count || 0) > 0);
+      .eq("conversa_id", conversa.id).order("created_at",{ascending:false}).limit(LIMIT);
+    const ordenadas = (data||[]).reverse();
+    setMensagens(ordenadas);
+    setTodasCarregadas((count || 0) <= LIMIT);
     if (scrollToEnd) setTimeout(()=>endRef.current?.scrollIntoView({behavior:"smooth"}),50);
   };
 
@@ -570,6 +626,20 @@ function ChatLateral({ conversa, onClose }: { conversa: Conversa; onClose:()=>vo
     })();
   },[conversa.id]);
 
+  // Realtime + polling: atualizar mensagens quando novas chegarem
+  useEffect(()=>{
+    const channel = supabase
+      .channel(`chat-mensagens-${conversa.id}`)
+      .on("postgres_changes",
+        { event: "INSERT", schema: "public", table: "mensagens", filter: `conversa_id=eq.${conversa.id}` },
+        () => { carregar(false); }
+      )
+      .subscribe();
+    // Fallback polling a cada 5s caso realtime falhe silenciosamente
+    const intervalo = setInterval(()=>carregar(false), 5000);
+    return () => { supabase.removeChannel(channel); clearInterval(intervalo); };
+  }, [conversa.id]);
+
   // Agrupar mensagens por dia
   const groupByDay = (msgs: Mensagem[]) => {
     const groups: { date: string; msgs: Mensagem[] }[] = [];
@@ -588,23 +658,23 @@ function ChatLateral({ conversa, onClose }: { conversa: Conversa; onClose:()=>vo
 
   return (
     <>
-      <div onClick={onClose} style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.3)",zIndex:150 }}/>
-      <div style={{ position:"fixed",right:0,top:0,bottom:0,width:"400px",background:"#141414",borderLeft:"1px solid #2e2e2e",zIndex:151,display:"flex",flexDirection:"column" }}>
-        <div style={{ padding:"12px 16px",borderBottom:"1px solid #2e2e2e",display:"flex",alignItems:"center",gap:"10px",background:"#1a1a1a" }}>
+      <div onClick={onClose} style={{ position:"fixed",inset:0,background:"rgba(10,24,38,0.3)",zIndex:150 }}/>
+      <div style={{ position:"fixed",right:0,top:0,bottom:0,width:"400px",background:"var(--card-bg)",borderLeft:"1px solid var(--border)",zIndex:151,display:"flex",flexDirection:"column" }}>
+        <div style={{ padding:"12px 16px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",gap:"10px",background:"var(--hover-row)" }}>
           <Avatar nome={conversa.contato_nome||conversa.contato_numero} foto={conversa.contato_foto} size={32}/>
           <div style={{ flex:1 }}>
-            <p style={{ fontSize:"13px",fontWeight:"600",color:"#f0f0f0",margin:0 }}>{conversa.contato_nome||"—"}</p>
-            <p style={{ fontSize:"11px",color:"#606060",margin:0 }}>{formatarNumero(conversa.contato_numero)}</p>
+            <p style={{ fontSize:"13px",fontWeight:"600",color:"var(--navy)",margin:0 }}>{conversa.contato_nome||"—"}</p>
+            <p style={{ fontSize:"11px",color:"var(--text-secondary)",margin:0 }}>{formatarNumero(conversa.contato_numero)}</p>
           </div>
-          <button onClick={onClose} style={{ background:"none",border:"none",cursor:"pointer",color:"#606060" }}><X size={16}/></button>
+          <button onClick={onClose} style={{ background:"none",border:"none",cursor:"pointer",color:"var(--text-secondary)" }}><X size={16}/></button>
         </div>
-        <div ref={chatRef} style={{ flex:1,overflowY:"auto",padding:"12px",display:"flex",flexDirection:"column",gap:"4px" }}>
+        <div ref={chatRef} style={{ flex:1,overflowY:"auto",padding:"12px",display:"flex",flexDirection:"column",gap:"4px",background:"var(--off-white)" }}>
           {/* Botão carregar mais antigas */}
           {!todasCarregadas && (
             <button onClick={carregarMaisAntigas} disabled={carregandoAntigas}
               style={{
-                alignSelf:"center", background:"rgba(41,171,226,0.08)", border:"1px solid rgba(41,171,226,0.2)",
-                borderRadius:"20px", padding:"8px 16px", cursor:"pointer", color:"#29ABE2",
+                alignSelf:"center", background:"rgba(28,108,166,0.08)", border:"1px solid rgba(28,108,166,0.2)",
+                borderRadius:"20px", padding:"8px 16px", cursor:"pointer", color:"var(--brand)",
                 fontSize:"12px", marginBottom:"8px", display:"flex", alignItems:"center", gap:"6px",
                 opacity: carregandoAntigas ? 0.6 : 1,
               }}>
@@ -616,20 +686,20 @@ function ChatLateral({ conversa, onClose }: { conversa: Conversa; onClose:()=>vo
             <div key={group.date}>
               {/* Separador de dia */}
               <div style={{ display:"flex", alignItems:"center", gap:"10px", margin:"8px 0 12px" }}>
-                <div style={{ flex:1, height:"1px", background:"#2e2e2e" }}/>
-                <span style={{ fontSize:"11px", color:"#606060", whiteSpace:"nowrap" }}>{group.date}</span>
-                <div style={{ flex:1, height:"1px", background:"#2e2e2e" }}/>
+                <div style={{ flex:1, height:"1px", background:"var(--border)" }}/>
+                <span style={{ fontSize:"11px", color:"var(--text-secondary)", whiteSpace:"nowrap" }}>{group.date}</span>
+                <div style={{ flex:1, height:"1px", background:"var(--border)" }}/>
               </div>
               <div style={{ display:"flex", flexDirection:"column", gap:"6px" }}>
                 {group.msgs.map(m=>(
                   <div key={m.id} style={{ display:"flex",justifyContent:m.de_mim?"flex-end":"flex-start" }}>
-                    <div style={{ maxWidth:"80%",background:m.de_mim?"#29ABE2":"#1e1e1e",borderRadius:m.de_mim?"12px 12px 2px 12px":"12px 12px 12px 2px",padding:"8px 12px" }}>
+                    <div style={{ maxWidth:"80%",background:m.de_mim?"var(--brand)":"var(--card-bg)",borderRadius:m.de_mim?"12px 12px 2px 12px":"12px 12px 12px 2px",padding:"8px 12px",boxShadow:"var(--shadow-card)" }}>
                       {m.tipo && m.tipo !== "text" ? (
                         <MidiaMsg msg={m} conversa={conversa} />
                       ) : (
-                        <p style={{ fontSize:"13px",color:m.de_mim?"#000":"#f0f0f0",margin:0,whiteSpace:"pre-wrap" }}>{m.conteudo}</p>
+                        <p style={{ fontSize:"13px",color:m.de_mim?"#FFFFFF":"var(--navy)",margin:0,whiteSpace:"pre-wrap" }}>{m.conteudo}</p>
                       )}
-                      <p style={{ fontSize:"10px",color:m.de_mim?"rgba(0,0,0,0.5)":"#606060",margin:"3px 0 0",textAlign:"right" }}>
+                      <p style={{ fontSize:"10px",color:m.de_mim?"rgba(255,255,255,0.65)":"var(--text-secondary)",margin:"3px 0 0",textAlign:"right" }}>
                         {new Date(m.created_at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}
                       </p>
                     </div>
@@ -641,22 +711,22 @@ function ChatLateral({ conversa, onClose }: { conversa: Conversa; onClose:()=>vo
           <div ref={endRef}/>
         </div>
         {funilFeedback && (
-          <div style={{ padding:"6px 12px",background:"#1a2e1a",borderTop:"1px solid #22c55e33",display:"flex",alignItems:"center",gap:"6px",animation:"fadeIn 0.2s ease" }}>
-            <Zap size={12} color="#22c55e"/>
-            <span style={{ fontSize:"12px",color:"#22c55e" }}>{funilFeedback}</span>
+          <div style={{ padding:"6px 12px",background:"var(--success-bg)",borderTop:"1px solid rgba(30,107,82,0.2)",display:"flex",alignItems:"center",gap:"6px",animation:"fadeIn 0.2s ease" }}>
+            <Zap size={12} color="var(--success)"/>
+            <span style={{ fontSize:"12px",color:"var(--success)" }}>{funilFeedback}</span>
           </div>
         )}
-        <div style={{ padding:"10px 12px",borderTop:"1px solid #2e2e2e",background:"#1a1a1a",display:"flex",gap:"8px",position:"relative" }}>
+        <div style={{ padding:"10px 12px",borderTop:"1px solid var(--border)",background:"var(--card-bg)",display:"flex",gap:"8px",position:"relative" }}>
           {/* Botão Funis */}
           {funisDisponiveis.length > 0 && (
             <div style={{ position:"relative" }}>
               <button onClick={()=>setShowFunis(!showFunis)} title="Disparar funil"
-                style={{ background:showFunis?"rgba(245,158,11,0.15)":"#222",border:`1px solid ${showFunis?"#f59e0b":"#2e2e2e"}`,borderRadius:"8px",padding:"8px",cursor:"pointer",color:showFunis?"#f59e0b":"#606060",flexShrink:0 }}>
+                style={{ background:showFunis?"rgba(28,108,166,0.1)":"var(--hover-row)",border:`1px solid ${showFunis?"var(--brand)":"var(--border)"}`,borderRadius:"8px",padding:"8px",cursor:"pointer",color:showFunis?"var(--brand)":"var(--text-secondary)",flexShrink:0 }}>
                 <Zap size={14}/>
               </button>
               {showFunis && (
-                <div style={{ position:"absolute",bottom:"100%",left:0,marginBottom:"6px",background:"#1e1e1e",border:"1px solid #2e2e2e",borderRadius:"10px",padding:"6px",minWidth:"200px",zIndex:10,boxShadow:"0 4px 20px rgba(0,0,0,0.4)" }}>
-                  <p style={{ fontSize:"11px",color:"#606060",padding:"4px 8px",margin:0 }}>Disparar funil</p>
+                <div style={{ position:"absolute",bottom:"100%",left:0,marginBottom:"6px",background:"var(--card-bg)",border:"1px solid var(--border)",borderRadius:"10px",padding:"6px",minWidth:"200px",zIndex:10,boxShadow:"var(--shadow-hover)" }}>
+                  <p style={{ fontSize:"11px",color:"var(--text-secondary)",padding:"4px 8px",margin:0 }}>Disparar funil</p>
                   {funisDisponiveis.map(f=>(
                     <button key={f.id} disabled={disparandoFunil} onClick={async()=>{
                       setDisparandoFunil(true);
@@ -674,10 +744,10 @@ function ChatLateral({ conversa, onClose }: { conversa: Conversa; onClose:()=>vo
                         setTimeout(()=>setFunilFeedback(""),4000);
                       } catch{} finally{setDisparandoFunil(false);}
                     }}
-                      style={{ display:"flex",alignItems:"center",gap:"8px",width:"100%",padding:"8px 10px",background:"none",border:"none",borderRadius:"6px",cursor:"pointer",color:"#f0f0f0",fontSize:"13px",textAlign:"left" }}
-                      onMouseOver={e=>(e.currentTarget.style.background="#2a2a2a")}
+                      style={{ display:"flex",alignItems:"center",gap:"8px",width:"100%",padding:"8px 10px",background:"none",border:"none",borderRadius:"6px",cursor:"pointer",color:"var(--navy)",fontSize:"13px",textAlign:"left" }}
+                      onMouseOver={e=>(e.currentTarget.style.background="var(--hover-row)")}
                       onMouseOut={e=>(e.currentTarget.style.background="none")}>
-                      <Zap size={12} color="#f59e0b"/> {f.nome}
+                      <Zap size={12} color="var(--caution-text)"/> {f.nome}
                     </button>
                   ))}
                 </div>
@@ -688,12 +758,49 @@ function ChatLateral({ conversa, onClose }: { conversa: Conversa; onClose:()=>vo
             onChange={e=>setTexto(e.target.value)}
             onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();enviar();}}}
             style={{ flex:1,margin:0 }}/>
-          <button onClick={enviar} disabled={enviando||!texto.trim()} style={{ background:"#29ABE2",border:"none",borderRadius:"8px",padding:"8px 12px",cursor:"pointer",color:"#000",flexShrink:0 }}>
+          <button onClick={enviar} disabled={enviando||!texto.trim()} style={{ background:"var(--brand)",border:"none",borderRadius:"8px",padding:"8px 12px",cursor:"pointer",color:"#FFFFFF",flexShrink:0 }}>
             <Send size={14}/>
           </button>
         </div>
       </div>
     </>
+  );
+}
+
+// Select com busca
+function SearchSelect({ value, onChange, options, placeholder }: { value: string; onChange: (v: string) => void; options: string[]; placeholder?: string }) {
+  const [busca, setBusca] = useState("");
+  const [aberto, setAberto] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const filtrados = options.filter(o => o.toLowerCase().includes(busca.toLowerCase()));
+  useEffect(() => {
+    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setAberto(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+  return (
+    <div ref={ref} style={{ position:"relative" }}>
+      <div onClick={() => setAberto(a => !a)} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", background:"var(--card-bg)", border:"1px solid var(--border)", borderRadius:"6px", padding:"7px 10px", cursor:"pointer", color: value ? "var(--navy)" : "var(--text-secondary)", fontSize:"13px" }}>
+        <span style={{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{value || placeholder || "Todos"}</span>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ flexShrink:0, marginLeft:"6px" }}><path d="M2 3.5L5 6.5L8 3.5" stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round"/></svg>
+      </div>
+      {aberto && (
+        <div style={{ position:"absolute", top:"100%", left:0, right:0, zIndex:999, background:"var(--card-bg)", border:"1px solid var(--border)", borderRadius:"6px", marginTop:"4px", overflow:"hidden", boxShadow:"var(--shadow-hover)" }}>
+          <input autoFocus value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar..." style={{ width:"100%", background:"var(--hover-row)", border:"none", borderBottom:"1px solid var(--border)", padding:"8px 10px", color:"var(--navy)", fontSize:"12px", boxSizing:"border-box", outline:"none" }}/>
+          <div style={{ maxHeight:"180px", overflowY:"auto" }}>
+            <div onClick={() => { onChange(""); setBusca(""); setAberto(false); }} style={{ padding:"7px 10px", cursor:"pointer", color:"var(--text-secondary)", fontSize:"13px" }} onMouseOver={e=>(e.currentTarget.style.background="var(--hover-row)")} onMouseOut={e=>(e.currentTarget.style.background="")}>
+              {placeholder || "Todos"}
+            </div>
+            {filtrados.map(o => (
+              <div key={o} onClick={() => { onChange(o); setBusca(""); setAberto(false); }} style={{ padding:"7px 10px", cursor:"pointer", color:"var(--navy)", fontSize:"13px", background: value === o ? "var(--hover-row)" : "" }} onMouseOver={e=>(e.currentTarget.style.background="var(--hover-row)")} onMouseOut={e=>(e.currentTarget.style.background=value===o?"var(--hover-row)":"")}>
+                {o}
+              </div>
+            ))}
+            {filtrados.length === 0 && <div style={{ padding:"7px 10px", color:"var(--text-secondary)", fontSize:"12px" }}>Nenhum resultado</div>}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -707,6 +814,7 @@ function FiltrosAvancados({ conversas, filtros, onChange, onClose, etapas }: { c
   const links = uniq(conversas.map(c=>c.link_nome));
   const sources = uniq(conversas.map(c=>c.utm_source));
   const mediums = uniq(conversas.map(c=>c.utm_medium));
+  const origens = uniq(conversas.map(c=>c.origem));
 
   // Campanhas/Conjuntos/Criativos — mesclar Meta Ads API + leads + conversas
   const convCampanhas = uniq(conversas.map(c => c.utm_campaign));
@@ -779,11 +887,7 @@ function FiltrosAvancados({ conversas, filtros, onChange, onClose, etapas }: { c
               <label className="form-label">Origem</label>
               <select className="form-input" value={local.origem||""} onChange={e=>set("origem",e.target.value)}>
                 <option value="">Todas</option>
-                <option value="Meta Ads">Meta Ads</option>
-                <option value="Formulário Meta">Formulário Meta</option>
-                <option value="Google Ads">Google Ads</option>
-                <option value="Outras Origens">Outras Origens</option>
-                <option value="Não Rastreada">Não Rastreada</option>
+                {origens.map(o => <option key={o} value={o}>{o}</option>)}
               </select>
             </div>
             <div className="form-group">
@@ -799,21 +903,21 @@ function FiltrosAvancados({ conversas, filtros, onChange, onClose, etapas }: { c
           <div className="form-group">
             <label className="form-label">Data da Última Mensagem</label>
             <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px" }}>
-              <input className="form-input" type="date" placeholder="De" value={local.dataUltimaDe||""} onChange={e=>set("dataUltimaDe",e.target.value)} title="De"/>
+              <input className="form-input" type="date" placeholder="De" value={local.dataUltimaDe||""} onChange={e=>{set("dataUltimaDe",e.target.value); if(!local.dataUltimaAte) set("dataUltimaAte",e.target.value);}} title="De"/>
               <input className="form-input" type="date" placeholder="Até" value={local.dataUltimaAte||""} onChange={e=>set("dataUltimaAte",e.target.value)} title="Até"/>
             </div>
           </div>
           <div className="form-group">
             <label className="form-label">Data da Primeira Mensagem</label>
             <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px" }}>
-              <input className="form-input" type="date" placeholder="De" value={local.dataPrimeiraDe||""} onChange={e=>set("dataPrimeiraDe",e.target.value)} title="De"/>
+              <input className="form-input" type="date" placeholder="De" value={local.dataPrimeiraDe||""} onChange={e=>{set("dataPrimeiraDe",e.target.value); if(!local.dataPrimeiraAte) set("dataPrimeiraAte",e.target.value);}} title="De"/>
               <input className="form-input" type="date" placeholder="Até" value={local.dataPrimeiraAte||""} onChange={e=>set("dataPrimeiraAte",e.target.value)} title="Até"/>
             </div>
           </div>
           <div className="form-group">
             <label className="form-label">Data da Última Alteração de Etapa</label>
             <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px" }}>
-              <input className="form-input" type="date" placeholder="De" value={local.dataEtapaDe||""} onChange={e=>set("dataEtapaDe",e.target.value)} title="De"/>
+              <input className="form-input" type="date" placeholder="De" value={local.dataEtapaDe||""} onChange={e=>{set("dataEtapaDe",e.target.value); if(!local.dataEtapaAte) set("dataEtapaAte",e.target.value);}} title="De"/>
               <input className="form-input" type="date" placeholder="Até" value={local.dataEtapaAte||""} onChange={e=>set("dataEtapaAte",e.target.value)} title="Até"/>
             </div>
           </div>
@@ -855,25 +959,16 @@ function FiltrosAvancados({ conversas, filtros, onChange, onClose, etapas }: { c
           <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px" }}>
             <div className="form-group">
               <label className="form-label">Campanha de Anúncio</label>
-              <select className="form-input" value={local.campanha||""} onChange={e=>set("campanha",e.target.value)}>
-                <option value="">Todas</option>
-                {campanhas.map(c=><option key={c} value={c}>{c}</option>)}
-              </select>
+              <SearchSelect value={local.campanha||""} onChange={v=>set("campanha",v)} options={campanhas} placeholder="Todas"/>
             </div>
             <div className="form-group">
               <label className="form-label">Conjunto de Anúncio</label>
-              <select className="form-input" value={local.conjunto||""} onChange={e=>set("conjunto",e.target.value)}>
-                <option value="">Todos</option>
-                {conjuntos.map(c=><option key={c} value={c}>{c}</option>)}
-              </select>
+              <SearchSelect value={local.conjunto||""} onChange={v=>set("conjunto",v)} options={conjuntos} placeholder="Todos"/>
             </div>
           </div>
           <div className="form-group">
             <label className="form-label">Criativo</label>
-            <select className="form-input" value={local.anuncio||""} onChange={e=>set("anuncio",e.target.value)}>
-              <option value="">Todos</option>
-              {anuncios.map(c=><option key={c} value={c}>{c}</option>)}
-            </select>
+            <SearchSelect value={local.anuncio||""} onChange={v=>set("anuncio",v)} options={anuncios} placeholder="Todos"/>
           </div>
         </div>
 
@@ -885,6 +980,9 @@ function FiltrosAvancados({ conversas, filtros, onChange, onClose, etapas }: { c
     </div>
   );
 }
+
+const PAGE_SIZE = 100;
+const CONVERSAS_SELECT = "id,contato_numero,contato_nome,contato_foto,contato_jid,ultima_mensagem,ultima_mensagem_at,primeira_mensagem_at,etapa_alterada_at,nao_lidas,origem,etapa_jornada,leadgen_id,utm_source,utm_medium,utm_campaign,utm_content,utm_term,link_nome,fbclid,nome_anuncio,created_at,finalizado_at,agendou_at";
 
 export default function InboxPage() {
   const [conversas, setConversas] = useState<Conversa[]>([]);
@@ -899,10 +997,17 @@ export default function InboxPage() {
   const [syncLeadsMeta, setSyncLeadsMeta] = useState(false);
   const [syncProgresso, setSyncProgresso] = useState("");
   const [autoRastreando, setAutoRastreando] = useState(false);
+  const [reclassificando, setReclassificando] = useState(false);
   const [importandoTintim, setImportandoTintim] = useState(false);
+  const [acoesAberto, setAcoesAberto] = useState(false);
+  const acoesRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [enviandoCrm, setEnviandoCrm] = useState<Set<string>>(new Set());
   const [enviadosCrm, setEnviadosCrm] = useState<Set<string>>(new Set());
+  const [pagina, setPagina] = useState(0);
+  const [temMais, setTemMais] = useState(false);
+  const [carregandoMais, setCarregandoMais] = useState(false);
+  const [kpisDb, setKpisDb] = useState({ total: 0, meta: 0, formulario: 0, google: 0, outras: 0, naoRastreada: 0 });
 
   const mapEtapaCrm = (etapaInbox?: string): string => {
     const mapa: Record<string, string> = {
@@ -938,14 +1043,35 @@ export default function InboxPage() {
     finally { setEnviandoCrm(prev => { const s = new Set(prev); s.delete(c.id); return s; }); }
   };
 
+  const carregarKpis = useCallback(async (agId: string) => {
+    const [t, m, f, g, o] = await Promise.all([
+      supabase.from("conversas").select("*",{count:'exact',head:true}).eq("agencia_id",agId),
+      supabase.from("conversas").select("*",{count:'exact',head:true}).eq("agencia_id",agId).eq("origem","Meta Ads"),
+      supabase.from("conversas").select("*",{count:'exact',head:true}).eq("agencia_id",agId).eq("origem","Formulário Meta"),
+      supabase.from("conversas").select("*",{count:'exact',head:true}).eq("agencia_id",agId).eq("origem","Google Ads"),
+      supabase.from("conversas").select("*",{count:'exact',head:true}).eq("agencia_id",agId)
+        .not("origem","is",null).neq("origem","Meta Ads").neq("origem","Formulário Meta").neq("origem","Google Ads").neq("origem","Não Rastreada"),
+    ]);
+    const total = t.count ?? 0;
+    const meta = m.count ?? 0;
+    const formulario = f.count ?? 0;
+    const google = g.count ?? 0;
+    const outras = o.count ?? 0;
+    setKpisDb({ total, meta, formulario, google, outras, naoRastreada: total - meta - formulario - google - outras });
+  }, []);
+
   const carregar = useCallback(async () => {
     const agId = await getAgenciaId();
     const [{ data: convs }, { data: etps }, { data: leadsExistentes }] = await Promise.all([
-      supabase.from("conversas").select("*").eq("agencia_id",agId!).order("ultima_mensagem_at",{ascending:false}),
+      supabase.from("conversas").select(CONVERSAS_SELECT).eq("agencia_id",agId!)
+        .order("ultima_mensagem_at",{ascending:false,nullsFirst:false})
+        .range(0, PAGE_SIZE - 1),
       supabase.from("jornada_etapas").select("*").eq("agencia_id",agId!).order("ordem"),
       supabase.from("leads").select("telefone").eq("agencia_id",agId!),
     ]);
     setConversas(convs||[]);
+    setPagina(1);
+    setTemMais((convs||[]).length === PAGE_SIZE);
     setEtapas(etps||[]);
     // Marcar conversas que já têm lead no CRM (pelo telefone)
     if (convs && leadsExistentes) {
@@ -959,7 +1085,23 @@ export default function InboxPage() {
       setEnviadosCrm(jaNoCrm);
     }
     setLoading(false);
-  }, []);
+    carregarKpis(agId!);
+  }, [carregarKpis]);
+
+  const carregarMais = async () => {
+    if (carregandoMais) return;
+    setCarregandoMais(true);
+    const agId = await getAgenciaId();
+    const inicio = pagina * PAGE_SIZE;
+    const { data: convs } = await supabase.from("conversas").select(CONVERSAS_SELECT)
+      .eq("agencia_id",agId!)
+      .order("ultima_mensagem_at",{ascending:false,nullsFirst:false})
+      .range(inicio, inicio + PAGE_SIZE - 1);
+    setConversas(prev => [...prev, ...(convs||[])]);
+    setPagina(p => p + 1);
+    setTemMais((convs||[]).length === PAGE_SIZE);
+    setCarregandoMais(false);
+  };
 
   const autoRastrear = async () => {
     setAutoRastreando(true);
@@ -1086,8 +1228,8 @@ export default function InboxPage() {
     if (f.anuncio && (c as any).nome_anuncio !== f.anuncio) return false;
     if (f.utmSource && c.utm_source !== f.utmSource) return false;
     if (f.utmMedium && c.utm_medium !== f.utmMedium) return false;
-    if (f.dataPrimeiraDe) { if (!c.primeira_mensagem_at) return false; if (toLocalDate(c.primeira_mensagem_at) < f.dataPrimeiraDe) return false; }
-    if (f.dataPrimeiraAte) { if (!c.primeira_mensagem_at) return false; if (toLocalDate(c.primeira_mensagem_at) > f.dataPrimeiraAte) return false; }
+    if (f.dataPrimeiraDe) { const dp = c.primeira_mensagem_at || c.created_at; if (!dp) return false; if (toLocalDate(dp) < f.dataPrimeiraDe) return false; }
+    if (f.dataPrimeiraAte) { const dp = c.primeira_mensagem_at || c.created_at; if (!dp) return false; if (toLocalDate(dp) > f.dataPrimeiraAte) return false; }
     if (f.dataEtapaDe) { if (!c.etapa_alterada_at) return false; if (toLocalDate(c.etapa_alterada_at) < f.dataEtapaDe) return false; }
     if (f.dataEtapaAte) { if (!c.etapa_alterada_at) return false; if (toLocalDate(c.etapa_alterada_at) > f.dataEtapaAte) return false; }
     if (f.dataUltimaDe && toLocalDate(c.ultima_mensagem_at) < f.dataUltimaDe) return false;
@@ -1095,18 +1237,19 @@ export default function InboxPage() {
     return matchBusca;
   });
 
-  // KPIs baseados nas conversas filtradas
-  const base = Object.keys(filtros).some(k => filtros[k]) ? filtradas : conversas;
-  const kpis = {
-    total: base.length,
-    meta: base.filter(c=>c.origem==="Meta Ads").length,
-    formulario: base.filter(c=>c.origem==="Formulário Meta").length,
-    google: base.filter(c=>c.origem==="Google Ads").length,
-    outras: base.filter(c=>c.origem&&c.origem!=="Meta Ads"&&c.origem!=="Google Ads"&&c.origem!=="Formulário Meta"&&c.origem!=="Não Rastreada").length,
-    naoRastreada: base.filter(c=>!c.origem||c.origem==="Não Rastreada").length,
-  };
+  // KPIs via count no banco (independente do slice carregado)
+  const kpis = kpisDb;
 
   const filtrosAtivos = Object.values(filtros).filter(Boolean).length;
+
+  // Auto-carregar tudo quando filtros estão ativos (evita resultado parcial)
+  const carregarMaisRef = useRef(carregarMais);
+  carregarMaisRef.current = carregarMais;
+  useEffect(() => {
+    if (filtrosAtivos > 0 && temMais && !carregandoMais) {
+      carregarMaisRef.current();
+    }
+  }, [filtrosAtivos, temMais, carregandoMais]);
 
   // ─── Importar CSV do Tintim ────────────────────────────────
   const importarTintim = async (file: File) => {
@@ -1243,13 +1386,13 @@ export default function InboxPage() {
           {icon:"🌐",label:"Outras",value:kpis.outras,filtro:"Outras Origens"},
           {icon:"❌",label:"Não Rastreada",value:kpis.naoRastreada,filtro:"Não Rastreada"},
         ].map(k=>(
-          <div key={k.label} className="card" style={{ padding:"12px 14px",cursor:"pointer",borderColor:filtros.origem===k.filtro&&k.filtro?"#29ABE2":"" }}
+          <div key={k.label} className="card" style={{ padding:"12px 14px",cursor:"pointer",borderColor:filtros.origem===k.filtro&&k.filtro?"var(--brand)":"" }}
             onClick={()=>setFiltros((f:any)=>({...f,origem:f.origem===k.filtro?"":k.filtro}))}>
             <div style={{ display:"flex",alignItems:"center",gap:"8px" }}>
               <span style={{ fontSize:"18px" }}>{k.icon}</span>
               <div>
-                <p style={{ fontSize:"11px",color:"#606060",margin:0 }}>{k.label}</p>
-                <p style={{ fontSize:"22px",fontWeight:"700",color:"#f0f0f0",margin:0,lineHeight:1 }}>{k.value}</p>
+                <p style={{ fontSize:"11px",color:"var(--text-secondary)",margin:0 }}>{k.label}</p>
+                <p style={{ fontSize:"22px",fontWeight:"700",color:"var(--navy)",margin:0,lineHeight:1 }}>{k.value}</p>
               </div>
             </div>
           </div>
@@ -1258,51 +1401,64 @@ export default function InboxPage() {
 
       {/* Barra de busca e filtros */}
       <div className="table-wrapper">
-        <div style={{ padding:"12px 16px",borderBottom:"1px solid #2e2e2e",display:"flex",gap:"10px",alignItems:"center" }}>
+        <div style={{ padding:"12px 16px",borderBottom:"1px solid var(--border)",display:"flex",gap:"10px",alignItems:"center" }}>
           <div style={{ position:"relative",flex:1 }}>
-            <Search size={13} style={{ position:"absolute",left:"10px",top:"50%",transform:"translateY(-50%)",color:"#606060" }}/>
+            <Search size={13} style={{ position:"absolute",left:"10px",top:"50%",transform:"translateY(-50%)",color:"var(--text-secondary)" }}/>
             <input className="search-input" placeholder="Telefone ou nome..." value={busca}
               onChange={e=>setBusca(e.target.value)} style={{ paddingLeft:"32px" }}/>
           </div>
           <button onClick={()=>setFiltrosAbertos(true)} className="btn-secondary" style={{ cursor:"pointer",fontSize:"12px",padding:"7px 12px",position:"relative" }}>
             <Filter size={13}/> Filtros
-            {filtrosAtivos > 0 && <span style={{ position:"absolute",top:"-4px",right:"-4px",background:"#29ABE2",color:"#000",fontSize:"9px",fontWeight:"800",borderRadius:"50%",width:"14px",height:"14px",display:"flex",alignItems:"center",justifyContent:"center" }}>{filtrosAtivos}</span>}
+            {filtrosAtivos > 0 && <span style={{ position:"absolute",top:"-4px",right:"-4px",background:"var(--brand)",color:"#FFFFFF",fontSize:"9px",fontWeight:"800",borderRadius:"50%",width:"14px",height:"14px",display:"flex",alignItems:"center",justifyContent:"center" }}>{filtrosAtivos}</span>}
           </button>
           {filtrosAtivos > 0 && (
-            <button onClick={()=>setFiltros({})} className="btn-ghost" style={{ cursor:"pointer",fontSize:"12px",color:"#ef4444" }}>
+            <button onClick={()=>setFiltros({})} className="btn-ghost" style={{ cursor:"pointer",fontSize:"12px",color:"var(--alert-text)" }}>
               <X size={12}/> Limpar
             </button>
           )}
           <button onClick={carregar} className="btn-ghost" style={{ padding:"8px",cursor:"pointer" }}><RefreshCw size={14}/></button>
-          <button onClick={autoRastrear} disabled={autoRastreando} className="btn-secondary" style={{ cursor:"pointer",fontSize:"12px",padding:"7px 12px",borderColor:autoRastreando?"#29ABE2":"" }}>
-            <Search size={12} style={{ animation:autoRastreando?"spin 1s linear infinite":"none" }}/>
-            {autoRastreando?"Rastreando...":"Auto-rastrear"}
-          </button>
-          <button onClick={sincronizarTudo} disabled={sincronizandoTudo} className="btn-secondary" style={{ cursor:"pointer",fontSize:"12px",padding:"7px 12px" }}>
-            <RefreshCw size={12} style={{ animation:sincronizandoTudo?"spin 1s linear infinite":"none" }}/>
-            {sincronizandoTudo?(syncProgresso||"Importando..."):"Importar tudo"}
-          </button>
-          <button onClick={async()=>{
-            setSyncLeadsMeta(true);
-            try {
-              const agId = await getAgenciaId();
-              const res = await fetch("/api/meta/sync-leads",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({agencia_id:agId})});
-              const data = await res.json();
-              if(data.ok) alert(`Sync concluído! ${data.campanhas} campanhas, ${data.ads} anúncios, ${data.sincronizados} leads, ${data.novos} novos`);
-              else alert(`Erro: ${data.error||data.motivo}`);
-              carregar();
-            } catch(e:any){alert("Erro: "+e.message);}
-            setSyncLeadsMeta(false);
-          }} disabled={syncLeadsMeta} className="btn-secondary" style={{ cursor:"pointer",fontSize:"12px",padding:"7px 12px",borderColor:syncLeadsMeta?"#22c55e":"" }}>
-            <RefreshCw size={12} style={{ animation:syncLeadsMeta?"spin 1s linear infinite":"none" }}/>
-            {syncLeadsMeta?"Sincronizando...":"Sync Leads Meta"}
-          </button>
-          <input ref={fileInputRef} type="file" accept=".csv" style={{ display: "none" }}
-            onChange={e => { if (e.target.files?.[0]) importarTintim(e.target.files[0]); e.target.value = ""; }} />
-          <button onClick={() => fileInputRef.current?.click()} disabled={importandoTintim} className="btn-primary" style={{ cursor:"pointer",fontSize:"12px",padding:"7px 12px" }}>
-            <Upload size={12}/>
-            {importandoTintim ? "Importando..." : "Importar Tintim"}
-          </button>
+          {/* Ações avançadas dropdown */}
+          <div ref={acoesRef} style={{ position:"relative" }}>
+            <button
+              onClick={()=>setAcoesAberto(a=>!a)}
+              className="btn-secondary"
+              style={{ cursor:"pointer",fontSize:"12px",padding:"7px 12px",display:"flex",alignItems:"center",gap:"6px",borderColor:acoesAberto?"var(--brand)":undefined,color:acoesAberto?"var(--brand)":undefined }}
+            >
+              <Zap size={12}/> Ações avançadas <ChevronDown size={11} style={{ transform:acoesAberto?"rotate(180deg)":"none",transition:"transform 0.2s" }}/>
+            </button>
+            {acoesAberto && (
+              <div style={{ position:"absolute",top:"calc(100% + 6px)",right:0,background:"var(--card-bg)",border:"1px solid var(--border)",borderRadius:"12px",padding:"6px",minWidth:"220px",zIndex:50,boxShadow:"var(--shadow-hover)" }}>
+                <div style={{ padding:"6px 10px 4px",fontSize:"10px",fontWeight:"600",color:"var(--text-secondary)",textTransform:"uppercase",letterSpacing:"0.06em" }}>Manutenção</div>
+                <button onClick={()=>{ setAcoesAberto(false); autoRastrear(); }} disabled={autoRastreando} style={{ display:"flex",alignItems:"center",gap:"8px",width:"100%",padding:"8px 10px",background:"none",border:"none",borderRadius:"8px",cursor:"pointer",color:"var(--navy)",fontSize:"13px",textAlign:"left" }} onMouseEnter={e=>(e.currentTarget.style.background="var(--hover-row)")} onMouseLeave={e=>(e.currentTarget.style.background="none")}>
+                  <Search size={12} style={{ animation:autoRastreando?"spin 1s linear infinite":"none",color:"var(--brand)" }}/> {autoRastreando?"Rastreando...":"Auto-rastrear"}
+                </button>
+                <button onClick={()=>{ setAcoesAberto(false); if(confirm("Vai importar TODAS as conversas com TODAS as mensagens. Pode demorar vários minutos. Continuar?")) sincronizarTudo(); }} disabled={sincronizandoTudo} style={{ display:"flex",alignItems:"center",gap:"8px",width:"100%",padding:"8px 10px",background:"none",border:"none",borderRadius:"8px",cursor:"pointer",color:"var(--navy)",fontSize:"13px",textAlign:"left" }} onMouseEnter={e=>(e.currentTarget.style.background="var(--hover-row)")} onMouseLeave={e=>(e.currentTarget.style.background="none")}>
+                  <RefreshCw size={12} style={{ animation:sincronizandoTudo?"spin 1s linear infinite":"none",color:"var(--brand)" }}/> {sincronizandoTudo?(syncProgresso||"Importando..."):"Importar tudo"}
+                </button>
+                <button onClick={async()=>{
+                  setAcoesAberto(false);
+                  setSyncLeadsMeta(true);
+                  try {
+                    const agId = await getAgenciaId();
+                    const res = await fetch("/api/meta/sync-leads",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({agencia_id:agId})});
+                    const data = await res.json();
+                    if(data.ok) alert(`Sync concluído! ${data.campanhas} campanhas, ${data.ads} anúncios, ${data.sincronizados} leads, ${data.novos} novos`);
+                    else alert(`Erro: ${data.error||data.motivo}`);
+                    carregar();
+                  } catch(e:any){alert("Erro: "+e.message);}
+                  setSyncLeadsMeta(false);
+                }} disabled={syncLeadsMeta} style={{ display:"flex",alignItems:"center",gap:"8px",width:"100%",padding:"8px 10px",background:"none",border:"none",borderRadius:"8px",cursor:"pointer",color:"var(--navy)",fontSize:"13px",textAlign:"left" }} onMouseEnter={e=>(e.currentTarget.style.background="var(--hover-row)")} onMouseLeave={e=>(e.currentTarget.style.background="none")}>
+                  <RefreshCw size={12} style={{ animation:syncLeadsMeta?"spin 1s linear infinite":"none",color:"var(--success)" }}/> {syncLeadsMeta?"Sincronizando...":"Sync Leads Meta"}
+                </button>
+                <div style={{ height:"1px",background:"var(--border)",margin:"4px 0" }}/>
+                <input ref={fileInputRef} type="file" accept=".csv" style={{ display: "none" }}
+                  onChange={e => { if (e.target.files?.[0]) importarTintim(e.target.files[0]); e.target.value = ""; }} />
+                <button onClick={() => { setAcoesAberto(false); fileInputRef.current?.click(); }} disabled={importandoTintim} style={{ display:"flex",alignItems:"center",gap:"8px",width:"100%",padding:"8px 10px",background:"none",border:"none",borderRadius:"8px",cursor:"pointer",color:"var(--navy)",fontSize:"13px",textAlign:"left" }} onMouseEnter={e=>(e.currentTarget.style.background="var(--hover-row)")} onMouseLeave={e=>(e.currentTarget.style.background="none")}>
+                  <Upload size={12} style={{ color:"var(--caution-text)" }}/> {importandoTintim ? "Importando..." : "Importar Tintim"}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         <table>
@@ -1318,38 +1474,38 @@ export default function InboxPage() {
           </thead>
           <tbody>
             {loading?(
-              <tr><td colSpan={6} style={{ textAlign:"center",color:"#606060",padding:"48px" }}>Carregando...</td></tr>
+              <tr><td colSpan={6} style={{ textAlign:"center",color:"var(--text-secondary)",padding:"48px" }}>Carregando...</td></tr>
             ):!filtradas.length?(
-              <tr><td colSpan={6} style={{ textAlign:"center",color:"#606060",padding:"48px" }}>Nenhuma conversa encontrada.</td></tr>
+              <tr><td colSpan={6} style={{ textAlign:"center",color:"var(--text-secondary)",padding:"48px" }}>Nenhuma conversa encontrada.</td></tr>
             ):filtradas.map(c=>(
               <tr key={c.id}>
                 <td>
                   <div style={{ display:"flex",alignItems:"center",gap:"8px" }}>
                     <div style={{ position:"relative" }}>
                       <Avatar nome={c.contato_nome||c.contato_numero} foto={c.contato_foto} size={32}/>
-                      {c.nao_lidas>0&&<span style={{ position:"absolute",top:"-3px",right:"-3px",background:"#29ABE2",color:"#000",fontSize:"9px",fontWeight:"800",borderRadius:"50%",width:"14px",height:"14px",display:"flex",alignItems:"center",justifyContent:"center" }}>{c.nao_lidas>9?"9+":c.nao_lidas}</span>}
+                      {c.nao_lidas>0&&<span style={{ position:"absolute",top:"-3px",right:"-3px",background:"var(--brand)",color:"#FFFFFF",fontSize:"9px",fontWeight:"800",borderRadius:"50%",width:"14px",height:"14px",display:"flex",alignItems:"center",justifyContent:"center" }}>{c.nao_lidas>9?"9+":c.nao_lidas}</span>}
                     </div>
                     <div>
-                      <p style={{ fontSize:"13px",fontWeight:"600",color:"#f0f0f0",margin:0 }}>{c.contato_nome||"—"}</p>
-                      <p style={{ fontSize:"12px",color:"#606060",margin:0 }}>{formatarNumero(c.contato_numero)}</p>
+                      <p style={{ fontSize:"13px",fontWeight:"600",color:"var(--navy)",margin:0 }}>{c.contato_nome||"—"}</p>
+                      <p style={{ fontSize:"12px",color:"var(--text-secondary)",margin:0 }}>{formatarNumero(c.contato_numero)}</p>
                     </div>
                   </div>
                 </td>
                 <td><OrigemBadge origem={c.origem}/></td>
                 <td><EtapaBadge etapa={c.etapa_jornada}/></td>
-                <td style={{ color:"#a0a0a0",fontSize:"12px" }}>{formatarData(c.primeira_mensagem_at||c.created_at)}</td>
-                <td style={{ color:"#a0a0a0",fontSize:"12px" }}>{formatarData(c.ultima_mensagem_at)}</td>
+                <td style={{ color:"var(--text-secondary)",fontSize:"12px" }}>{formatarData(c.primeira_mensagem_at||c.created_at)}</td>
+                <td style={{ color:"var(--text-secondary)",fontSize:"12px" }}>{formatarData(c.ultima_mensagem_at)}</td>
                 <td>
                   <div style={{ display:"flex",gap:"6px" }}>
-                    <button onClick={()=>setDetalhes(c)} style={{ display:"flex",alignItems:"center",gap:"4px",padding:"5px 8px",borderRadius:"6px",border:"1px solid #2e2e2e",background:"#222",color:"#a0a0a0",cursor:"pointer",fontSize:"12px" }}>
+                    <button onClick={()=>setDetalhes(c)} style={{ display:"flex",alignItems:"center",gap:"4px",padding:"5px 8px",borderRadius:"6px",border:"1px solid var(--border)",background:"var(--hover-row)",color:"var(--text-secondary)",cursor:"pointer",fontSize:"12px" }}>
                       <Eye size={12}/> Ver
                     </button>
-                    <button onClick={()=>setChatDireto(c)} style={{ display:"flex",alignItems:"center",gap:"4px",padding:"5px 8px",borderRadius:"6px",border:"1px solid #2e2e2e",background:"#222",color:"#a0a0a0",cursor:"pointer",fontSize:"12px" }}>
+                    <button onClick={()=>setChatDireto(c)} style={{ display:"flex",alignItems:"center",gap:"4px",padding:"5px 8px",borderRadius:"6px",border:"1px solid var(--border)",background:"var(--hover-row)",color:"var(--text-secondary)",cursor:"pointer",fontSize:"12px" }}>
                       <MessageCircle size={12}/>
                     </button>
                     <button onClick={()=>enviarParaCrm(c)} disabled={enviandoCrm.has(c.id)||enviadosCrm.has(c.id)}
                       style={{ display:"flex",alignItems:"center",gap:"4px",padding:"5px 8px",borderRadius:"6px",border:"1px solid",fontSize:"12px",cursor:enviadosCrm.has(c.id)?"default":"pointer",
-                        borderColor:enviadosCrm.has(c.id)?"#22c55e40":"#2e2e2e",background:enviadosCrm.has(c.id)?"#052e1640":"#222",color:enviadosCrm.has(c.id)?"#22c55e":"#a0a0a0" }}>
+                        borderColor:enviadosCrm.has(c.id)?"rgba(30,107,82,0.3)":"var(--border)",background:enviadosCrm.has(c.id)?"rgba(30,107,82,0.08)":"var(--hover-row)",color:enviadosCrm.has(c.id)?"var(--success)":"var(--text-secondary)" }}>
                       <UserPlus size={12}/> {enviandoCrm.has(c.id)?"...":enviadosCrm.has(c.id)?"CRM ✓":"CRM"}
                     </button>
                   </div>
@@ -1359,10 +1515,26 @@ export default function InboxPage() {
           </tbody>
         </table>
 
-        {filtradas.length>0&&(
-          <div style={{ padding:"10px 16px",borderTop:"1px solid #2e2e2e",fontSize:"12px",color:"#606060" }}>
-            {filtradas.length} conversa{filtradas.length!==1?"s":""}
-            {filtrosAtivos>0&&` (${conversas.length} total)`}
+        {temMais && (
+          <div style={{ padding:"12px 16px",borderTop:"1px solid var(--border)",textAlign:"center" }}>
+            {filtrosAtivos > 0 ? (
+              <span style={{ fontSize:"12px",color:"var(--text-secondary)",display:"inline-flex",alignItems:"center",gap:"6px" }}>
+                <RefreshCw size={12} style={{ animation:"spin 1s linear infinite" }}/>
+                Carregando resultados completos...
+              </span>
+            ) : (
+              <button onClick={carregarMais} disabled={carregandoMais} className="btn-secondary"
+                style={{ cursor:"pointer",fontSize:"12px",padding:"7px 20px",display:"inline-flex",alignItems:"center",gap:"6px" }}>
+                <RefreshCw size={12} style={{ animation:carregandoMais?"spin 1s linear infinite":"none" }}/>
+                {carregandoMais ? "Carregando..." : `Carregar mais (${kpisDb.total - conversas.length} restantes)`}
+              </button>
+            )}
+          </div>
+        )}
+
+        {kpisDb.total > 0 && (
+          <div style={{ padding:"10px 16px",borderTop:"1px solid var(--border)",fontSize:"12px",color:"var(--text-secondary)" }}>
+            {filtradas.length} exibida{filtradas.length!==1?"s":""} · {conversas.length} carregada{conversas.length!==1?"s":""} · {kpisDb.total} total
           </div>
         )}
       </div>
