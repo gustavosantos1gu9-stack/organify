@@ -9,6 +9,31 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // ── New light-theme tokens ──────────────────────────────────
+        navy: "#0A1826",
+        brand: {
+          DEFAULT: "#1C6CA6",
+          deep: "#144E73",
+          light: "#8CC6EC",
+        },
+        "off-white": "#EEF1F4",
+        "white-text": "#F3F5F7",
+        "card-bg": "#FFFFFF",
+        "text-secondary": "#4A5B6C",
+        "hover-row": "#F3F5F7",
+
+        // ── State / phase colors ────────────────────────────────────
+        phase: {
+          alert: "#B42318",
+          warning: "#8A3B12",
+          caution: "#7A5B00",
+          phase3: "#144E73",
+          oscillating: "#4A2E9E",
+          success: "#1E6B52",
+          neutral: "#CBD5DF",
+        },
+
+        // ── Keep legacy dark tokens for any remaining refs ──────────
         bg: {
           primary: "#0f0f0f",
           secondary: "#1a1a1a",
@@ -23,13 +48,13 @@ const config: Config = {
           "green-glow": "rgba(34,197,94,0.15)",
         },
         border: {
-          DEFAULT: "#2e2e2e",
-          strong: "#3a3a3a",
+          DEFAULT: "#E6EBF0",
+          strong: "#CBD5DF",
         },
         text: {
-          primary: "#f0f0f0",
-          secondary: "#a0a0a0",
-          muted: "#606060",
+          primary: "#0A1826",
+          secondary: "#4A5B6C",
+          muted: "#7A8C9A",
         },
         red: {
           500: "#ef4444",
@@ -38,18 +63,21 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
-        mono: ["var(--font-geist-mono)", "monospace"],
+        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+        mono: ["monospace"],
       },
       borderRadius: {
-        DEFAULT: "8px",
-        lg: "12px",
-        xl: "16px",
+        DEFAULT: "12px",
+        sm: "8px",
+        lg: "20px",
+        xl: "24px",
+        full: "999px",
       },
       boxShadow: {
-        card: "0 1px 3px rgba(0,0,0,0.4)",
-        "card-hover": "0 4px 12px rgba(0,0,0,0.5)",
-        green: "0 0 20px rgba(34,197,94,0.2)",
+        card: "0 1px 2px rgba(10,24,38,.05), 0 8px 24px rgba(10,24,38,.06)",
+        "card-hover": "0 4px 16px rgba(10,24,38,.10), 0 16px 40px rgba(10,24,38,.10)",
+        btn: "0 1px 2px rgba(10,24,38,.08), 0 2px 8px rgba(10,24,38,.06)",
+        "btn-primary": "0 1px 2px rgba(28,108,166,.20), 0 4px 12px rgba(28,108,166,.18)",
       },
     },
   },
