@@ -99,8 +99,49 @@ export default function EditarClienteModal({ cliente, onClose, onSave }: EditarC
       const servicoAntes = cliente.servico;
       const frequenciaAntes = cliente.frequencia;
 
-      if (form.created_at) {
-        await supabase.from("clientes").update({ created_at: new Date(form.created_at).toISOString() }).eq("id", cliente.id);
+      const dataEntradaAntiga = cliente.created_at ? new Date(cliente.created_at).toISOString().split("T")[0] : null;
+      const dataEntradaNova = form.created_at || null;
+
+      if (dataEntradaNova) {
+        // Salvar ao meio-dia UTC para evitar bug de fuso horário (UTC-3 vs UTC)
+        await supabase.from("clientes").update({ created_at: new Date(dataEntradaNova + "T12:00:00Z").toISOString() }).eq("id", cliente.id);
+      }
+
+      // Se a data de entrada mudou, atualizar datas de pagamento das recorrências não pagas
+      if (dataEntradaNova && dataEntradaAntiga && dataEntradaNova !== dataEntradaAntiga) {
+        const oldDate = new Date(dataEntradaAntiga + "T12:00:00");
+        const newDate = new Date(dataEntradaNova + "T12:00:00");
+        const deltaDias = Math.round((newDate.getTime() - oldDate.getTime()) / (1000 * 60 * 60 * 24));
+
+        if (deltaDias !== 0) {
+          // Buscar todos os lançamentos futuros não pagos do cliente
+          const { data: lancamentos, error: errLanc } = await supabase
+            .from("lancamentos_futuros")
+            .select("id, data_vencimento")
+            .eq("agencia_id", cliente.agencia_id)
+            .eq("cliente_id", cliente.id)
+            .eq("pago", false);
+
+          if (errLanc) console.error("[DataEntrada] Erro ao buscar lançamentos:", errLanc);
+
+          const novoDia = newDate.getDate();
+          console.log(`[DataEntrada] Novo dia: ${novoDia} | Lançamentos encontrados: ${lancamentos?.length ?? 0}`);
+
+          // Atualizar cada lançamento para o novo dia do mês
+          for (const l of lancamentos || []) {
+            const d = new Date(l.data_vencimento + "T12:00:00");
+            // Ajustar para o último dia do mês se novoDia > dias no mês
+            const maxDia = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+            d.setDate(Math.min(novoDia, maxDia));
+            const { error: errUpd } = await supabase.from("lancamentos_futuros")
+              .update({ data_vencimento: d.toISOString().split("T")[0] })
+              .eq("id", l.id);
+            if (errUpd) console.error("[DataEntrada] Erro ao atualizar:", l.id, errUpd);
+          }
+          await supabase.from("recorrencias")
+            .update({ dia_vencimento: novoDia })
+            .eq("cliente_id", cliente.id);
+        }
       }
 
       await atualizarCliente(cliente.id, {
