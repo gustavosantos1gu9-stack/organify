@@ -152,9 +152,9 @@ const masterGroups: NavGroup[] = [
       {
         label: "Relatórios Meta", icon: <BarChart3 size={16} strokeWidth={1.8} />,
         children: [
+          { href: "/relatorios-meta", label: "Relatórios" },
           { href: "/relatorios-meta/dashboard", label: "Dashboard" },
           { href: "/relatorios-meta/alertas", label: "Alertas" },
-          { href: "/relatorios-meta", label: "Relatórios" },
           { href: "/relatorios-meta/conexoes", label: "Conexões WhatsApp" },
         ],
       },
@@ -311,7 +311,8 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
-    return pathname.startsWith(href);
+    // endereço exato ou subpágina — "/reunioes" não pode marcar "/reunioes-vendas"
+    return pathname === href || pathname.startsWith(href + "/");
   };
 
   const isFilha = agenciaInfo?.isFilha ?? false;
