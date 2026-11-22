@@ -3,7 +3,7 @@
 import { Faixa } from "@/components/ui/Canvas";
 import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
-import { Search, RefreshCw, ChevronDown, ChevronRight, ChevronUp, MessageSquare, X, Send, Check, UserCircle2, Pencil, Trash2, Plus, FileText, ArrowUp, ArrowDown, BarChart2 } from "lucide-react";
+import { Search, RefreshCw, ChevronDown, ChevronRight, ChevronUp, MessageSquare, X, Send, Check, UserCircle2, Pencil, Trash2, Plus, FileText, ArrowUp, ArrowDown, BarChart2, AlertTriangle } from "lucide-react";
 import ModalContrato from "@/components/controle/ModalContrato";
 import ModalNovoCliente from "@/components/controle/ModalNovoCliente";
 import { supabase, getAgenciaId, gerarLancamentosRecorrencia } from "@/lib/hooks";
@@ -50,7 +50,15 @@ function DashboardVincular({ clienteId, clienteNome, relatorioId, relatorios, on
     }
   }, [trocando]);
 
-  const fechar = () => { setDropPos(null); if (relatorioId) setTrocando(false); setBusca(""); };
+  const fechar = () => { setDropPos(null); setTrocando(false); setBusca(""); };
+
+  if (!relatorioId && !trocando) {
+    return (
+      <button onClick={() => setTrocando(true)} className="cc-ghost" title="Vincular um relatório da Meta">
+        + Vincular
+      </button>
+    );
+  }
 
   if (relatorioId && !trocando) {
     return (
@@ -96,7 +104,7 @@ function DashboardVincular({ clienteId, clienteNome, relatorioId, relatorios, on
     <>
       <div ref={wrapRef} style={{ minWidth:"140px" }}>
         <input
-          autoFocus
+          autoFocus={trocando}
           value={busca}
           onChange={e => setBusca(e.target.value)}
           placeholder="Buscar relatório..."
@@ -339,9 +347,9 @@ function StatusSelect({ valor, onSave }: { valor: string; onSave: (v: string) =>
   };
   return (
     <>
-      <button ref={btnRef} onClick={handleOpen} style={{ display:"flex", alignItems:"center", gap:"5px", background:"none", border:"none", cursor:"pointer", padding:"3px 6px", borderRadius:"6px" }}>
-        <span style={{ width:"8px", height:"8px", borderRadius:"50%", background:opt.cor, flexShrink:0 }}/>
-        <span style={{ fontSize:"12px", color:opt.cor }}>{opt.label}</span>
+      <button ref={btnRef} onClick={handleOpen} className="cc-status" style={{ ["--st" as any]: opt.cor }}>
+        <span className="cc-status-dot"/>
+        <span>{opt.label}</span>
       </button>
       {open && (
         <>
@@ -1338,19 +1346,17 @@ export default function ControleClientesPage() {
       })()}
 
       {/* Tabela */}
-      <div style={{ overflowX:"auto", border:"1px solid var(--border)", borderRadius:"12px", marginRight:painelLateralAberto?"400px":"0", transition:"margin 0.2s" }}>
-        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"12px", tableLayout:"fixed" }}>
+      <div className="cc-wrap" style={{ marginRight:painelLateralAberto?"400px":"0" }}>
+        <table className="cc-table" style={{ width:"100%", borderCollapse:"collapse", fontSize:"13px", tableLayout:"fixed" }}>
           <thead>
             <tr style={{ background:"var(--card-bg)", borderBottom:"1px solid var(--border)" }}>
               <th style={{ width:"30px", padding:"10px 6px" }}></th>
               {sort==="ordem" && <th style={{ width:"50px", padding:"10px 4px", textAlign:"center", fontSize:"11px", color:"var(--text-secondary)", fontWeight:"600" }}>↕</th>}
-              <th style={{ padding:"10px 12px", textAlign:"left", fontSize:"11px", color:"var(--text-secondary)", fontWeight:"600", position:"sticky", left:0, background:"var(--card-bg)", zIndex:2, width:"160px", whiteSpace:"nowrap" }}>Nome</th>
-              {/* Coluna Info. Cliente */}
-              <th style={{ padding:"10px 8px", textAlign:"center", fontSize:"11px", color:"var(--text-secondary)", fontWeight:"600", width:"60px", whiteSpace:"nowrap" }}>Info.</th>
+              <th className="cc-sticky" style={{ padding:"12px 12px", textAlign:"left", width:"280px", whiteSpace:"nowrap" }}>Cliente</th>
               {/* Coluna UTI fixa */}
-              <th style={{ padding:"10px 8px", textAlign:"center", fontSize:"11px", color:"var(--alert-text)", fontWeight:"700", width:"48px", whiteSpace:"nowrap", borderLeft:"1px solid rgba(180,35,24,0.18)" }}>UTI</th>
+              <th style={{ padding:"12px 8px", textAlign:"center", width:"64px", whiteSpace:"nowrap" }}>UTI</th>
               {colunas.map((col: any)=>(
-                <th key={col.key} className="th-group" style={{ padding:"10px 8px", textAlign:"left", fontSize:"11px", color:"var(--text-secondary)", fontWeight:"600", width:colWidths[col.key]||col.w, position:"relative", whiteSpace:"nowrap", overflow:"hidden", borderLeft:"1px solid rgba(28,108,166,0.12)" }}>
+                <th key={col.key} className="th-group" style={{ padding:"12px 10px", textAlign:"left", width:colWidths[col.key]||col.w, position:"relative", whiteSpace:"nowrap", overflow:"hidden" }}>
                   {editandoHeader === col.key ? (
                     <input autoFocus defaultValue={col.label}
                       onBlur={e => renomearColuna(col.key, e.target.value)}
@@ -1380,12 +1386,12 @@ export default function ControleClientesPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={colunas.length+5} style={{ textAlign:"center", color:"var(--text-secondary)", padding:"48px" }}>Carregando...</td></tr>
+              <tr><td colSpan={colunas.length+4} style={{ textAlign:"center", color:"var(--text-secondary)", padding:"48px" }}>Carregando...</td></tr>
             ) : !filtrados.length ? (
-              <tr><td colSpan={colunas.length+5} style={{ textAlign:"center", color:"var(--text-secondary)", padding:"48px" }}>Nenhum cliente encontrado.</td></tr>
+              <tr><td colSpan={colunas.length+4} style={{ textAlign:"center", color:"var(--text-secondary)", padding:"48px" }}>Nenhum cliente encontrado.</td></tr>
             ) : filtrados.map((c,idx)=>(
               <React.Fragment key={c.id}>
-              <tr style={{ borderBottom:"1px solid rgba(28,108,166,0.18)", background:c.uti?(idx%2===0?"rgba(180,35,24,0.06)":"rgba(180,35,24,0.04)"):(idx%2===0?"transparent":"var(--hover-row)") }}>
+              <tr className={c.uti ? "cc-row cc-uti" : "cc-row"}>
                 <td style={{ padding:"4px 6px", textAlign:"center" }}>
                   <button onClick={()=>toggleExpandir(c.id)} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--text-secondary)", padding:"2px" }}>
                     {expandidos.has(c.id)?<ChevronDown size={14}/>:<ChevronRight size={14}/>}
@@ -1405,50 +1411,53 @@ export default function ControleClientesPage() {
                     </div>
                   </td>
                 )}
-                <td style={{ padding:"4px 8px 4px 12px", position:"sticky", left:0, background:idx%2===0?"var(--card-bg)":"var(--hover-row)", zIndex:1, whiteSpace:"nowrap", width:"200px" }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:"6px" }}>
-                    <div style={{ flex:1, overflow:"hidden" }}>
-                      <CelulaEditavel valor={c.nome||""} onSave={v=>atualizar(c.id,"nome",v,c.nome)} placeholder="Nome do cliente"/>
+                <td className="cc-sticky cc-name-cell" style={{ padding:"8px 12px", whiteSpace:"nowrap", width:"280px" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:"10px" }}>
+                    <span className="cc-avatar" style={{ ["--st" as any]: (STATUS_OPTS.find(s=>s.value===c.status)||STATUS_OPTS[0]).cor }}>
+                      {(c.nome||"?").trim().split(/\s+/).slice(0,2).map((p:string)=>p[0]).join("").toUpperCase()}
+                    </span>
+                    <div style={{ flex:1, minWidth:0, display:"flex", flexDirection:"column" }}>
+                      <div className="cc-name">
+                        <CelulaEditavel valor={c.nome||""} onSave={v=>atualizar(c.id,"nome",v,c.nome)} placeholder="Nome do cliente"/>
+                      </div>
+                      <span className="cc-sub">{c.gestor || "Sem gestor"}{c.cadastro_id ? " · cadastro vinculado" : ""}</span>
                     </div>
-                    {semFinanceiro(c) && (
-                      <button
-                        onClick={() => { setModalFinanceiro(c); setFinValor(c.investimento_mensal ? String(c.investimento_mensal) : ""); setFinFreq("mensal"); setFinDia(""); setFinDia2(""); }}
-                        title="Criar no financeiro"
-                        style={{ fontSize:"10px", color:"var(--caution-text)", background:"none", border:"none", cursor:"pointer", padding:"2px", flexShrink:0 }}>
-                        ⚠
+                    <div className="cc-actions">
+                      {semFinanceiro(c) && (
+                        <button
+                          onClick={() => { setModalFinanceiro(c); setFinValor(c.investimento_mensal ? String(c.investimento_mensal) : ""); setFinFreq("mensal"); setFinDia(""); setFinDia2(""); }}
+                          title="Sem cadastro no financeiro: criar agora"
+                          className="cc-icon cc-warn">
+                          <AlertTriangle size={13}/>
+                        </button>
+                      )}
+                      <button onClick={()=>{ setPainelAberto(painelAberto?.id===c.id?null:c); setPerfilAberto(null); }}
+                        className={painelAberto?.id===c.id ? "cc-icon on" : "cc-icon"}
+                        title="Atualizações">
+                        <MessageSquare size={14}/>
                       </button>
-                    )}
-                    <button onClick={()=>{ setPainelAberto(painelAberto?.id===c.id?null:c); setPerfilAberto(null); }}
-                      style={{ background:"none", border:"none", cursor:"pointer", color:painelAberto?.id===c.id?"var(--brand)":"var(--text-secondary)", padding:"2px", flexShrink:0 }}
-                      title="Atualizações">
-                      <MessageSquare size={13}/>
-                    </button>
+                      <button onClick={()=>{ setPerfilAberto(perfilAberto?.id===c.id?null:c); setPainelAberto(null); }}
+                        className={perfilAberto?.id===c.id || c.cadastro_id ? "cc-icon on" : "cc-icon"}
+                        title="Ver perfil do cliente">
+                        <UserCircle2 size={15}/>
+                      </button>
+                      <button onClick={()=>excluirCliente(c.id, c.nome)} className="cc-icon cc-del" title="Excluir cliente">
+                        <Trash2 size={13}/>
+                      </button>
+                    </div>
                   </div>
                 </td>
-                {/* Célula Info. Cliente */}
-                <td style={{ padding:"2px 6px", textAlign:"center", width:"60px" }}>
-                  <button onClick={()=>{ setPerfilAberto(perfilAberto?.id===c.id?null:c); setPainelAberto(null); }}
-                    style={{ background:"none", border:"none", cursor:"pointer", padding:"2px" }}
-                    title="Ver perfil do cliente">
-                    <UserCircle2 size={18} color={c.cadastro_id ? "var(--brand)" : (perfilAberto?.id===c.id ? "var(--brand)" : "var(--border)")}/>
-                  </button>
-                  <button onClick={()=>excluirCliente(c.id, c.nome)}
-                    style={{ background:"none", border:"none", cursor:"pointer", padding:"2px", color:"var(--text-secondary)" }}
-                    title="Excluir cliente">
-                    <Trash2 size={13}/>
-                  </button>
-                </td>
                 {/* Célula UTI fixa */}
-                <td style={{ padding:"2px 4px", textAlign:"center", width:"48px", borderLeft:"1px solid rgba(180,35,24,0.18)" }}>
+                <td style={{ padding:"4px", textAlign:"center", width:"64px" }}>
                   <button
                     onClick={()=>atualizar(c.id,"uti",!c.uti,c.nome)}
                     title={c.uti ? "Remover da UTI" : "Enviar para UTI"}
-                    style={{ background:"none", border:"none", cursor:"pointer", fontSize:"15px", padding:"2px", lineHeight:1, opacity: c.uti ? 1 : 0.2 }}>
-                    🏥
+                    className={c.uti ? "cc-uti-btn on" : "cc-uti-btn"}>
+                    UTI
                   </button>
                 </td>
                 {colunas.map((col: any)=>(
-                  <td key={col.key} style={{ padding:"2px 6px", overflow:"hidden", width:colWidths[col.key]||col.w, borderLeft:"1px solid rgba(28,108,166,0.08)", whiteSpace:"nowrap", maxWidth:colWidths[col.key]||col.w, height:"36px" }}>
+                  <td key={col.key} style={{ padding:"4px 8px", overflow:"hidden", width:colWidths[col.key]||col.w, whiteSpace:"nowrap", maxWidth:colWidths[col.key]||col.w, height:"60px" }}>
                     {col.key==="status" ? (
                       <StatusSelect valor={c.status} onSave={v=>atualizar(c.id,"status",v,c.nome)}/>
                     ) : col.key==="instagram_link" ? (

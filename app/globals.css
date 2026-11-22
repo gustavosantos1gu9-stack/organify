@@ -823,3 +823,81 @@ input[type="checkbox"], input[type="radio"] { height: auto; accent-color: var(--
 /* Quando o cabeçalho do canvas aparece, o título antigo da página sai */
 .app-main:has(> .auto-head) > div .breadcrumb,
 .app-main:has(> .auto-head) > div h1 { display: none !important; }
+
+/* ═══ Carteira: tabela de clientes ═══ */
+.cc-wrap {
+  overflow: auto; max-height: calc(100vh - 160px);
+  background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow-card);
+  transition: margin .2s ease;
+}
+.cc-table thead th {
+  position: sticky; top: 0; z-index: 3;
+  background: var(--surface) !important;
+  font-size: 11px !important; color: var(--ink-3) !important;
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+.cc-table thead th.cc-sticky { left: 0; z-index: 4; }
+.cc-table tbody td { border-top: 1px solid var(--line) !important; vertical-align: middle; }
+.cc-table tbody tr:first-child td { border-top: 0 !important; }
+.cc-row { background: var(--surface); }
+.cc-row:hover, .cc-row:hover .cc-sticky { background: #F6F9FC !important; }
+.cc-sticky { position: sticky; left: 0; z-index: 1; background: var(--surface); box-shadow: 1px 0 0 var(--line); }
+.cc-uti .cc-name-cell { box-shadow: inset 3px 0 0 #B42318, 1px 0 0 var(--line); }
+.cc-uti { background: #FFFBFA; }
+.cc-uti .cc-sticky { background: #FFFBFA; }
+
+.cc-avatar {
+  width: 36px; height: 36px; flex: none; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600; letter-spacing: .02em;
+  color: var(--st, var(--brand-deep));
+  background: color-mix(in srgb, var(--st, #1C6CA6) 14%, #FFFFFF);
+}
+.cc-name span { font-size: 14px !important; font-weight: 600; color: var(--ink) !important; padding: 0 !important; min-height: 0 !important; overflow: hidden; text-overflow: ellipsis; }
+.cc-name input { font-size: 14px !important; }
+.cc-sub { font-size: 12px; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; }
+
+.cc-actions { display: flex; align-items: center; gap: 2px; opacity: .0; transition: opacity .15s ease; }
+.cc-row:hover .cc-actions, .cc-actions:focus-within { opacity: 1; }
+.cc-actions .cc-warn { opacity: 1; }
+.cc-row .cc-actions:has(.cc-warn) { opacity: 1; }
+.cc-icon {
+  width: 28px; height: 28px; border-radius: 8px; border: 0; background: transparent; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; color: var(--ink-3);
+  transition: background .15s ease, color .15s ease;
+}
+.cc-icon:hover { background: var(--canvas); color: var(--ink); }
+.cc-icon.on { color: var(--brand); }
+.cc-warn { color: #C2620E; }
+.cc-del:hover { background: #FBE3E1; color: #B42318; }
+
+.cc-uti-btn {
+  border: 1px dashed var(--line); background: transparent; color: var(--ink-3);
+  font-size: 11px; font-weight: 600; letter-spacing: .04em; border-radius: 999px; padding: 4px 10px; cursor: pointer;
+  transition: all .15s ease;
+}
+.cc-uti-btn:hover { border-color: #B42318; color: #B42318; }
+.cc-uti-btn.on { border: 1px solid #B42318; background: #B42318; color: #FFFFFF; }
+
+.cc-status {
+  display: inline-flex; align-items: center; gap: 6px; border: 0; cursor: pointer;
+  padding: 5px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  color: var(--st); background: color-mix(in srgb, var(--st) 12%, #FFFFFF);
+}
+.cc-status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--st); }
+
+.cc-ghost {
+  border: 1px dashed var(--line); background: transparent; color: var(--ink-3);
+  font-size: 12px; border-radius: 999px; padding: 5px 12px; cursor: pointer; white-space: nowrap;
+}
+.cc-ghost:hover { border-color: var(--brand); color: var(--brand); }
+
+/* Campos dentro da tabela: sem moldura até passar o mouse */
+.cc-table td select {
+  border: 1px solid transparent !important; background-color: transparent !important;
+  border-radius: 999px !important; height: 32px !important; padding: 0 10px !important;
+  font-size: 13px !important; transition: border-color .15s ease, background-color .15s ease;
+}
+.cc-table td select:hover, .cc-table td select:focus { border-color: var(--line) !important; background-color: var(--surface) !important; }
+.cc-table td > span[title="Clique para editar"], .cc-table td span[title="Clique para editar"] { font-size: 13px !important; border-radius: 8px !important; }
+.cc-table td span[title="Clique para editar"]:hover { background: var(--canvas); }
