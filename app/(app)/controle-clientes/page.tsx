@@ -55,11 +55,11 @@ function DashboardVincular({ clienteId, clienteNome, relatorioId, relatorios, on
     return (
       <div style={{ display:"flex", alignItems:"center", gap:"4px" }}>
         <a href={`/relatorios-meta/dashboard?id=${relatorioId}&tab=performance`} target="_blank" rel="noopener"
-          style={{ display:"inline-flex", alignItems:"center", gap:"4px", background:"rgba(41,171,226,0.15)", color:"#29ABE2", border:"none", borderRadius:"4px", padding:"4px 10px", fontSize:"11px", fontWeight:600, cursor:"pointer", textDecoration:"none", whiteSpace:"nowrap" }}>
+          style={{ display:"inline-flex", alignItems:"center", gap:"4px", background:"rgba(41,171,226,0.15)", color:"var(--brand)", border:"none", borderRadius:"4px", padding:"4px 10px", fontSize:"11px", fontWeight:600, cursor:"pointer", textDecoration:"none", whiteSpace:"nowrap" }}>
           <BarChart2 size={12}/> Performance
         </a>
         <button onClick={() => setTrocando(true)} title="Trocar relatório"
-          style={{ background:"none", border:"1px solid #2e2e2e", borderRadius:"4px", padding:"2px 6px", cursor:"pointer", color:"#606060", fontSize:"10px" }}>
+          style={{ background:"none", border:"1px solid var(--border)", borderRadius:"4px", padding:"2px 6px", cursor:"pointer", color:"var(--text-secondary)", fontSize:"10px" }}>
           ⇄
         </button>
       </div>
@@ -71,22 +71,22 @@ function DashboardVincular({ clienteId, clienteNome, relatorioId, relatorios, on
     : relatorios;
 
   const dropdown = dropPos ? createPortal(
-    <div style={{ position:"fixed", top: dropPos.top, left: dropPos.left, width: dropPos.width, zIndex:999999, background:"#1e1e1e", border:"1px solid #3a3a3a", borderRadius:"6px", maxHeight:"260px", overflowY:"auto", boxShadow:"0 8px 32px rgba(0,0,0,0.9)" }}>
+    <div style={{ position:"fixed", top: dropPos.top, left: dropPos.left, width: dropPos.width, zIndex:999999, background:"var(--card-bg)", border:"1px solid var(--border)", borderRadius:"6px", maxHeight:"260px", overflowY:"auto", boxShadow:"0 8px 32px rgba(0,0,0,0.9)" }}>
       {trocando && (
         <button onMouseDown={() => { onVincular(null); setTrocando(false); setBusca(""); setDropPos(null); }}
-          style={{ display:"block", width:"100%", padding:"8px 12px", background:"none", border:"none", cursor:"pointer", color:"#ef4444", fontSize:"11px", textAlign:"left", borderBottom:"1px solid #2e2e2e" }}>
+          style={{ display:"block", width:"100%", padding:"8px 12px", background:"none", border:"none", cursor:"pointer", color:"var(--alert-text)", fontSize:"11px", textAlign:"left", borderBottom:"1px solid var(--border)" }}>
           Desvincular
         </button>
       )}
       {filtered.slice(0, 40).map(r => (
         <button key={r.id} onMouseDown={() => { onVincular(r.id); setTrocando(false); setBusca(""); setDropPos(null); }}
-          style={{ display:"block", width:"100%", padding:"8px 12px", background:"none", border:"none", cursor:"pointer", color:"#f0f0f0", fontSize:"11px", textAlign:"left" }}
-          onMouseEnter={e => e.currentTarget.style.background="#2a2a2a"}
+          style={{ display:"block", width:"100%", padding:"8px 12px", background:"none", border:"none", cursor:"pointer", color:"var(--navy)", fontSize:"11px", textAlign:"left" }}
+          onMouseEnter={e => e.currentTarget.style.background="var(--hover-row)"}
           onMouseLeave={e => e.currentTarget.style.background="none"}>
           {r.nome_cliente || r.nome}
         </button>
       ))}
-      {filtered.length === 0 && <p style={{ color:"#606060", fontSize:"11px", padding:"8px 12px", margin:0 }}>Nenhum resultado</p>}
+      {filtered.length === 0 && <p style={{ color:"var(--text-secondary)", fontSize:"11px", padding:"8px 12px", margin:0 }}>Nenhum resultado</p>}
     </div>,
     document.body
   ) : null;
@@ -100,7 +100,7 @@ function DashboardVincular({ clienteId, clienteNome, relatorioId, relatorios, on
           onChange={e => setBusca(e.target.value)}
           placeholder="Buscar relatório..."
           onBlur={() => setTimeout(fechar, 200)}
-          style={{ width:"100%", background:"#1a1a1a", border:"1px solid #29ABE240", borderRadius:"4px", padding:"4px 6px", color:"#f0f0f0", fontSize:"11px", boxSizing:"border-box" as any }}
+          style={{ width:"100%", background:"var(--card-bg)", border:"1px solid rgba(28,108,166,0.25)", borderRadius:"4px", padding:"4px 6px", color:"var(--navy)", fontSize:"11px", boxSizing:"border-box" as any }}
         />
       </div>
       {dropdown}
@@ -109,12 +109,12 @@ function DashboardVincular({ clienteId, clienteNome, relatorioId, relatorios, on
 }
 
 const STATUS_OPTS = [
-  { value:"ativo", label:"Ativo", cor:"#22c55e" },
-  { value:"pausado", label:"Pausado", cor:"#f59e0b" },
-  { value:"saiu", label:"Churn", cor:"#ef4444" },
-  { value:"entrada", label:"Entrada", cor:"#eab308" },
+  { value:"ativo", label:"Ativo", cor:"var(--success)" },
+  { value:"pausado", label:"Pausado", cor:"var(--caution-text)" },
+  { value:"saiu", label:"Churn", cor:"var(--alert-text)" },
+  { value:"entrada", label:"Entrada", cor:"#eab308" /* warning */ },
   { value:"debito", label:"Em Débito", cor:"#f97316" },
-  { value:"renovar", label:"Renovar", cor:"#29ABE2" },
+  { value:"renovar", label:"Renovar", cor:"var(--brand)" },
 ];
 
 const MESES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
@@ -204,7 +204,7 @@ function iniciouAntesMesAtual(dataInicio: string): boolean {
 
 function CelulaRenovacao({ cliente, onRenovou }: { cliente: ControleCliente; onRenovou: (val: boolean) => void }) {
   const inicio = parseData(cliente.data_inicio_campanha);
-  if (!inicio) return <span style={{ fontSize:"11px", color:"#404040" }}>Sem data</span>;
+  if (!inicio) return <span style={{ fontSize:"11px", color:"var(--text-secondary)" }}>Sem data</span>;
 
   const hoje = new Date();
   hoje.setHours(0,0,0,0);
@@ -223,11 +223,11 @@ function CelulaRenovacao({ cliente, onRenovou }: { cliente: ControleCliente; onR
       return (
         <div style={{ display:"flex", gap:"4px" }}>
           <button onClick={() => onRenovou(true)}
-            style={{ flex:1, padding:"3px 6px", borderRadius:"4px", border:"1px solid rgba(34,197,94,0.3)", background:"rgba(34,197,94,0.1)", color:"#22c55e", fontSize:"10px", cursor:"pointer", fontWeight:"600" }}>
+            style={{ flex:1, padding:"3px 6px", borderRadius:"4px", border:"1px solid rgba(34,197,94,0.3)", background:"rgba(34,197,94,0.1)", color:"var(--success)", fontSize:"10px", cursor:"pointer", fontWeight:"600" }}>
             Renovou
           </button>
           <button onClick={() => onRenovou(false)}
-            style={{ flex:1, padding:"3px 6px", borderRadius:"4px", border:"1px solid rgba(239,68,68,0.3)", background:"rgba(239,68,68,0.1)", color:"#ef4444", fontSize:"10px", cursor:"pointer", fontWeight:"600" }}>
+            style={{ flex:1, padding:"3px 6px", borderRadius:"4px", border:"1px solid rgba(239,68,68,0.3)", background:"rgba(239,68,68,0.1)", color:"var(--alert-text)", fontSize:"10px", cursor:"pointer", fontWeight:"600" }}>
             Não
           </button>
         </div>
@@ -235,13 +235,13 @@ function CelulaRenovacao({ cliente, onRenovou }: { cliente: ControleCliente; onR
     }
     // Não renovou
     if (cliente.renovou === false) {
-      return <span style={{ fontSize:"11px", color:"#ef4444", fontWeight:"600" }}>Não renovou</span>;
+      return <span style={{ fontSize:"11px", color:"var(--alert-text)", fontWeight:"600" }}>Não renovou</span>;
     }
     // Renovou — mostrar tempo total
     const mesesTotal = Math.floor(diasPassados / 30);
     const diasExtra = diasPassados % 30;
     return (
-      <span style={{ fontSize:"11px", color:"#22c55e", fontWeight:"600" }}>
+      <span style={{ fontSize:"11px", color:"var(--success)", fontWeight:"600" }}>
         {mesesTotal > 0 ? `${mesesTotal} ${mesesTotal===1?"mês":"meses"}` : ""}
         {mesesTotal > 0 && diasExtra > 0 ? " e " : ""}
         {diasExtra > 0 || mesesTotal === 0 ? `${diasExtra} dias` : ""}
@@ -250,10 +250,10 @@ function CelulaRenovacao({ cliente, onRenovou }: { cliente: ControleCliente; onR
   }
 
   // No 1º trimestre — barra de progresso
-  const cor = diasRestantes > 30 ? "#22c55e" : diasRestantes > 15 ? "#f59e0b" : "#ef4444";
+  const cor = diasRestantes > 30 ? "var(--success)" : diasRestantes > 15 ? "var(--caution-text)" : "var(--alert-text)";
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:"2px" }}>
-      <div style={{ height:"6px", background:"#1a1a1a", borderRadius:"3px", overflow:"hidden" }}>
+      <div style={{ height:"6px", background:"var(--card-bg)", borderRadius:"3px", overflow:"hidden" }}>
         <div style={{ height:"100%", width:`${progresso}%`, background:cor, borderRadius:"3px", transition:"width 0.3s" }}/>
       </div>
       <span style={{ fontSize:"10px", color:cor, fontWeight:"500" }}>
@@ -270,17 +270,17 @@ function CelulaEditavel({ valor, onSave, tipo="text", placeholder }: { valor: st
     <input type="date" autoFocus defaultValue={v}
       onBlur={e => { setEditando(false); onSave(e.target.value); }}
       onChange={e => setV(e.target.value)}
-      style={{ background:"#1a1a1a", border:"1px solid #29ABE2", borderRadius:"4px", padding:"3px 6px", color:"#f0f0f0", fontSize:"12px", width:"130px" }}/>
+      style={{ background:"var(--card-bg)", border:"1px solid var(--brand)", borderRadius:"4px", padding:"3px 6px", color:"var(--navy)", fontSize:"12px", width:"130px" }}/>
   );
   if (editando) return (
     <input autoFocus value={v} onChange={e => setV(e.target.value)}
       onBlur={() => { setEditando(false); onSave(v); }}
       onKeyDown={e => { if(e.key==="Enter"){setEditando(false);onSave(v);} if(e.key==="Escape"){setEditando(false);setV(valor||"");} }}
-      style={{ background:"#1a1a1a", border:"1px solid #29ABE2", borderRadius:"4px", padding:"3px 6px", color:"#f0f0f0", fontSize:"12px", width:"100%", minWidth:"60px" }}/>
+      style={{ background:"var(--card-bg)", border:"1px solid var(--brand)", borderRadius:"4px", padding:"3px 6px", color:"var(--navy)", fontSize:"12px", width:"100%", minWidth:"60px" }}/>
   );
   return (
     <span onClick={()=>setEditando(true)} title="Clique para editar"
-      style={{ cursor:"pointer", padding:"3px 4px", borderRadius:"4px", display:"block", minHeight:"22px", fontSize:"12px", color:v?"#f0f0f0": placeholder?"#404040":"#2a2a2a" }}>
+      style={{ cursor:"pointer", padding:"3px 4px", borderRadius:"4px", display:"block", minHeight:"22px", fontSize:"12px", color:v?"var(--navy)":placeholder?"var(--text-secondary)":"var(--hover-row)" }}>
       {tipo==="date" ? formatarData(v) : (v || placeholder || "—")}
     </span>
   );
@@ -294,7 +294,7 @@ function CelulaInstagram({ valor, onSave }: { valor: string; onSave: (v: string)
       onBlur={()=>{ setEditando(false); onSave(v); }}
       onKeyDown={e=>{ if(e.key==="Enter"){setEditando(false);onSave(v);} if(e.key==="Escape"){setEditando(false);setV(valor||"");} }}
       placeholder="@usuario"
-      style={{ background:"#1a1a1a", border:"1px solid #E1306C", borderRadius:"4px", padding:"3px 6px", color:"#f0f0f0", fontSize:"12px", width:"100%", minWidth:"60px" }}/>
+      style={{ background:"var(--card-bg)", border:"1px solid #E1306C" /* instagram */, borderRadius:"4px", padding:"3px 6px", color:"var(--navy)", fontSize:"12px", width:"100%", minWidth:"60px" }}/>
   );
   if (valor) {
     const handle = valor.replace(/^.*instagram\.com\//,"").replace(/^@/,"").replace(/\/$/,"");
@@ -302,7 +302,7 @@ function CelulaInstagram({ valor, onSave }: { valor: string; onSave: (v: string)
     return (
       <div style={{ display:"flex", alignItems:"center", gap:"4px", overflow:"hidden" }}>
         <a href={href} target="_blank" rel="noopener"
-          style={{ color:"#E1306C", fontSize:"12px", fontWeight:600, textDecoration:"none", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1 }}>
+          style={{ color:"#E1306C" /* instagram */, fontSize:"12px", fontWeight:600, textDecoration:"none", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1 }}>
           @{handle}
         </a>
         <span onClick={()=>setEditando(true)} title="Editar Instagram"
@@ -312,7 +312,7 @@ function CelulaInstagram({ valor, onSave }: { valor: string; onSave: (v: string)
   }
   return (
     <span onClick={()=>setEditando(true)} title="Clique para editar"
-      style={{ cursor:"pointer", padding:"3px 4px", borderRadius:"4px", display:"block", minHeight:"22px", fontSize:"12px", color:"#404040" }}>
+      style={{ cursor:"pointer", padding:"3px 4px", borderRadius:"4px", display:"block", minHeight:"22px", fontSize:"12px", color:"var(--text-secondary)" }}>
       @usuario
     </span>
   );
@@ -345,12 +345,12 @@ function StatusSelect({ valor, onSave }: { valor: string; onSave: (v: string) =>
       {open && (
         <>
           <div onClick={()=>setOpen(false)} style={{ position:"fixed", inset:0, zIndex:9998 }}/>
-          <div style={{ position:"fixed", top:pos.top, left:pos.left, background:"#1e1e1e", border:"1px solid #3a3a3a", borderRadius:"8px", zIndex:9999, minWidth:"140px", overflow:"hidden", boxShadow:"0 8px 24px rgba(0,0,0,0.7)" }}>
+          <div style={{ position:"fixed", top:pos.top, left:pos.left, background:"var(--card-bg)", border:"1px solid var(--border)", borderRadius:"8px", zIndex:9999, minWidth:"140px", overflow:"hidden", boxShadow:"0 8px 24px rgba(0,0,0,0.7)" }}>
             {STATUS_OPTS.map(s => (
               <button key={s.value} onClick={e=>handleSelect(e,s.value)}
-                style={{ display:"flex", alignItems:"center", gap:"8px", padding:"9px 14px", width:"100%", background: s.value===valor?"#2a2a2a":"none", border:"none", cursor:"pointer", color:s.cor, fontSize:"12px" }}
-                onMouseEnter={e=>(e.currentTarget.style.background="#2a2a2a")}
-                onMouseLeave={e=>(e.currentTarget.style.background=s.value===valor?"#2a2a2a":"none")}>
+                style={{ display:"flex", alignItems:"center", gap:"8px", padding:"9px 14px", width:"100%", background: s.value===valor?"var(--hover-row)":"none", border:"none", cursor:"pointer", color:s.cor, fontSize:"12px" }}
+                onMouseEnter={e=>(e.currentTarget.style.background="var(--hover-row)")}
+                onMouseLeave={e=>(e.currentTarget.style.background=s.value===valor?"var(--hover-row)":"none")}>
                 <span style={{ width:"8px", height:"8px", borderRadius:"50%", background:s.cor }}/>{s.label}
               </button>
             ))}
@@ -407,24 +407,24 @@ function PainelPerfil({ cliente, cadastro, todos_cadastros, relatorios, alertas,
     { label: "Senha Facebook", key: "_senha_facebook" },
   ];
   return (
-    <div style={{ position:"fixed", right:0, top:0, bottom:0, width:"400px", background:"#141414", borderLeft:"1px solid #2e2e2e", zIndex:200, display:"flex", flexDirection:"column", boxShadow:"-4px 0 20px rgba(0,0,0,0.3)" }}>
-      <div style={{ padding:"14px 16px", borderBottom:"1px solid #2e2e2e", display:"flex", alignItems:"center", gap:"10px", background:"#1a1a1a" }}>
-        <UserCircle2 size={20} color="#29ABE2"/>
+    <div style={{ position:"fixed", right:0, top:0, bottom:0, width:"400px", background:"var(--card-bg)", borderLeft:"1px solid var(--border)", zIndex:200, display:"flex", flexDirection:"column", boxShadow:"-4px 0 20px rgba(0,0,0,0.3)" }}>
+      <div style={{ padding:"14px 16px", borderBottom:"1px solid var(--border)", display:"flex", alignItems:"center", gap:"10px", background:"var(--card-bg)" }}>
+        <UserCircle2 size={20} color="var(--brand)"/>
         <div style={{ flex:1 }}>
-          <p style={{ fontSize:"14px", fontWeight:"600", color:"#f0f0f0", margin:0 }}>{cliente.nome}</p>
-          <p style={{ fontSize:"11px", color:"#606060", margin:0 }}>Perfil do Cliente</p>
+          <p style={{ fontSize:"14px", fontWeight:"600", color:"var(--navy)", margin:0 }}>{cliente.nome}</p>
+          <p style={{ fontSize:"11px", color:"var(--text-secondary)", margin:0 }}>Perfil do Cliente</p>
         </div>
-        <button onClick={()=>setModalContrato(true)} style={{ background:"#29ABE215", border:"1px solid #29ABE240", borderRadius:"6px", padding:"5px 10px", cursor:"pointer", color:"#29ABE2", fontSize:"11px", display:"flex", alignItems:"center", gap:"4px" }}><FileText size={12}/> Contrato</button>
-        <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", color:"#606060" }}><X size={16}/></button>
+        <button onClick={()=>setModalContrato(true)} style={{ background:"rgba(28,108,166,0.08)", border:"1px solid rgba(28,108,166,0.25)", borderRadius:"6px", padding:"5px 10px", cursor:"pointer", color:"var(--brand)", fontSize:"11px", display:"flex", alignItems:"center", gap:"4px" }}><FileText size={12}/> Contrato</button>
+        <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--text-secondary)" }}><X size={16}/></button>
       </div>
 
       <div style={{ flex:1, overflowY:"auto", padding:"16px" }}>
         {cadastro ? (
           <>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"16px" }}>
-              <span style={{ fontSize:"11px", color:"#22c55e", background:"#052e16", padding:"3px 8px", borderRadius:"10px" }}>✓ Cadastro vinculado</span>
+              <span style={{ fontSize:"11px", color:"var(--success)", background:"rgba(34,197,94,0.1)", padding:"3px 8px", borderRadius:"10px" }}>✓ Cadastro vinculado</span>
               <button onClick={()=>setMostraBusca(v=>!v)}
-                style={{ background:"none", border:"1px solid #2e2e2e", borderRadius:"6px", padding:"4px 10px", cursor:"pointer", color:"#606060", fontSize:"11px" }}>
+                style={{ background:"none", border:"1px solid var(--border)", borderRadius:"6px", padding:"4px 10px", cursor:"pointer", color:"var(--text-secondary)", fontSize:"11px" }}>
                 Trocar
               </button>
             </div>
@@ -432,12 +432,12 @@ function PainelPerfil({ cliente, cadastro, todos_cadastros, relatorios, alertas,
               <div style={{ marginBottom:"16px" }}>
                 <input value={buscaCadastro} onChange={e=>setBuscaCadastro(e.target.value)}
                   placeholder="Buscar cadastro..."
-                  style={{ width:"100%", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"6px", padding:"8px 10px", color:"#f0f0f0", fontSize:"13px", boxSizing:"border-box" as const }}/>
-                <div style={{ maxHeight:"160px", overflowY:"auto", marginTop:"4px", border:"1px solid #2e2e2e", borderRadius:"6px", background:"#1a1a1a" }}>
+                  style={{ width:"100%", background:"var(--card-bg)", border:"1px solid var(--border)", borderRadius:"6px", padding:"8px 10px", color:"var(--navy)", fontSize:"13px", boxSizing:"border-box" as const }}/>
+                <div style={{ maxHeight:"160px", overflowY:"auto", marginTop:"4px", border:"1px solid var(--border)", borderRadius:"6px", background:"var(--card-bg)" }}>
                   {filtrados.map(c=>(
                     <button key={c.id} onClick={()=>{onVincular(c.id);setMostraBusca(false);}}
-                      style={{ display:"block", width:"100%", padding:"8px 12px", background:"none", border:"none", cursor:"pointer", color:"#f0f0f0", fontSize:"12px", textAlign:"left" }}
-                      onMouseEnter={e=>e.currentTarget.style.background="#2a2a2a"}
+                      style={{ display:"block", width:"100%", padding:"8px 12px", background:"none", border:"none", cursor:"pointer", color:"var(--navy)", fontSize:"12px", textAlign:"left" }}
+                      onMouseEnter={e=>e.currentTarget.style.background="var(--hover-row)"}
                       onMouseLeave={e=>e.currentTarget.style.background="none"}>
                       {c.nome}
                     </button>
@@ -447,25 +447,25 @@ function PainelPerfil({ cliente, cadastro, todos_cadastros, relatorios, alertas,
             )}
             {campos.map(campo=>(
               <div key={campo.key} style={{ marginBottom:"12px" }}>
-                <p style={{ fontSize:"10px", color:"#606060", margin:"0 0 2px", textTransform:"uppercase" }}>{campo.label}</p>
+                <p style={{ fontSize:"10px", color:"var(--text-secondary)", margin:"0 0 2px", textTransform:"uppercase" }}>{campo.label}</p>
                 {campo.key === "_senha_facebook" ? (
                   <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
-                    <p style={{ fontSize:"13px", color:"#f0f0f0", margin:0, wordBreak:"break-word" }}>
+                    <p style={{ fontSize:"13px", color:"var(--navy)", margin:0, wordBreak:"break-word" }}>
                       {senhaVisivel ? senhaDecrypt || "—" : "••••••••"}
                     </p>
                     <button onClick={()=>setSenhaVisivel(!senhaVisivel)}
-                      style={{ background:"none", border:"1px solid #2e2e2e", borderRadius:"4px", padding:"2px 8px", cursor:"pointer", color:"#606060", fontSize:"11px" }}>
+                      style={{ background:"none", border:"1px solid var(--border)", borderRadius:"4px", padding:"2px 8px", cursor:"pointer", color:"var(--text-secondary)", fontSize:"11px" }}>
                       {senhaVisivel ? "Ocultar" : "Ver"}
                     </button>
                     {senhaVisivel && senhaDecrypt && senhaDecrypt !== "—" && (
                       <button onClick={()=>navigator.clipboard.writeText(senhaDecrypt)}
-                        style={{ background:"none", border:"1px solid #2e2e2e", borderRadius:"4px", padding:"2px 8px", cursor:"pointer", color:"#606060", fontSize:"11px" }}>
+                        style={{ background:"none", border:"1px solid var(--border)", borderRadius:"4px", padding:"2px 8px", cursor:"pointer", color:"var(--text-secondary)", fontSize:"11px" }}>
                         Copiar
                       </button>
                     )}
                   </div>
                 ) : (
-                  <p style={{ fontSize:"13px", color:"#f0f0f0", margin:0, wordBreak:"break-word" }}>
+                  <p style={{ fontSize:"13px", color:"var(--navy)", margin:0, wordBreak:"break-word" }}>
                     {(cadastro as any)[campo.key] || "—"}
                   </p>
                 )}
@@ -474,27 +474,27 @@ function PainelPerfil({ cliente, cadastro, todos_cadastros, relatorios, alertas,
           </>
         ) : (
           <div style={{ textAlign:"center", padding:"32px 0" }}>
-            <UserCircle2 size={48} color="#2e2e2e" style={{ marginBottom:"12px" }}/>
-            <p style={{ color:"#606060", fontSize:"13px", marginBottom:"16px" }}>Nenhum cadastro vinculado</p>
+            <UserCircle2 size={48} color="var(--border)" style={{ marginBottom:"12px" }}/>
+            <p style={{ color:"var(--text-secondary)", fontSize:"13px", marginBottom:"16px" }}>Nenhum cadastro vinculado</p>
             <button onClick={()=>setMostraBusca(v=>!v)}
-              style={{ background:"#29ABE2", border:"none", borderRadius:"8px", padding:"10px 20px", cursor:"pointer", color:"#000", fontWeight:"600", fontSize:"13px" }}>
+              style={{ background:"var(--brand)", border:"none", borderRadius:"8px", padding:"10px 20px", cursor:"pointer", color:"#FFFFFF", fontWeight:"600", fontSize:"13px" }}>
               Vincular cadastro
             </button>
             {mostraBusca && (
               <div style={{ marginTop:"16px", textAlign:"left" }}>
                 <input value={buscaCadastro} onChange={e=>setBuscaCadastro(e.target.value)}
                   placeholder="Buscar por nome..."
-                  style={{ width:"100%", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"6px", padding:"8px 10px", color:"#f0f0f0", fontSize:"13px", boxSizing:"border-box" as const }}/>
-                <div style={{ maxHeight:"200px", overflowY:"auto", marginTop:"4px", border:"1px solid #2e2e2e", borderRadius:"6px", background:"#1a1a1a" }}>
+                  style={{ width:"100%", background:"var(--card-bg)", border:"1px solid var(--border)", borderRadius:"6px", padding:"8px 10px", color:"var(--navy)", fontSize:"13px", boxSizing:"border-box" as const }}/>
+                <div style={{ maxHeight:"200px", overflowY:"auto", marginTop:"4px", border:"1px solid var(--border)", borderRadius:"6px", background:"var(--card-bg)" }}>
                   {filtrados.map(c=>(
                     <button key={c.id} onClick={()=>{onVincular(c.id);setMostraBusca(false);}}
-                      style={{ display:"block", width:"100%", padding:"8px 12px", background:"none", border:"none", cursor:"pointer", color:"#f0f0f0", fontSize:"12px", textAlign:"left" }}
-                      onMouseEnter={e=>e.currentTarget.style.background="#2a2a2a"}
+                      style={{ display:"block", width:"100%", padding:"8px 12px", background:"none", border:"none", cursor:"pointer", color:"var(--navy)", fontSize:"12px", textAlign:"left" }}
+                      onMouseEnter={e=>e.currentTarget.style.background="var(--hover-row)"}
                       onMouseLeave={e=>e.currentTarget.style.background="none"}>
                       {c.nome}
                     </button>
                   ))}
-                  {!filtrados.length && <p style={{ color:"#606060", fontSize:"12px", padding:"12px", margin:0 }}>Nenhum resultado.</p>}
+                  {!filtrados.length && <p style={{ color:"var(--text-secondary)", fontSize:"12px", padding:"12px", margin:0 }}>Nenhum resultado.</p>}
                 </div>
               </div>
             )}
@@ -502,8 +502,8 @@ function PainelPerfil({ cliente, cadastro, todos_cadastros, relatorios, alertas,
         )}
 
         {/* ── Relatório vinculado ── */}
-        <div style={{ borderTop:"1px solid #2e2e2e", paddingTop:"16px", marginTop:"16px" }}>
-          <p style={{ fontSize:"10px", color:"#606060", margin:"0 0 8px", textTransform:"uppercase", fontWeight:"600" }}>Relatório automático</p>
+        <div style={{ borderTop:"1px solid var(--border)", paddingTop:"16px", marginTop:"16px" }}>
+          <p style={{ fontSize:"10px", color:"var(--text-secondary)", margin:"0 0 8px", textTransform:"uppercase", fontWeight:"600" }}>Relatório automático</p>
           {(() => {
             const relVinculado = cliente.relatorio_id ? relatorios.find(r => r.id === cliente.relatorio_id) : null;
             const relPorNome = !relVinculado ? relatorios.filter(r => r.nome_cliente && cliente.nome && r.nome_cliente.toLowerCase().trim() === cliente.nome.toLowerCase().trim()) : [];
@@ -511,24 +511,24 @@ function PainelPerfil({ cliente, cadastro, todos_cadastros, relatorios, alertas,
               <>
                 {relVinculado ? (
                   <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"8px" }}>
-                    <span style={{ fontSize:"12px", color:relVinculado.ativo?"#22c55e":"#ef4444", background:relVinculado.ativo?"#052e16":"#3b0a0a", padding:"3px 8px", borderRadius:"10px" }}>
+                    <span style={{ fontSize:"12px", color:relVinculado.ativo?"var(--success)":"var(--alert-text)", background:relVinculado.ativo?"rgba(34,197,94,0.1)":"rgba(239,68,68,0.1)", padding:"3px 8px", borderRadius:"10px" }}>
                       {relVinculado.ativo ? "✓ Ativo" : "✗ Inativo"}
                     </span>
-                    <span style={{ fontSize:"12px", color:"#f0f0f0", flex:1 }}>{relVinculado.nome_cliente || relVinculado.nome}</span>
+                    <span style={{ fontSize:"12px", color:"var(--navy)", flex:1 }}>{relVinculado.nome_cliente || relVinculado.nome}</span>
                     <button onClick={() => onVincularRelatorio(null)}
-                      style={{ background:"none", border:"1px solid #2e2e2e", borderRadius:"4px", padding:"2px 6px", cursor:"pointer", color:"#606060", fontSize:"10px" }}>
+                      style={{ background:"none", border:"1px solid var(--border)", borderRadius:"4px", padding:"2px 6px", cursor:"pointer", color:"var(--text-secondary)", fontSize:"10px" }}>
                       Desvincular
                     </button>
                   </div>
                 ) : relPorNome.length > 0 ? (
                   <div>
-                    <p style={{ fontSize:"11px", color:"#f59e0b", marginBottom:"6px" }}>Encontrado por nome:</p>
+                    <p style={{ fontSize:"11px", color:"var(--caution-text)", marginBottom:"6px" }}>Encontrado por nome:</p>
                     {relPorNome.map(r => (
                       <div key={r.id} style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"4px" }}>
-                        <span style={{ fontSize:"12px", color:r.ativo?"#22c55e":"#ef4444" }}>{r.ativo ? "●" : "○"}</span>
-                        <span style={{ fontSize:"12px", color:"#f0f0f0", flex:1 }}>{r.nome_cliente || r.nome}</span>
+                        <span style={{ fontSize:"12px", color:r.ativo?"var(--success)":"var(--alert-text)" }}>{r.ativo ? "●" : "○"}</span>
+                        <span style={{ fontSize:"12px", color:"var(--navy)", flex:1 }}>{r.nome_cliente || r.nome}</span>
                         <button onClick={() => onVincularRelatorio(r.id)}
-                          style={{ background:"#29ABE215", border:"1px solid #29ABE240", borderRadius:"4px", padding:"2px 8px", cursor:"pointer", color:"#29ABE2", fontSize:"10px" }}>
+                          style={{ background:"rgba(28,108,166,0.08)", border:"1px solid rgba(28,108,166,0.25)", borderRadius:"4px", padding:"2px 8px", cursor:"pointer", color:"var(--brand)", fontSize:"10px" }}>
                           Vincular
                         </button>
                       </div>
@@ -536,7 +536,7 @@ function PainelPerfil({ cliente, cadastro, todos_cadastros, relatorios, alertas,
                   </div>
                 ) : null}
                 <select value={cliente.relatorio_id || ""} onChange={e => onVincularRelatorio(e.target.value || null)}
-                  style={{ width:"100%", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"6px", padding:"6px 8px", color:"#f0f0f0", fontSize:"12px", marginTop:"4px" }}>
+                  style={{ width:"100%", background:"var(--card-bg)", border:"1px solid var(--border)", borderRadius:"6px", padding:"6px 8px", color:"var(--navy)", fontSize:"12px", marginTop:"4px" }}>
                   <option value="">{relVinculado ? "Trocar relatório..." : "Vincular relatório..."}</option>
                   {relatorios.map(r => <option key={r.id} value={r.id}>{r.nome_cliente || r.nome} {r.ativo ? "" : "(inativo)"}</option>)}
                 </select>
@@ -546,8 +546,8 @@ function PainelPerfil({ cliente, cadastro, todos_cadastros, relatorios, alertas,
         </div>
 
         {/* ── Alertas de saldo ── */}
-        <div style={{ borderTop:"1px solid #2e2e2e", paddingTop:"16px", marginTop:"16px" }}>
-          <p style={{ fontSize:"10px", color:"#606060", margin:"0 0 8px", textTransform:"uppercase", fontWeight:"600" }}>Alertas de saldo</p>
+        <div style={{ borderTop:"1px solid var(--border)", paddingTop:"16px", marginTop:"16px" }}>
+          <p style={{ fontSize:"10px", color:"var(--text-secondary)", margin:"0 0 8px", textTransform:"uppercase", fontWeight:"600" }}>Alertas de saldo</p>
           {(() => {
             const alertasCliente = alertas.filter(a =>
               a.nome_cliente && cliente.nome &&
@@ -555,17 +555,17 @@ function PainelPerfil({ cliente, cadastro, todos_cadastros, relatorios, alertas,
             );
             return alertasCliente.length > 0 ? (
               alertasCliente.map(a => (
-                <div key={a.id} style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"6px", padding:"6px 8px", background:"#1a1a1a", borderRadius:"6px", border:"1px solid #2e2e2e" }}>
-                  <span style={{ fontSize:"12px", color:a.ativo?"#22c55e":"#ef4444" }}>{a.ativo ? "●" : "○"}</span>
-                  <span style={{ fontSize:"12px", color:"#f0f0f0", flex:1 }}>{a.ad_account_id}</span>
+                <div key={a.id} style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"6px", padding:"6px 8px", background:"var(--card-bg)", borderRadius:"6px", border:"1px solid var(--border)" }}>
+                  <span style={{ fontSize:"12px", color:a.ativo?"var(--success)":"var(--alert-text)" }}>{a.ativo ? "●" : "○"}</span>
+                  <span style={{ fontSize:"12px", color:"var(--navy)", flex:1 }}>{a.ad_account_id}</span>
                   <button onClick={() => onVincularAlerta(a.id, a.nome_cliente, !a.ativo)}
-                    style={{ background:"none", border:"1px solid #2e2e2e", borderRadius:"4px", padding:"2px 8px", cursor:"pointer", color:a.ativo?"#ef4444":"#22c55e", fontSize:"10px" }}>
+                    style={{ background:"none", border:"1px solid var(--border)", borderRadius:"4px", padding:"2px 8px", cursor:"pointer", color:a.ativo?"var(--alert-text)":"var(--success)", fontSize:"10px" }}>
                     {a.ativo ? "Desativar" : "Ativar"}
                   </button>
                 </div>
               ))
             ) : (
-              <p style={{ fontSize:"12px", color:"#606060" }}>Nenhum alerta vinculado a este cliente.</p>
+              <p style={{ fontSize:"12px", color:"var(--text-secondary)" }}>Nenhum alerta vinculado a este cliente.</p>
             );
           })()}
         </div>
@@ -639,40 +639,40 @@ function PainelLateral({ cliente, onClose }: { cliente: ControleCliente; onClose
 
   const filtradas = anotacoes.filter(a => a.tipo === aba);
   return (
-    <div style={{ position:"fixed", right:0, top:0, bottom:0, width:"380px", background:"#141414", borderLeft:"1px solid #2e2e2e", zIndex:200, display:"flex", flexDirection:"column", boxShadow:"-4px 0 20px rgba(0,0,0,0.3)" }}>
-      <div style={{ padding:"14px 16px", borderBottom:"1px solid #2e2e2e", display:"flex", alignItems:"center", gap:"10px", background:"#1a1a1a" }}>
+    <div style={{ position:"fixed", right:0, top:0, bottom:0, width:"380px", background:"var(--card-bg)", borderLeft:"1px solid var(--border)", zIndex:200, display:"flex", flexDirection:"column", boxShadow:"-4px 0 20px rgba(0,0,0,0.3)" }}>
+      <div style={{ padding:"14px 16px", borderBottom:"1px solid var(--border)", display:"flex", alignItems:"center", gap:"10px", background:"var(--card-bg)" }}>
         <div style={{ flex:1 }}>
-          <p style={{ fontSize:"14px", fontWeight:"600", color:"#f0f0f0", margin:0 }}>{cliente.nome}</p>
-          <p style={{ fontSize:"11px", color:"#606060", margin:0 }}>Atualizações e Log</p>
+          <p style={{ fontSize:"14px", fontWeight:"600", color:"var(--navy)", margin:0 }}>{cliente.nome}</p>
+          <p style={{ fontSize:"11px", color:"var(--text-secondary)", margin:0 }}>Atualizações e Log</p>
         </div>
-        <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", color:"#606060" }}><X size={16}/></button>
+        <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--text-secondary)" }}><X size={16}/></button>
       </div>
-      <div style={{ display:"flex", borderBottom:"1px solid #2e2e2e" }}>
+      <div style={{ display:"flex", borderBottom:"1px solid var(--border)" }}>
         {[{key:"atualizacoes",label:"Atualizações"},{key:"log",label:"Log de Atividade"}].map(t=>(
-          <button key={t.key} onClick={()=>setAba(t.key as any)} style={{ flex:1, padding:"10px", background:"none", border:"none", cursor:"pointer", fontSize:"12px", color:aba===t.key?"#29ABE2":"#606060", borderBottom:aba===t.key?"2px solid #29ABE2":"2px solid transparent", fontWeight:aba===t.key?"600":"400" }}>{t.label}</button>
+          <button key={t.key} onClick={()=>setAba(t.key as any)} style={{ flex:1, padding:"10px", background:"none", border:"none", cursor:"pointer", fontSize:"12px", color:aba===t.key?"var(--brand)":"var(--text-secondary)", borderBottom:aba===t.key?"2px solid var(--brand)":"2px solid transparent", fontWeight:aba===t.key?"600":"400" }}>{t.label}</button>
         ))}
       </div>
       <div style={{ flex:1, overflowY:"auto", padding:"12px" }}>
         {!filtradas.length ? (
-          <p style={{ color:"#606060", fontSize:"13px", textAlign:"center", marginTop:"40px" }}>{aba==="atualizacoes"?"Nenhuma atualização ainda.":"Nenhuma atividade registrada."}</p>
+          <p style={{ color:"var(--text-secondary)", fontSize:"13px", textAlign:"center", marginTop:"40px" }}>{aba==="atualizacoes"?"Nenhuma atualização ainda.":"Nenhuma atividade registrada."}</p>
         ) : filtradas.map(a => (
           <div key={a.id} style={{ marginBottom:"14px" }}>
             {a.tipo === "log" ? (
               <div style={{ display:"flex", alignItems:"center", gap:"6px" }}>
-                <div style={{ width:"6px", height:"6px", borderRadius:"50%", background:"#3a3a3a", flexShrink:0 }}/>
-                <p style={{ fontSize:"11px", color:"#505050", margin:0, flex:1 }}>{a.conteudo}</p>
-                <span style={{ fontSize:"10px", color:"#3a3a3a", whiteSpace:"nowrap" }}>{new Date(a.created_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>
+                <div style={{ width:"6px", height:"6px", borderRadius:"50%", background:"var(--border)", flexShrink:0 }}/>
+                <p style={{ fontSize:"11px", color:"var(--text-secondary)", margin:0, flex:1 }}>{a.conteudo}</p>
+                <span style={{ fontSize:"10px", color:"var(--text-secondary)", whiteSpace:"nowrap" }}>{new Date(a.created_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>
               </div>
             ) : (
               <div style={{ display:"flex", gap:"8px", alignItems:"flex-start" }}>
-                <div style={{ width:"30px", height:"30px", borderRadius:"50%", background:"#29ABE2", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:"12px", fontWeight:"700", color:"#000" }}>{a.usuario.charAt(0).toUpperCase()}</div>
+                <div style={{ width:"30px", height:"30px", borderRadius:"50%", background:"var(--brand)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:"12px", fontWeight:"700", color:"#FFFFFF" }}>{a.usuario.charAt(0).toUpperCase()}</div>
                 <div style={{ flex:1 }}>
                   <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"4px" }}>
-                    <span style={{ fontSize:"12px", fontWeight:"600", color:"#f0f0f0" }}>{a.usuario}</span>
-                    <span style={{ fontSize:"10px", color:"#606060" }}>{new Date(a.created_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>
+                    <span style={{ fontSize:"12px", fontWeight:"600", color:"var(--navy)" }}>{a.usuario}</span>
+                    <span style={{ fontSize:"10px", color:"var(--text-secondary)" }}>{new Date(a.created_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>
                   </div>
-                  <div style={{ background:"#1e1e1e", borderRadius:"4px 12px 12px 12px", padding:"8px 12px", border:"1px solid #2e2e2e" }}>
-                    <p style={{ fontSize:"13px", color:"#f0f0f0", margin:0, whiteSpace:"pre-wrap", lineHeight:"1.5" }}>{a.conteudo}</p>
+                  <div style={{ background:"var(--card-bg)", borderRadius:"4px 12px 12px 12px", padding:"8px 12px", border:"1px solid var(--border)" }}>
+                    <p style={{ fontSize:"13px", color:"var(--navy)", margin:0, whiteSpace:"pre-wrap", lineHeight:"1.5" }}>{a.conteudo}</p>
                   </div>
                 </div>
               </div>
@@ -682,16 +682,16 @@ function PainelLateral({ cliente, onClose }: { cliente: ControleCliente; onClose
         <div ref={bottomRef}/>
       </div>
       {aba==="atualizacoes" && (
-        <div style={{ padding:"10px 12px", borderTop:"1px solid #2e2e2e", background:"#1a1a1a", display:"flex", gap:"8px", alignItems:"flex-end" }}>
+        <div style={{ padding:"10px 12px", borderTop:"1px solid var(--border)", background:"var(--card-bg)", display:"flex", gap:"8px", alignItems:"flex-end" }}>
           <textarea className="form-input" placeholder="Escreva uma atualização... (Enter para enviar)" value={texto}
             onChange={e=>setTexto(e.target.value)}
             onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();salvar();}}}
             style={{ resize:"none", minHeight:"40px", maxHeight:"120px", flex:1, margin:0, fontSize:"13px" }}/>
           <button onClick={salvar} disabled={salvando||!texto.trim()}
-            style={{ background:texto.trim()?"#29ABE2":"#2e2e2e", border:"none", borderRadius:"8px", padding:"8px 12px", cursor:texto.trim()?"pointer":"default", color:texto.trim()?"#000":"#606060", flexShrink:0, display:"flex", alignItems:"center" }}>
+            style={{ background:texto.trim()?"var(--brand)":"var(--border)", border:"none", borderRadius:"8px", padding:"8px 12px", cursor:texto.trim()?"pointer":"default", color:texto.trim()?"#FFFFFF":"var(--text-secondary)", flexShrink:0, display:"flex", alignItems:"center" }}>
             {salvando ? <span style={{fontSize:"10px"}}>...</span> : <Send size={14}/>}
           </button>
-          {erroAnotacao && <p style={{color:"#ef4444",fontSize:"11px",margin:"4px 0 0",width:"100%"}}>{erroAnotacao}</p>}
+          {erroAnotacao && <p style={{color:"var(--alert-text)",fontSize:"11px",margin:"4px 0 0",width:"100%"}}>{erroAnotacao}</p>}
         </div>
       )}
     </div>
@@ -820,7 +820,7 @@ export default function ControleClientesPage() {
     );
     if (!elegiveis.length) return;
 
-    const relatorioIds = [...new Set(elegiveis.map(c => c.relatorio_id!))];
+    const relatorioIds = Array.from(new Set(elegiveis.map(c => c.relatorio_id!)));
     try {
       const res = await fetch("/api/controle/roas", {
         method: "POST",
@@ -1104,9 +1104,9 @@ export default function ControleClientesPage() {
 
       // Atualizar estado local para remover o ⚠
       if (modalFinanceiro.cadastro_id) {
-        setCadastrosFinanceiro(prev => new Set([...prev, modalFinanceiro.cadastro_id!]));
+        setCadastrosFinanceiro(prev => new Set(Array.from(prev).concat(modalFinanceiro.cadastro_id!)));
       } else {
-        setNomesFinanceiro(prev => new Set([...prev, modalFinanceiro.nome.toLowerCase().trim()]));
+        setNomesFinanceiro(prev => new Set(Array.from(prev).concat(modalFinanceiro.nome.toLowerCase().trim())));
       }
       setModalFinanceiro(null);
       setFinFreq("mensal"); setFinValor(""); setFinDia(""); setFinDia2("");
@@ -1117,7 +1117,7 @@ export default function ControleClientesPage() {
   const semFinanceiro = (c: ControleCliente) => {
     if (c.cadastro_id && cadastrosFinanceiro.has(c.cadastro_id)) return false;
     if (c.nome) {
-      for (const nomeF of nomesFinanceiro) {
+      for (const nomeF of Array.from(nomesFinanceiro)) {
         if (nomeSimilar(c.nome, nomeF)) return false;
       }
     }
@@ -1146,7 +1146,7 @@ export default function ControleClientesPage() {
       <style>{`
         @keyframes spin{to{transform:rotate(360deg)}}
         .resize-handle{width:4px;cursor:col-resize;position:absolute;right:0;top:0;bottom:0;background:transparent;}
-        .resize-handle:hover{background:#29ABE2;}
+        .resize-handle:hover{background:var(--brand);}
         .th-group:hover .th-actions{opacity:1!important;}
       `}</style>
 
@@ -1154,34 +1154,34 @@ export default function ControleClientesPage() {
         <div>
           <div className="breadcrumb"><a href="/">Início</a><span>›</span><span className="current">Controle de Clientes</span></div>
           <h1 style={{ fontSize:"22px", fontWeight:"600" }}>Controle de Clientes</h1>
-          <p style={{ fontSize:"13px", color:"#606060", marginTop:"4px" }}>{filtrados.length} clientes ativos</p>
+          <p style={{ fontSize:"13px", color:"var(--text-secondary)", marginTop:"4px" }}>{filtrados.length} clientes ativos</p>
         </div>
         <div style={{ display:"flex", gap:"8px", alignItems:"center" }}>
           <div style={{ position:"relative" }}>
-            <Search size={13} style={{ position:"absolute", left:"10px", top:"50%", transform:"translateY(-50%)", color:"#606060" }}/>
+            <Search size={13} style={{ position:"absolute", left:"10px", top:"50%", transform:"translateY(-50%)", color:"var(--text-secondary)" }}/>
             <input className="search-input" placeholder="Buscar cliente..." value={busca} onChange={e=>setBusca(e.target.value)} style={{ paddingLeft:"32px", width:"200px" }}/>
           </div>
-          <select value={sort} onChange={e=>setSort(e.target.value)} style={{ background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", padding:"7px 10px", color:"#f0f0f0", fontSize:"12px", cursor:"pointer" }}>
+          <select value={sort} onChange={e=>setSort(e.target.value)} style={{ background:"var(--card-bg)", border:"1px solid var(--border)", borderRadius:"8px", padding:"7px 10px", color:"var(--navy)", fontSize:"12px", cursor:"pointer" }}>
             {SORT_OPTS.map(s=><option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
           <button onClick={()=>setSortDir(d=>d==="asc"?"desc":"asc")} className="btn-ghost" style={{ padding:"7px 10px", cursor:"pointer", fontSize:"12px" }}>
             {sortDir==="asc"?"↑ Crescente":"↓ Decrescente"}
           </button>
           <button onClick={carregar} className="btn-ghost" style={{ padding:"8px", cursor:"pointer" }}><RefreshCw size={14}/></button>
-          <button onClick={()=>setModalColunas(true)} style={{ background:"#252525", border:"1px solid #333", borderRadius:"8px", padding:"8px 14px", cursor:"pointer", color:"#a0a0a0", fontWeight:"500", fontSize:"13px", display:"flex", alignItems:"center", gap:"6px" }}>
+          <button onClick={()=>setModalColunas(true)} style={{ background:"var(--hover-row)", border:"1px solid var(--border)", borderRadius:"8px", padding:"8px 14px", cursor:"pointer", color:"var(--text-secondary)", fontWeight:"500", fontSize:"13px", display:"flex", alignItems:"center", gap:"6px" }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
             Colunas
           </button>
           {(() => {
             const qtd = clientes.filter(semFinanceiro).length;
             return qtd > 0 ? (
-              <button onClick={()=>setFiltraSemFinanceiro(v=>!v)} style={{ background: filtraSemFinanceiro ? "#ef444420" : "#1a1a1a", border:`1px solid ${filtraSemFinanceiro?"#ef4444":"#3a3a3a"}`, borderRadius:"8px", padding:"7px 12px", cursor:"pointer", color: filtraSemFinanceiro ? "#ef4444" : "#f59e0b", fontWeight:"600", fontSize:"12px", display:"flex", alignItems:"center", gap:"6px" }}
+              <button onClick={()=>setFiltraSemFinanceiro(v=>!v)} style={{ background: filtraSemFinanceiro ? "rgba(239,68,68,0.08)" : "var(--hover-row)", border:`1px solid ${filtraSemFinanceiro?"var(--alert-text)":"var(--border)"}`, borderRadius:"8px", padding:"7px 12px", cursor:"pointer", color: filtraSemFinanceiro ? "var(--alert-text)" : "var(--caution-text)", fontWeight:"600", fontSize:"12px", display:"flex", alignItems:"center", gap:"6px" }}
                 title="Clientes no controle mas sem cadastro no financeiro">
                 ⚠ {qtd} sem financeiro
               </button>
             ) : null;
           })()}
-          <button onClick={()=>setModalNovoCliente(true)} style={{ background:"#29ABE2", border:"none", borderRadius:"8px", padding:"8px 14px", cursor:"pointer", color:"#000", fontWeight:"600", fontSize:"13px", display:"flex", alignItems:"center", gap:"6px" }}><Plus size={14}/> Novo Cliente</button>
+          <button onClick={()=>setModalNovoCliente(true)} style={{ background:"var(--brand)", border:"none", borderRadius:"8px", padding:"8px 14px", cursor:"pointer", color:"#FFFFFF", fontWeight:"600", fontSize:"13px", display:"flex", alignItems:"center", gap:"6px" }}><Plus size={14}/> Novo Cliente</button>
         </div>
       </div>
 
@@ -1205,19 +1205,19 @@ export default function ControleClientesPage() {
         const entrada = clientes.filter(c=>c.status==="entrada");
         const basePassada = snapsMensais.find((s:any)=>s.mes_ano===mesPassadoStr)?.clientes_ativos || 0;
         const kpis = [
-          { label:"Clientes Totais", value:clientes.length, cor:"#f0f0f0" },
-          { label:"Clientes Ativos", value:ativos.length, cor:"#22c55e" },
-          { label:"Pausados", value:pausados.length, cor:"#f59e0b" },
-          { label:"Em Entrada", value:entrada.length, cor:"#eab308" },
-          { label:`Base ${mesPassadoStr}`, value: basePassada || "—", cor:"#29ABE2" },
-          { label:"Tempo Médio (meses)", value:tempoMedioDias > 0 ? tempoMedioDias.toFixed(1) : "—", cor:"#f0f0f0" },
-          { label:`Churn ${mesAtualStr2}`, value: churnsMes.filter((c:any) => c.data_churn === mesAtualStr2).length, cor:"#ef4444" },
+          { label:"Clientes Totais", value:clientes.length, cor:"var(--navy)" },
+          { label:"Clientes Ativos", value:ativos.length, cor:"var(--success)" },
+          { label:"Pausados", value:pausados.length, cor:"var(--caution-text)" },
+          { label:"Em Entrada", value:entrada.length, cor:"#eab308" /* warning */ },
+          { label:`Base ${mesPassadoStr}`, value: basePassada || "—", cor:"var(--brand)" },
+          { label:"Tempo Médio (meses)", value:tempoMedioDias > 0 ? tempoMedioDias.toFixed(1) : "—", cor:"var(--navy)" },
+          { label:`Churn ${mesAtualStr2}`, value: churnsMes.filter((c:any) => c.data_churn === mesAtualStr2).length, cor:"var(--alert-text)" },
         ];
         return (
           <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"12px", marginBottom:"20px" }}>
             {kpis.map(k=>(
               <div key={k.label} className="card" style={{ padding:"12px 16px" }}>
-                <p style={{ fontSize:"11px", color:"#606060", margin:0 }}>{k.label}</p>
+                <p style={{ fontSize:"11px", color:"var(--text-secondary)", margin:0 }}>{k.label}</p>
                 <p style={{ fontSize:"20px", fontWeight:"700", color:k.cor, margin:0 }}>{k.value}</p>
               </div>
             ))}
@@ -1265,26 +1265,26 @@ export default function ControleClientesPage() {
         const percentMeta = media > 0 && metaDiasInicio > 0 ? Math.min(100, Math.round((metaDiasInicio / media) * 100)) : media === 0 ? 0 : 100;
 
         // Cor: verde se dentro da meta, vermelho quanto mais passa
-        const corProgresso = media === 0 ? "#606060" : percentMeta >= 100 ? "#22c55e" : percentMeta >= 75 ? "#29ABE2" : percentMeta >= 50 ? "#f59e0b" : "#ef4444";
+        const corProgresso = media === 0 ? "var(--text-secondary)" : percentMeta >= 100 ? "var(--success)" : percentMeta >= 75 ? "var(--brand)" : percentMeta >= 50 ? "var(--caution-text)" : "var(--alert-text)";
         const labelProgresso = media === 0 ? "Sem dados" : percentMeta >= 100 ? "Dentro da meta" : percentMeta >= 75 ? "Levemente acima" : percentMeta >= 50 ? "Atenção" : "Crítico";
 
         return (
           <div className="card" style={{ padding:"16px", marginBottom:"20px" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"12px" }}>
               <div>
-                <p style={{ fontSize:"12px", fontWeight:"600", color:"#606060", margin:"0 0 4px" }}>DIAS PARA INICIAR CAMPANHA</p>
-                <p style={{ fontSize:"11px", color:"#505050", margin:0 }}>Média do mês atual — {iniciaram.length} cliente{iniciaram.length !== 1 ? "s" : ""} iniciaram</p>
+                <p style={{ fontSize:"12px", fontWeight:"600", color:"var(--text-secondary)", margin:"0 0 4px" }}>DIAS PARA INICIAR CAMPANHA</p>
+                <p style={{ fontSize:"11px", color:"var(--text-secondary)", margin:0 }}>Média do mês atual — {iniciaram.length} cliente{iniciaram.length !== 1 ? "s" : ""} iniciaram</p>
               </div>
               <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
-                <span style={{ fontSize:"11px", color:"#606060" }}>Meta:</span>
+                <span style={{ fontSize:"11px", color:"var(--text-secondary)" }}>Meta:</span>
                 {editandoMeta ? (
                   <input type="number" min="1" value={metaDiasInicio} autoFocus
                     onChange={e => { const v = parseInt(e.target.value) || 10; setMetaDiasInicio(v); localStorage.setItem("meta_dias_inicio", String(v)); }}
                     onBlur={() => setEditandoMeta(false)}
                     onKeyDown={e => { if (e.key === "Enter") setEditandoMeta(false); }}
-                    style={{ width:"50px", background:"#222", border:"1px solid #29ABE2", borderRadius:"4px", padding:"2px 6px", color:"#f0f0f0", fontSize:"12px", textAlign:"center" }}/>
+                    style={{ width:"50px", background:"var(--hover-row)", border:"1px solid var(--brand)", borderRadius:"4px", padding:"2px 6px", color:"var(--navy)", fontSize:"12px", textAlign:"center" }}/>
                 ) : (
-                  <button onClick={() => setEditandoMeta(true)} style={{ background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"4px", padding:"2px 8px", color:"#f0f0f0", fontSize:"12px", cursor:"pointer" }}>
+                  <button onClick={() => setEditandoMeta(true)} style={{ background:"var(--card-bg)", border:"1px solid var(--border)", borderRadius:"4px", padding:"2px 8px", color:"var(--navy)", fontSize:"12px", cursor:"pointer" }}>
                     {metaDiasInicio} dias
                   </button>
                 )}
@@ -1296,21 +1296,21 @@ export default function ControleClientesPage() {
                 <p style={{ fontSize:"32px", fontWeight:"700", color:corProgresso, margin:0, lineHeight:1 }}>
                   {media > 0 ? media.toFixed(1) : "—"}
                 </p>
-                <p style={{ fontSize:"11px", color:"#606060", margin:"4px 0 0" }}>dias (média)</p>
+                <p style={{ fontSize:"11px", color:"var(--text-secondary)", margin:"4px 0 0" }}>dias (média)</p>
               </div>
               <div style={{ flex:1 }}>
                 <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"4px" }}>
                   <span style={{ fontSize:"11px", fontWeight:"600", color:corProgresso }}>{labelProgresso}</span>
-                  <span style={{ fontSize:"11px", color:"#606060" }}>{percentMeta}% da meta</span>
+                  <span style={{ fontSize:"11px", color:"var(--text-secondary)" }}>{percentMeta}% da meta</span>
                 </div>
-                <div style={{ height:"8px", background:"#1a1a1a", borderRadius:"4px", overflow:"hidden" }}>
+                <div style={{ height:"8px", background:"var(--card-bg)", borderRadius:"4px", overflow:"hidden" }}>
                   <div style={{ height:"100%", width:`${Math.min(percentMeta, 100)}%`, background:corProgresso, borderRadius:"4px", transition:"width 0.3s" }}/>
                 </div>
                 <div style={{ display:"flex", justifyContent:"space-between", marginTop:"2px" }}>
-                  <span style={{ fontSize:"9px", color:"#ef4444" }}>0%</span>
-                  <span style={{ fontSize:"9px", color:"#f59e0b" }}>50%</span>
-                  <span style={{ fontSize:"9px", color:"#29ABE2" }}>75%</span>
-                  <span style={{ fontSize:"9px", color:"#22c55e" }}>100% ({metaDiasInicio}d)</span>
+                  <span style={{ fontSize:"9px", color:"var(--alert-text)" }}>0%</span>
+                  <span style={{ fontSize:"9px", color:"var(--caution-text)" }}>50%</span>
+                  <span style={{ fontSize:"9px", color:"var(--brand)" }}>75%</span>
+                  <span style={{ fontSize:"9px", color:"var(--success)" }}>100% ({metaDiasInicio}d)</span>
                 </div>
               </div>
             </div>
@@ -1319,7 +1319,7 @@ export default function ControleClientesPage() {
             {diasPorCliente.length > 0 && (
               <div style={{ display:"flex", flexWrap:"wrap", gap:"6px" }}>
                 {diasPorCliente.map(c => (
-                  <span key={c.nome} style={{ fontSize:"11px", padding:"2px 8px", borderRadius:"12px", background:c.dias <= metaDiasInicio ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", color:c.dias <= metaDiasInicio ? "#22c55e" : "#ef4444", border:`1px solid ${c.dias <= metaDiasInicio ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}` }}>
+                  <span key={c.nome} style={{ fontSize:"11px", padding:"2px 8px", borderRadius:"12px", background:c.dias <= metaDiasInicio ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", color:c.dias <= metaDiasInicio ? "var(--success)" : "var(--alert-text)", border:`1px solid ${c.dias <= metaDiasInicio ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}` }}>
                     {c.nome}: {c.dias}d
                   </span>
                 ))}
@@ -1330,32 +1330,32 @@ export default function ControleClientesPage() {
       })()}
 
       {/* Tabela */}
-      <div style={{ overflowX:"auto", border:"1px solid #2e2e2e", borderRadius:"12px", marginRight:painelLateralAberto?"400px":"0", transition:"margin 0.2s" }}>
+      <div style={{ overflowX:"auto", border:"1px solid var(--border)", borderRadius:"12px", marginRight:painelLateralAberto?"400px":"0", transition:"margin 0.2s" }}>
         <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"12px", tableLayout:"fixed" }}>
           <thead>
-            <tr style={{ background:"#1a1a1a", borderBottom:"1px solid #2e2e2e" }}>
+            <tr style={{ background:"var(--card-bg)", borderBottom:"1px solid var(--border)" }}>
               <th style={{ width:"30px", padding:"10px 6px" }}></th>
-              {sort==="ordem" && <th style={{ width:"50px", padding:"10px 4px", textAlign:"center", fontSize:"11px", color:"#606060", fontWeight:"600" }}>↕</th>}
-              <th style={{ padding:"10px 12px", textAlign:"left", fontSize:"11px", color:"#606060", fontWeight:"600", position:"sticky", left:0, background:"#1a1a1a", zIndex:2, width:"160px", whiteSpace:"nowrap" }}>NOME</th>
+              {sort==="ordem" && <th style={{ width:"50px", padding:"10px 4px", textAlign:"center", fontSize:"11px", color:"var(--text-secondary)", fontWeight:"600" }}>↕</th>}
+              <th style={{ padding:"10px 12px", textAlign:"left", fontSize:"11px", color:"var(--text-secondary)", fontWeight:"600", position:"sticky", left:0, background:"var(--card-bg)", zIndex:2, width:"160px", whiteSpace:"nowrap" }}>NOME</th>
               {/* Coluna Info. Cliente */}
-              <th style={{ padding:"10px 8px", textAlign:"center", fontSize:"11px", color:"#606060", fontWeight:"600", width:"60px", whiteSpace:"nowrap" }}>INFO.</th>
+              <th style={{ padding:"10px 8px", textAlign:"center", fontSize:"11px", color:"var(--text-secondary)", fontWeight:"600", width:"60px", whiteSpace:"nowrap" }}>INFO.</th>
               {/* Coluna UTI fixa */}
-              <th style={{ padding:"10px 8px", textAlign:"center", fontSize:"11px", color:"#ef4444", fontWeight:"700", width:"48px", whiteSpace:"nowrap", borderLeft:"1px solid #ef444430" }}>UTI</th>
+              <th style={{ padding:"10px 8px", textAlign:"center", fontSize:"11px", color:"var(--alert-text)", fontWeight:"700", width:"48px", whiteSpace:"nowrap", borderLeft:"1px solid rgba(239,68,68,0.18)" }}>UTI</th>
               {colunas.map((col: any)=>(
-                <th key={col.key} className="th-group" style={{ padding:"10px 8px", textAlign:"left", fontSize:"11px", color:"#606060", fontWeight:"600", width:colWidths[col.key]||col.w, position:"relative", whiteSpace:"nowrap", overflow:"hidden", borderLeft:"1px solid #29ABE220" }}>
+                <th key={col.key} className="th-group" style={{ padding:"10px 8px", textAlign:"left", fontSize:"11px", color:"var(--text-secondary)", fontWeight:"600", width:colWidths[col.key]||col.w, position:"relative", whiteSpace:"nowrap", overflow:"hidden", borderLeft:"1px solid rgba(28,108,166,0.12)" }}>
                   {editandoHeader === col.key ? (
                     <input autoFocus defaultValue={col.label}
                       onBlur={e => renomearColuna(col.key, e.target.value)}
                       onKeyDown={e => { if(e.key==="Enter") renomearColuna(col.key, (e.target as HTMLInputElement).value); if(e.key==="Escape") setEditandoHeader(null); }}
-                      style={{ background:"#0f0f0f", border:"1px solid #29ABE2", borderRadius:"4px", padding:"2px 6px", color:"#f0f0f0", fontSize:"11px", width:"80%", outline:"none" }}/>
+                      style={{ background:"var(--off-white)", border:"1px solid var(--brand)", borderRadius:"4px", padding:"2px 6px", color:"var(--navy)", fontSize:"11px", width:"80%", outline:"none" }}/>
                   ) : (
                     <div style={{ display:"flex", alignItems:"center", gap:"4px", paddingRight:"20px" }}>
                       <span>{col.label}</span>
                       <span className="th-actions" style={{ opacity:0, display:"flex", gap:"2px", transition:"opacity 0.15s" }}>
-                        <button onClick={()=>setEditandoHeader(col.key)} style={{ background:"none", border:"none", cursor:"pointer", color:"#404040", padding:"1px" }} title="Renomear">
+                        <button onClick={()=>setEditandoHeader(col.key)} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--text-secondary)", padding:"1px" }} title="Renomear">
                           <Pencil size={10}/>
                         </button>
-                        <button onClick={()=>excluirColuna(col.key)} style={{ background:"none", border:"none", cursor:"pointer", color:"#ef444480", padding:"1px" }} title="Excluir coluna">
+                        <button onClick={()=>excluirColuna(col.key)} style={{ background:"none", border:"none", cursor:"pointer", color:"rgba(239,68,68,0.5)", padding:"1px" }} title="Excluir coluna">
                           <Trash2 size={10}/>
                         </button>
                       </span>
@@ -1372,14 +1372,14 @@ export default function ControleClientesPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={colunas.length+5} style={{ textAlign:"center", color:"#606060", padding:"48px" }}>Carregando...</td></tr>
+              <tr><td colSpan={colunas.length+5} style={{ textAlign:"center", color:"var(--text-secondary)", padding:"48px" }}>Carregando...</td></tr>
             ) : !filtrados.length ? (
-              <tr><td colSpan={colunas.length+5} style={{ textAlign:"center", color:"#606060", padding:"48px" }}>Nenhum cliente encontrado.</td></tr>
+              <tr><td colSpan={colunas.length+5} style={{ textAlign:"center", color:"var(--text-secondary)", padding:"48px" }}>Nenhum cliente encontrado.</td></tr>
             ) : filtrados.map((c,idx)=>(
               <React.Fragment key={c.id}>
-              <tr style={{ borderBottom:"1px solid #29ABE230", background:c.uti?(idx%2===0?"#2a0a0a":"#220808"):(idx%2===0?"transparent":"#0a0a0a") }}>
+              <tr style={{ borderBottom:"1px solid rgba(28,108,166,0.18)", background:c.uti?(idx%2===0?"rgba(239,68,68,0.06)":"rgba(239,68,68,0.04)"):(idx%2===0?"transparent":"var(--hover-row)") }}>
                 <td style={{ padding:"4px 6px", textAlign:"center" }}>
-                  <button onClick={()=>toggleExpandir(c.id)} style={{ background:"none", border:"none", cursor:"pointer", color:"#606060", padding:"2px" }}>
+                  <button onClick={()=>toggleExpandir(c.id)} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--text-secondary)", padding:"2px" }}>
                     {expandidos.has(c.id)?<ChevronDown size={14}/>:<ChevronRight size={14}/>}
                   </button>
                 </td>
@@ -1387,17 +1387,17 @@ export default function ControleClientesPage() {
                   <td style={{ padding:"2px 4px", textAlign:"center", width:"50px" }}>
                     <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"1px" }}>
                       <button onClick={()=>moverCliente(idx,"up")} disabled={idx===0}
-                        style={{ background:"none", border:"none", cursor:idx===0?"default":"pointer", color:idx===0?"#2a2a2a":"#606060", padding:"1px" }} title="Subir">
+                        style={{ background:"none", border:"none", cursor:idx===0?"default":"pointer", color:idx===0?"var(--border)":"var(--text-secondary)", padding:"1px" }} title="Subir">
                         <ArrowUp size={13}/>
                       </button>
                       <button onClick={()=>moverCliente(idx,"down")} disabled={idx===filtrados.length-1}
-                        style={{ background:"none", border:"none", cursor:idx===filtrados.length-1?"default":"pointer", color:idx===filtrados.length-1?"#2a2a2a":"#606060", padding:"1px" }} title="Descer">
+                        style={{ background:"none", border:"none", cursor:idx===filtrados.length-1?"default":"pointer", color:idx===filtrados.length-1?"var(--border)":"var(--text-secondary)", padding:"1px" }} title="Descer">
                         <ArrowDown size={13}/>
                       </button>
                     </div>
                   </td>
                 )}
-                <td style={{ padding:"4px 8px 4px 12px", position:"sticky", left:0, background:idx%2===0?"#141414":"#111", zIndex:1, whiteSpace:"nowrap", width:"200px" }}>
+                <td style={{ padding:"4px 8px 4px 12px", position:"sticky", left:0, background:idx%2===0?"var(--card-bg)":"var(--hover-row)", zIndex:1, whiteSpace:"nowrap", width:"200px" }}>
                   <div style={{ display:"flex", alignItems:"center", gap:"6px" }}>
                     <div style={{ flex:1, overflow:"hidden" }}>
                       <CelulaEditavel valor={c.nome||""} onSave={v=>atualizar(c.id,"nome",v,c.nome)} placeholder="Nome do cliente"/>
@@ -1406,12 +1406,12 @@ export default function ControleClientesPage() {
                       <button
                         onClick={() => { setModalFinanceiro(c); setFinValor(c.investimento_mensal ? String(c.investimento_mensal) : ""); setFinFreq("mensal"); setFinDia(""); setFinDia2(""); }}
                         title="Criar no financeiro"
-                        style={{ fontSize:"10px", color:"#f59e0b", background:"none", border:"none", cursor:"pointer", padding:"2px", flexShrink:0 }}>
+                        style={{ fontSize:"10px", color:"var(--caution-text)", background:"none", border:"none", cursor:"pointer", padding:"2px", flexShrink:0 }}>
                         ⚠
                       </button>
                     )}
                     <button onClick={()=>{ setPainelAberto(painelAberto?.id===c.id?null:c); setPerfilAberto(null); }}
-                      style={{ background:"none", border:"none", cursor:"pointer", color:painelAberto?.id===c.id?"#29ABE2":"#404040", padding:"2px", flexShrink:0 }}
+                      style={{ background:"none", border:"none", cursor:"pointer", color:painelAberto?.id===c.id?"var(--brand)":"var(--text-secondary)", padding:"2px", flexShrink:0 }}
                       title="Atualizações">
                       <MessageSquare size={13}/>
                     </button>
@@ -1422,16 +1422,16 @@ export default function ControleClientesPage() {
                   <button onClick={()=>{ setPerfilAberto(perfilAberto?.id===c.id?null:c); setPainelAberto(null); }}
                     style={{ background:"none", border:"none", cursor:"pointer", padding:"2px" }}
                     title="Ver perfil do cliente">
-                    <UserCircle2 size={18} color={c.cadastro_id ? "#29ABE2" : (perfilAberto?.id===c.id ? "#29ABE2" : "#3a3a3a")}/>
+                    <UserCircle2 size={18} color={c.cadastro_id ? "var(--brand)" : (perfilAberto?.id===c.id ? "var(--brand)" : "var(--border)")}/>
                   </button>
                   <button onClick={()=>excluirCliente(c.id, c.nome)}
-                    style={{ background:"none", border:"none", cursor:"pointer", padding:"2px", color:"#404040" }}
+                    style={{ background:"none", border:"none", cursor:"pointer", padding:"2px", color:"var(--text-secondary)" }}
                     title="Excluir cliente">
                     <Trash2 size={13}/>
                   </button>
                 </td>
                 {/* Célula UTI fixa */}
-                <td style={{ padding:"2px 4px", textAlign:"center", width:"48px", borderLeft:"1px solid #ef444430" }}>
+                <td style={{ padding:"2px 4px", textAlign:"center", width:"48px", borderLeft:"1px solid rgba(239,68,68,0.18)" }}>
                   <button
                     onClick={()=>atualizar(c.id,"uti",!c.uti,c.nome)}
                     title={c.uti ? "Remover da UTI" : "Enviar para UTI"}
@@ -1440,31 +1440,31 @@ export default function ControleClientesPage() {
                   </button>
                 </td>
                 {colunas.map((col: any)=>(
-                  <td key={col.key} style={{ padding:"2px 6px", overflow:"hidden", width:colWidths[col.key]||col.w, borderLeft:"1px solid #29ABE215", whiteSpace:"nowrap", maxWidth:colWidths[col.key]||col.w, height:"36px" }}>
+                  <td key={col.key} style={{ padding:"2px 6px", overflow:"hidden", width:colWidths[col.key]||col.w, borderLeft:"1px solid rgba(28,108,166,0.08)", whiteSpace:"nowrap", maxWidth:colWidths[col.key]||col.w, height:"36px" }}>
                     {col.key==="status" ? (
                       <StatusSelect valor={c.status} onSave={v=>atualizar(c.id,"status",v,c.nome)}/>
                     ) : col.key==="instagram_link" ? (
                       <CelulaInstagram valor={c.instagram||""} onSave={v=>atualizar(c.id,"instagram",v,c.nome)}/>
                     ) : col.key==="oferta" ? (
                       <select value={c.oferta||""} onChange={e=>atualizar(c.id,"oferta",e.target.value,c.nome)}
-                        style={{ background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"4px", padding:"3px 6px", color: c.oferta==="sim"?"#22c55e":c.oferta==="nao"?"#ef4444":"#606060", fontSize:"12px", cursor:"pointer", width:"100%" }}>
+                        style={{ background:"var(--card-bg)", border:"1px solid var(--border)", borderRadius:"4px", padding:"3px 6px", color: c.oferta==="sim"?"var(--success)":c.oferta==="nao"?"var(--alert-text)":"var(--text-secondary)", fontSize:"12px", cursor:"pointer", width:"100%" }}>
                         <option value="">—</option>
                         <option value="sim">Sim</option>
                         <option value="nao">Não</option>
                       </select>
                     ) : col.key==="regiao_anunciar" ? (
-                      <span style={{ fontSize:"12px", color:"#a0a0a0", display:"block", overflow:"hidden", textOverflow:"ellipsis" }} title={c.cadastro_id ? cadastrosMap[c.cadastro_id]?.regiao_anunciar || "—" : "—"}>
+                      <span style={{ fontSize:"12px", color:"var(--text-secondary)", display:"block", overflow:"hidden", textOverflow:"ellipsis" }} title={c.cadastro_id ? cadastrosMap[c.cadastro_id]?.regiao_anunciar || "—" : "—"}>
                         {c.cadastro_id ? cadastrosMap[c.cadastro_id]?.regiao_anunciar || "—" : "—"}
                       </span>
                     ) : col.key==="head_squad"||col.key==="consultor"||col.key==="gestor" ? (
                       <select value={(c as any)[col.key]||""} onChange={e=>atualizar(c.id,col.key,e.target.value,c.nome)}
-                        style={{ background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"4px", padding:"3px 6px", color:"#f0f0f0", fontSize:"12px", cursor:"pointer", width:"100%" }}>
+                        style={{ background:"var(--card-bg)", border:"1px solid var(--border)", borderRadius:"4px", padding:"3px 6px", color:"var(--navy)", fontSize:"12px", cursor:"pointer", width:"100%" }}>
                         <option value="">—</option>
                         {usuarios.length?usuarios.map(u=><option key={u} value={u}>{u}</option>):<option value={(c as any)[col.key]}>{(c as any)[col.key]}</option>}
                       </select>
                     ) : col.key==="squad" ? (
                       <select value={(c as any)[col.key]||""} onChange={e=>atualizar(c.id,col.key,e.target.value,c.nome)}
-                        style={{ background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"4px", padding:"3px 6px", color:"#f0f0f0", fontSize:"12px", cursor:"pointer", width:"100%" }}>
+                        style={{ background:"var(--card-bg)", border:"1px solid var(--border)", borderRadius:"4px", padding:"3px 6px", color:"var(--navy)", fontSize:"12px", cursor:"pointer", width:"100%" }}>
                         <option value="">—</option>
                         {times.length?times.map(t=><option key={t} value={t}>{t}</option>):<option value={(c as any)[col.key]}>{(c as any)[col.key]}</option>}
                       </select>
@@ -1480,9 +1480,9 @@ export default function ControleClientesPage() {
                     ) : col.key==="fixados" ? (
                       <select value={(c as any).fixados||""} onChange={e=>atualizar(c.id,"fixados",e.target.value,c.nome)}
                         style={{
-                          background: (c as any).fixados==="sim"?"rgba(34,197,94,0.15)":(c as any).fixados==="nao"?"rgba(239,68,68,0.15)":"#1a1a1a",
-                          border:"1px solid #2e2e2e", borderRadius:"4px", padding:"3px 6px",
-                          color:(c as any).fixados==="sim"?"#22c55e":(c as any).fixados==="nao"?"#ef4444":"#606060",
+                          background: (c as any).fixados==="sim"?"rgba(34,197,94,0.1)":(c as any).fixados==="nao"?"rgba(239,68,68,0.1)":"var(--hover-row)",
+                          border:"1px solid var(--border)", borderRadius:"4px", padding:"3px 6px",
+                          color:(c as any).fixados==="sim"?"var(--success)":(c as any).fixados==="nao"?"var(--alert-text)":"var(--text-secondary)",
                           fontSize:"12px", cursor:"pointer", width:"100%", fontWeight:600,
                         }}>
                         <option value="">—</option>
@@ -1501,11 +1501,11 @@ export default function ControleClientesPage() {
                       c.link_planilha ? (
                         <div style={{ display:"flex", alignItems:"center", gap:"4px" }}>
                           <a href={c.link_planilha} target="_blank" rel="noopener"
-                            style={{ color:"#22c55e", fontSize:"11px", fontWeight:600, textDecoration:"none", display:"inline-flex", alignItems:"center", gap:"3px" }}>
+                            style={{ color:"var(--success)", fontSize:"11px", fontWeight:600, textDecoration:"none", display:"inline-flex", alignItems:"center", gap:"3px" }}>
                             <FileText size={12}/> Abrir
                           </a>
                           <button onClick={() => atualizar(c.id, "link_planilha", "", c.nome)}
-                            style={{ background:"none", border:"none", cursor:"pointer", color:"#404040", padding:"2px" }} title="Remover link">
+                            style={{ background:"none", border:"none", cursor:"pointer", color:"var(--text-secondary)", padding:"2px" }} title="Remover link">
                             <X size={10}/>
                           </button>
                         </div>
@@ -1523,9 +1523,9 @@ export default function ControleClientesPage() {
                     ) : col.key==="resposta_planilha" ? (
                       <select value={(c as any).resposta_planilha||""} onChange={e=>atualizar(c.id,"resposta_planilha",e.target.value,c.nome)}
                         style={{
-                          background: (c as any).resposta_planilha==="sim"?"rgba(34,197,94,0.15)":(c as any).resposta_planilha==="parcialmente"?"rgba(245,158,11,0.15)":(c as any).resposta_planilha==="nao"?"rgba(239,68,68,0.15)":"#1a1a1a",
-                          border:"1px solid #2e2e2e", borderRadius:"4px", padding:"3px 6px",
-                          color:(c as any).resposta_planilha==="sim"?"#22c55e":(c as any).resposta_planilha==="parcialmente"?"#f59e0b":(c as any).resposta_planilha==="nao"?"#ef4444":"#606060",
+                          background: (c as any).resposta_planilha==="sim"?"rgba(34,197,94,0.1)":(c as any).resposta_planilha==="parcialmente"?"rgba(245,158,11,0.08)":(c as any).resposta_planilha==="nao"?"rgba(239,68,68,0.1)":"var(--hover-row)",
+                          border:"1px solid var(--border)", borderRadius:"4px", padding:"3px 6px",
+                          color:(c as any).resposta_planilha==="sim"?"var(--success)":(c as any).resposta_planilha==="parcialmente"?"var(--caution-text)":(c as any).resposta_planilha==="nao"?"var(--alert-text)":"var(--text-secondary)",
                           fontSize:"12px", cursor:"pointer", width:"100%", fontWeight:600,
                         }}>
                         <option value="">—</option>
@@ -1538,23 +1538,23 @@ export default function ControleClientesPage() {
                     ) : col.key==="roas_mes" ? (
                       (() => {
                         if (!iniciouAntesMesAtual(c.data_inicio_campanha))
-                          return <span style={{ fontSize:"11px", color:"#606060" }}>—</span>;
+                          return <span style={{ fontSize:"11px", color:"var(--text-secondary)" }}>—</span>;
                         if (!c.relatorio_id)
-                          return <span style={{ fontSize:"11px", color:"#606060" }}>Sem rel.</span>;
+                          return <span style={{ fontSize:"11px", color:"var(--text-secondary)" }}>Sem rel.</span>;
                         if (!(c.id in roasData))
-                          return <span style={{ fontSize:"11px", color:"#a0a0a0" }}>carregando...</span>;
+                          return <span style={{ fontSize:"11px", color:"var(--text-secondary)" }}>carregando...</span>;
                         const entry = roasData[c.id];
                         if (!entry || entry.spend === null || entry.spend === 0)
-                          return <span style={{ fontSize:"11px", color:"#606060" }}>Sem dados</span>;
+                          return <span style={{ fontSize:"11px", color:"var(--text-secondary)" }}>Sem dados</span>;
                         const fat = entry.faturamento;
                         if (!fat)
                           return (
-                            <span style={{ fontSize:"11px", color:"#a0a0a0" }} title={`Gasto: R$ ${entry.spend.toFixed(2)}`}>
+                            <span style={{ fontSize:"11px", color:"var(--text-secondary)" }} title={`Gasto: R$ ${entry.spend.toFixed(2)}`}>
                               R$ {entry.spend.toLocaleString("pt-BR",{minimumFractionDigits:0,maximumFractionDigits:0})}
                             </span>
                           );
                         const roas = fat / entry.spend;
-                        const cor = roas >= 5 ? "#22c55e" : roas >= 3 ? "#29ABE2" : roas >= 1.5 ? "#f59e0b" : "#ef4444";
+                        const cor = roas >= 5 ? "var(--success)" : roas >= 3 ? "var(--brand)" : roas >= 1.5 ? "var(--caution-text)" : "var(--alert-text)";
                         return (
                           <span style={{ fontSize:"12px", fontWeight:600, color: cor }} title={`Fat: R$ ${fat.toLocaleString("pt-BR")} / Gasto: R$ ${entry.spend.toFixed(2)}`}>
                             {roas.toFixed(2)}x
@@ -1568,26 +1568,26 @@ export default function ControleClientesPage() {
                 ))}
               </tr>
               {expandidos.has(c.id) && (
-                <tr key={`sub-${c.id}`} style={{ background:"#080808", borderBottom:"1px solid #1e1e1e" }}>
+                <tr key={`sub-${c.id}`} style={{ background:"var(--off-white)", borderBottom:"1px solid var(--border)" }}>
                   <td></td>
                   <td colSpan={colunas.length+3} style={{ padding:"8px 16px 12px 40px" }}>
                     <div style={{ display:"flex", flexDirection:"column", gap:"6px" }}>
                       {(subitens[c.id]||[]).map(s=>(
                         <div key={s.id} style={{ display:"flex", alignItems:"center", gap:"8px" }}>
-                          <div onClick={()=>toggleSubitem(c.id,s.id,s.feito)} style={{ width:"16px", height:"16px", borderRadius:"3px", border:`2px solid ${s.feito?"#29ABE2":"#3a3a3a"}`, background:s.feito?"#29ABE2":"transparent", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                            {s.feito&&<Check size={10} color="#000"/>}
+                          <div onClick={()=>toggleSubitem(c.id,s.id,s.feito)} style={{ width:"16px", height:"16px", borderRadius:"3px", border:`2px solid ${s.feito?"var(--brand)":"var(--border)"}`, background:s.feito?"var(--brand)":"transparent", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                            {s.feito&&<Check size={10} color="#FFFFFF"/>}
                           </div>
-                          <span style={{ fontSize:"12px", color:s.feito?"#606060":"#f0f0f0", textDecoration:s.feito?"line-through":"none" }}>{s.texto}</span>
+                          <span style={{ fontSize:"12px", color:s.feito?"var(--text-secondary)":"var(--navy)", textDecoration:s.feito?"line-through":"none" }}>{s.texto}</span>
                         </div>
                       ))}
                       <div style={{ display:"flex", alignItems:"center", gap:"6px", marginTop:"4px" }}>
-                        <div style={{ width:"16px", height:"16px", borderRadius:"3px", border:"2px dashed #3a3a3a", flexShrink:0 }}/>
+                        <div style={{ width:"16px", height:"16px", borderRadius:"3px", border:"2px dashed var(--border)", flexShrink:0 }}/>
                         <input placeholder="+ Adicionar subitem..." value={novoSubitem[c.id]||""}
                           onChange={e=>setNovoSubitem(prev=>({...prev,[c.id]:e.target.value}))}
                           onKeyDown={e=>{if(e.key==="Enter")adicionarSubitem(c.id);}}
-                          style={{ background:"transparent", border:"none", outline:"none", color:"#606060", fontSize:"12px", flex:1 }}/>
+                          style={{ background:"transparent", border:"none", outline:"none", color:"var(--text-secondary)", fontSize:"12px", flex:1 }}/>
                         {novoSubitem[c.id]&&(
-                          <button onClick={()=>adicionarSubitem(c.id)} style={{ background:"#29ABE2", border:"none", borderRadius:"4px", padding:"2px 8px", cursor:"pointer", color:"#000", fontSize:"11px" }}>Adicionar</button>
+                          <button onClick={()=>adicionarSubitem(c.id)} style={{ background:"var(--brand)", border:"none", borderRadius:"4px", padding:"2px 8px", cursor:"pointer", color:"#FFFFFF", fontSize:"11px" }}>Adicionar</button>
                         )}
                       </div>
                     </div>
@@ -1602,51 +1602,51 @@ export default function ControleClientesPage() {
 
       {modalFinanceiro && (
         <div onClick={()=>setModalFinanceiro(null)} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.7)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center" }}>
-          <div onClick={e=>e.stopPropagation()} style={{ background:"#141414", border:"1px solid #2e2e2e", borderRadius:"12px", width:"400px", boxShadow:"0 20px 60px rgba(0,0,0,0.8)" }}>
-            <div style={{ padding:"16px 20px", borderBottom:"1px solid #2e2e2e", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:"var(--card-bg)", border:"1px solid var(--border)", borderRadius:"12px", width:"400px", boxShadow:"0 20px 60px rgba(0,0,0,0.8)" }}>
+            <div style={{ padding:"16px 20px", borderBottom:"1px solid var(--border)", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
               <div>
-                <p style={{ fontSize:"15px", fontWeight:"700", color:"#f0f0f0", margin:0 }}>Criar no Financeiro</p>
-                <p style={{ fontSize:"12px", color:"#606060", margin:"2px 0 0" }}>{modalFinanceiro.nome}</p>
+                <p style={{ fontSize:"15px", fontWeight:"700", color:"var(--navy)", margin:0 }}>Criar no Financeiro</p>
+                <p style={{ fontSize:"12px", color:"var(--text-secondary)", margin:"2px 0 0" }}>{modalFinanceiro.nome}</p>
               </div>
-              <button onClick={()=>setModalFinanceiro(null)} style={{ background:"none", border:"none", cursor:"pointer", color:"#606060" }}><X size={16}/></button>
+              <button onClick={()=>setModalFinanceiro(null)} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--text-secondary)" }}><X size={16}/></button>
             </div>
             <div style={{ padding:"20px", display:"flex", flexDirection:"column", gap:"12px" }}>
               <div>
-                <label style={{ display:"block", fontSize:"11px", color:"#606060", marginBottom:"6px" }}>CONDIÇÃO</label>
+                <label style={{ display:"block", fontSize:"11px", color:"var(--text-secondary)", marginBottom:"6px" }}>CONDIÇÃO</label>
                 <select value={finFreq} onChange={e=>{setFinFreq(e.target.value);setFinDia2("");}}
-                  style={{ width:"100%", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", padding:"9px 12px", color:"#f0f0f0", fontSize:"13px", cursor:"pointer" }}>
+                  style={{ width:"100%", background:"var(--card-bg)", border:"1px solid var(--border)", borderRadius:"8px", padding:"9px 12px", color:"var(--navy)", fontSize:"13px", cursor:"pointer" }}>
                   <option value="mensal">Mensal</option>
                   <option value="trimestral">Trimestral</option>
                   <option value="quinzenal">Quinzenal</option>
                 </select>
               </div>
               <div>
-                <label style={{ display:"block", fontSize:"11px", color:"#606060", marginBottom:"6px" }}>VALOR MENSAL (R$)</label>
+                <label style={{ display:"block", fontSize:"11px", color:"var(--text-secondary)", marginBottom:"6px" }}>VALOR MENSAL (R$)</label>
                 <input type="number" step="0.01" value={finValor} onChange={e=>setFinValor(e.target.value)} placeholder="Ex: 1500"
-                  style={{ width:"100%", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", padding:"9px 12px", color:"#f0f0f0", fontSize:"13px", boxSizing:"border-box" as const }}/>
+                  style={{ width:"100%", background:"var(--card-bg)", border:"1px solid var(--border)", borderRadius:"8px", padding:"9px 12px", color:"var(--navy)", fontSize:"13px", boxSizing:"border-box" as const }}/>
               </div>
               <div style={{ display:"flex", gap:"10px" }}>
                 <div style={{ flex:1 }}>
-                  <label style={{ display:"block", fontSize:"11px", color:"#606060", marginBottom:"6px" }}>{finFreq==="quinzenal"?"1º DIA":"DIA DE VENCIMENTO"}</label>
+                  <label style={{ display:"block", fontSize:"11px", color:"var(--text-secondary)", marginBottom:"6px" }}>{finFreq==="quinzenal"?"1º DIA":"DIA DE VENCIMENTO"}</label>
                   <input type="number" min="1" max="31" value={finDia} onChange={e=>setFinDia(e.target.value)} placeholder="Ex: 5"
-                    style={{ width:"100%", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", padding:"9px 12px", color:"#f0f0f0", fontSize:"13px", boxSizing:"border-box" as const, textAlign:"center" as const }}/>
+                    style={{ width:"100%", background:"var(--card-bg)", border:"1px solid var(--border)", borderRadius:"8px", padding:"9px 12px", color:"var(--navy)", fontSize:"13px", boxSizing:"border-box" as const, textAlign:"center" as const }}/>
                 </div>
                 {finFreq==="quinzenal" && (
                   <div style={{ flex:1 }}>
-                    <label style={{ display:"block", fontSize:"11px", color:"#606060", marginBottom:"6px" }}>2º DIA</label>
+                    <label style={{ display:"block", fontSize:"11px", color:"var(--text-secondary)", marginBottom:"6px" }}>2º DIA</label>
                     <input type="number" min="1" max="31" value={finDia2} onChange={e=>setFinDia2(e.target.value)} placeholder="Ex: 20"
-                      style={{ width:"100%", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", padding:"9px 12px", color:"#f0f0f0", fontSize:"13px", boxSizing:"border-box" as const, textAlign:"center" as const }}/>
+                      style={{ width:"100%", background:"var(--card-bg)", border:"1px solid var(--border)", borderRadius:"8px", padding:"9px 12px", color:"var(--navy)", fontSize:"13px", boxSizing:"border-box" as const, textAlign:"center" as const }}/>
                   </div>
                 )}
               </div>
               {modalFinanceiro.data_entrada && (
-                <p style={{ fontSize:"11px", color:"#606060", margin:0 }}>Data de entrada usada: <strong style={{ color:"#a0a0a0" }}>{modalFinanceiro.data_entrada}</strong></p>
+                <p style={{ fontSize:"11px", color:"var(--text-secondary)", margin:0 }}>Data de entrada usada: <strong style={{ color:"var(--text-secondary)" }}>{modalFinanceiro.data_entrada}</strong></p>
               )}
             </div>
-            <div style={{ padding:"14px 20px", borderTop:"1px solid #2e2e2e", display:"flex", justifyContent:"flex-end", gap:"8px" }}>
-              <button onClick={()=>setModalFinanceiro(null)} style={{ background:"#2a2a2a", border:"none", borderRadius:"8px", padding:"10px 20px", cursor:"pointer", color:"#f0f0f0", fontSize:"13px" }}>Cancelar</button>
+            <div style={{ padding:"14px 20px", borderTop:"1px solid var(--border)", display:"flex", justifyContent:"flex-end", gap:"8px" }}>
+              <button onClick={()=>setModalFinanceiro(null)} style={{ background:"var(--hover-row)", border:"none", borderRadius:"8px", padding:"10px 20px", cursor:"pointer", color:"var(--navy)", fontSize:"13px" }}>Cancelar</button>
               <button onClick={criarNoFinanceiro} disabled={finSalvando}
-                style={{ background:"#22c55e", border:"none", borderRadius:"8px", padding:"10px 20px", cursor:"pointer", color:"#000", fontWeight:"700", fontSize:"13px", opacity:finSalvando?0.7:1 }}>
+                style={{ background:"var(--success)", border:"none", borderRadius:"8px", padding:"10px 20px", cursor:"pointer", color:"#FFFFFF", fontWeight:"700", fontSize:"13px", opacity:finSalvando?0.7:1 }}>
                 {finSalvando ? "Criando..." : "Criar Cliente + Recorrência"}
               </button>
             </div>
@@ -1714,12 +1714,12 @@ function ModalColunas({ colunas, onSave, onClose }: { colunas: any[]; onSave: (c
 
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.6)", zIndex:9999, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={onClose}>
-      <div onClick={e=>e.stopPropagation()} style={{ background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:12, width:400, maxHeight:"80vh", display:"flex", flexDirection:"column", overflow:"hidden" }}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"16px 20px", borderBottom:"1px solid #2e2e2e" }}>
-          <h3 style={{ fontSize:15, fontWeight:600, color:"#f0f0f0", margin:0 }}>Editar Colunas</h3>
-          <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", color:"#606060", padding:4 }}><X size={16}/></button>
+      <div onClick={e=>e.stopPropagation()} style={{ background:"var(--card-bg)", border:"1px solid var(--border)", borderRadius:12, width:400, maxHeight:"80vh", display:"flex", flexDirection:"column", overflow:"hidden" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"16px 20px", borderBottom:"1px solid var(--border)" }}>
+          <h3 style={{ fontSize:15, fontWeight:600, color:"var(--navy)", margin:0 }}>Editar Colunas</h3>
+          <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--text-secondary)", padding:4 }}><X size={16}/></button>
         </div>
-        <p style={{ padding:"8px 20px 0", fontSize:11, color:"#606060", margin:0 }}>Arraste para reordenar. Clique no toggle para mostrar/esconder.</p>
+        <p style={{ padding:"8px 20px 0", fontSize:11, color:"var(--text-secondary)", margin:0 }}>Arraste para reordenar. Clique no toggle para mostrar/esconder.</p>
         <div style={{ flex:1, overflowY:"auto", padding:"12px 20px" }}>
           {items.map((item, idx) => (
             <div
@@ -1730,19 +1730,19 @@ function ModalColunas({ colunas, onSave, onClose }: { colunas: any[]; onSave: (c
               onDrop={() => { if (dragIdx.current !== null && dragIdx.current !== idx) move(dragIdx.current, idx); dragIdx.current = null; }}
               style={{
                 display:"flex", alignItems:"center", gap:10, padding:"8px 10px", marginBottom:4,
-                background: item.visible ? "#222" : "#181818", borderRadius:8, cursor:"grab",
-                border: "1px solid #2e2e2e", opacity: item.visible ? 1 : 0.5,
+                background: item.visible ? "var(--hover-row)" : "var(--off-white)", borderRadius:8, cursor:"grab",
+                border: "1px solid var(--border)", opacity: item.visible ? 1 : 0.5,
               }}
             >
-              <span style={{ color:"#404040", cursor:"grab", fontSize:14 }}>&#x2807;</span>
-              <span style={{ flex:1, fontSize:13, color: item.visible ? "#f0f0f0" : "#606060", fontWeight: item.visible ? 500 : 400 }}>{item.label}</span>
+              <span style={{ color:"var(--text-secondary)", cursor:"grab", fontSize:14 }}>&#x2807;</span>
+              <span style={{ flex:1, fontSize:13, color: item.visible ? "var(--navy)" : "var(--text-secondary)", fontWeight: item.visible ? 500 : 400 }}>{item.label}</span>
               <div style={{ display:"flex", alignItems:"center", gap:4 }}>
-                {idx > 0 && <button onClick={() => move(idx, idx-1)} style={{ background:"none", border:"none", cursor:"pointer", color:"#606060", padding:2 }}><ArrowUp size={12}/></button>}
-                {idx < items.length-1 && <button onClick={() => move(idx, idx+1)} style={{ background:"none", border:"none", cursor:"pointer", color:"#606060", padding:2 }}><ArrowDown size={12}/></button>}
+                {idx > 0 && <button onClick={() => move(idx, idx-1)} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--text-secondary)", padding:2 }}><ArrowUp size={12}/></button>}
+                {idx < items.length-1 && <button onClick={() => move(idx, idx+1)} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--text-secondary)", padding:2 }}><ArrowDown size={12}/></button>}
                 <button onClick={() => toggle(item.key)}
                   style={{
                     width:36, height:20, borderRadius:10, border:"none", cursor:"pointer",
-                    background: item.visible ? "#29ABE2" : "#333",
+                    background: item.visible ? "var(--brand)" : "var(--border)",
                     position:"relative", transition:"background 0.2s",
                   }}>
                   <span style={{
@@ -1755,13 +1755,13 @@ function ModalColunas({ colunas, onSave, onClose }: { colunas: any[]; onSave: (c
             </div>
           ))}
         </div>
-        <div style={{ display:"flex", gap:8, padding:"12px 20px", borderTop:"1px solid #2e2e2e", justifyContent:"flex-end" }}>
+        <div style={{ display:"flex", gap:8, padding:"12px 20px", borderTop:"1px solid var(--border)", justifyContent:"flex-end" }}>
           <button onClick={() => { setItems(COLUNAS_PADRAO.map(c => ({ ...c, visible: true }))); }}
-            style={{ background:"#252525", border:"1px solid #333", borderRadius:6, padding:"8px 16px", color:"#a0a0a0", fontSize:12, cursor:"pointer" }}>
+            style={{ background:"var(--hover-row)", border:"1px solid var(--border)", borderRadius:6, padding:"8px 16px", color:"var(--text-secondary)", fontSize:12, cursor:"pointer" }}>
             Resetar Padrão
           </button>
           <button onClick={salvar}
-            style={{ background:"#29ABE2", border:"none", borderRadius:6, padding:"8px 20px", color:"#000", fontWeight:600, fontSize:12, cursor:"pointer" }}>
+            style={{ background:"var(--brand)", border:"none", borderRadius:6, padding:"8px 20px", color:"#FFFFFF", fontWeight:600, fontSize:12, cursor:"pointer" }}>
             Salvar
           </button>
         </div>

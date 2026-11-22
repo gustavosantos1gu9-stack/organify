@@ -137,13 +137,13 @@ export default function PerformanceFilha() {
   const itensVisiveis = abaSuperior === "campanha" ? campanhas : conjuntos;
 
   const card = (label: string, valor: string | number, sub?: string, icon?: React.ReactNode, cor?: string) => (
-    <div style={{ background: "#111118", border: "1px solid #1e1e2e", borderRadius: "12px", padding: "16px 20px" }}>
+    <div style={{ background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: "12px", padding: "16px 20px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-        {icon && <span style={{ color: cor || "#29ABE2" }}>{icon}</span>}
-        <span style={{ fontSize: "12px", color: "#606070" }}>{label}</span>
+        {icon && <span style={{ color: cor || "var(--brand)" }}>{icon}</span>}
+        <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{label}</span>
       </div>
-      <div style={{ fontSize: "22px", fontWeight: "700", color: cor || "#f0f0f0" }}>{valor}</div>
-      {sub && <div style={{ fontSize: "11px", color: "#505060", marginTop: "4px" }}>{sub}</div>}
+      <div style={{ fontSize: "22px", fontWeight: "700", color: cor || "var(--navy)" }}>{valor}</div>
+      {sub && <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "4px" }}>{sub}</div>}
     </div>
   );
 
@@ -152,32 +152,32 @@ export default function PerformanceFilha() {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px", flexWrap: "wrap", gap: "12px" }}>
         <div>
-          <h1 style={{ fontSize: "20px", fontWeight: "700", color: "#f0f0f0", margin: 0 }}>Performance</h1>
-          <p style={{ fontSize: "13px", color: "#606070", margin: "4px 0 0" }}>Campanhas · Agendamentos · Resultados</p>
+          <h1 style={{ fontSize: "20px", fontWeight: "700", color: "var(--navy)", margin: 0 }}>Performance</h1>
+          <p style={{ fontSize: "13px", color: "var(--text-secondary)", margin: "4px 0 0" }}>Campanhas · Agendamentos · Resultados</p>
         </div>
         <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
           {/* Período rápido */}
           {PERIODOS.map(p => (
             <button key={p.label} onClick={() => selecionarPeriodo(p)}
               style={{ padding: "6px 12px", borderRadius: "8px", fontSize: "12px", cursor: "pointer", fontWeight: periodoLabel === p.label ? "600" : "400",
-                background: periodoLabel === p.label ? "#29ABE2" : "#1a1a2e",
-                color: periodoLabel === p.label ? "#000" : "#a0a0b0",
-                border: periodoLabel === p.label ? "none" : "1px solid #2a2a3e" }}>
+                background: periodoLabel === p.label ? "var(--brand)" : "var(--hover-row)",
+                color: periodoLabel === p.label ? "#FFFFFF" : "var(--text-secondary)",
+                border: periodoLabel === p.label ? "none" : "1px solid var(--border)" }}>
               {p.label}
             </button>
           ))}
           <input type="date" value={desde} onChange={e => { setDesde(e.target.value); setPeriodoLabel(""); }}
-            style={{ background: "#1a1a2e", border: "1px solid #2a2a3e", borderRadius: "8px", color: "#f0f0f0", padding: "6px 10px", fontSize: "12px" }} />
-          <span style={{ color: "#606070" }}>→</span>
+            style={{ background: "var(--hover-row)", border: "1px solid var(--border)", borderRadius: "8px", color: "var(--navy)", padding: "6px 10px", fontSize: "12px" }} />
+          <span style={{ color: "var(--text-secondary)" }}>→</span>
           <input type="date" value={ate} onChange={e => { setAte(e.target.value); setPeriodoLabel(""); }}
-            style={{ background: "#1a1a2e", border: "1px solid #2a2a3e", borderRadius: "8px", color: "#f0f0f0", padding: "6px 10px", fontSize: "12px" }} />
+            style={{ background: "var(--hover-row)", border: "1px solid var(--border)", borderRadius: "8px", color: "var(--navy)", padding: "6px 10px", fontSize: "12px" }} />
           <button onClick={() => agenciaId && carregar(agenciaId, desde, ate)}
-            style={{ background: "#1a1a2e", border: "1px solid #2a2a3e", borderRadius: "8px", color: "#29ABE2", padding: "6px 12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px", fontSize: "12px" }}>
+            style={{ background: "var(--hover-row)", border: "1px solid var(--border)", borderRadius: "8px", color: "var(--brand)", padding: "6px 12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px", fontSize: "12px" }}>
             <RefreshCw size={13} />
           </button>
           {hasEdicoes && (
             <button onClick={salvar} disabled={salvando}
-              style={{ background: "#29ABE2", border: "none", borderRadius: "8px", color: "#000", padding: "6px 14px", cursor: "pointer", fontWeight: "600", display: "flex", alignItems: "center", gap: "6px", fontSize: "13px" }}>
+              style={{ background: "var(--brand)", border: "none", borderRadius: "8px", color: "#FFFFFF", padding: "6px 14px", cursor: "pointer", fontWeight: "600", display: "flex", alignItems: "center", gap: "6px", fontSize: "13px" }}>
               <Save size={13} /> {salvando ? "Salvando..." : "Salvar"}
             </button>
           )}
@@ -185,36 +185,36 @@ export default function PerformanceFilha() {
       </div>
 
       {loading ? (
-        <div style={{ textAlign: "center", padding: "60px", color: "#606070" }}>Carregando...</div>
+        <div style={{ textAlign: "center", padding: "60px", color: "var(--text-secondary)" }}>Carregando...</div>
       ) : (
         <>
           {/* KPI Cards — linha 1 */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px", marginBottom: "12px" }}>
-            {card("Investimento", fmt(total.investimento), temMeta ? "Meta Ads" : "Manual", <DollarSign size={16} />, "#ef4444")}
+            {card("Investimento", fmt(total.investimento), temMeta ? "Meta Ads" : "Manual", <DollarSign size={16} />, "var(--alert-text)")}
             {card("Mensagens / Leads", total.mensagens, "Resultado de campanha", <TrendingUp size={16} />)}
-            {card("Contatos (inbox)", total.contatos, "Conversas iniciadas", <Users size={16} />, "#f59e0b")}
-            {card("Agendamentos", total.agendamentos, `Taxa: ${pct(total.agendamentos, total.mensagens || total.contatos)}`, <Calendar size={16} />, "#a855f7")}
+            {card("Contatos (inbox)", total.contatos, "Conversas iniciadas", <Users size={16} />, "var(--caution-text)")}
+            {card("Agendamentos", total.agendamentos, `Taxa: ${pct(total.agendamentos, total.mensagens || total.contatos)}`, <Calendar size={16} />, "var(--oscillating-text)")}
           </div>
           {/* KPI Cards — linha 2 */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px", marginBottom: "28px" }}>
-            {card("Comparecimentos", total.comparecimentos, `Taxa: ${pct(total.comparecimentos, total.agendamentos)}`, <CheckCircle size={16} />, "#22c55e")}
-            {card("Vendas", total.vendas, `Tx conv: ${pct(total.vendas, total.comparecimentos)}`, <ShoppingBag size={16} />, "#29ABE2")}
-            {card("Faturamento", fmt(total.valor_vendas), "Total realizado", <DollarSign size={16} />, "#29ABE2")}
-            {card("ROAS", roas > 0 ? `${roas.toFixed(2)}x` : "—", cac > 0 ? `CAC: ${fmt(cac)}` : "Faturamento / Invest.", <BarChart2 size={16} />, roas >= 3 ? "#22c55e" : roas > 0 ? "#f59e0b" : "#606070")}
+            {card("Comparecimentos", total.comparecimentos, `Taxa: ${pct(total.comparecimentos, total.agendamentos)}`, <CheckCircle size={16} />, "var(--success)")}
+            {card("Vendas", total.vendas, `Tx conv: ${pct(total.vendas, total.comparecimentos)}`, <ShoppingBag size={16} />, "var(--brand)")}
+            {card("Faturamento", fmt(total.valor_vendas), "Total realizado", <DollarSign size={16} />, "var(--brand)")}
+            {card("ROAS", roas > 0 ? `${roas.toFixed(2)}x` : "—", cac > 0 ? `CAC: ${fmt(cac)}` : "Faturamento / Invest.", <BarChart2 size={16} />, roas >= 3 ? "var(--success)" : roas > 0 ? "var(--caution-text)" : "var(--text-secondary)")}
           </div>
 
           {/* Tabela semanal */}
-          <div style={{ background: "#111118", border: "1px solid #1e1e2e", borderRadius: "12px", overflow: "hidden", marginBottom: "20px" }}>
-            <div style={{ padding: "14px 20px", borderBottom: "1px solid #1e1e2e", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h2 style={{ fontSize: "15px", fontWeight: "600", color: "#f0f0f0", margin: 0 }}>{agruparPorMes ? "Por Mês" : "Por Semana"}</h2>
-              <span style={{ fontSize: "11px", color: "#505060" }}>Comparecimentos · Vendas · Faturamento: edite diretamente</span>
+          <div style={{ background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: "12px", overflow: "hidden", marginBottom: "20px" }}>
+            <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h2 style={{ fontSize: "15px", fontWeight: "600", color: "var(--navy)", margin: 0 }}>{agruparPorMes ? "Por Mês" : "Por Semana"}</h2>
+              <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>Comparecimentos · Vendas · Faturamento: edite diretamente</span>
             </div>
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
                 <thead>
-                  <tr style={{ borderBottom: "1px solid #1e1e2e" }}>
+                  <tr style={{ borderBottom: "1px solid var(--border)" }}>
                     {[agruparPorMes ? "Mês" : "Semana","Invest.","Mensagens","Contatos","Agend.","Compar.","Tx.Ag","Tx.Co","Vendas","Faturamento","ROAS"].map(h => (
-                      <th key={h} style={{ padding: "9px 12px", textAlign: h === "Semana" ? "left" : "right", color: "#606070", fontWeight: "500", whiteSpace: "nowrap", fontSize: "12px" }}>{h}</th>
+                      <th key={h} style={{ padding: "9px 12px", textAlign: h === "Semana" ? "left" : "right", color: "var(--text-secondary)", fontWeight: "500", whiteSpace: "nowrap", fontSize: "12px" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -224,46 +224,46 @@ export default function PerformanceFilha() {
                     const editado = !!edicoes[i];
                     const roasSem = s.investimento > 0 ? s.valor_vendas / s.investimento : 0;
                     return (
-                      <tr key={i} style={{ borderBottom: "1px solid #161622", background: editado ? "rgba(41,171,226,0.04)" : undefined }}>
-                        <td style={{ padding: "9px 12px", color: "#a0a0b0", whiteSpace: "nowrap", fontSize: "12px" }}>
+                      <tr key={i} style={{ borderBottom: "1px solid var(--border)", background: editado ? "rgba(28,108,166,0.04)" : undefined }}>
+                        <td style={{ padding: "9px 12px", color: "var(--text-secondary)", whiteSpace: "nowrap", fontSize: "12px" }}>
                           {agruparPorMes ? fmtMes(sem.semana_inicio) : `${fmtData(sem.semana_inicio)} – ${fmtData(sem.semana_fim)}`}
                         </td>
-                        <td style={{ padding: "9px 12px", textAlign: "right", color: "#ef4444" }}>{fmt(s.investimento)}</td>
-                        <td style={{ padding: "9px 12px", textAlign: "right", color: "#f0f0f0" }}>{s.mensagens}</td>
-                        <td style={{ padding: "9px 12px", textAlign: "right", color: "#f59e0b" }}>{s.contatos}</td>
-                        <td style={{ padding: "9px 12px", textAlign: "right", color: "#a855f7" }}>{s.agendamentos}</td>
+                        <td style={{ padding: "9px 12px", textAlign: "right", color: "var(--alert-text)" }}>{fmt(s.investimento)}</td>
+                        <td style={{ padding: "9px 12px", textAlign: "right", color: "var(--navy)" }}>{s.mensagens}</td>
+                        <td style={{ padding: "9px 12px", textAlign: "right", color: "var(--caution-text)" }}>{s.contatos}</td>
+                        <td style={{ padding: "9px 12px", textAlign: "right", color: "var(--oscillating-text)" }}>{s.agendamentos}</td>
                         <td style={{ padding: "5px 6px", textAlign: "right" }}>
                           <input type="number" min="0" value={s.comparecimentos} onChange={e => setEdicao(i, "comparecimentos", parseInt(e.target.value) || 0)}
-                            style={{ width: "52px", background: "#1a1a2e", border: "1px solid #2a2a3e", borderRadius: "6px", color: "#22c55e", padding: "3px 6px", textAlign: "right", fontSize: "12px" }} />
+                            style={{ width: "52px", background: "var(--hover-row)", border: "1px solid var(--border)", borderRadius: "6px", color: "var(--success)", padding: "3px 6px", textAlign: "right", fontSize: "12px" }} />
                         </td>
-                        <td style={{ padding: "9px 12px", textAlign: "right", color: "#606070", fontSize: "12px" }}>{pct(s.agendamentos, s.mensagens || s.contatos)}</td>
-                        <td style={{ padding: "9px 12px", textAlign: "right", color: "#606070", fontSize: "12px" }}>{pct(s.comparecimentos, s.agendamentos)}</td>
+                        <td style={{ padding: "9px 12px", textAlign: "right", color: "var(--text-secondary)", fontSize: "12px" }}>{pct(s.agendamentos, s.mensagens || s.contatos)}</td>
+                        <td style={{ padding: "9px 12px", textAlign: "right", color: "var(--text-secondary)", fontSize: "12px" }}>{pct(s.comparecimentos, s.agendamentos)}</td>
                         <td style={{ padding: "5px 6px", textAlign: "right" }}>
                           <input type="number" min="0" value={s.vendas} onChange={e => setEdicao(i, "vendas", parseInt(e.target.value) || 0)}
-                            style={{ width: "52px", background: "#1a1a2e", border: "1px solid #2a2a3e", borderRadius: "6px", color: "#29ABE2", padding: "3px 6px", textAlign: "right", fontSize: "12px" }} />
+                            style={{ width: "52px", background: "var(--hover-row)", border: "1px solid var(--border)", borderRadius: "6px", color: "var(--brand)", padding: "3px 6px", textAlign: "right", fontSize: "12px" }} />
                         </td>
                         <td style={{ padding: "5px 6px", textAlign: "right" }}>
                           <input type="number" min="0" value={s.valor_vendas} onChange={e => setEdicao(i, "valor_vendas", parseFloat(e.target.value) || 0)}
-                            style={{ width: "76px", background: "#1a1a2e", border: "1px solid #2a2a3e", borderRadius: "6px", color: "#29ABE2", padding: "3px 6px", textAlign: "right", fontSize: "12px" }} />
+                            style={{ width: "76px", background: "var(--hover-row)", border: "1px solid var(--border)", borderRadius: "6px", color: "var(--brand)", padding: "3px 6px", textAlign: "right", fontSize: "12px" }} />
                         </td>
-                        <td style={{ padding: "9px 12px", textAlign: "right", color: roasSem >= 3 ? "#22c55e" : roasSem > 0 ? "#f59e0b" : "#404050", fontSize: "12px" }}>
+                        <td style={{ padding: "9px 12px", textAlign: "right", color: roasSem >= 3 ? "var(--success)" : roasSem > 0 ? "var(--caution-text)" : "var(--text-secondary)", fontSize: "12px" }}>
                           {roasSem > 0 ? `${roasSem.toFixed(2)}x` : "—"}
                         </td>
                       </tr>
                     );
                   })}
-                  <tr style={{ borderTop: "2px solid #2a2a3e", background: "#0e0e16" }}>
-                    <td style={{ padding: "9px 12px", color: "#f0f0f0", fontWeight: "700" }}>Total</td>
-                    <td style={{ padding: "9px 12px", textAlign: "right", color: "#ef4444", fontWeight: "700" }}>{fmt(total.investimento)}</td>
-                    <td style={{ padding: "9px 12px", textAlign: "right", color: "#f0f0f0", fontWeight: "700" }}>{total.mensagens}</td>
-                    <td style={{ padding: "9px 12px", textAlign: "right", color: "#f59e0b", fontWeight: "700" }}>{total.contatos}</td>
-                    <td style={{ padding: "9px 12px", textAlign: "right", color: "#a855f7", fontWeight: "700" }}>{total.agendamentos}</td>
-                    <td style={{ padding: "9px 12px", textAlign: "right", color: "#22c55e", fontWeight: "700" }}>{total.comparecimentos}</td>
-                    <td style={{ padding: "9px 12px", textAlign: "right", color: "#606070", fontWeight: "700" }}>{pct(total.agendamentos, total.mensagens || total.contatos)}</td>
-                    <td style={{ padding: "9px 12px", textAlign: "right", color: "#606070", fontWeight: "700" }}>{pct(total.comparecimentos, total.agendamentos)}</td>
-                    <td style={{ padding: "9px 12px", textAlign: "right", color: "#29ABE2", fontWeight: "700" }}>{total.vendas}</td>
-                    <td style={{ padding: "9px 12px", textAlign: "right", color: "#29ABE2", fontWeight: "700" }}>{fmt(total.valor_vendas)}</td>
-                    <td style={{ padding: "9px 12px", textAlign: "right", color: roas >= 3 ? "#22c55e" : roas > 0 ? "#f59e0b" : "#404050", fontWeight: "700" }}>{roas > 0 ? `${roas.toFixed(2)}x` : "—"}</td>
+                  <tr style={{ borderTop: "2px solid var(--border)", background: "var(--hover-row)" }}>
+                    <td style={{ padding: "9px 12px", color: "var(--navy)", fontWeight: "700" }}>Total</td>
+                    <td style={{ padding: "9px 12px", textAlign: "right", color: "var(--alert-text)", fontWeight: "700" }}>{fmt(total.investimento)}</td>
+                    <td style={{ padding: "9px 12px", textAlign: "right", color: "var(--navy)", fontWeight: "700" }}>{total.mensagens}</td>
+                    <td style={{ padding: "9px 12px", textAlign: "right", color: "var(--caution-text)", fontWeight: "700" }}>{total.contatos}</td>
+                    <td style={{ padding: "9px 12px", textAlign: "right", color: "var(--oscillating-text)", fontWeight: "700" }}>{total.agendamentos}</td>
+                    <td style={{ padding: "9px 12px", textAlign: "right", color: "var(--success)", fontWeight: "700" }}>{total.comparecimentos}</td>
+                    <td style={{ padding: "9px 12px", textAlign: "right", color: "var(--text-secondary)", fontWeight: "700" }}>{pct(total.agendamentos, total.mensagens || total.contatos)}</td>
+                    <td style={{ padding: "9px 12px", textAlign: "right", color: "var(--text-secondary)", fontWeight: "700" }}>{pct(total.comparecimentos, total.agendamentos)}</td>
+                    <td style={{ padding: "9px 12px", textAlign: "right", color: "var(--brand)", fontWeight: "700" }}>{total.vendas}</td>
+                    <td style={{ padding: "9px 12px", textAlign: "right", color: "var(--brand)", fontWeight: "700" }}>{fmt(total.valor_vendas)}</td>
+                    <td style={{ padding: "9px 12px", textAlign: "right", color: roas >= 3 ? "var(--success)" : roas > 0 ? "var(--caution-text)" : "var(--text-secondary)", fontWeight: "700" }}>{roas > 0 ? `${roas.toFixed(2)}x` : "—"}</td>
                   </tr>
                 </tbody>
               </table>
@@ -272,66 +272,66 @@ export default function PerformanceFilha() {
 
           {/* Campanhas / Conjuntos */}
           {(campanhas.length > 0 || conjuntos.length > 0) && (
-            <div style={{ background: "#111118", border: "1px solid #1e1e2e", borderRadius: "12px", overflow: "hidden" }}>
+            <div style={{ background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: "12px", overflow: "hidden" }}>
               <button onClick={() => setShowBreakdown(v => !v)}
                 style={{ width: "100%", padding: "14px 20px", background: "none", border: "none", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                  <h2 style={{ fontSize: "15px", fontWeight: "600", color: "#f0f0f0", margin: 0 }}>Meta Ads — Detalhamento</h2>
+                  <h2 style={{ fontSize: "15px", fontWeight: "600", color: "var(--navy)", margin: 0 }}>Meta Ads — Detalhamento</h2>
                   {showBreakdown && (
                     <div style={{ display: "flex", gap: "4px" }} onClick={e => e.stopPropagation()}>
                       {(["campanha", "conjunto"] as const).map(aba => (
                         <button key={aba} onClick={() => setAbaSuperior(aba)}
                           style={{ padding: "4px 12px", borderRadius: "6px", fontSize: "12px", cursor: "pointer", fontWeight: abaSuperior === aba ? "600" : "400",
-                            background: abaSuperior === aba ? "#29ABE2" : "#1a1a2e",
-                            color: abaSuperior === aba ? "#000" : "#a0a0b0",
-                            border: abaSuperior === aba ? "none" : "1px solid #2a2a3e" }}>
+                            background: abaSuperior === aba ? "var(--brand)" : "var(--hover-row)",
+                            color: abaSuperior === aba ? "#FFFFFF" : "var(--text-secondary)",
+                            border: abaSuperior === aba ? "none" : "1px solid var(--border)" }}>
                           {aba === "campanha" ? "Campanhas" : "Conjuntos"}
                         </button>
                       ))}
                     </div>
                   )}
                 </div>
-                <span style={{ color: "#606070" }}>{showBreakdown ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span>
+                <span style={{ color: "var(--text-secondary)" }}>{showBreakdown ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span>
               </button>
 
               {showBreakdown && (
                 <div style={{ overflowX: "auto" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
                     <thead>
-                      <tr style={{ borderTop: "1px solid #1e1e2e", borderBottom: "1px solid #1e1e2e" }}>
-                        <th style={{ padding: "9px 14px", textAlign: "left", color: "#606070", fontWeight: "500" }}>
+                      <tr style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
+                        <th style={{ padding: "9px 14px", textAlign: "left", color: "var(--text-secondary)", fontWeight: "500" }}>
                           {abaSuperior === "campanha" ? "Campanha" : "Conjunto de Anúncios"}
                         </th>
                         {abaSuperior === "conjunto" && (
-                          <th style={{ padding: "9px 14px", textAlign: "left", color: "#606070", fontWeight: "500" }}>Campanha</th>
+                          <th style={{ padding: "9px 14px", textAlign: "left", color: "var(--text-secondary)", fontWeight: "500" }}>Campanha</th>
                         )}
                         {["Invest.", "Impressões", "Cliques", "CTR", "Mensagens", "Agend.*", "CPA msg", "Custo/Agend"].map(h => (
-                          <th key={h} style={{ padding: "9px 12px", textAlign: "right", color: "#606070", fontWeight: "500", whiteSpace: "nowrap" }}>{h}</th>
+                          <th key={h} style={{ padding: "9px 12px", textAlign: "right", color: "var(--text-secondary)", fontWeight: "500", whiteSpace: "nowrap" }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {itensVisiveis.map((c, i) => (
-                        <tr key={i} style={{ borderBottom: "1px solid #161622" }}>
-                          <td style={{ padding: "9px 14px", color: "#d0d0e0", maxWidth: "220px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={c.nome}>{c.nome}</td>
+                        <tr key={i} style={{ borderBottom: "1px solid var(--border)" }}>
+                          <td style={{ padding: "9px 14px", color: "var(--navy)", maxWidth: "220px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={c.nome}>{c.nome}</td>
                           {abaSuperior === "conjunto" && (
-                            <td style={{ padding: "9px 12px", color: "#606070", maxWidth: "160px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "12px" }} title={c.campanha}>{c.campanha}</td>
+                            <td style={{ padding: "9px 12px", color: "var(--text-secondary)", maxWidth: "160px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "12px" }} title={c.campanha}>{c.campanha}</td>
                           )}
-                          <td style={{ padding: "9px 12px", textAlign: "right", color: "#ef4444" }}>{fmt(c.investimento)}</td>
-                          <td style={{ padding: "9px 12px", textAlign: "right", color: "#a0a0b0" }}>{c.impressoes.toLocaleString("pt-BR")}</td>
-                          <td style={{ padding: "9px 12px", textAlign: "right", color: "#a0a0b0" }}>{c.cliques.toLocaleString("pt-BR")}</td>
-                          <td style={{ padding: "9px 12px", textAlign: "right", color: "#a0a0b0" }}>{(c.ctr * 100).toFixed(2)}%</td>
-                          <td style={{ padding: "9px 12px", textAlign: "right", color: "#29ABE2" }}>{c.mensagens}</td>
-                          <td style={{ padding: "9px 12px", textAlign: "right", color: "#a855f7" }}>{c.agendamentos > 0 ? c.agendamentos : "—"}</td>
-                          <td style={{ padding: "9px 12px", textAlign: "right", color: "#606070" }}>{c.mensagens > 0 ? fmt(c.investimento / c.mensagens) : "—"}</td>
-                          <td style={{ padding: "9px 12px", textAlign: "right", color: c.agendamentos > 0 ? "#a855f7" : "#404050" }}>
+                          <td style={{ padding: "9px 12px", textAlign: "right", color: "var(--alert-text)" }}>{fmt(c.investimento)}</td>
+                          <td style={{ padding: "9px 12px", textAlign: "right", color: "var(--text-secondary)" }}>{c.impressoes.toLocaleString("pt-BR")}</td>
+                          <td style={{ padding: "9px 12px", textAlign: "right", color: "var(--text-secondary)" }}>{c.cliques.toLocaleString("pt-BR")}</td>
+                          <td style={{ padding: "9px 12px", textAlign: "right", color: "var(--text-secondary)" }}>{(c.ctr * 100).toFixed(2)}%</td>
+                          <td style={{ padding: "9px 12px", textAlign: "right", color: "var(--brand)" }}>{c.mensagens}</td>
+                          <td style={{ padding: "9px 12px", textAlign: "right", color: "var(--oscillating-text)" }}>{c.agendamentos > 0 ? c.agendamentos : "—"}</td>
+                          <td style={{ padding: "9px 12px", textAlign: "right", color: "var(--text-secondary)" }}>{c.mensagens > 0 ? fmt(c.investimento / c.mensagens) : "—"}</td>
+                          <td style={{ padding: "9px 12px", textAlign: "right", color: c.agendamentos > 0 ? "var(--oscillating-text)" : "var(--text-secondary)" }}>
                             {c.agendamentos > 0 ? fmt(c.investimento / c.agendamentos) : "—"}
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                  <div style={{ padding: "8px 14px 12px", fontSize: "11px", color: "#404050" }}>
+                  <div style={{ padding: "8px 14px 12px", fontSize: "11px", color: "var(--text-secondary)" }}>
                     * Agendamentos via UTM — disponíveis apenas para leads rastreados com parâmetros UTM nos links
                   </div>
                 </div>
@@ -340,7 +340,7 @@ export default function PerformanceFilha() {
           )}
 
           {!temMeta && (
-            <div style={{ marginTop: "16px", padding: "12px 16px", background: "#1a1a0e", border: "1px solid #3a3a1e", borderRadius: "8px", fontSize: "13px", color: "#a0901a" }}>
+            <div style={{ marginTop: "16px", padding: "12px 16px", background: "var(--caution-bg)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "13px", color: "var(--caution-text)" }}>
               ⚠️ Meta Ads não conectado — dados de investimento e mensagens indisponíveis. Configure em Integrações.
             </div>
           )}

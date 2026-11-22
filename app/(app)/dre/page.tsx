@@ -8,7 +8,7 @@ import PeriodSelector from "@/components/ui/PeriodSelector";
 import { useMovimentacoes, useLancamentosFuturos, useClientes, supabase, getAgenciaId } from "@/lib/hooks";
 import { formatCurrency } from "@/lib/utils";
 
-const tooltipStyle = { background:"#1e1e1e",border:"1px solid #2e2e2e",borderRadius:"8px",fontSize:"12px",color:"#f0f0f0" };
+const tooltipStyle = { background:"var(--card-bg)",border:"1px solid var(--border)",borderRadius:"8px",fontSize:"12px",color:"var(--navy)" };
 
 export default function DREPage() {
   const hoje = new Date();
@@ -147,12 +147,12 @@ export default function DREPage() {
         <div className="card">
           <h3 style={{ fontSize:"14px",fontWeight:"500",marginBottom:"20px" }}>Entrada x Saída</h3>
           {grafData.length === 0 ? (
-            <p style={{ fontSize:"13px",color:"#606060",textAlign:"center",padding:"40px 0" }}>Nenhuma movimentação no período.</p>
+            <p style={{ fontSize:"13px",color:"var(--text-secondary)",textAlign:"center",padding:"40px 0" }}>Nenhuma movimentação no período.</p>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={grafData}>
-                <XAxis dataKey="mes" tick={{ fontSize:11,fill:"#606060" }} axisLine={false} tickLine={false}/>
-                <YAxis tick={{ fontSize:11,fill:"#606060" }} axisLine={false} tickLine={false} tickFormatter={(v)=>`R$${v}`}/>
+                <XAxis dataKey="mes" tick={{ fontSize:11,fill:"var(--text-secondary)" }} axisLine={false} tickLine={false}/>
+                <YAxis tick={{ fontSize:11,fill:"var(--text-secondary)" }} axisLine={false} tickLine={false} tickFormatter={(v)=>`R$${v}`}/>
                 <Tooltip contentStyle={tooltipStyle} formatter={(v:number)=>formatCurrency(v)}/>
                 <Line type="monotone" dataKey="entrada" stroke="#22c55e" strokeWidth={2} dot={false} name="Entrada"/>
                 <Line type="monotone" dataKey="saida" stroke="#ef4444" strokeWidth={2} dot={false} name="Saída"/>
@@ -164,12 +164,12 @@ export default function DREPage() {
         <div className="card">
           <h3 style={{ fontSize:"14px",fontWeight:"500",marginBottom:"20px" }}>Receitas por categoria</h3>
           {catData.length === 0 ? (
-            <p style={{ fontSize:"13px",color:"#606060",textAlign:"center",padding:"40px 0" }}>Nenhuma entrada categorizada.</p>
+            <p style={{ fontSize:"13px",color:"var(--text-secondary)",textAlign:"center",padding:"40px 0" }}>Nenhuma entrada categorizada.</p>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={catData}>
-                <XAxis dataKey="categoria" tick={{ fontSize:10,fill:"#606060" }} axisLine={false} tickLine={false}/>
-                <YAxis tick={{ fontSize:11,fill:"#606060" }} axisLine={false} tickLine={false} tickFormatter={(v)=>`R$${v}`}/>
+                <XAxis dataKey="categoria" tick={{ fontSize:10,fill:"var(--text-secondary)" }} axisLine={false} tickLine={false}/>
+                <YAxis tick={{ fontSize:11,fill:"var(--text-secondary)" }} axisLine={false} tickLine={false} tickFormatter={(v)=>`R$${v}`}/>
                 <Tooltip contentStyle={tooltipStyle} formatter={(v:number)=>formatCurrency(v)}/>
                 <Bar dataKey="valor" fill="#22c55e" radius={[4,4,0,0]} name="Valor"/>
               </BarChart>
@@ -181,39 +181,39 @@ export default function DREPage() {
       {/* Tabela Comparativa Mensal */}
       {dadosMensais.length > 0 && (
         <div className="card" style={{ marginTop:"24px", padding:"16px 20px" }}>
-          <h3 style={{ fontSize:"14px",fontWeight:"600",color:"#f0f0f0",marginBottom:"16px" }}>Comparativo Mensal — {new Date().getFullYear()}</h3>
+          <h3 style={{ fontSize:"14px",fontWeight:"600",color:"var(--navy)",marginBottom:"16px" }}>Comparativo Mensal — {new Date().getFullYear()}</h3>
           <div style={{ overflowX:"auto" }}>
             <table style={{ width:"100%",borderCollapse:"collapse",fontSize:"12px" }}>
               <thead>
-                <tr style={{ borderBottom:"1px solid #29ABE230" }}>
+                <tr style={{ borderBottom:"1px solid rgba(28,108,166,0.18)" }}>
                   {["Mês","Entradas","Saídas","Lucro","Margem","Novas Vendas","Novos Clientes"].map(h=>(
-                    <th key={h} style={{ padding:"10px 14px",textAlign:"right",fontSize:"11px",color:"#606060",fontWeight:"600",borderRight:"1px solid #29ABE215" }}>{h}</th>
+                    <th key={h} style={{ padding:"10px 14px",textAlign:"right",fontSize:"11px",color:"var(--text-secondary)",fontWeight:"600",borderRight:"1px solid rgba(28,108,166,0.1)" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {dadosMensais.map((d,i)=>(
-                  <tr key={d.mes} style={{ borderBottom:"1px solid #1e1e1e",background:i%2===0?"transparent":"#0a0a0a" }}>
-                    <td style={{ padding:"10px 14px",fontWeight:"600",color:"#f0f0f0",textAlign:"right",borderRight:"1px solid #29ABE215" }}>{d.mes}</td>
-                    <td style={{ padding:"10px 14px",color:"#22c55e",textAlign:"right",borderRight:"1px solid #29ABE215" }}>{formatCurrency(d.entradas)}</td>
-                    <td style={{ padding:"10px 14px",color:"#ef4444",textAlign:"right",borderRight:"1px solid #29ABE215" }}>{formatCurrency(d.saidas)}</td>
-                    <td style={{ padding:"10px 14px",color:d.lucro>=0?"#22c55e":"#ef4444",fontWeight:"600",textAlign:"right",borderRight:"1px solid #29ABE215" }}>{formatCurrency(d.lucro)}</td>
-                    <td style={{ padding:"10px 14px",color:d.margem>=0?"#22c55e":"#ef4444",textAlign:"right",borderRight:"1px solid #29ABE215" }}>{d.margem}%</td>
-                    <td style={{ padding:"10px 14px",color:"#29ABE2",textAlign:"right",borderRight:"1px solid #29ABE215" }}>{formatCurrency(d.novasVendas)}</td>
-                    <td style={{ padding:"10px 14px",color:"#a0a0a0",textAlign:"right" }}>{d.novosClientes}</td>
+                  <tr key={d.mes} style={{ borderBottom:"1px solid var(--border)",background:i%2===0?"transparent":"var(--hover-row)" }}>
+                    <td style={{ padding:"10px 14px",fontWeight:"600",color:"var(--navy)",textAlign:"right",borderRight:"1px solid rgba(28,108,166,0.1)" }}>{d.mes}</td>
+                    <td style={{ padding:"10px 14px",color:"var(--success)",textAlign:"right",borderRight:"1px solid rgba(28,108,166,0.1)" }}>{formatCurrency(d.entradas)}</td>
+                    <td style={{ padding:"10px 14px",color:"var(--alert-text)",textAlign:"right",borderRight:"1px solid rgba(28,108,166,0.1)" }}>{formatCurrency(d.saidas)}</td>
+                    <td style={{ padding:"10px 14px",color:d.lucro>=0?"var(--success)":"var(--alert-text)",fontWeight:"600",textAlign:"right",borderRight:"1px solid rgba(28,108,166,0.1)" }}>{formatCurrency(d.lucro)}</td>
+                    <td style={{ padding:"10px 14px",color:d.margem>=0?"var(--success)":"var(--alert-text)",textAlign:"right",borderRight:"1px solid rgba(28,108,166,0.1)" }}>{d.margem}%</td>
+                    <td style={{ padding:"10px 14px",color:"var(--brand)",textAlign:"right",borderRight:"1px solid rgba(28,108,166,0.1)" }}>{formatCurrency(d.novasVendas)}</td>
+                    <td style={{ padding:"10px 14px",color:"var(--text-secondary)",textAlign:"right" }}>{d.novosClientes}</td>
                   </tr>
                 ))}
                 {/* Linha de totais */}
-                <tr style={{ borderTop:"2px solid #29ABE240",background:"rgba(41,171,226,0.05)" }}>
-                  <td style={{ padding:"10px 14px",fontWeight:"700",color:"#29ABE2",textAlign:"right",borderRight:"1px solid #29ABE215" }}>TOTAL</td>
-                  <td style={{ padding:"10px 14px",color:"#22c55e",fontWeight:"700",textAlign:"right",borderRight:"1px solid #29ABE215" }}>{formatCurrency(dadosMensais.reduce((a,d)=>a+d.entradas,0))}</td>
-                  <td style={{ padding:"10px 14px",color:"#ef4444",fontWeight:"700",textAlign:"right",borderRight:"1px solid #29ABE215" }}>{formatCurrency(dadosMensais.reduce((a,d)=>a+d.saidas,0))}</td>
-                  <td style={{ padding:"10px 14px",color:dadosMensais.reduce((a,d)=>a+d.lucro,0)>=0?"#22c55e":"#ef4444",fontWeight:"700",textAlign:"right",borderRight:"1px solid #29ABE215" }}>{formatCurrency(dadosMensais.reduce((a,d)=>a+d.lucro,0))}</td>
-                  <td style={{ padding:"10px 14px",color:"#a0a0a0",textAlign:"right",borderRight:"1px solid #29ABE215" }}>
+                <tr style={{ borderTop:"2px solid rgba(28,108,166,0.25)",background:"rgba(28,108,166,0.04)" }}>
+                  <td style={{ padding:"10px 14px",fontWeight:"700",color:"var(--brand)",textAlign:"right",borderRight:"1px solid rgba(28,108,166,0.1)" }}>TOTAL</td>
+                  <td style={{ padding:"10px 14px",color:"var(--success)",fontWeight:"700",textAlign:"right",borderRight:"1px solid rgba(28,108,166,0.1)" }}>{formatCurrency(dadosMensais.reduce((a,d)=>a+d.entradas,0))}</td>
+                  <td style={{ padding:"10px 14px",color:"var(--alert-text)",fontWeight:"700",textAlign:"right",borderRight:"1px solid rgba(28,108,166,0.1)" }}>{formatCurrency(dadosMensais.reduce((a,d)=>a+d.saidas,0))}</td>
+                  <td style={{ padding:"10px 14px",color:dadosMensais.reduce((a,d)=>a+d.lucro,0)>=0?"var(--success)":"var(--alert-text)",fontWeight:"700",textAlign:"right",borderRight:"1px solid rgba(28,108,166,0.1)" }}>{formatCurrency(dadosMensais.reduce((a,d)=>a+d.lucro,0))}</td>
+                  <td style={{ padding:"10px 14px",color:"var(--text-secondary)",textAlign:"right",borderRight:"1px solid rgba(28,108,166,0.1)" }}>
                     {(()=>{ const te=dadosMensais.reduce((a,d)=>a+d.entradas,0); const tl=dadosMensais.reduce((a,d)=>a+d.lucro,0); return te>0?`${Math.round((tl/te)*100)}%`:"0%"; })()}
                   </td>
-                  <td style={{ padding:"10px 14px",color:"#29ABE2",fontWeight:"700",textAlign:"right",borderRight:"1px solid #29ABE215" }}>{formatCurrency(dadosMensais.reduce((a,d)=>a+d.novasVendas,0))}</td>
-                  <td style={{ padding:"10px 14px",color:"#a0a0a0",fontWeight:"700",textAlign:"right" }}>{dadosMensais.reduce((a,d)=>a+d.novosClientes,0)}</td>
+                  <td style={{ padding:"10px 14px",color:"var(--brand)",fontWeight:"700",textAlign:"right",borderRight:"1px solid rgba(28,108,166,0.1)" }}>{formatCurrency(dadosMensais.reduce((a,d)=>a+d.novasVendas,0))}</td>
+                  <td style={{ padding:"10px 14px",color:"var(--text-secondary)",fontWeight:"700",textAlign:"right" }}>{dadosMensais.reduce((a,d)=>a+d.novosClientes,0)}</td>
                 </tr>
               </tbody>
             </table>

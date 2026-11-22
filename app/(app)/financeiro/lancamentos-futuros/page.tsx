@@ -148,11 +148,11 @@ function ModalSaida({ item, onClose, onSave }: { item?:any; onClose:()=>void; on
           </div>
         </div>
         <div style={{display:"flex",gap:"16px",paddingTop:"12px"}}>
-          <label style={{display:"flex",alignItems:"center",gap:"8px",cursor:"pointer",fontSize:"13px",color:"#a0a0a0"}}>
+          <label style={{display:"flex",alignItems:"center",gap:"8px",cursor:"pointer",fontSize:"13px",color:"var(--text-secondary)"}}>
             <input type="checkbox" checked={form.despesa} onChange={e=>set("despesa",e.target.checked)} style={{width:"14px",height:"14px"}}/>
             Despesa
           </label>
-          <label style={{display:"flex",alignItems:"center",gap:"8px",cursor:"pointer",fontSize:"13px",color:"#a0a0a0"}}>
+          <label style={{display:"flex",alignItems:"center",gap:"8px",cursor:"pointer",fontSize:"13px",color:"var(--text-secondary)"}}>
             <input type="checkbox" checked={form.considerar_cac} onChange={e=>set("considerar_cac",e.target.checked)} style={{width:"14px",height:"14px"}}/>
             Considerar no cálculo de CAC
           </label>
@@ -163,7 +163,7 @@ function ModalSaida({ item, onClose, onSave }: { item?:any; onClose:()=>void; on
             if(!form.valor||!form.data_vencimento){alert("Preencha valor e data");return;}
             await onSave({tipo:"saida",...form, id:item?.id});
             onClose();
-          }} style={{background:"rgba(239,68,68,0.15)",color:"#ef4444",border:"1px solid rgba(239,68,68,0.3)",padding:"8px 16px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px"}}>
+          }} style={{background:"rgba(239,68,68,0.15)",color:"var(--alert-text)",border:"1px solid rgba(239,68,68,0.3)",padding:"8px 16px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px"}}>
             Salvar
           </button>
         </div>
@@ -181,7 +181,7 @@ function ModalLancar({ item, onClose, onSave }: { item:{id:string;valor:number;d
           <h2 style={{fontSize:"17px",fontWeight:"600"}}>Efetuar lançamento</h2>
           <button onClick={onClose} className="btn-ghost" style={{padding:"6px"}}><X size={16}/></button>
         </div>
-        <p style={{fontSize:"13px",color:"#606060",marginBottom:"24px"}}>Preencha o campo abaixo para efetuar o lançamento:</p>
+        <p style={{fontSize:"13px",color:"var(--text-secondary)",marginBottom:"24px"}}>Preencha o campo abaixo para efetuar o lançamento:</p>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px"}}>
           <div className="form-group">
             <label className="form-label">Valor original</label>
@@ -211,8 +211,8 @@ function PainelFiltros({ onClose, onFiltrar }: { onClose:()=>void; onFiltrar:(f:
   const set = (k:string,v:string) => setFiltros(f=>({...f,[k]:v}));
 
   return (
-    <div style={{position:"fixed",top:0,right:0,width:"380px",height:"100vh",background:"#111",borderLeft:"1px solid #2e2e2e",zIndex:200,display:"flex",flexDirection:"column"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"20px 24px",borderBottom:"1px solid #2e2e2e"}}>
+    <div style={{position:"fixed",top:0,right:0,width:"380px",height:"100vh",background:"var(--card-bg)",borderLeft:"1px solid var(--border)",zIndex:200,display:"flex",flexDirection:"column"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"20px 24px",borderBottom:"1px solid var(--border)"}}>
         <h3 style={{fontSize:"16px",fontWeight:"600"}}>Filtros — Lançamentos futuros</h3>
         <button onClick={onClose} className="btn-ghost" style={{padding:"6px"}}><X size={16}/></button>
       </div>
@@ -221,11 +221,11 @@ function PainelFiltros({ onClose, onFiltrar }: { onClose:()=>void; onFiltrar:(f:
           <label className="form-label">Data de vencimento</label>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginTop:"8px"}}>
             <div>
-              <label style={{fontSize:"11px",color:"#606060",display:"block",marginBottom:"4px"}}>De</label>
+              <label style={{fontSize:"11px",color:"var(--text-secondary)",display:"block",marginBottom:"4px"}}>De</label>
               <input type="date" className="form-input" value={filtros.data_de} onChange={e=>set("data_de",e.target.value)}/>
             </div>
             <div>
-              <label style={{fontSize:"11px",color:"#606060",display:"block",marginBottom:"4px"}}>Até</label>
+              <label style={{fontSize:"11px",color:"var(--text-secondary)",display:"block",marginBottom:"4px"}}>Até</label>
               <input type="date" className="form-input" value={filtros.data_ate} onChange={e=>set("data_ate",e.target.value)}/>
             </div>
           </div>
@@ -252,7 +252,7 @@ function PainelFiltros({ onClose, onFiltrar }: { onClose:()=>void; onFiltrar:(f:
           </select>
         </div>
       </div>
-      <div style={{padding:"20px 24px",borderTop:"1px solid #2e2e2e",display:"flex",gap:"8px"}}>
+      <div style={{padding:"20px 24px",borderTop:"1px solid var(--border)",display:"flex",gap:"8px"}}>
         <button className="btn-secondary" style={{flex:1,justifyContent:"center"}} onClick={()=>{setFiltros({data_de:"",data_ate:"",tipo:"",categoria_id:"",fornecedor:""});onFiltrar({});}}>Limpar</button>
         <button className="btn-primary" style={{flex:1,justifyContent:"center"}} onClick={()=>{onFiltrar(filtros);onClose();}}>Filtrar</button>
       </div>
@@ -396,7 +396,7 @@ export default function LancamentosFuturosPage() {
     <div className="animate-in">
       <div className="breadcrumb">
         <a href="/">Início</a><span>›</span>
-        <span style={{color:"#a0a0a0"}}>Financeiro</span><span>›</span>
+        <span style={{color:"var(--text-secondary)"}}>Financeiro</span><span>›</span>
         <span className="current">Lançamentos futuros</span>
       </div>
       <h1 style={{fontSize:"22px",fontWeight:"600",marginBottom:"24px"}}>Lançamentos futuros</h1>
@@ -409,9 +409,9 @@ export default function LancamentosFuturosPage() {
       </div>
 
       <div className="table-wrapper">
-        <div style={{padding:"16px",display:"flex",gap:"12px",borderBottom:"1px solid #2e2e2e",flexWrap:"wrap",alignItems:"center"}}>
+        <div style={{padding:"16px",display:"flex",gap:"12px",borderBottom:"1px solid var(--border)",flexWrap:"wrap",alignItems:"center"}}>
           <div style={{position:"relative",flex:1,minWidth:"200px"}}>
-            <Search size={14} style={{position:"absolute",left:"12px",top:"50%",transform:"translateY(-50%)",color:"#606060"}}/>
+            <Search size={14} style={{position:"absolute",left:"12px",top:"50%",transform:"translateY(-50%)",color:"var(--text-secondary)"}}/>
             <input className="search-input" placeholder="Buscar lançamentos..." value={busca} onChange={e=>setBusca(e.target.value)}/>
           </div>
           <select
@@ -429,7 +429,7 @@ export default function LancamentosFuturosPage() {
           <button className="btn-secondary" onClick={()=>setShowFiltros(true)}>
             <SlidersHorizontal size={14}/> Filtros
             {Object.values(filtros).some(Boolean) && (
-              <span style={{background:"#22c55e",color:"#000",borderRadius:"50%",width:"16px",height:"16px",fontSize:"10px",fontWeight:"700",display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <span style={{background:"var(--success)",color:"#FFFFFF",borderRadius:"50%",width:"16px",height:"16px",fontSize:"10px",fontWeight:"700",display:"flex",alignItems:"center",justifyContent:"center"}}>
                 {Object.values(filtros).filter(Boolean).length}
               </span>
             )}
@@ -437,15 +437,15 @@ export default function LancamentosFuturosPage() {
           <button className="btn-primary" onClick={()=>setShowEntrada(true)}>
             <Plus size={14}/> Nova entrada prevista
           </button>
-          <button onClick={()=>setShowSaida(true)} style={{background:"rgba(239,68,68,0.12)",color:"#ef4444",border:"1px solid rgba(239,68,68,0.2)",padding:"8px 16px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px"}}>
+          <button onClick={()=>setShowSaida(true)} style={{background:"rgba(239,68,68,0.12)",color:"var(--alert-text)",border:"1px solid rgba(239,68,68,0.2)",padding:"8px 16px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px"}}>
             <Plus size={14}/> Nova saída prevista
           </button>
         </div>
 
         {loading ? (
-          <div style={{textAlign:"center",color:"#606060",padding:"40px"}}>Carregando...</div>
+          <div style={{textAlign:"center",color:"var(--text-secondary)",padding:"40px"}}>Carregando...</div>
         ) : !filtrados.length ? (
-          <div style={{textAlign:"center",color:"#606060",padding:"48px"}}>Nenhuma conta encontrada.</div>
+          <div style={{textAlign:"center",color:"var(--text-secondary)",padding:"48px"}}>Nenhuma conta encontrada.</div>
         ) : mesesOrdenados.map(chave => {
           const [ano, mes] = chave.split("-");
           const mesIdx = parseInt(mes) - 1;
@@ -454,12 +454,12 @@ export default function LancamentosFuturosPage() {
           const saiMes = items.filter(l=>l.tipo==="saida"&&!l.pago).reduce((a,b)=>a+b.valor,0);
           return (
             <div key={chave}>
-              <div style={{padding:"12px 16px",background:"#0d0d0d",borderBottom:"1px solid #2e2e2e",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <span style={{fontSize:"14px",fontWeight:"600",color:"#f0f0f0"}}>{MESES_NOMES[mesIdx]} {ano}</span>
+              <div style={{padding:"12px 16px",background:"var(--off-white)",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <span style={{fontSize:"14px",fontWeight:"600",color:"var(--navy)"}}>{MESES_NOMES[mesIdx]} {ano}</span>
                 <div style={{display:"flex",gap:"16px",fontSize:"12px"}}>
-                  {entMes > 0 && <span style={{color:"#22c55e"}}>Entradas: {formatCurrency(entMes)}</span>}
-                  {saiMes > 0 && <span style={{color:"#ef4444"}}>Saídas: {formatCurrency(saiMes)}</span>}
-                  <span style={{color:entMes-saiMes>=0?"#29ABE2":"#f59e0b",fontWeight:"600"}}>Saldo: {formatCurrency(entMes - saiMes)}</span>
+                  {entMes > 0 && <span style={{color:"var(--success)"}}>Entradas: {formatCurrency(entMes)}</span>}
+                  {saiMes > 0 && <span style={{color:"var(--alert-text)"}}>Saídas: {formatCurrency(saiMes)}</span>}
+                  <span style={{color:entMes-saiMes>=0?"var(--brand)":"var(--caution-text)",fontWeight:"600"}}>Saldo: {formatCurrency(entMes - saiMes)}</span>
                 </div>
               </div>
               <table>
@@ -481,16 +481,16 @@ export default function LancamentosFuturosPage() {
                       <td><input type="checkbox" style={{width:"14px",height:"14px"}}/></td>
                       <td>
                         {l.pago ? (
-                          <span title="Lançado" style={{fontSize:"10px",background:"rgba(34,197,94,0.1)",color:"#22c55e",padding:"2px 6px",borderRadius:"4px"}}>✓</span>
+                          <span title="Lançado" style={{fontSize:"10px",background:"rgba(34,197,94,0.1)",color:"var(--success)",padding:"2px 6px",borderRadius:"4px"}}>✓</span>
                         ) : (
-                          <span title="Pendente" style={{fontSize:"10px",background:"rgba(245,158,11,0.1)",color:"#f59e0b",padding:"2px 6px",borderRadius:"4px"}}>⏳</span>
+                          <span title="Pendente" style={{fontSize:"10px",background:"rgba(245,158,11,0.1)",color:"var(--caution-text)",padding:"2px 6px",borderRadius:"4px"}}>⏳</span>
                         )}
                       </td>
-                      <td style={{color:"#a0a0a0",fontSize:"12px"}}>{l.categorias_financeiras?.nome||"—"}</td>
+                      <td style={{color:"var(--text-secondary)",fontSize:"12px"}}>{l.categorias_financeiras?.nome||"—"}</td>
                       <td style={{fontWeight:"500"}}>{l.clientes?.nome||"—"}</td>
-                      <td style={{color:"#a0a0a0"}}>{new Date(l.data_vencimento+"T12:00:00").toLocaleDateString("pt-BR")}</td>
-                      <td style={{color:"#a0a0a0",fontSize:"12px"}}>{l.descricao||"—"}</td>
-                      <td style={{color:l.tipo==="entrada"?"#22c55e":"#ef4444",fontWeight:"600"}}>
+                      <td style={{color:"var(--text-secondary)"}}>{new Date(l.data_vencimento+"T12:00:00").toLocaleDateString("pt-BR")}</td>
+                      <td style={{color:"var(--text-secondary)",fontSize:"12px"}}>{l.descricao||"—"}</td>
+                      <td style={{color:l.tipo==="entrada"?"var(--success)":"var(--alert-text)",fontWeight:"600"}}>
                         {formatCurrency(l.valor)}
                       </td>
                       <td>
@@ -498,7 +498,7 @@ export default function LancamentosFuturosPage() {
                           {!l.pago && (
                             <button
                               onClick={()=>setLancando({id:l.id,valor:l.valor,descricao:l.descricao})}
-                              style={{display:"flex",alignItems:"center",gap:"5px",padding:"5px 10px",borderRadius:"6px",border:"1px solid rgba(34,197,94,0.3)",background:"rgba(34,197,94,0.08)",color:"#22c55e",cursor:"pointer",fontSize:"12px"}}
+                              style={{display:"flex",alignItems:"center",gap:"5px",padding:"5px 10px",borderRadius:"6px",border:"1px solid rgba(34,197,94,0.3)",background:"rgba(34,197,94,0.08)",color:"var(--success)",cursor:"pointer",fontSize:"12px"}}
                             >
                               <ExternalLink size={12}/> Lançar
                             </button>

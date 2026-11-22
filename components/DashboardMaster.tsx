@@ -16,7 +16,7 @@ import PeriodSelector from "@/components/ui/PeriodSelector";
 import { useKPIsDashboard, useDadosGraficos, useConversaoPorPublico, useLeads, useLancamentosFuturos, useRecorrencias, useClientes, useMovimentacoes } from "@/lib/hooks";
 import { formatCurrency } from "@/lib/utils";
 
-const tooltipStyle = { background: "#1e1e1e", border: "1px solid #2e2e2e", borderRadius: "8px", fontSize: "12px", color: "#f0f0f0" };
+const tooltipStyle = { background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px", color: "var(--navy)" };
 function fmt(n: number) { return formatCurrency(n); }
 
 export default function DashboardMaster() {
@@ -154,10 +154,10 @@ export default function DashboardMaster() {
 
   return (
     <div className="animate-in">
-      <h1 style={{ fontSize: "22px", fontWeight: "600", marginBottom: "24px" }}>Dashboard</h1>
+      <h1 style={{ fontSize: "22px", fontWeight: "600", marginBottom: "24px", color: "var(--navy)" }}>Dashboard</h1>
       <PeriodSelector onChange={(_, f, t) => { setFrom(f); setTo(t); }} />
 
-      {loading && <p style={{ color: "#606060", fontSize: "13px", marginBottom: "16px" }}>Carregando dados...</p>}
+      {loading && <p style={{ color: "var(--text-secondary)", fontSize: "13px", marginBottom: "16px" }}>Carregando dados...</p>}
 
       {/* Snapshots mensais */}
       {(() => {
@@ -178,16 +178,16 @@ export default function DashboardMaster() {
         const todasLinhas = [linhaAtual, ...snapshots.filter(s => s.mes_ano !== mesAtualStr)];
         return (
           <div className="card" style={{ marginBottom: "20px", padding: "16px 20px" }}>
-            <h3 style={{ fontSize: "13px", fontWeight: "600", color: "#f0f0f0", marginBottom: "14px", display: "flex", alignItems: "center", gap: "8px" }}>
+            <h3 style={{ fontSize: "13px", fontWeight: "600", color: "var(--navy)", marginBottom: "14px", display: "flex", alignItems: "center", gap: "8px" }}>
               📅 Base de Clientes por Mês
-              <span style={{ fontSize: "11px", color: "#606060", fontWeight: "400" }}>Atualiza em tempo real até o último dia de cada mês</span>
+              <span style={{ fontSize: "11px", color: "var(--text-secondary)", fontWeight: "400" }}>Atualiza em tempo real até o último dia de cada mês</span>
             </h3>
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
                 <thead>
-                  <tr style={{ borderBottom: "1px solid #29ABE230" }}>
+                  <tr style={{ borderBottom: "1px solid var(--border)" }}>
                     {["Mês/Ano", "Data Base", "Ativos", "Pausados", "Em Entrada", "Total", "Churn do Mês", "Churn Rate"].map(h => (
-                      <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontSize: "11px", color: "#606060", fontWeight: "600", borderRight: "1px solid #29ABE215" }}>{h}</th>
+                      <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "600", borderRight: "1px solid var(--border)" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -202,20 +202,20 @@ export default function DashboardMaster() {
                     const churnDoMes = todosChurns.filter((c: any) => c.data_churn === s.mes_ano).length;
                     const churnRate = baseAtivos > 0 ? `${((churnDoMes / (baseAtivos as number)) * 100).toFixed(1)}%` : "—";
                     return (
-                      <tr key={s.id} style={{ borderBottom: "1px solid #1e1e1e", background: s.isAtual ? "rgba(41,171,226,0.05)" : idx % 2 === 0 ? "transparent" : "#0a0a0a" }}>
-                        <td style={{ padding: "8px 12px", fontWeight: "600", borderRight: "1px solid #29ABE215" }}>
-                          <span style={{ color: s.isAtual ? "#29ABE2" : "#f0f0f0" }}>{s.mes_ano}</span>
-                          {s.isAtual && <span style={{ fontSize: "10px", color: "#29ABE2", marginLeft: "6px", background: "rgba(41,171,226,0.15)", padding: "1px 6px", borderRadius: "10px" }}>ao vivo</span>}
+                      <tr key={s.id} style={{ borderBottom: "1px solid var(--border)", background: s.isAtual ? "rgba(28,108,166,0.04)" : idx % 2 === 0 ? "transparent" : "var(--hover-row)" }}>
+                        <td style={{ padding: "8px 12px", fontWeight: "600", borderRight: "1px solid var(--border)" }}>
+                          <span style={{ color: s.isAtual ? "var(--brand)" : "var(--navy)" }}>{s.mes_ano}</span>
+                          {s.isAtual && <span style={{ fontSize: "10px", color: "var(--brand)", marginLeft: "6px", background: "rgba(28,108,166,0.1)", padding: "1px 6px", borderRadius: "10px" }}>ao vivo</span>}
                         </td>
-                        <td style={{ padding: "8px 12px", color: "#606060", fontSize: "11px", borderRight: "1px solid #29ABE215" }}>
+                        <td style={{ padding: "8px 12px", color: "var(--text-secondary)", fontSize: "11px", borderRight: "1px solid var(--border)" }}>
                           {s.isAtual ? `Até dia ${hoje.getDate()}/${String(hoje.getMonth() + 1).padStart(2, "0")}/${s.ano}` : `Dia ${ultimoDia}/${String(mIdx + 1).padStart(2, "0")}/${s.ano}`}
                         </td>
-                        <td style={{ padding: "8px 12px", color: "#22c55e", fontWeight: s.isAtual ? "600" : "400", borderRight: "1px solid #29ABE215" }}>{s.clientes_ativos}</td>
-                        <td style={{ padding: "8px 12px", color: "#f59e0b", borderRight: "1px solid #29ABE215" }}>{s.clientes_pausados}</td>
-                        <td style={{ padding: "8px 12px", color: "#eab308", borderRight: "1px solid #29ABE215" }}>{s.clientes_entrada}</td>
-                        <td style={{ padding: "8px 12px", color: "#f0f0f0", borderRight: "1px solid #29ABE215" }}>{s.clientes_total}</td>
-                        <td style={{ padding: "8px 12px", color: "#ef4444", borderRight: "1px solid #29ABE215" }}>{churnDoMes}</td>
-                        <td style={{ padding: "8px 12px", color: "#a0a0a0" }}>{churnRate}</td>
+                        <td style={{ padding: "8px 12px", color: "var(--success)", fontWeight: s.isAtual ? "600" : "400", borderRight: "1px solid var(--border)" }}>{s.clientes_ativos}</td>
+                        <td style={{ padding: "8px 12px", color: "var(--caution-text)", borderRight: "1px solid var(--border)" }}>{s.clientes_pausados}</td>
+                        <td style={{ padding: "8px 12px", color: "var(--warning-text)", borderRight: "1px solid var(--border)" }}>{s.clientes_entrada}</td>
+                        <td style={{ padding: "8px 12px", color: "var(--navy)", borderRight: "1px solid var(--border)" }}>{s.clientes_total}</td>
+                        <td style={{ padding: "8px 12px", color: "var(--alert-text)", borderRight: "1px solid var(--border)" }}>{churnDoMes}</td>
+                        <td style={{ padding: "8px 12px", color: "var(--text-secondary)" }}>{churnRate}</td>
                       </tr>
                     );
                   })}
@@ -254,24 +254,24 @@ export default function DashboardMaster() {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
         <div className="card">
-          <h3 style={{ fontSize: "14px", fontWeight: "500", marginBottom: "20px" }}>Entrada x Saída</h3>
+          <h3 style={{ fontSize: "14px", fontWeight: "600", marginBottom: "20px", color: "var(--navy)" }}>Entrada x Saída</h3>
           <ResponsiveContainer width="100%" height={180}>
             <LineChart data={graficos ?? []}>
-              <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "#606060" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: "#606060" }} axisLine={false} tickLine={false} tickFormatter={v => `R$${v}`} />
+              <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} tickFormatter={v => `R$${v}`} />
               <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => fmt(v)} />
-              <Line type="monotone" dataKey="entrada" stroke="#29ABE2" strokeWidth={2} dot={false} name="Entrada" />
-              <Line type="monotone" dataKey="saida" stroke="#ef4444" strokeWidth={2} dot={false} name="Saída" />
+              <Line type="monotone" dataKey="entrada" stroke="var(--brand)" strokeWidth={2} dot={false} name="Entrada" />
+              <Line type="monotone" dataKey="saida" stroke="var(--alert-text)" strokeWidth={2} dot={false} name="Saída" />
               <Legend wrapperStyle={{ fontSize: "11px" }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
         <div className="card">
-          <h3 style={{ fontSize: "14px", fontWeight: "500", marginBottom: "20px" }}>Distribuição de clientes</h3>
+          <h3 style={{ fontSize: "14px", fontWeight: "600", marginBottom: "20px", color: "var(--navy)" }}>Distribuição de clientes</h3>
           <ResponsiveContainer width="100%" height={180}>
             <PieChart>
               <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value">
-                <Cell fill="#29ABE2" /><Cell fill="#ef4444" />
+                <Cell fill="var(--brand)" /><Cell fill="var(--alert-text)" />
               </Pie>
               <Legend wrapperStyle={{ fontSize: "11px" }} />
               <Tooltip contentStyle={tooltipStyle} />
@@ -282,46 +282,46 @@ export default function DashboardMaster() {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
         <div className="card">
-          <h3 style={{ fontSize: "14px", fontWeight: "500", marginBottom: "20px" }}>Leads por etapa — Período atual</h3>
+          <h3 style={{ fontSize: "14px", fontWeight: "600", marginBottom: "20px", color: "var(--navy)" }}>Leads por etapa — Período atual</h3>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={barDataEtapas}>
-              <XAxis dataKey="etapa" tick={{ fontSize: 10, fill: "#606060" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: "#606060" }} axisLine={false} tickLine={false} />
+              <XAxis dataKey="etapa" tick={{ fontSize: 10, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={tooltipStyle} />
-              <Bar dataKey="valor" fill="#29ABE2" radius={[4, 4, 0, 0]} name="Leads" />
+              <Bar dataKey="valor" fill="var(--brand)" radius={[4, 4, 0, 0]} name="Leads" />
             </BarChart>
           </ResponsiveContainer>
         </div>
         <div className="card">
-          <h3 style={{ fontSize: "14px", fontWeight: "500", marginBottom: "20px" }}>Leads por origem — Período atual</h3>
+          <h3 style={{ fontSize: "14px", fontWeight: "600", marginBottom: "20px", color: "var(--navy)" }}>Leads por origem — Período atual</h3>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={barDataOrigem}>
-              <XAxis dataKey="origem" tick={{ fontSize: 11, fill: "#606060" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: "#606060" }} axisLine={false} tickLine={false} />
+              <XAxis dataKey="origem" tick={{ fontSize: 11, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={tooltipStyle} />
-              <Bar dataKey="valor" fill="#29ABE2" radius={[4, 4, 0, 0]} name="Leads" />
+              <Bar dataKey="valor" fill="var(--brand)" radius={[4, 4, 0, 0]} name="Leads" />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
       <div className="card">
-        <h3 style={{ fontSize: "14px", fontWeight: "500", marginBottom: "20px" }}>Conversão por público (UTM)</h3>
+        <h3 style={{ fontSize: "14px", fontWeight: "600", marginBottom: "20px", color: "var(--navy)" }}>Conversão por público (UTM)</h3>
         {!conversao || conversao.length === 0 ? (
-          <p style={{ fontSize: "13px", color: "#606060" }}>Nenhum dado de UTM ainda.</p>
+          <p style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Nenhum dado de UTM ainda.</p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
             {conversao.map(c => (
               <div key={c.publico} style={{ display: "flex", alignItems: "center", gap: "16px" }}>
                 <div style={{ minWidth: "200px" }}>
-                  <p style={{ fontSize: "13px", fontWeight: "500" }}>{c.publico}</p>
-                  <p style={{ fontSize: "11px", color: "#606060" }}>{c.campanha}</p>
+                  <p style={{ fontSize: "13px", fontWeight: "500", color: "var(--navy)" }}>{c.publico}</p>
+                  <p style={{ fontSize: "11px", color: "var(--text-secondary)" }}>{c.campanha}</p>
                 </div>
-                <div style={{ flex: 1, height: "6px", background: "#2a2a2a", borderRadius: "3px" }}>
-                  <div style={{ width: `${c.taxa}%`, height: "100%", background: "#29ABE2", borderRadius: "3px" }} />
+                <div style={{ flex: 1, height: "6px", background: "var(--hover-row)", borderRadius: "3px" }}>
+                  <div style={{ width: `${c.taxa}%`, height: "100%", background: "var(--brand)", borderRadius: "3px" }} />
                 </div>
-                <span style={{ fontSize: "12px", color: "#29ABE2", minWidth: "48px", textAlign: "right", fontWeight: "600" }}>{c.taxa}%</span>
-                <span style={{ fontSize: "11px", color: "#606060", minWidth: "80px" }}>{c.total_convertidos}/{c.total_leads} leads</span>
+                <span style={{ fontSize: "12px", color: "var(--brand)", minWidth: "48px", textAlign: "right", fontWeight: "600" }}>{c.taxa}%</span>
+                <span style={{ fontSize: "11px", color: "var(--text-secondary)", minWidth: "80px" }}>{c.total_convertidos}/{c.total_leads} leads</span>
               </div>
             ))}
           </div>

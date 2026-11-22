@@ -263,7 +263,7 @@ export default function EscalaPage({ tipo, titulo, subtitulo, gestor, gestorEsca
   function ProgressBar({ value, max, color }: { value: number; max: number; color: string }) {
     const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
     return (
-      <div style={{ width: "100%", height: "6px", background: "#2e2e2e", borderRadius: "3px", overflow: "hidden" }}>
+      <div style={{ width: "100%", height: "6px", background: "var(--border)", borderRadius: "3px", overflow: "hidden" }}>
         <div style={{ width: `${pct}%`, height: "100%", background: color, borderRadius: "3px", transition: "width 0.3s" }} />
       </div>
     );
@@ -274,8 +274,8 @@ export default function EscalaPage({ tipo, titulo, subtitulo, gestor, gestorEsca
       <span style={{
         display: "inline-flex", alignItems: "center", gap: "4px",
         padding: "3px 8px", borderRadius: "6px", fontSize: "12px", fontWeight: "600",
-        background: value ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)",
-        color: value ? "#22c55e" : "#ef4444",
+        background: value ? "var(--success-bg)" : "var(--alert-bg)",
+        color: value ? "var(--success)" : "var(--alert-text)",
       }}>
         {value ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
         {value ? labelTrue : labelFalse}
@@ -287,38 +287,38 @@ export default function EscalaPage({ tipo, titulo, subtitulo, gestor, gestorEsca
     <div className="animate-in" style={{ padding: "0" }}>
       {/* Header */}
       <div style={{ marginBottom: "24px" }}>
-        <h1 style={{ fontSize: "22px", fontWeight: "700", color: "#f0f0f0", margin: 0 }}>{titulo}</h1>
-        <p style={{ fontSize: "13px", color: "#606060", marginTop: "4px" }}>{subtitulo}</p>
+        <h1 style={{ fontSize: "22px", fontWeight: "700", color: "var(--navy)", margin: 0 }}>{titulo}</h1>
+        <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginTop: "4px" }}>{subtitulo}</p>
       </div>
 
       {/* KPIs de renovação e churn por gestor */}
       {kpisGestor && (
         <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"12px", marginBottom:"20px" }}>
           <div className="card" style={{ padding:"14px 16px" }}>
-            <p style={{ fontSize:"11px", color:"#606060", margin:"0 0 4px" }}>Clientes +30 dias</p>
-            <p style={{ fontSize:"22px", fontWeight:"700", color:"#f0f0f0", margin:0 }}>{kpisGestor.totalMais30}</p>
-            <p style={{ fontSize:"11px", color:"#606060", margin:"4px 0 0" }}>de {kpisGestor.totalGestor} ativos</p>
+            <p style={{ fontSize:"11px", color:"var(--text-secondary)", margin:"0 0 4px" }}>Clientes +30 dias</p>
+            <p style={{ fontSize:"22px", fontWeight:"700", color:"var(--navy)", margin:0 }}>{kpisGestor.totalMais30}</p>
+            <p style={{ fontSize:"11px", color:"var(--text-secondary)", margin:"4px 0 0" }}>de {kpisGestor.totalGestor} ativos</p>
           </div>
           <div className="card" style={{ padding:"14px 16px" }}>
-            <p style={{ fontSize:"11px", color:"#606060", margin:"0 0 4px" }}>Fase 3 ou 4</p>
-            <p style={{ fontSize:"22px", fontWeight:"700", color: kpisGestor.pctFase34 >= 50 ? "#22c55e" : kpisGestor.pctFase34 >= 30 ? "#f59e0b" : "#ef4444", margin:0 }}>
+            <p style={{ fontSize:"11px", color:"var(--text-secondary)", margin:"0 0 4px" }}>Fase 3 ou 4</p>
+            <p style={{ fontSize:"22px", fontWeight:"700", color: kpisGestor.pctFase34 >= 50 ? "var(--success)" : kpisGestor.pctFase34 >= 30 ? "var(--caution-text)" : "var(--alert-text)", margin:0 }}>
               {kpisGestor.pctFase34}%
             </p>
-            <p style={{ fontSize:"11px", color:"#606060", margin:"4px 0 0" }}>{kpisGestor.fase34} de {kpisGestor.totalMais30} (+30 dias)</p>
+            <p style={{ fontSize:"11px", color:"var(--text-secondary)", margin:"4px 0 0" }}>{kpisGestor.fase34} de {kpisGestor.totalMais30} (+30 dias)</p>
           </div>
           <div className="card" style={{ padding:"14px 16px" }}>
-            <p style={{ fontSize:"11px", color:"#606060", margin:"0 0 4px" }}>Churn mês atual</p>
-            <p style={{ fontSize:"22px", fontWeight:"700", color: kpisGestor.churnMes === 0 ? "#22c55e" : "#ef4444", margin:0 }}>
+            <p style={{ fontSize:"11px", color:"var(--text-secondary)", margin:"0 0 4px" }}>Churn mês atual</p>
+            <p style={{ fontSize:"22px", fontWeight:"700", color: kpisGestor.churnMes === 0 ? "var(--success)" : "var(--alert-text)", margin:0 }}>
               {kpisGestor.churnMes}
             </p>
-            <p style={{ fontSize:"11px", color:"#606060", margin:"4px 0 0" }}>saídas este mês</p>
+            <p style={{ fontSize:"11px", color:"var(--text-secondary)", margin:"4px 0 0" }}>saídas este mês</p>
           </div>
           <div className="card" style={{ padding:"14px 16px" }}>
-            <p style={{ fontSize:"11px", color:"#606060", margin:"0 0 4px" }}>Taxa de Churn</p>
-            <p style={{ fontSize:"22px", fontWeight:"700", color: kpisGestor.pctChurn === 0 ? "#22c55e" : kpisGestor.pctChurn <= 5 ? "#f59e0b" : "#ef4444", margin:0 }}>
+            <p style={{ fontSize:"11px", color:"var(--text-secondary)", margin:"0 0 4px" }}>Taxa de Churn</p>
+            <p style={{ fontSize:"22px", fontWeight:"700", color: kpisGestor.pctChurn === 0 ? "var(--success)" : kpisGestor.pctChurn <= 5 ? "var(--caution-text)" : "var(--alert-text)", margin:0 }}>
               {kpisGestor.pctChurn}%
             </p>
-            <p style={{ fontSize:"11px", color:"#606060", margin:"4px 0 0" }}>base: {kpisGestor.totalGestor + kpisGestor.churnMes} clientes</p>
+            <p style={{ fontSize:"11px", color:"var(--text-secondary)", margin:"4px 0 0" }}>base: {kpisGestor.totalGestor + kpisGestor.churnMes} clientes</p>
           </div>
         </div>
       )}
@@ -331,7 +331,7 @@ export default function EscalaPage({ tipo, titulo, subtitulo, gestor, gestorEsca
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal animate-in" onClick={(ev) => ev.stopPropagation()} style={{ maxWidth: "560px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-              <h2 style={{ fontSize: "18px", fontWeight: "600", color: "#f0f0f0" }}>
+              <h2 style={{ fontSize: "18px", fontWeight: "600", color: "var(--navy)" }}>
                 {editando ? "Editar Registro" : "Novo Registro"}
               </h2>
               <button onClick={() => setShowModal(false)} className="btn-ghost" style={{ padding: "4px" }}>
@@ -411,7 +411,7 @@ export default function EscalaPage({ tipo, titulo, subtitulo, gestor, gestorEsca
         <div className="modal-overlay" onClick={() => setShowMetaModal(false)}>
           <div className="modal animate-in" onClick={(ev) => ev.stopPropagation()} style={{ maxWidth: "480px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-              <h2 style={{ fontSize: "18px", fontWeight: "600", color: "#f0f0f0" }}>
+              <h2 style={{ fontSize: "18px", fontWeight: "600", color: "var(--navy)" }}>
                 Metas - {MESES[mes - 1]} {ano}
               </h2>
               <button onClick={() => setShowMetaModal(false)} className="btn-ghost" style={{ padding: "4px" }}>
@@ -419,7 +419,7 @@ export default function EscalaPage({ tipo, titulo, subtitulo, gestor, gestorEsca
               </button>
             </div>
 
-            <p style={{ fontSize: "13px", color: "#707070", marginBottom: "20px" }}>
+            <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "20px" }}>
               A meta de escala calcula automaticamente quantos clientes precisam escalar com base em quem preencheu a planilha.
             </p>
 
@@ -427,16 +427,16 @@ export default function EscalaPage({ tipo, titulo, subtitulo, gestor, gestorEsca
               <div className="form-group">
                 <label className="form-label">Meta de Planilhas Preenchidas</label>
                 <input className="form-input" type="number" min={0} value={metaForm.meta_planilhas} onChange={(ev) => setMetaForm({ ...metaForm, meta_planilhas: Number(ev.target.value) })} />
-                <span style={{ fontSize: "11px", color: "#606060" }}>Atual: {kpis.planilhas} ({metaForm.meta_planilhas > 0 ? Math.round((kpis.planilhas / metaForm.meta_planilhas) * 100) : 0}%)</span>
+                <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>Atual: {kpis.planilhas} ({metaForm.meta_planilhas > 0 ? Math.round((kpis.planilhas / metaForm.meta_planilhas) * 100) : 0}%)</span>
               </div>
 
               <div className="form-group">
                 <label className="form-label">Meta de Escala (% sobre planilhas preenchidas)</label>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <input className="form-input" type="number" min={0} max={100} value={metaForm.meta_escala_pct} onChange={(ev) => setMetaForm({ ...metaForm, meta_escala_pct: Number(ev.target.value) })} />
-                  <span style={{ color: "#a0a0a0", fontSize: "14px" }}>%</span>
+                  <span style={{ color: "var(--text-secondary)", fontSize: "14px" }}>%</span>
                 </div>
-                <span style={{ fontSize: "11px", color: "#606060" }}>
+                <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>
                   Ex: Se {kpis.planilhas || "X"} preencheram e meta é {metaForm.meta_escala_pct}%, precisa de{" "}
                   {kpis.planilhas > 0 ? Math.ceil((metaForm.meta_escala_pct / 100) * kpis.planilhas) : "Y"} escalas.
                   Atual: {kpis.escalados} escalaram
@@ -467,8 +467,8 @@ interface RelatorioProps {
 }
 
 function pctBadge(value: number) {
-  const color = value > 0 ? "#22c55e" : value < 0 ? "#ef4444" : "#606060";
-  const bg = value > 0 ? "rgba(34,197,94,0.12)" : value < 0 ? "rgba(239,68,68,0.12)" : "rgba(96,96,96,0.12)";
+  const color = value > 0 ? "var(--success)" : value < 0 ? "var(--alert-text)" : "var(--text-secondary)";
+  const bg = value > 0 ? "var(--success-bg)" : value < 0 ? "var(--alert-bg)" : "rgba(96,96,96,0.12)";
   const label = value > 0 ? `+${value}%` : value === 0 ? "—" : `${value}%`;
   return (
     <span style={{ fontSize: "11px", fontWeight: "600", padding: "2px 6px", borderRadius: "4px", background: bg, color, whiteSpace: "nowrap" }}>
@@ -481,8 +481,8 @@ function escalaBadge(value: boolean) {
   return (
     <span style={{
       fontSize: "11px", fontWeight: "600", padding: "2px 6px", borderRadius: "4px",
-      background: value ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)",
-      color: value ? "#22c55e" : "#ef4444",
+      background: value ? "var(--success-bg)" : "var(--alert-bg)",
+      color: value ? "var(--success)" : "var(--alert-text)",
     }}>
       {value ? "Sim" : "Não"}
     </span>
@@ -556,12 +556,12 @@ function RelatorioModal({ historico, onClose }: RelatorioProps) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal animate-in" onClick={(ev) => ev.stopPropagation()} style={{ maxWidth: "95vw", width: "1200px", maxHeight: "90vh", overflow: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-          <h2 style={{ fontSize: "18px", fontWeight: "600", color: "#f0f0f0" }}>Relatório de Progresso</h2>
+          <h2 style={{ fontSize: "18px", fontWeight: "600", color: "var(--navy)" }}>Relatório de Progresso</h2>
           <button onClick={onClose} className="btn-ghost" style={{ padding: "4px" }}><X size={18} /></button>
         </div>
 
         {historico.length === 0 ? (
-          <p style={{ color: "#606060", textAlign: "center", padding: "40px" }}>Nenhum dado ainda.</p>
+          <p style={{ color: "var(--text-secondary)", textAlign: "center", padding: "40px" }}>Nenhum dado ainda.</p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
             {clientesData.map((cliente) => {
@@ -569,17 +569,17 @@ function RelatorioModal({ historico, onClose }: RelatorioProps) {
               for (const m of cliente.meses) mesesMap[m.label] = m;
 
               return (
-                <div key={cliente.nome} style={{ background: "#141414", borderRadius: "10px", border: "1px solid #2e2e2e", overflow: "hidden" }}>
+                <div key={cliente.nome} style={{ background: "var(--card-bg)", borderRadius: "10px", border: "1px solid #2e2e2e", overflow: "hidden" }}>
                   {/* Header do cliente */}
                   <div style={{ padding: "14px 18px", borderBottom: "1px solid #2e2e2e", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <span style={{ fontSize: "15px", fontWeight: "600", color: "#f0f0f0" }}>{cliente.nome}</span>
+                      <span style={{ fontSize: "15px", fontWeight: "600", color: "var(--navy)" }}>{cliente.nome}</span>
                       <span style={{ fontSize: "12px", color: "#a855f7", fontWeight: "600", background: "rgba(168,85,247,0.12)", padding: "2px 8px", borderRadius: "4px" }}>
                         {cliente.totalEscalas}x escalou
                       </span>
                     </div>
-                    <span style={{ fontSize: "12px", color: "#707070" }}>
-                      Custo médio geral: <span style={{ color: "#f0f0f0" }}>{formatCurrency(cliente.custoMedioGeral)}</span>
+                    <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+                      Custo médio geral: <span style={{ color: "var(--navy)" }}>{formatCurrency(cliente.custoMedioGeral)}</span>
                     </span>
                   </div>
 
@@ -588,15 +588,15 @@ function RelatorioModal({ historico, onClose }: RelatorioProps) {
                     <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "700px" }}>
                       <thead>
                         <tr style={{ borderBottom: "1px solid #2e2e2e" }}>
-                          <th style={{ padding: "10px 14px", textAlign: "left", fontSize: "11px", color: "#707070", fontWeight: "500", position: "sticky", left: 0, background: "#141414", zIndex: 1 }}>MÊS</th>
-                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "#707070", fontWeight: "500" }}>AGEND.</th>
-                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "#707070", fontWeight: "500" }}>% AGEND.</th>
-                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "#707070", fontWeight: "500" }}>INVESTIMENTO</th>
-                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "#707070", fontWeight: "500" }}>% INVEST.</th>
-                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "#707070", fontWeight: "500" }}>CUSTO/AGEND.</th>
-                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "#707070", fontWeight: "500" }}>% CUSTO</th>
-                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "#707070", fontWeight: "500" }}>PLANILHA</th>
-                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "#707070", fontWeight: "500" }}>ESCALA</th>
+                          <th style={{ padding: "10px 14px", textAlign: "left", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "500", position: "sticky", left: 0, background: "var(--card-bg)", zIndex: 1 }}>MÊS</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "500" }}>AGEND.</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "500" }}>% AGEND.</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "500" }}>INVESTIMENTO</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "500" }}>% INVEST.</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "500" }}>CUSTO/AGEND.</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "500" }}>% CUSTO</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "500" }}>PLANILHA</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "500" }}>ESCALA</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -605,7 +605,7 @@ function RelatorioModal({ historico, onClose }: RelatorioProps) {
                           if (!entry) {
                             return (
                               <tr key={mesLabel} style={{ borderBottom: "1px solid #1a1a1a" }}>
-                                <td style={{ padding: "8px 14px", fontSize: "12px", color: "#505050", position: "sticky", left: 0, background: "#141414" }}>{mesLabel}</td>
+                                <td style={{ padding: "8px 14px", fontSize: "12px", color: "var(--text-secondary)", position: "sticky", left: 0, background: "var(--card-bg)" }}>{mesLabel}</td>
                                 {Array.from({ length: 8 }).map((_, i) => (
                                   <td key={i} style={{ padding: "8px 14px", textAlign: "center", fontSize: "12px", color: "#333" }}>—</td>
                                 ))}
@@ -624,13 +624,13 @@ function RelatorioModal({ historico, onClose }: RelatorioProps) {
 
                           return (
                             <tr key={mesLabel} style={{ borderBottom: "1px solid #1a1a1a" }}>
-                              <td style={{ padding: "8px 14px", fontSize: "12px", color: "#a0a0a0", fontWeight: "500", position: "sticky", left: 0, background: "#141414" }}>{mesLabel}</td>
-                              <td style={{ padding: "8px 14px", textAlign: "center", fontSize: "13px", color: "#f0f0f0", fontWeight: "500" }}>{entry.agendamentos}</td>
-                              <td style={{ padding: "8px 14px", textAlign: "center" }}>{prev ? pctBadge(pctAgend) : <span style={{ color: "#505050", fontSize: "11px" }}>1o mês</span>}</td>
-                              <td style={{ padding: "8px 14px", textAlign: "center", fontSize: "12px", color: "#f0f0f0" }}>{formatCurrency(entry.investimento)}</td>
-                              <td style={{ padding: "8px 14px", textAlign: "center" }}>{prev ? pctBadge(pctInvest) : <span style={{ color: "#505050", fontSize: "11px" }}>1o mês</span>}</td>
-                              <td style={{ padding: "8px 14px", textAlign: "center", fontSize: "12px", color: "#a0a0a0" }}>{formatCurrency(entry.custo_medio)}</td>
-                              <td style={{ padding: "8px 14px", textAlign: "center" }}>{prev ? pctBadge(pctCusto) : <span style={{ color: "#505050", fontSize: "11px" }}>1o mês</span>}</td>
+                              <td style={{ padding: "8px 14px", fontSize: "12px", color: "var(--text-secondary)", fontWeight: "500", position: "sticky", left: 0, background: "var(--card-bg)" }}>{mesLabel}</td>
+                              <td style={{ padding: "8px 14px", textAlign: "center", fontSize: "13px", color: "var(--navy)", fontWeight: "500" }}>{entry.agendamentos}</td>
+                              <td style={{ padding: "8px 14px", textAlign: "center" }}>{prev ? pctBadge(pctAgend) : <span style={{ color: "var(--text-secondary)", fontSize: "11px" }}>1o mês</span>}</td>
+                              <td style={{ padding: "8px 14px", textAlign: "center", fontSize: "12px", color: "var(--navy)" }}>{formatCurrency(entry.investimento)}</td>
+                              <td style={{ padding: "8px 14px", textAlign: "center" }}>{prev ? pctBadge(pctInvest) : <span style={{ color: "var(--text-secondary)", fontSize: "11px" }}>1o mês</span>}</td>
+                              <td style={{ padding: "8px 14px", textAlign: "center", fontSize: "12px", color: "var(--text-secondary)" }}>{formatCurrency(entry.custo_medio)}</td>
+                              <td style={{ padding: "8px 14px", textAlign: "center" }}>{prev ? pctBadge(pctCusto) : <span style={{ color: "var(--text-secondary)", fontSize: "11px" }}>1o mês</span>}</td>
                               <td style={{ padding: "8px 14px", textAlign: "center" }}>{escalaBadge(entry.planilha)}</td>
                               <td style={{ padding: "8px 14px", textAlign: "center" }}>{escalaBadge(entry.escala)}</td>
                             </tr>
@@ -641,10 +641,10 @@ function RelatorioModal({ historico, onClose }: RelatorioProps) {
                   </div>
 
                   {/* Resumo */}
-                  <div style={{ padding: "10px 18px", borderTop: "1px solid #2e2e2e", display: "flex", gap: "24px", fontSize: "11px", color: "#606060" }}>
-                    <span>Total agend.: <span style={{ color: "#f0f0f0" }}>{cliente.meses.reduce((s, m) => s + m.agendamentos, 0)}</span></span>
-                    <span>Total investido: <span style={{ color: "#f0f0f0" }}>{formatCurrency(cliente.meses.reduce((s, m) => s + m.investimento, 0))}</span></span>
-                    <span>Taxa escala: <span style={{ color: cliente.totalEscalas > 0 ? "#22c55e" : "#ef4444" }}>{cliente.meses.length > 0 ? Math.round((cliente.totalEscalas / cliente.meses.length) * 100) : 0}%</span></span>
+                  <div style={{ padding: "10px 18px", borderTop: "1px solid #2e2e2e", display: "flex", gap: "24px", fontSize: "11px", color: "var(--text-secondary)" }}>
+                    <span>Total agend.: <span style={{ color: "var(--navy)" }}>{cliente.meses.reduce((s, m) => s + m.agendamentos, 0)}</span></span>
+                    <span>Total investido: <span style={{ color: "var(--navy)" }}>{formatCurrency(cliente.meses.reduce((s, m) => s + m.investimento, 0))}</span></span>
+                    <span>Taxa escala: <span style={{ color: cliente.totalEscalas > 0 ? "var(--success)" : "var(--alert-text)" }}>{cliente.meses.length > 0 ? Math.round((cliente.totalEscalas / cliente.meses.length) * 100) : 0}%</span></span>
                   </div>
                 </div>
               );

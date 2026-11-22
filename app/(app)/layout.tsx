@@ -43,7 +43,6 @@ const hrefToModuloKey: Record<string, string> = {
   "/disparos-webhook": "disparos_webhook",
 };
 
-// Ordem de prioridade pra redirecionar ao primeiro módulo permitido
 const rotasPrioridade = [
   "/inbox", "/crm", "/clientes", "/controle-clientes", "/cadastros",
   "/relatorios-meta", "/dre", "/financeiro/movimentacoes",
@@ -56,29 +55,26 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [checando, setChecando] = useState(true);
   const [redirecionando, setRedirecionando] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
     async function verificar() {
-      // Se há access_token no hash (magic link ou recovery), esperar o Supabase processar
       let session = null;
       if (typeof window !== "undefined" && window.location.hash.includes("access_token")) {
         const hash = window.location.hash;
 
-        // Recovery: redirecionar para troca de senha
         if (hash.includes("type=recovery")) {
           router.push("/nova-senha" + hash);
           return;
         }
 
-        // Magic link / outro: esperar o Supabase estabelecer a sessão (até 3s)
         session = await new Promise<any>(resolve => {
           const timer = setTimeout(() => resolve(null), 3000);
           const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
             if (s) { clearTimeout(timer); subscription.unsubscribe(); resolve(s); }
           });
-          // Checar sessão já existente também
           supabase.auth.getSession().then(({ data }) => {
             if (data.session) { clearTimeout(timer); subscription.unsubscribe(); resolve(data.session); }
           });
@@ -104,13 +100,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         if (cancelled) return;
 
-        // Admin (permissoes=null) = acesso total, mesmo em agência filha
         if (!permissoes) return;
 
         const allowedPerms = new Set<string>(permissoes);
         const moduloKey = hrefToModuloKey[pathname];
 
-        // Rota não mapeada (ex: /perfil) = permite
         if (!moduloKey) return;
 
         const blocked = !allowedPerms.has(moduloKey);
@@ -140,21 +134,26 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   if (checando || redirecionando) return (
-    <div style={{ minHeight:"100vh", background:"#0f0f0f", display:"flex", alignItems:"center", justifyContent:"center" }}>
-      <div style={{ width:"40px", height:"40px", borderRadius:"50%", border:"3px solid #2e2e2e", borderTop:"3px solid #22c55e", animation:"spin 1s linear infinite" }}/>
+    <div style={{ minHeight: "100vh", background: "var(--off-white)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ width: "40px", height: "40px", borderRadius: "50%", border: "3px solid var(--border)", borderTop: "3px solid var(--brand)", animation: "spin 1s linear infinite" }} />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 
   return (
-    <div style={{ display:"flex", minHeight:"100vh", background:"#0f0f0f" }}>
-      <Sidebar />
-      <div style={{ flex:1, display:"flex", flexDirection:"column", minWidth:0 }}>
-        <Topbar />
-        <main style={{ flex:1, padding:"28px 32px", overflowX:"hidden" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "var(--off-white)" }}>
+      <Sidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
+      <div style={{ flex: 1, marginLeft: "280px", display: "flex", flexDirection: "column", minWidth: 0 }}>
+        <Topbar onMenuToggle={() => setMobileOpen(true)} />
+        <main style={{ flex: 1, padding: "32px 40px", overflowX: "hidden" }}>
           {children}
         </main>
       </div>
+      <style>{`
+        @media (max-width: 768px) {
+          .topbar-hamburger { display: flex !important; }
+        }
+      `}</style>
     </div>
   );
 }

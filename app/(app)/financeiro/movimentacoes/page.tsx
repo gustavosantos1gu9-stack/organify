@@ -112,7 +112,7 @@ export default function MovimentacoesPage() {
 
   return (
     <div className="animate-in">
-      <div className="breadcrumb"><a href="/">Início</a><span>›</span><span style={{ color:"#a0a0a0" }}>Financeiro</span><span>›</span><span className="current">Movimentações</span></div>
+      <div className="breadcrumb"><a href="/">Início</a><span>›</span><span style={{ color:"var(--text-secondary)" }}>Financeiro</span><span>›</span><span className="current">Movimentações</span></div>
       <h1 style={{ fontSize:"22px",fontWeight:"600",marginBottom:"24px" }}>Movimentações</h1>
 
       <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"16px",marginBottom:"28px" }}>
@@ -122,9 +122,9 @@ export default function MovimentacoesPage() {
       </div>
 
       <div className="table-wrapper">
-        <div style={{ padding:"16px",display:"flex",gap:"12px",borderBottom:"1px solid #2e2e2e",flexWrap:"wrap" }}>
+        <div style={{ padding:"16px",display:"flex",gap:"12px",borderBottom:"1px solid var(--border)",flexWrap:"wrap" }}>
           <div style={{ position:"relative",flex:1,minWidth:"200px" }}>
-            <Search size={14} style={{ position:"absolute",left:"12px",top:"50%",transform:"translateY(-50%)",color:"#606060" }}/>
+            <Search size={14} style={{ position:"absolute",left:"12px",top:"50%",transform:"translateY(-50%)",color:"var(--text-secondary)" }}/>
             <input className="search-input" placeholder="Buscar movimentações..." value={busca} onChange={(e)=>setBusca(e.target.value)}/>
           </div>
           <select
@@ -142,7 +142,7 @@ export default function MovimentacoesPage() {
           </select>
           <Filtros grupos={FILTROS_GRUPOS} valores={filtros} onChange={(k,v)=>setFiltros((f)=>({...f,[k]:v}))} onLimpar={()=>setFiltros({})}/>
           <button className="btn-primary" onClick={()=>setShowModal("entrada")}><Plus size={14}/> Nova entrada</button>
-          <button onClick={()=>setShowModal("saida")} style={{ background:"rgba(239,68,68,0.12)",color:"#ef4444",border:"1px solid rgba(239,68,68,0.2)",padding:"8px 16px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px" }}>
+          <button onClick={()=>setShowModal("saida")} style={{ background:"rgba(239,68,68,0.12)",color:"var(--alert-text)",border:"1px solid rgba(239,68,68,0.2)",padding:"8px 16px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px" }}>
             <Plus size={14}/> Nova saída
           </button>
         </div>
@@ -152,17 +152,17 @@ export default function MovimentacoesPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={7} style={{ textAlign:"center",color:"#606060",padding:"40px" }}>Carregando...</td></tr>
+              <tr><td colSpan={7} style={{ textAlign:"center",color:"var(--text-secondary)",padding:"40px" }}>Carregando...</td></tr>
             ) : !filtrados.length ? (
-              <tr><td colSpan={7} style={{ textAlign:"center",color:"#606060",padding:"48px" }}>Nenhuma movimentação encontrada.</td></tr>
+              <tr><td colSpan={7} style={{ textAlign:"center",color:"var(--text-secondary)",padding:"48px" }}>Nenhuma movimentação encontrada.</td></tr>
             ) : filtrados.map((m)=>(
               <tr key={m.id}>
                 <td><input type="checkbox" style={{ width:"14px",height:"14px" }}/></td>
                 <td><span className={`badge ${m.tipo==="entrada"?"badge-green":"badge-red"}`}>{m.tipo==="entrada"?"Entrada":"Saída"}</span></td>
                 <td style={{ fontWeight:"500" }}>{m.descricao}</td>
-                <td style={{ color:"#a0a0a0",fontSize:"12px" }}>{m.clientes?.nome||"—"}</td>
-                <td style={{ color:"#a0a0a0" }}>{new Date(m.data).toLocaleDateString("pt-BR")}</td>
-                <td style={{ color:m.tipo==="entrada"?"#22c55e":"#ef4444",fontWeight:"600" }}>
+                <td style={{ color:"var(--text-secondary)",fontSize:"12px" }}>{m.clientes?.nome||"—"}</td>
+                <td style={{ color:"var(--text-secondary)" }}>{new Date(m.data).toLocaleDateString("pt-BR")}</td>
+                <td style={{ color:m.tipo==="entrada"?"var(--success)":"var(--alert-text)",fontWeight:"600" }}>
                   {m.tipo==="saida"?"- ":""}{formatCurrency(m.valor)}
                 </td>
                 <td>

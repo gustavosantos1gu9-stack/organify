@@ -168,9 +168,9 @@ function RecModal({ rec, onClose, onSave }: { rec?: Recorrencia; onClose:()=>voi
               {(["entrada","saida"] as const).map(t => (
                 <button key={t} onClick={() => set("tipo", t)} style={{
                   flex:1, padding:"10px", borderRadius:"8px", cursor:"pointer",
-                  border:`1px solid ${form.tipo===t?(t==="entrada"?"#29ABE2":"#ef4444"):"#2e2e2e"}`,
+                  border:`1px solid ${form.tipo===t?(t==="entrada"?"var(--brand)":"var(--alert-text)"):"var(--border)"}`,
                   background:form.tipo===t?(t==="entrada"?"rgba(41,171,226,0.1)":"rgba(239,68,68,0.1)"):"#222",
-                  color:form.tipo===t?(t==="entrada"?"#29ABE2":"#ef4444"):"#a0a0a0",
+                  color:form.tipo===t?(t==="entrada"?"var(--brand)":"var(--alert-text)"):"var(--text-secondary)",
                   fontSize:"13px", fontWeight:"500",
                 }}>
                   {t === "entrada" ? "Entrada" : "Saída"}
@@ -208,13 +208,13 @@ function RecModal({ rec, onClose, onSave }: { rec?: Recorrencia; onClose:()=>voi
 
           {/* Considerar no CAC — só para saídas */}
           {form.tipo === "saida" && (
-            <div style={{ display:"flex", alignItems:"center", gap:"10px", padding:"10px 12px", background:"rgba(41,171,226,0.05)", border:"1px solid rgba(41,171,226,0.15)", borderRadius:"8px" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:"10px", padding:"10px 12px", background:"rgba(28,108,166,0.04)", border:"1px solid rgba(41,171,226,0.15)", borderRadius:"8px" }}>
               <input type="checkbox" id="cac" checked={form.considerar_cac as boolean}
                 onChange={e => set("considerar_cac", e.target.checked)}
-                style={{ width:"16px", height:"16px", cursor:"pointer", accentColor:"#29ABE2" }}/>
-              <label htmlFor="cac" style={{ fontSize:"13px", color:"#f0f0f0", cursor:"pointer" }}>
+                style={{ width:"16px", height:"16px", cursor:"pointer", accentColor:"var(--brand)" }}/>
+              <label htmlFor="cac" style={{ fontSize:"13px", color:"var(--navy)", cursor:"pointer" }}>
                 Considerar no CAC
-                <span style={{ fontSize:"11px", color:"#606060", marginLeft:"6px" }}>
+                <span style={{ fontSize:"11px", color:"var(--text-secondary)", marginLeft:"6px" }}>
                   (inclui esse gasto no cálculo do Custo de Aquisição de Cliente)
                 </span>
               </label>
@@ -223,10 +223,10 @@ function RecModal({ rec, onClose, onSave }: { rec?: Recorrencia; onClose:()=>voi
 
           {/* Preview de lançamentos */}
           {!isEdit && form.valor && (
-            <div style={{ background:"rgba(41,171,226,0.06)", border:"1px solid rgba(41,171,226,0.15)", borderRadius:"8px", padding:"10px 14px", fontSize:"12px", color:"#a0a0a0" }}>
+            <div style={{ background:"rgba(41,171,226,0.06)", border:"1px solid rgba(41,171,226,0.15)", borderRadius:"8px", padding:"10px 14px", fontSize:"12px", color:"var(--text-secondary)" }}>
               {form.periodicidade === "quinzenal"
-                ? <>💰 Serão gerados <strong style={{color:"#29ABE2"}}>24 lançamentos</strong> a cada 15 dias de <strong style={{color:"#29ABE2"}}>{form.valor}</strong></>
-                : <>💰 Serão gerados <strong style={{color:"#29ABE2"}}>{QTDE[form.periodicidade] || 12} lançamentos</strong> ({form.periodicidade}) de <strong style={{color:"#29ABE2"}}>{form.valor}</strong></>
+                ? <>💰 Serão gerados <strong style={{color:"var(--brand)"}}>24 lançamentos</strong> a cada 15 dias de <strong style={{color:"var(--brand)"}}>{form.valor}</strong></>
+                : <>💰 Serão gerados <strong style={{color:"var(--brand)"}}>{QTDE[form.periodicidade] || 12} lançamentos</strong> ({form.periodicidade}) de <strong style={{color:"var(--brand)"}}>{form.valor}</strong></>
               }
             </div>
           )}
@@ -293,15 +293,15 @@ export default function RecorrenciasPage() {
     <div className="animate-in">
       <div className="breadcrumb">
         <a href="/">Início</a><span>›</span>
-        <span style={{ color:"#a0a0a0" }}>Financeiro</span><span>›</span>
+        <span style={{ color:"var(--text-secondary)" }}>Financeiro</span><span>›</span>
         <span className="current">Recorrências</span>
       </div>
       <h1 style={{ fontSize:"22px", fontWeight:"600", marginBottom:"24px" }}>Recorrências</h1>
 
       <div className="table-wrapper">
-        <div style={{ padding:"16px", display:"flex", gap:"12px", borderBottom:"1px solid #2e2e2e" }}>
+        <div style={{ padding:"16px", display:"flex", gap:"12px", borderBottom:"1px solid var(--border)" }}>
           <div style={{ position:"relative", flex:1 }}>
-            <Search size={14} style={{ position:"absolute", left:"12px", top:"50%", transform:"translateY(-50%)", color:"#606060" }}/>
+            <Search size={14} style={{ position:"absolute", left:"12px", top:"50%", transform:"translateY(-50%)", color:"var(--text-secondary)" }}/>
             <input className="search-input" placeholder="Buscar recorrências..." value={busca} onChange={e => setBusca(e.target.value)}/>
           </div>
           <button className="btn-primary" onClick={() => setShowModal(true)} style={{ cursor:"pointer" }}>
@@ -323,21 +323,21 @@ export default function RecorrenciasPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={7} style={{ textAlign:"center", color:"#606060", padding:"40px" }}>Carregando...</td></tr>
+              <tr><td colSpan={7} style={{ textAlign:"center", color:"var(--text-secondary)", padding:"40px" }}>Carregando...</td></tr>
             ) : !recs.length ? (
-              <tr><td colSpan={7} style={{ textAlign:"center", color:"#606060", padding:"48px" }}>Nenhuma recorrência encontrada.</td></tr>
+              <tr><td colSpan={7} style={{ textAlign:"center", color:"var(--text-secondary)", padding:"48px" }}>Nenhuma recorrência encontrada.</td></tr>
             ) : recs.map(r => (
               <tr key={r.id}>
                 <td><span className={`badge ${r.tipo==="entrada"?"badge-green":"badge-red"}`}>{r.tipo==="entrada"?"Entrada":"Saída"}</span></td>
                 <td style={{ fontWeight:"500" }}>{r.descricao}</td>
                 <td><span className="badge badge-gray" style={{ textTransform:"capitalize" }}>{r.periodicidade}</span></td>
-                <td style={{ color:"#a0a0a0" }}>Dia {r.dia_vencimento}</td>
-                <td style={{ color:r.tipo==="entrada"?"#29ABE2":"#ef4444", fontWeight:"600" }}>{formatCurrency(r.valor)}</td>
+                <td style={{ color:"var(--text-secondary)" }}>Dia {r.dia_vencimento}</td>
+                <td style={{ color:r.tipo==="entrada"?"var(--brand)":"var(--alert-text)", fontWeight:"600" }}>{formatCurrency(r.valor)}</td>
                 <td>
                   <button onClick={() => toggleAtivo(r.id, r.ativo)} style={{
                     padding:"4px 10px", borderRadius:"20px", border:"none", cursor:"pointer", fontSize:"12px", fontWeight:"500",
                     background:r.ativo?"rgba(41,171,226,0.15)":"rgba(96,96,96,0.15)",
-                    color:r.ativo?"#29ABE2":"#606060",
+                    color:r.ativo?"var(--brand)":"var(--text-secondary)",
                   }}>
                     {r.ativo ? "Ativo" : "Inativo"}
                   </button>

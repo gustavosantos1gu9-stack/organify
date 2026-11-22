@@ -39,21 +39,21 @@ interface Atualizacao {
 const PRIORIDADES = ["Urgente", "Alta", "Media", "Baixa"] as const;
 
 const PRIO: Record<string, { cor: string; bg: string; label: string }> = {
-  Urgente: { cor: "#ef4444", bg: "rgba(239,68,68,0.14)", label: "Urgente" },
+  Urgente: { cor: "var(--alert-text)", bg: "var(--alert-bg)", label: "Urgente" },
   Alta:    { cor: "#f97316", bg: "rgba(249,115,22,0.14)", label: "Alta" },
-  Media:   { cor: "#f59e0b", bg: "rgba(245,158,11,0.14)", label: "Média" },
-  Baixa:   { cor: "#22c55e", bg: "rgba(34,197,94,0.14)", label: "Baixa" },
+  Media:   { cor: "var(--caution-text)", bg: "var(--caution-bg)", label: "Média" },
+  Baixa:   { cor: "var(--success)", bg: "var(--success-bg)", label: "Baixa" },
 };
 
 const RESPOSTA: Record<string, { cor: string; label: string }> = {
-  sim:          { cor: "#22c55e", label: "Sim" },
-  parcialmente: { cor: "#f59e0b", label: "Parcial" },
-  nao:          { cor: "#ef4444", label: "Não" },
+  sim:          { cor: "var(--success)", label: "Sim" },
+  parcialmente: { cor: "var(--caution-text)", label: "Parcial" },
+  nao:          { cor: "var(--alert-text)", label: "Não" },
 };
 
 const JORNADAS: { value: string; label: string; cor: string; bg: string; descricao: string[] }[] = [
   {
-    value: "etapa0", label: "Fase 0", cor: "#ef4444", bg: "rgba(239,68,68,0.12)",
+    value: "etapa0", label: "Fase 0", cor: "var(--alert-text)", bg: "var(--alert-bg)",
     descricao: ["Sem mensagem", "Pouca mensagem", "Custo alto", "Não bate os dados com o tráfego"],
   },
   {
@@ -61,15 +61,15 @@ const JORNADAS: { value: string; label: string; cor: string; bg: string; descric
     descricao: ["Bom custo por oportunidade", "Chegando mensagens igual o gerenciador"],
   },
   {
-    value: "etapa2", label: "Fase 2", cor: "#f59e0b", bg: "rgba(245,158,11,0.12)",
+    value: "etapa2", label: "Fase 2", cor: "var(--caution-text)", bg: "var(--caution-bg)",
     descricao: ["Agendamento custo alto"],
   },
   {
-    value: "etapa3", label: "Fase 3", cor: "#29ABE2", bg: "rgba(41,171,226,0.12)",
+    value: "etapa3", label: "Fase 3", cor: "var(--brand)", bg: "var(--phase3-bg)",
     descricao: ["Agendamento bom custo"],
   },
   {
-    value: "etapa4", label: "Fase 4", cor: "#22c55e", bg: "rgba(34,197,94,0.12)",
+    value: "etapa4", label: "Fase 4", cor: "var(--success)", bg: "var(--success-bg)",
     descricao: ["Escala"],
   },
   {
@@ -98,7 +98,7 @@ function parseData(s: string | null): Date | null {
 function RenovacaoDisplay({ renovou, dataInicio }: { renovou: boolean | null; dataInicio: string | null }) {
   const inicio = parseData(dataInicio);
   if (!inicio || isNaN(inicio.getTime())) {
-    return <span style={{ fontSize: "11px", color: "#404040" }}>Sem data</span>;
+    return <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>Sem data</span>;
   }
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
@@ -110,20 +110,20 @@ function RenovacaoDisplay({ renovou, dataInicio }: { renovou: boolean | null; da
 
   if (diasRestantes <= 0) {
     if (renovou === null || renovou === undefined) {
-      return <span style={{ fontSize: "11px", color: "#606060" }}>Aguardando</span>;
+      return <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>Aguardando</span>;
     }
     if (renovou === false) {
-      return <span style={{ fontSize: "11px", color: "#ef4444", fontWeight: "600" }}>Não renovou</span>;
+      return <span style={{ fontSize: "11px", color: "var(--alert-text)", fontWeight: "600" }}>Não renovou</span>;
     }
     const mesesTotal = Math.floor(diasPassados / 30);
     const diasExtra = diasPassados % 30;
     const partes = [];
     if (mesesTotal > 0) partes.push(`${mesesTotal} ${mesesTotal === 1 ? "mês" : "meses"}`);
     if (diasExtra > 0 || mesesTotal === 0) partes.push(`${diasExtra} dias`);
-    return <span style={{ fontSize: "11px", color: "#22c55e", fontWeight: "600" }}>{partes.join(" e ")}</span>;
+    return <span style={{ fontSize: "11px", color: "var(--success)", fontWeight: "600" }}>{partes.join(" e ")}</span>;
   }
 
-  const cor = diasRestantes > 30 ? "#22c55e" : diasRestantes > 15 ? "#f59e0b" : "#ef4444";
+  const cor = diasRestantes > 30 ? "var(--success)" : diasRestantes > 15 ? "var(--caution-text)" : "var(--alert-text)";
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
       <div style={{ height: "5px", background: "#222", borderRadius: "3px", overflow: "hidden", width: "80px" }}>
@@ -438,8 +438,8 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
     display: "flex", alignItems: "center", gap: "6px",
     padding: "8px 18px", borderRadius: "8px", cursor: "pointer",
     fontSize: "13px", fontWeight: "600", border: "none",
-    background: active ? "#29ABE2" : "transparent",
-    color: active ? "#000" : "#707070",
+    background: active ? "var(--brand)" : "transparent",
+    color: active ? "#FFFFFF" : "var(--text-secondary)",
     transition: "background 0.15s, color 0.15s",
   });
 
@@ -457,7 +457,7 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
       {/* Abas */}
       <div style={{
         display: "flex", gap: "4px", marginBottom: "24px",
-        background: "#1a1a1a", border: "1px solid #2e2e2e",
+        background: "var(--card-bg)", border: "1px solid #2e2e2e",
         borderRadius: "10px", padding: "4px", width: "fit-content",
       }}>
         <button style={tabStyle(aba === "painel")} onClick={() => setAba("painel")}>
@@ -474,28 +474,28 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
 
           {/* KPIs */}
           <div style={{ display: "flex", gap: "12px", marginBottom: "24px", flexWrap: "wrap" }}>
-            <div style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: "10px", padding: "14px 20px", minWidth: "130px" }}>
-              <div style={{ fontSize: "11px", color: "#505050", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>Total de clientes</div>
-              <div style={{ fontSize: "26px", fontWeight: "700", color: "#f0f0f0", lineHeight: 1 }}>{total}</div>
+            <div style={{ background: "var(--card-bg)", border: "1px solid #2a2a2a", borderRadius: "10px", padding: "14px 20px", minWidth: "130px" }}>
+              <div style={{ fontSize: "11px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>Total de clientes</div>
+              <div style={{ fontSize: "26px", fontWeight: "700", color: "var(--navy)", lineHeight: 1 }}>{total}</div>
             </div>
 
-            <div style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: "10px", padding: "14px 20px", minWidth: "180px" }}>
-              <div style={{ fontSize: "11px", color: "#505050", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>Resposta da planilha</div>
+            <div style={{ background: "var(--card-bg)", border: "1px solid #2a2a2a", borderRadius: "10px", padding: "14px 20px", minWidth: "180px" }}>
+              <div style={{ fontSize: "11px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>Resposta da planilha</div>
               <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-                <span style={{ fontSize: "26px", fontWeight: "700", color: "#f0f0f0", lineHeight: 1 }}>{pctResposta}%</span>
-                <span style={{ fontSize: "12px", color: "#606060" }}>{respostaSim + respostaParcial}/{total}</span>
+                <span style={{ fontSize: "26px", fontWeight: "700", color: "var(--navy)", lineHeight: 1 }}>{pctResposta}%</span>
+                <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{respostaSim + respostaParcial}/{total}</span>
               </div>
               <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
-                <span style={{ fontSize: "11px", color: "#22c55e" }}>✓ Sim: {respostaSim}</span>
-                <span style={{ fontSize: "11px", color: "#f59e0b" }}>~ Parcial: {respostaParcial}</span>
-                <span style={{ fontSize: "11px", color: "#505050" }}>✗ Não: {respostaNao}</span>
+                <span style={{ fontSize: "11px", color: "var(--success)" }}>✓ Sim: {respostaSim}</span>
+                <span style={{ fontSize: "11px", color: "var(--caution-text)" }}>~ Parcial: {respostaParcial}</span>
+                <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>✗ Não: {respostaNao}</span>
               </div>
             </div>
 
             {totalUti > 0 && (
               <div style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "10px", padding: "14px 20px", minWidth: "120px" }}>
                 <div style={{ fontSize: "11px", color: "#a05050", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>UTI</div>
-                <div style={{ fontSize: "26px", fontWeight: "700", color: "#ef4444", lineHeight: 1 }}>{totalUti}</div>
+                <div style={{ fontSize: "26px", fontWeight: "700", color: "var(--alert-text)", lineHeight: 1 }}>{totalUti}</div>
                 <div style={{ fontSize: "11px", color: "#a05050", marginTop: "6px" }}>em atenção crítica</div>
               </div>
             )}
@@ -521,8 +521,8 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
 
           {/* Título + subtítulo */}
           <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginBottom: "8px" }}>
-            <h2 style={{ fontSize: "16px", fontWeight: "600", color: "#f0f0f0", margin: 0 }}>Painel de Clientes</h2>
-            <span style={{ fontSize: "12px", color: "#606060" }}>
+            <h2 style={{ fontSize: "16px", fontWeight: "600", color: "var(--navy)", margin: 0 }}>Painel de Clientes</h2>
+            <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
               {total} cliente{total !== 1 ? "s" : ""} · arraste para reordenar
             </span>
           </div>
@@ -530,24 +530,24 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
           {/* Cabeçalho colunas */}
           <div style={{ display: "grid", gridTemplateColumns: GRID, gap: "10px", alignItems: "center", padding: "6px 14px", marginBottom: "4px" }}>
             <div />
-            <div style={{ fontSize: "10px", color: "#404040", textTransform: "uppercase", letterSpacing: "0.06em" }}>Cliente</div>
-            <div style={{ fontSize: "10px", color: "#404040", textTransform: "uppercase", letterSpacing: "0.06em" }}>Renovação</div>
-            <div style={{ fontSize: "10px", color: "#404040", textTransform: "uppercase", letterSpacing: "0.06em" }}>Últ. atualiz.</div>
-            <div style={{ fontSize: "10px", color: "#404040", textTransform: "uppercase", letterSpacing: "0.06em" }}>Jornada</div>
-            <div style={{ fontSize: "10px", color: "#404040", textTransform: "uppercase", letterSpacing: "0.06em" }}>Prioridade</div>
-            <div style={{ fontSize: "10px", color: "#404040", textTransform: "uppercase", letterSpacing: "0.06em" }}>Próx. análise</div>
-            <div style={{ fontSize: "10px", color: "#404040", textTransform: "uppercase", letterSpacing: "0.06em" }}>Planilha</div>
-            <div style={{ fontSize: "10px", color: "#404040", textTransform: "uppercase", letterSpacing: "0.06em" }}>Custo/ag.</div>
-            <div style={{ fontSize: "10px", color: "#404040", textTransform: "uppercase", letterSpacing: "0.06em" }}>ROAS</div>
-            <div style={{ fontSize: "10px", color: "#404040", textTransform: "uppercase", letterSpacing: "0.06em" }}>Links</div>
-            <div style={{ fontSize: "10px", color: "#404040", textTransform: "uppercase", letterSpacing: "0.06em" }}>UTI</div>
+            <div style={{ fontSize: "10px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Cliente</div>
+            <div style={{ fontSize: "10px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Renovação</div>
+            <div style={{ fontSize: "10px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Últ. atualiz.</div>
+            <div style={{ fontSize: "10px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Jornada</div>
+            <div style={{ fontSize: "10px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Prioridade</div>
+            <div style={{ fontSize: "10px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Próx. análise</div>
+            <div style={{ fontSize: "10px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Planilha</div>
+            <div style={{ fontSize: "10px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Custo/ag.</div>
+            <div style={{ fontSize: "10px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em" }}>ROAS</div>
+            <div style={{ fontSize: "10px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Links</div>
+            <div style={{ fontSize: "10px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em" }}>UTI</div>
             <div />
           </div>
 
           {loading ? (
-            <div style={{ padding: "40px", textAlign: "center", color: "#606060" }}>Carregando...</div>
+            <div style={{ padding: "40px", textAlign: "center", color: "var(--text-secondary)" }}>Carregando...</div>
           ) : clientes.length === 0 ? (
-            <div style={{ padding: "40px", textAlign: "center", color: "#606060", background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "10px" }}>
+            <div style={{ padding: "40px", textAlign: "center", color: "var(--text-secondary)", background: "var(--card-bg)", border: "1px solid #2e2e2e", borderRadius: "10px" }}>
               Nenhum cliente encontrado.
             </div>
           ) : (
@@ -568,7 +568,7 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
                 const diffDias = cliente.proxima_analise
                   ? Math.ceil((new Date(cliente.proxima_analise + "T00:00:00").getTime() - hoje.getTime()) / 86400000)
                   : null;
-                const corDiff = diffDias === null ? "#555" : diffDias < 0 ? "#ef4444" : diffDias <= 3 ? "#f59e0b" : "#606060";
+                const corDiff = diffDias === null ? "var(--text-secondary)" : diffDias < 0 ? "var(--alert-text)" : diffDias <= 3 ? "var(--caution-text)" : "var(--text-secondary)";
 
                 const resp = cliente.resposta_planilha ? RESPOSTA[cliente.resposta_planilha] : null;
                 const performanceUrl = cliente.relatorio_id ? `/relatorios-meta/dashboard?id=${cliente.relatorio_id}&tab=performance` : null;
@@ -583,7 +583,7 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
                     onDrop={() => onDrop(cliente.id)}
                     onDragEnd={() => { setDragOver(null); dragId.current = null; }}
                     style={{
-                      background: isDragTarget ? "#232323" : "#1a1a1a",
+                      background: isDragTarget ? "var(--hover-row)" : "var(--card-bg)",
                       border: "1px solid #2a2a2a",
                       borderLeft: `4px solid ${p.cor}`,
                       borderRadius: "8px",
@@ -597,12 +597,12 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
                       onClick={() => toggleExpandido(cliente.id)}
                       style={{ display: "grid", gridTemplateColumns: GRID, gap: "10px", alignItems: "center", padding: "10px 14px", cursor: "pointer", userSelect: "none" }}
                     >
-                      <div style={{ cursor: "grab", color: "#383838" }} onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
+                      <div style={{ cursor: "grab", color: "var(--border)" }} onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
                         <GripVertical size={14} />
                       </div>
 
                       <div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0 }}>
-                        <span style={{ fontSize: "13px", fontWeight: "600", color: "#e8e8e8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <span style={{ fontSize: "13px", fontWeight: "600", color: "var(--navy)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {cliente.nome}
                         </span>
                         {alertaAtualizacao && (
@@ -613,12 +613,12 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
                             ⚠️
                           </span>
                         )}
-                        {log.length > 0 && <MessageSquare size={10} color="#383838" />}
+                        {log.length > 0 && <MessageSquare size={10} color="var(--border)" />}
                       </div>
 
                       <div><RenovacaoDisplay renovou={cliente.renovou} dataInicio={cliente.data_inicio_campanha} /></div>
 
-                      <div style={{ fontSize: "12px", color: ultimaAtualizacao === "—" ? "#404040" : "#707070" }}>
+                      <div style={{ fontSize: "12px", color: ultimaAtualizacao === "—" ? "var(--border)" : "var(--text-secondary)" }}>
                         {ultimaAtualizacao}
                       </div>
 
@@ -630,7 +630,7 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
                         >
                           <option value="">— Fase —</option>
                           {JORNADAS.map(j => (
-                            <option key={j.value} value={j.value} style={{ background: "#1a1a1a", color: "#f0f0f0" }}>{j.label}</option>
+                            <option key={j.value} value={j.value} style={{ background: "var(--card-bg)", color: "var(--navy)" }}>{j.label}</option>
                           ))}
                         </select>
                       </div>
@@ -642,7 +642,7 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
                           style={{ ...selectInline(p.cor), fontWeight: "600" }}
                         >
                           {PRIORIDADES.map(pr => (
-                            <option key={pr} value={pr} style={{ background: "#1a1a1a", color: "#f0f0f0" }}>{PRIO[pr].label}</option>
+                            <option key={pr} value={pr} style={{ background: "var(--card-bg)", color: "var(--navy)" }}>{PRIO[pr].label}</option>
                           ))}
                         </select>
                       </div>
@@ -663,56 +663,56 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
                           style={{ ...selectInline(resp?.cor), fontWeight: resp ? "600" : "400" }}
                         >
                           <option value="">—</option>
-                          <option value="sim" style={{ background: "#1a1a1a", color: "#f0f0f0" }}>Sim</option>
-                          <option value="parcialmente" style={{ background: "#1a1a1a", color: "#f0f0f0" }}>Parcial</option>
-                          <option value="nao" style={{ background: "#1a1a1a", color: "#f0f0f0" }}>Não</option>
+                          <option value="sim" style={{ background: "var(--card-bg)", color: "var(--navy)" }}>Sim</option>
+                          <option value="parcialmente" style={{ background: "var(--card-bg)", color: "var(--navy)" }}>Parcial</option>
+                          <option value="nao" style={{ background: "var(--card-bg)", color: "var(--navy)" }}>Não</option>
                         </select>
                       </div>
 
                       <div>
                         {cliente.custo_por_agendamento != null && cliente.custo_por_agendamento > 0 ? (() => {
                           const custo = cliente.custo_por_agendamento;
-                          const cor = custo < 50 ? "#22c55e" : custo < 80 ? "#f59e0b" : "#ef4444";
-                          const bg = custo < 50 ? "rgba(34,197,94,0.12)" : custo < 80 ? "rgba(245,158,11,0.12)" : "rgba(239,68,68,0.12)";
+                          const cor = custo < 50 ? "var(--success)" : custo < 80 ? "var(--caution-text)" : "var(--alert-text)";
+                          const bg = custo < 50 ? "var(--success-bg)" : custo < 80 ? "var(--caution-bg)" : "var(--alert-bg)";
                           return (
                             <span style={{ fontSize: "12px", fontWeight: "600", color: cor, background: bg, padding: "2px 7px", borderRadius: "5px", whiteSpace: "nowrap" }}>
                               R${custo.toFixed(0)}
                             </span>
                           );
                         })() : (
-                          <span style={{ fontSize: "12px", color: "#404040" }}>—</span>
+                          <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>—</span>
                         )}
                       </div>
 
                       <div>
                         {cliente.roas != null && cliente.roas > 0 ? (() => {
                           const roas = cliente.roas;
-                          const cor = roas >= 3 ? "#22c55e" : roas >= 1.5 ? "#f59e0b" : "#ef4444";
-                          const bg = roas >= 3 ? "rgba(34,197,94,0.12)" : roas >= 1.5 ? "rgba(245,158,11,0.12)" : "rgba(239,68,68,0.12)";
+                          const cor = roas >= 3 ? "var(--success)" : roas >= 1.5 ? "var(--caution-text)" : "var(--alert-text)";
+                          const bg = roas >= 3 ? "var(--success-bg)" : roas >= 1.5 ? "var(--caution-bg)" : "var(--alert-bg)";
                           return (
                             <span style={{ fontSize: "12px", fontWeight: "600", color: cor, background: bg, padding: "2px 7px", borderRadius: "5px", whiteSpace: "nowrap" }}>
                               {roas.toFixed(2)}x
                             </span>
                           );
                         })() : (
-                          <span style={{ fontSize: "12px", color: "#404040" }}>—</span>
+                          <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>—</span>
                         )}
                       </div>
 
                       <div style={{ display: "flex", gap: "6px", alignItems: "center" }} onClick={e => e.stopPropagation()}>
                         {performanceUrl && (
                           <a href={performanceUrl} target="_blank" rel="noopener noreferrer" title="Performance"
-                            style={{ color: "#404040", display: "flex", alignItems: "center", textDecoration: "none", padding: "3px", borderRadius: "4px" }}
-                            onMouseEnter={e => (e.currentTarget.style.color = "#29ABE2")}
-                            onMouseLeave={e => (e.currentTarget.style.color = "#404040")}>
+                            style={{ color: "var(--text-secondary)", display: "flex", alignItems: "center", textDecoration: "none", padding: "3px", borderRadius: "4px" }}
+                            onMouseEnter={e => (e.currentTarget.style.color = "var(--brand)")}
+                            onMouseLeave={e => (e.currentTarget.style.color = "var(--text-secondary)")}>
                             <ExternalLink size={13} />
                           </a>
                         )}
                         {cliente.link_planilha && (
                           <a href={cliente.link_planilha} target="_blank" rel="noopener noreferrer" title="Planilha"
-                            style={{ color: "#404040", display: "flex", alignItems: "center", textDecoration: "none", padding: "3px", borderRadius: "4px" }}
-                            onMouseEnter={e => (e.currentTarget.style.color = "#22c55e")}
-                            onMouseLeave={e => (e.currentTarget.style.color = "#404040")}>
+                            style={{ color: "var(--text-secondary)", display: "flex", alignItems: "center", textDecoration: "none", padding: "3px", borderRadius: "4px" }}
+                            onMouseEnter={e => (e.currentTarget.style.color = "var(--success)")}
+                            onMouseLeave={e => (e.currentTarget.style.color = "var(--text-secondary)")}>
                             <FileSpreadsheet size={13} />
                           </a>
                         )}
@@ -724,10 +724,10 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
                           title={cliente.uti ? "Remover da UTI" : "Colocar na UTI (Urgente)"}
                           style={{
                             background: cliente.uti ? "rgba(239,68,68,0.18)" : "transparent",
-                            border: `1px solid ${cliente.uti ? "#ef4444" : "#383838"}`,
+                            border: `1px solid ${cliente.uti ? "var(--alert-text)" : "var(--border)"}`,
                             borderRadius: "5px", padding: "2px 6px", cursor: "pointer",
                             fontSize: "10px", fontWeight: "700",
-                            color: cliente.uti ? "#ef4444" : "#454545",
+                            color: cliente.uti ? "var(--alert-text)" : "var(--text-secondary)",
                             transition: "all 0.15s",
                           }}
                         >
@@ -735,7 +735,7 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
                         </button>
                       </div>
 
-                      <span style={{ color: "#505050", fontSize: "11px", textAlign: "center" }}>
+                      <span style={{ color: "var(--text-secondary)", fontSize: "11px", textAlign: "center" }}>
                         {aberto ? "▲" : "▼"}
                       </span>
                     </div>
@@ -744,7 +744,7 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
                     {aberto && (
                       <div style={{ padding: "0 14px 14px 44px", borderTop: "1px solid #242424" }}>
                         <div style={{ paddingTop: "12px", marginBottom: "12px" }}>
-                          <div style={{ fontSize: "10px", color: "#505050", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>O que foi feito hoje</div>
+                          <div style={{ fontSize: "10px", color: "var(--text-secondary)", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>O que foi feito hoje</div>
                           <div style={{ display: "flex", gap: "6px", alignItems: "flex-end" }}>
                             <textarea
                               value={novaAtualizacao[cliente.id] || ""}
@@ -753,12 +753,12 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
                               onClick={e => e.stopPropagation()}
                               placeholder="Digite aqui… (Ctrl+Enter para salvar)"
                               rows={2}
-                              style={{ flex: 1, background: "#111", border: "1px solid #2e2e2e", borderRadius: "6px", color: "#d0d0d0", fontSize: "13px", padding: "7px 10px", resize: "none", fontFamily: "inherit", outline: "none", lineHeight: "1.5" }}
+                              style={{ flex: 1, background: "#111", border: "1px solid #2e2e2e", borderRadius: "6px", color: "var(--navy)", fontSize: "13px", padding: "7px 10px", resize: "none", fontFamily: "inherit", outline: "none", lineHeight: "1.5" }}
                             />
                             <button
                               onClick={e => { e.stopPropagation(); salvarAtualizacao(cliente.id); }}
                               disabled={saving[cliente.id] || !novaAtualizacao[cliente.id]?.trim()}
-                              style={{ background: "#29ABE2", color: "#000", border: "none", borderRadius: "6px", padding: "7px 16px", cursor: "pointer", fontSize: "12px", fontWeight: "700", whiteSpace: "nowrap", opacity: (saving[cliente.id] || !novaAtualizacao[cliente.id]?.trim()) ? 0.35 : 1 }}
+                              style={{ background: "var(--brand)", color: "#FFFFFF", border: "none", borderRadius: "6px", padding: "7px 16px", cursor: "pointer", fontSize: "12px", fontWeight: "700", whiteSpace: "nowrap", opacity: (saving[cliente.id] || !novaAtualizacao[cliente.id]?.trim()) ? 0.35 : 1 }}
                             >
                               {saving[cliente.id] ? "…" : "Salvar"}
                             </button>
@@ -767,13 +767,13 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
 
                         {log.length > 0 && (
                           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                            <div style={{ fontSize: "10px", color: "#505050", textTransform: "uppercase", letterSpacing: "0.05em" }}>Histórico</div>
+                            <div style={{ fontSize: "10px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Histórico</div>
                             {log.slice(0, 5).map(a => (
-                              <div key={a.id} style={{ display: "flex", gap: "10px", alignItems: "flex-start", padding: "8px 10px", background: "#141414", borderRadius: "6px", border: "1px solid #242424" }}>
-                                <span style={{ fontSize: "10px", color: "#505050", whiteSpace: "nowrap", marginTop: "2px", flexShrink: 0 }}>
+                              <div key={a.id} style={{ display: "flex", gap: "10px", alignItems: "flex-start", padding: "8px 10px", background: "var(--hover-row)", borderRadius: "6px", border: "1px solid var(--border)" }}>
+                                <span style={{ fontSize: "10px", color: "var(--text-secondary)", whiteSpace: "nowrap", marginTop: "2px", flexShrink: 0 }}>
                                   {new Date(a.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
                                 </span>
-                                <span style={{ fontSize: "10px", color: "#505050", whiteSpace: "nowrap", marginTop: "2px", flexShrink: 0, fontStyle: "italic" }}>
+                                <span style={{ fontSize: "10px", color: "var(--text-secondary)", whiteSpace: "nowrap", marginTop: "2px", flexShrink: 0, fontStyle: "italic" }}>
                                   {a.gestor?.split(" ")[0]}
                                 </span>
                                 <span style={{ fontSize: "13px", color: "#c8c8c8", lineHeight: "1.45" }}>{a.texto}</span>
@@ -781,7 +781,7 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
                             ))}
                             {log.length > 5 && (
                               <button onClick={e => { e.stopPropagation(); setLogAberto(cliente.id); }}
-                                style={{ background: "none", border: "none", cursor: "pointer", color: "#29ABE2", fontSize: "12px", padding: "2px 0", textAlign: "left" }}>
+                                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--brand)", fontSize: "12px", padding: "2px 0", textAlign: "left" }}>
                                 Ver todos ({log.length})
                               </button>
                             )}
@@ -801,26 +801,26 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
       {aba === "calendario" && (
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-            <h2 style={{ fontSize: "16px", fontWeight: "600", color: "#f0f0f0", margin: 0 }}>Calendário de Análises</h2>
+            <h2 style={{ fontSize: "16px", fontWeight: "600", color: "var(--navy)", margin: 0 }}>Calendário de Análises</h2>
             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
               <button onClick={() => { if (calMes === 0) { setCalMes(11); setCalAno(calAno - 1); } else setCalMes(calMes - 1); }}
-                style={{ background: "#252525", border: "1px solid #383838", borderRadius: "6px", width: "32px", height: "32px", cursor: "pointer", color: "#a0a0a0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                style={{ background: "#252525", border: "1px solid #383838", borderRadius: "6px", width: "32px", height: "32px", cursor: "pointer", color: "var(--text-secondary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <ChevronLeft size={16} />
               </button>
-              <span style={{ fontSize: "15px", fontWeight: "600", color: "#f0f0f0", minWidth: "160px", textAlign: "center" }}>
+              <span style={{ fontSize: "15px", fontWeight: "600", color: "var(--navy)", minWidth: "160px", textAlign: "center" }}>
                 {MESES_CAL[calMes]} {calAno}
               </span>
               <button onClick={() => { if (calMes === 11) { setCalMes(0); setCalAno(calAno + 1); } else setCalMes(calMes + 1); }}
-                style={{ background: "#252525", border: "1px solid #383838", borderRadius: "6px", width: "32px", height: "32px", cursor: "pointer", color: "#a0a0a0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                style={{ background: "#252525", border: "1px solid #383838", borderRadius: "6px", width: "32px", height: "32px", cursor: "pointer", color: "var(--text-secondary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <ChevronRight size={16} />
               </button>
             </div>
           </div>
 
-          <div style={{ background: "#161616", border: "2px solid #2e2e2e", borderRadius: "12px", overflow: "hidden" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", borderBottom: "2px solid #2e2e2e", background: "#1e1e1e" }}>
+          <div style={{ background: "var(--card-bg)", border: "2px solid var(--border)", borderRadius: "12px", overflow: "hidden" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", borderBottom: "2px solid var(--border)", background: "var(--hover-row)" }}>
               {DIAS_SEMANA.map((d, i) => (
-                <div key={d} style={{ padding: "12px 0", textAlign: "center", fontSize: "11px", fontWeight: "700", color: i === 0 || i === 6 ? "#4a4a4a" : "#606060", textTransform: "uppercase", letterSpacing: "0.08em", borderRight: i < 6 ? "1px solid #2a2a2a" : "none" }}>
+                <div key={d} style={{ padding: "12px 0", textAlign: "center", fontSize: "11px", fontWeight: "700", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.08em", borderRight: i < 6 ? "1px solid var(--border)" : "none" }}>
                   {d}
                 </div>
               ))}
@@ -834,10 +834,10 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
                 const colIdx = idx % 7;
                 const fimSemana = colIdx === 0 || colIdx === 6;
                 return (
-                  <div key={idx} style={{ minHeight: "320px", padding: "10px", borderRight: !isLastCol ? "1px solid #2a2a2a" : "none", borderBottom: !isLastRow ? "1px solid #2a2a2a" : "none", background: ehHoje ? "rgba(41,171,226,0.06)" : fimSemana ? "rgba(0,0,0,0.25)" : "transparent" }}>
+                  <div key={idx} style={{ minHeight: "320px", padding: "10px", borderRight: !isLastCol ? "1px solid var(--border)" : "none", borderBottom: !isLastRow ? "1px solid var(--border)" : "none", background: ehHoje ? "rgba(28,108,166,0.06)" : fimSemana ? "var(--hover-row)" : "transparent" }}>
                     {dia && (
                       <>
-                        <div style={{ fontSize: "13px", fontWeight: "600", marginBottom: "8px", width: "26px", height: "26px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", ...(ehHoje ? { background: "#29ABE2", color: "#000" } : { color: fimSemana ? "#454545" : "#707070" }) }}>
+                        <div style={{ fontSize: "13px", fontWeight: "600", marginBottom: "8px", width: "26px", height: "26px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", ...(ehHoje ? { background: "var(--brand)", color: "#FFFFFF" } : { color: "var(--text-secondary)" }) }}>
                           {dia}
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
@@ -865,16 +865,16 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
         <div className="modal-overlay" onClick={() => setLogAberto(null)}>
           <div className="modal animate-in" onClick={e => e.stopPropagation()} style={{ maxWidth: "520px", maxHeight: "75vh", display: "flex", flexDirection: "column" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexShrink: 0 }}>
-              <h2 style={{ fontSize: "16px", fontWeight: "600", color: "#f0f0f0", margin: 0 }}>
+              <h2 style={{ fontSize: "16px", fontWeight: "600", color: "var(--navy)", margin: 0 }}>
                 Histórico — {clientes.find(c => c.id === logAberto)?.nome}
               </h2>
               <button onClick={() => setLogAberto(null)} className="btn-ghost" style={{ padding: "4px" }}><X size={18} /></button>
             </div>
             <div style={{ overflowY: "auto", display: "flex", flexDirection: "column", gap: "8px" }}>
               {(atualizacoes[logAberto] || []).map(a => (
-                <div key={a.id} style={{ background: "#141414", borderRadius: "8px", padding: "10px 14px", border: "1px solid #2a2a2a" }}>
-                  <div style={{ fontSize: "13px", color: "#d0d0d0", marginBottom: "6px", lineHeight: "1.5" }}>{a.texto}</div>
-                  <div style={{ display: "flex", gap: "8px", fontSize: "11px", color: "#505050" }}>
+                <div key={a.id} style={{ background: "var(--hover-row)", borderRadius: "8px", padding: "10px 14px", border: "1px solid var(--border)" }}>
+                  <div style={{ fontSize: "13px", color: "var(--navy)", marginBottom: "6px", lineHeight: "1.5" }}>{a.texto}</div>
+                  <div style={{ display: "flex", gap: "8px", fontSize: "11px", color: "var(--text-secondary)" }}>
                     <span>{new Date(a.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
                     <span>· {a.gestor}</span>
                   </div>
