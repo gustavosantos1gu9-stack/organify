@@ -66,7 +66,7 @@ export default function InicioFilha() {
     <div className="ui-page">
       <Saudacao
         nome={agNome}
-        destaque="Conversas, rastreio e jornada dos seus leads."
+        destaque="Seus resultados"
         direita={<PeriodSelector onChange={(_p, f, t) => { setFrom(f); setTo(t); }} />}
       />
 

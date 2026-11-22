@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Sidebar from "@/components/layout/Sidebar";
 import Topbar from "@/components/layout/Topbar";
+import SubNav from "@/components/layout/SubNav";
 import { supabase } from "@/lib/hooks";
 
 const hrefToModuloKey: Record<string, string> = {
@@ -145,7 +146,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <Sidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
       <div className="app-shell-content" style={{ flex: 1, marginLeft: "280px", display: "flex", flexDirection: "column", minWidth: 0 }}>
         <Topbar onMenuToggle={() => setMobileOpen(true)} />
-        <main className="app-main" style={{ flex: 1, padding: "28px 40px 48px", overflowX: "hidden" }}>
+        <main className="app-main" style={{ flex: 1, padding: "24px 32px 48px", overflowX: "hidden" }}>
+          <SubNav />
           {children}
         </main>
       </div>

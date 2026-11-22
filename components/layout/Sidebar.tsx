@@ -203,13 +203,18 @@ const masterGroups: NavGroup[] = [
     ],
   },
   {
-    group: "CONFIGURAÇÕES",
+    group: "",
     items: [
-      { href: "/configuracoes/integracoes", label: "Integrações", icon: <Plug size={16} strokeWidth={1.8} /> },
-      { href: "/configuracoes/whatsapp-contas", label: "WhatsApp", icon: <Smartphone size={16} strokeWidth={1.8} /> },
-      { href: "/configuracoes/times", label: "Times", icon: <UserCheck size={16} strokeWidth={1.8} /> },
-      { href: "/configuracoes/agencia", label: "Agência", icon: <Building2 size={16} strokeWidth={1.8} /> },
-      { href: "/configuracoes/usuarios", label: "Usuários", icon: <Users2 size={16} strokeWidth={1.8} /> },
+      {
+        label: "Configurações", icon: <Settings size={16} strokeWidth={1.8} />,
+        children: [
+          { href: "/configuracoes/integracoes", label: "Integrações" },
+          { href: "/configuracoes/whatsapp-contas", label: "WhatsApp" },
+          { href: "/configuracoes/times", label: "Times" },
+          { href: "/configuracoes/agencia", label: "Agência" },
+          { href: "/configuracoes/usuarios", label: "Usuários" },
+        ],
+      },
     ],
   },
 ];
@@ -350,130 +355,40 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
     );
   };
 
-  // ─── Render expandable item (master menu) ────────────────────
+  // ─── Área com várias telas: uma entrada só; as telas viram abas (SubNav) ───
   const renderExpandableItem = (item: NavItem) => {
-    const isOpen = openMenus.includes(item.label);
-    const hasActiveChild = item.children?.some((c) =>
+    const filhos = item.children!.filter((child) => {
+      if ((!allowedModulos && !modulosAgencia) || !child.href) return true;
+      const moduloKey = hrefToModuloKey[child.href];
+      if (!moduloKey) return true;
+      return isModuloAllowed(moduloKey);
+    });
+    const destino = filhos.find((c) => c.href)?.href || item.children!.find((c) => c.href)?.href || "/";
+    const active = !!item.children?.some((c) =>
       c.href ? isActive(c.href) : c.children?.some(sc => isActive(sc.href))
-    );
+    ) || (item.label === "Configurações" && pathname.startsWith("/configuracoes"));
     return (
-      <div key={item.label}>
-        <button
-          onClick={() => toggleMenu(item.label)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            width: "100%",
-            height: "36px",
-            padding: "0 8px",
-            borderRadius: "10px",
-            fontSize: "14px",
-            fontWeight: hasActiveChild ? "600" : "400",
-            color: hasActiveChild ? "#FFFFFF" : "#C5D6E6",
-            background: hasActiveChild ? "rgba(255,255,255,0.08)" : "transparent",
-            border: "none",
-            cursor: "pointer",
-            transition: "background 0.15s, color 0.15s",
-          }}
-          onMouseEnter={e => {
-            if (!hasActiveChild) e.currentTarget.style.background = "rgba(255,255,255,0.08)";
-          }}
-          onMouseLeave={e => {
-            if (!hasActiveChild) e.currentTarget.style.background = "transparent";
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ flexShrink: 0 }}>{item.icon}</span>
-            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</span>
-          </div>
-          <ChevronDown
-            size={12}
-            strokeWidth={2}
-            style={{
-              transform: isOpen ? "rotate(180deg)" : "rotate(0)",
-              transition: "transform 0.2s",
-              flexShrink: 0,
-              color: "#8CC6EC",
-            }}
-          />
-        </button>
-        {isOpen && (
-          <div style={{ marginLeft: "20px", marginTop: "2px", display: "flex", flexDirection: "column", gap: "1px" }}>
-            {item.children!.filter((child) => {
-              if ((!allowedModulos && !modulosAgencia) || !child.href) return true;
-              const moduloKey = hrefToModuloKey[child.href];
-              if (!moduloKey) return true;
-              return isModuloAllowed(moduloKey);
-            }).map((child) => {
-              if (child.children) {
-                const subOpen = openMenus.includes(`${item.label}:${child.label}`);
-                const hasActiveSub = child.children.some(sc => isActive(sc.href));
-                return (
-                  <div key={child.label}>
-                    <button
-                      onClick={() => toggleMenu(`${item.label}:${child.label}`)}
-                      style={{
-                        width: "100%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "7px 8px",
-                        borderRadius: "8px",
-                        fontSize: "12px",
-                        cursor: "pointer",
-                        background: hasActiveSub ? "rgba(255,255,255,0.08)" : "transparent",
-                        border: "none",
-                        color: hasActiveSub ? "#FFFFFF" : "#8CC6EC",
-                      }}
-                    >
-                      <span>{child.label}</span>
-                      <ChevronDown size={11} style={{ transform: subOpen ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s", color: "#8CC6EC" }} />
-                    </button>
-                    {subOpen && (
-                      <div style={{ marginLeft: "12px", display: "flex", flexDirection: "column", gap: "1px" }}>
-                        {child.children.map((sc) => {
-                          const scActive = isActive(sc.href);
-                          return (
-                            <Link key={sc.href} href={sc.href} onClick={onMobileClose} style={{
-                              display: "block",
-                              padding: "6px 8px",
-                              borderRadius: "6px",
-                              fontSize: "12px",
-                              color: scActive ? "#FFFFFF" : "#8CC6EC",
-                              background: scActive ? "rgba(255,255,255,0.1)" : "transparent",
-                              textDecoration: "none",
-                              borderLeft: scActive ? "2px solid #8CC6EC" : "2px solid transparent",
-                            }}>
-                              {sc.label}
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              }
-              const childActive = isActive(child.href!);
-              return (
-                <Link key={child.href} href={child.href!} onClick={onMobileClose} style={{
-                  display: "block",
-                  padding: "7px 8px",
-                  borderRadius: "8px",
-                  fontSize: "12px",
-                  color: childActive ? "#FFFFFF" : "#A9BED2",
-                  background: childActive ? "rgba(255,255,255,0.1)" : "transparent",
-                  textDecoration: "none",
-                  borderLeft: childActive ? "2px solid #8CC6EC" : "2px solid transparent",
-                  transition: "all 0.15s",
-                }}>
-                  {child.label}
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      <Link
+        key={item.label}
+        href={destino}
+        onClick={onMobileClose}
+        className="nav-item"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          padding: "9px 12px",
+          borderRadius: "12px",
+          fontSize: "14px",
+          fontWeight: active ? 600 : 400,
+          color: active ? "var(--navy)" : "#DCE5EE",
+          background: active ? "#FFFFFF" : "transparent",
+          textDecoration: "none",
+        }}
+      >
+        <span style={{ flexShrink: 0, display: "flex" }}>{item.icon}</span>
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</span>
+      </Link>
     );
   };
 
@@ -486,28 +401,21 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
         key={item.href}
         href={item.href!}
         onClick={onMobileClose}
+        className="nav-item"
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "8px",
-          height: "36px",
-          padding: "0 8px",
-          borderRadius: "10px",
+          gap: "10px",
+          padding: "9px 12px",
+          borderRadius: "12px",
           fontSize: "14px",
-          fontWeight: active ? "600" : "400",
-          color: active ? "var(--navy)" : "#C5D6E6",
+          fontWeight: active ? 600 : 400,
+          color: active ? "var(--navy)" : "#DCE5EE",
           background: active ? "#FFFFFF" : "transparent",
           textDecoration: "none",
-          transition: "background 0.15s, color 0.15s",
-        }}
-        onMouseEnter={e => {
-          if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.08)";
-        }}
-        onMouseLeave={e => {
-          if (!active) e.currentTarget.style.background = "transparent";
         }}
       >
-        <span style={{ flexShrink: 0 }}>{item.icon}</span>
+        <span style={{ flexShrink: 0, display: "flex" }}>{item.icon}</span>
         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</span>
       </Link>
     );
@@ -551,7 +459,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
             onError={e => { (e.target as HTMLImageElement).src = "/logo.png"; }}
           />
           <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
-            <span style={{ fontWeight: "700", fontSize: "15px", color: "#F3F5F7", letterSpacing: "-0.2px" }}>
+            <span style={{ fontWeight: 700, fontSize: "18px", color: "#FFFFFF" }}>
               SALX Convert
             </span>
             {agenciaInfo?.isFilha ? (
@@ -576,12 +484,14 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
             <div key={group.group || "_standalone"}>
               {group.group && (
                 <div style={{
-                  fontSize: "12px",
-                  fontWeight: "500",
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  letterSpacing: ".08em",
+                  textTransform: "uppercase",
                   color: "#7E93A8",
-                  padding: "16px 8px 6px",
+                  padding: "18px 12px 6px",
                 }}>
-                  {group.group.charAt(0) + group.group.slice(1).toLowerCase()}
+                  {group.group}
                 </div>
               )}
               <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
@@ -622,8 +532,8 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
   );
 
   const sidebarStyle: React.CSSProperties = {
-    width: "240px",
-    minWidth: "240px",
+    width: "248px",
+    minWidth: "248px",
     background: "#0A1826",
     borderRadius: "24px",
     boxShadow: "0 8px 32px rgba(10,24,38,0.18)",

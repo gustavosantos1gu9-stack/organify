@@ -64,7 +64,7 @@ export default function InicioEquipe({ nome, permissoes }: { nome: string; permi
 
   return (
     <div className="ui-page">
-      <Saudacao nome={nome.split(" ")[0]} destaque={veCarteira ? "Seus clientes e o que precisa de atenção hoje." : "Seus atalhos para o dia."} />
+      <Saudacao nome={nome.split(" ")[0]} destaque={veCarteira ? "Seus clientes hoje" : "Bom trabalho hoje"} />
 
       {veCarteira && (
         <Hero

@@ -102,11 +102,12 @@ export default function InicioDono({ nome }: { nome: string }) {
 
   return (
     <div className="ui-page">
-      <Saudacao nome={nome} destaque="Veja como a agência está hoje e o que pede atenção." />
+      <Saudacao nome={nome} destaque="Sua carteira hoje" />
 
       <Hero
-        kicker="Resumo da agência"
-        titulo={`${ativos.length} clientes ativos em ${mes.split(" ")[0]}`}
+        kicker={`${mes.charAt(0).toUpperCase() + mes.slice(1)} · ao vivo`}
+        titulo={`${ativos.length} clientes ativos,`}
+        destaque="crescendo juntos"
         acao={{ label: "Ver financeiro", href: "/dre" }}
         metricas={[
           { label: "Receita recorrente", valor: brl(receita.total), detalhe: `Ticket médio ${brl(ticket)}` },
