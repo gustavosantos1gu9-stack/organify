@@ -1420,7 +1420,7 @@ export default function ControleClientesPage() {
                       <div className="cc-name">
                         <CelulaEditavel valor={c.nome||""} onSave={v=>atualizar(c.id,"nome",v,c.nome)} placeholder="Nome do cliente"/>
                       </div>
-                      <span className="cc-sub">{c.gestor || "Sem gestor"}{c.cadastro_id ? " · cadastro vinculado" : ""}</span>
+                      <span className="cc-sub">{c.gestor || "Sem gestor"}</span>
                     </div>
                     <div className="cc-actions">
                       {semFinanceiro(c) && (

@@ -901,3 +901,17 @@ input[type="checkbox"], input[type="radio"] { height: auto; accent-color: var(--
 .cc-table td select:hover, .cc-table td select:focus { border-color: var(--line) !important; background-color: var(--surface) !important; }
 .cc-table td > span[title="Clique para editar"], .cc-table td span[title="Clique para editar"] { font-size: 13px !important; border-radius: 8px !important; }
 .cc-table td span[title="Clique para editar"]:hover { background: var(--canvas); }
+/* Ações do nome flutuam sobre a linha, sem tirar espaço do nome */
+.cc-name-cell { position: sticky; }
+.cc-name-cell > div { position: relative; }
+.cc-actions {
+  position: absolute; right: -4px; top: 50%; transform: translateY(-50%);
+  padding-left: 24px;
+  background: linear-gradient(90deg, rgba(246,249,252,0) 0, #F6F9FC 24px);
+}
+.cc-actions:not(:has(.cc-warn)) { pointer-events: none; }
+.cc-row:hover .cc-actions { pointer-events: auto; }
+.cc-row .cc-actions:has(.cc-warn) { opacity: 1; background: none; padding-left: 0; }
+.cc-row .cc-actions:has(.cc-warn) > :not(.cc-warn) { display: none; }
+.cc-row:hover .cc-actions:has(.cc-warn) { background: linear-gradient(90deg, rgba(246,249,252,0) 0, #F6F9FC 24px); padding-left: 24px; }
+.cc-row:hover .cc-actions:has(.cc-warn) > :not(.cc-warn) { display: inline-flex; }
