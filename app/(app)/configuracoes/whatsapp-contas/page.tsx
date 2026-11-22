@@ -232,36 +232,36 @@ export default function WhatsAppContasPage() {
           </div>
         </div>
         <div className="card" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: "12px" }}>
-          <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(34,197,94,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Wifi size={18} color="#22c55e" />
+          <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(30,107,82,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Wifi size={18} color="#1E6B52" />
           </div>
           <div>
             <p style={{ fontSize: 11, color: "#4A5B6C", margin: 0 }}>Conectadas</p>
-            <p style={{ fontSize: 22, fontWeight: 700, color: "#22c55e", margin: 0 }}>{conectadas}</p>
+            <p style={{ fontSize: 22, fontWeight: 700, color: "#1E6B52", margin: 0 }}>{conectadas}</p>
           </div>
         </div>
         <div className="card" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: "12px" }}>
-          <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(239,68,68,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <WifiOff size={18} color="#ef4444" />
+          <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(180,35,24,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <WifiOff size={18} color="#B42318" />
           </div>
           <div>
             <p style={{ fontSize: 11, color: "#4A5B6C", margin: 0 }}>Desconectadas / Sem WhatsApp</p>
-            <p style={{ fontSize: 22, fontWeight: 700, color: "#ef4444", margin: 0 }}>{total - conectadas}</p>
+            <p style={{ fontSize: 22, fontWeight: 700, color: "#B42318", margin: 0 }}>{total - conectadas}</p>
           </div>
         </div>
         <Link href="/configuracoes/whatsapp-status" style={{ textDecoration: "none" }}>
-          <div className="card" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: "12px", cursor: "pointer", border: alertasAbertos > 0 ? "1px solid rgba(239,68,68,0.5)" : "1px solid #E6EBF0", transition: "border-color 0.2s" }}>
-            <div style={{ position: "relative", width: 36, height: 36, borderRadius: 8, background: alertasAbertos > 0 ? "rgba(239,68,68,0.15)" : "rgba(100,100,100,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Heart size={18} color={alertasAbertos > 0 ? "#ef4444" : "#4A5B6C"} />
+          <div className="card" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: "12px", cursor: "pointer", border: alertasAbertos > 0 ? "1px solid rgba(180,35,24,0.5)" : "1px solid #E6EBF0", transition: "border-color 0.2s" }}>
+            <div style={{ position: "relative", width: 36, height: 36, borderRadius: 8, background: alertasAbertos > 0 ? "rgba(180,35,24,0.15)" : "rgba(100,100,100,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Heart size={18} color={alertasAbertos > 0 ? "#B42318" : "#4A5B6C"} />
               {alertasAbertos > 0 && (
-                <span style={{ position: "absolute", top: -4, right: -4, width: 16, height: 16, borderRadius: "50%", background: "#ef4444", color: "#fff", fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ position: "absolute", top: -4, right: -4, width: 16, height: 16, borderRadius: "50%", background: "#B42318", color: "#fff", fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   {alertasAbertos}
                 </span>
               )}
             </div>
             <div>
               <p style={{ fontSize: 11, color: "#4A5B6C", margin: 0 }}>Monitor de Saúde</p>
-              <p style={{ fontSize: alertasAbertos > 0 ? 13 : 22, fontWeight: 700, color: alertasAbertos > 0 ? "#ef4444" : "#0A1826", margin: 0 }}>
+              <p style={{ fontSize: alertasAbertos > 0 ? 13 : 22, fontWeight: 700, color: alertasAbertos > 0 ? "#B42318" : "#0A1826", margin: 0 }}>
                 {alertasAbertos > 0 ? `${alertasAbertos} alerta${alertasAbertos > 1 ? "s" : ""}` : "OK"}
               </p>
             </div>
@@ -313,8 +313,8 @@ export default function WhatsAppContasPage() {
                   ) : (
                     <span style={{
                       fontSize: 12, padding: "3px 10px", borderRadius: 20, fontWeight: 500,
-                      background: c.state === "open" ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)",
-                      color: c.state === "open" ? "#22c55e" : "#ef4444",
+                      background: c.state === "open" ? "rgba(30,107,82,0.1)" : "rgba(180,35,24,0.1)",
+                      color: c.state === "open" ? "#1E6B52" : "#B42318",
                     }}>
                       {c.state === "open" ? "Ativa" : "Inativa"}
                     </span>
@@ -325,7 +325,7 @@ export default function WhatsAppContasPage() {
                   {!c.whatsapp_instancia ? (
                     <span style={{ fontSize: 12, color: "#4A5B6C" }}>—</span>
                   ) : (
-                    <span style={{ fontSize: 12, fontWeight: 500, color: c.state === "open" ? "#22c55e" : "#ef4444" }}>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: c.state === "open" ? "#1E6B52" : "#B42318" }}>
                       {c.state === "open" ? "Conectada" : "Desconectada"}
                     </span>
                   )}
@@ -350,7 +350,7 @@ export default function WhatsAppContasPage() {
                         <button onClick={() => desativar(c)} style={{
                           display: "flex", alignItems: "center", gap: 6,
                           padding: "5px 12px", borderRadius: 6, fontSize: 12, cursor: "pointer",
-                          background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#ef4444",
+                          background: "rgba(180,35,24,0.08)", border: "1px solid rgba(180,35,24,0.2)", color: "#B42318",
                         }}>
                           <PowerOff size={12} /> Desativar
                         </button>
@@ -366,7 +366,7 @@ export default function WhatsAppContasPage() {
                           padding: "5px 8px", borderRadius: 6, fontSize: 11, cursor: "pointer",
                           background: linkCopiado === c.id ? "rgba(37,211,102,0.08)" : "rgba(100,100,100,0.08)",
                           border: `1px solid ${linkCopiado === c.id ? "rgba(37,211,102,0.3)" : "rgba(100,100,100,0.2)"}`,
-                          color: linkCopiado === c.id ? "#22c55e" : "#4A5B6C",
+                          color: linkCopiado === c.id ? "#1E6B52" : "#4A5B6C",
                         }}
                       >
                         {linkCopiado === c.id ? "✓" : "🔗"}
@@ -387,7 +387,7 @@ export default function WhatsAppContasPage() {
                     <button onClick={() => excluir(c)} style={{
                       display: "flex", alignItems: "center", gap: 6,
                       padding: "5px 12px", borderRadius: 6, fontSize: 12, cursor: "pointer",
-                      background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.4)", color: "#ef4444",
+                      background: "rgba(180,35,24,0.15)", border: "1px solid rgba(180,35,24,0.4)", color: "#B42318",
                     }} title="Excluir conta permanentemente">
                       <Trash2 size={12} /> Excluir
                     </button>

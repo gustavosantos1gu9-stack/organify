@@ -307,7 +307,7 @@ export default function AlertasPage() {
       </div>
 
       {!token && (
-        <div style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: "8px", padding: "12px 16px", marginBottom: "16px", fontSize: "13px", color: "#f59e0b" }}>
+        <div style={{ background: "rgba(194,98,14,0.1)", border: "1px solid rgba(194,98,14,0.3)", borderRadius: "8px", padding: "12px 16px", marginBottom: "16px", fontSize: "13px", color: "#C2620E" }}>
           <AlertTriangle size={14} style={{ display: "inline", marginRight: "6px", verticalAlign: "middle" }} />
           Token Meta não configurado. <a href="/relatorios-meta/conexoes" style={{ color: "#1C6CA6", textDecoration: "underline" }}>Configure em Conexões</a>.
         </div>
@@ -331,17 +331,17 @@ export default function AlertasPage() {
                     <p style={{ fontSize: "13px", fontWeight: "600", color: "#0A1826", margin: 0 }}>{a.nome_cliente}</p>
                     <p style={{ fontSize: "11px", color: "#4A5B6C", margin: 0 }}>act_{a.ad_account_id}</p>
                   </td>
-                  <td>{verificando === a.ad_account_id ? <span style={{ fontSize: "12px", color: "#4A5B6C" }}>...</span> : info ? (isCartao(a.ad_account_id, a.monitorar_como) ? <span style={{ fontSize: "12px", color: "#4A5B6C" }}>—</span> : <span style={{ fontSize: "13px", fontWeight: "600", color: saldoBaixo ? "#ef4444" : "#22c55e" }}>{formatMoney(info.balance)}</span>) : <button onClick={() => verificarConta(a.ad_account_id)} style={{ fontSize: "11px", color: "#1C6CA6", background: "none", border: "1px solid rgba(41,171,226,0.3)", borderRadius: "6px", padding: "2px 8px", cursor: "pointer" }}>Ver</button>}</td>
-                  <td style={{ fontSize: "13px", color: "#f59e0b" }}>{isCartao(a.ad_account_id, a.monitorar_como) ? "—" : formatMoney(a.saldo_alerta)}</td>
+                  <td>{verificando === a.ad_account_id ? <span style={{ fontSize: "12px", color: "#4A5B6C" }}>...</span> : info ? (isCartao(a.ad_account_id, a.monitorar_como) ? <span style={{ fontSize: "12px", color: "#4A5B6C" }}>—</span> : <span style={{ fontSize: "13px", fontWeight: "600", color: saldoBaixo ? "#B42318" : "#1E6B52" }}>{formatMoney(info.balance)}</span>) : <button onClick={() => verificarConta(a.ad_account_id)} style={{ fontSize: "11px", color: "#1C6CA6", background: "none", border: "1px solid rgba(41,171,226,0.3)", borderRadius: "6px", padding: "2px 8px", cursor: "pointer" }}>Ver</button>}</td>
+                  <td style={{ fontSize: "13px", color: "#C2620E" }}>{isCartao(a.ad_account_id, a.monitorar_como) ? "—" : formatMoney(a.saldo_alerta)}</td>
                   <td style={{ fontSize: "12px", color: "#4A5B6C" }}>{info?.forma_pagamento || a.forma_pagamento || "—"}</td>
-                  <td>{info ? <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "20px", background: contaProblema ? "rgba(239,68,68,0.1)" : "rgba(34,197,94,0.1)", color: contaProblema ? "#ef4444" : "#22c55e", border: `1px solid ${contaProblema ? "rgba(239,68,68,0.3)" : "rgba(34,197,94,0.3)"}` }}>{info.status}</span> : "—"}</td>
+                  <td>{info ? <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "20px", background: contaProblema ? "rgba(180,35,24,0.1)" : "rgba(30,107,82,0.1)", color: contaProblema ? "#B42318" : "#1E6B52", border: `1px solid ${contaProblema ? "rgba(180,35,24,0.3)" : "rgba(30,107,82,0.3)"}` }}>{info.status}</span> : "—"}</td>
                   <td style={{ fontSize: "12px", color: "#4A5B6C" }}>{a.grupo_nome || "—"}</td>
                   <td style={{ fontSize: "12px", color: "#4A5B6C" }}>{formatarData(a.ultimo_alerta || "")}</td>
                   <td>
                     <div style={{ display: "flex", gap: "6px" }}>
                       <button onClick={() => abrirModal(a)} style={{ padding: "4px 8px", borderRadius: "6px", border: "1px solid #E6EBF0", background: "#E6EBF0", color: "#1C6CA6", cursor: "pointer" }}><Edit2 size={12} /></button>
-                      <button onClick={() => toggleAtivo(a)} style={{ fontSize: "11px", padding: "4px 8px", borderRadius: "6px", cursor: "pointer", background: a.ativo ? "rgba(34,197,94,0.1)" : "rgba(96,96,96,0.1)", border: `1px solid ${a.ativo ? "rgba(34,197,94,0.3)" : "#E6EBF0"}`, color: a.ativo ? "#22c55e" : "#4A5B6C" }}>{a.ativo ? "Ativo" : "Pausado"}</button>
-                      <button onClick={() => excluir(a.id!)} style={{ padding: "4px 8px", borderRadius: "6px", border: "1px solid #E6EBF0", background: "#E6EBF0", color: "#ef4444", cursor: "pointer" }}><Trash2 size={12} /></button>
+                      <button onClick={() => toggleAtivo(a)} style={{ fontSize: "11px", padding: "4px 8px", borderRadius: "6px", cursor: "pointer", background: a.ativo ? "rgba(30,107,82,0.1)" : "rgba(96,96,96,0.1)", border: `1px solid ${a.ativo ? "rgba(30,107,82,0.3)" : "#E6EBF0"}`, color: a.ativo ? "#1E6B52" : "#4A5B6C" }}>{a.ativo ? "Ativo" : "Pausado"}</button>
+                      <button onClick={() => excluir(a.id!)} style={{ padding: "4px 8px", borderRadius: "6px", border: "1px solid #E6EBF0", background: "#E6EBF0", color: "#B42318", cursor: "pointer" }}><Trash2 size={12} /></button>
                     </div>
                   </td>
                 </tr>
@@ -368,8 +368,8 @@ export default function AlertasPage() {
                 {loadingContas ? (
                   <p style={{ fontSize: "12px", color: "#4A5B6C" }}>Carregando contas...</p>
                 ) : erroContas ? (
-                  <div style={{ padding: "10px 14px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "8px" }}>
-                    <p style={{ fontSize: "12px", color: "#ef4444" }}>{erroContas}</p>
+                  <div style={{ padding: "10px 14px", background: "rgba(180,35,24,0.1)", border: "1px solid rgba(180,35,24,0.2)", borderRadius: "8px" }}>
+                    <p style={{ fontSize: "12px", color: "#B42318" }}>{erroContas}</p>
                     <a href="/relatorios-meta/conexoes" style={{ fontSize: "11px", color: "#1C6CA6" }}>Reconectar</a>
                   </div>
                 ) : (
@@ -387,7 +387,7 @@ export default function AlertasPage() {
                           <div>
                             <span style={{ fontWeight: form.ad_account_id === c.id ? "600" : "400" }}>{c.name}</span>
                             {(c as any).balance > 0 && (
-                              <span style={{ marginLeft: "8px", fontSize: "11px", color: "#22c55e" }}>{formatMoney((c as any).balance)}</span>
+                              <span style={{ marginLeft: "8px", fontSize: "11px", color: "#1E6B52" }}>{formatMoney((c as any).balance)}</span>
                             )}
                           </div>
                           <span style={{ color: "#4A5B6C", fontSize: "11px" }}>act_{c.id}</span>
@@ -406,14 +406,14 @@ export default function AlertasPage() {
                 <div style={{ background: "#FFFFFF", borderRadius: "8px", padding: "12px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
                   {isCartao() ? (
                     <>
-                      <div><span style={{ fontSize: "10px", color: "#4A5B6C" }}>PAGAMENTO</span><p style={{ fontSize: "14px", fontWeight: "600", color: "#f59e0b", margin: "2px 0 0" }}>Cartão de Crédito</p></div>
-                      <div><span style={{ fontSize: "10px", color: "#4A5B6C" }}>STATUS</span><p style={{ fontSize: "12px", color: contaInfo[form.ad_account_id].account_status === 1 ? "#22c55e" : "#ef4444", margin: "2px 0 0" }}>{contaInfo[form.ad_account_id].status}</p></div>
+                      <div><span style={{ fontSize: "10px", color: "#4A5B6C" }}>PAGAMENTO</span><p style={{ fontSize: "14px", fontWeight: "600", color: "#C2620E", margin: "2px 0 0" }}>Cartão de Crédito</p></div>
+                      <div><span style={{ fontSize: "10px", color: "#4A5B6C" }}>STATUS</span><p style={{ fontSize: "12px", color: contaInfo[form.ad_account_id].account_status === 1 ? "#1E6B52" : "#B42318", margin: "2px 0 0" }}>{contaInfo[form.ad_account_id].status}</p></div>
                     </>
                   ) : (
                     <>
                       <div><span style={{ fontSize: "10px", color: "#4A5B6C" }}>SALDO</span><p style={{ fontSize: "14px", fontWeight: "600", color: "#0A1826", margin: "2px 0 0" }}>{formatMoney(contaInfo[form.ad_account_id].balance)}</p></div>
                       <div><span style={{ fontSize: "10px", color: "#4A5B6C" }}>PAGAMENTO</span><p style={{ fontSize: "12px", color: "#4A5B6C", margin: "2px 0 0" }}>{contaInfo[form.ad_account_id].forma_pagamento}</p></div>
-                      <div><span style={{ fontSize: "10px", color: "#4A5B6C" }}>STATUS</span><p style={{ fontSize: "12px", color: contaInfo[form.ad_account_id].account_status === 1 ? "#22c55e" : "#ef4444", margin: "2px 0 0" }}>{contaInfo[form.ad_account_id].status}</p></div>
+                      <div><span style={{ fontSize: "10px", color: "#4A5B6C" }}>STATUS</span><p style={{ fontSize: "12px", color: contaInfo[form.ad_account_id].account_status === 1 ? "#1E6B52" : "#B42318", margin: "2px 0 0" }}>{contaInfo[form.ad_account_id].status}</p></div>
                       <div><span style={{ fontSize: "10px", color: "#4A5B6C" }}>MOEDA</span><p style={{ fontSize: "12px", color: "#4A5B6C", margin: "2px 0 0" }}>{contaInfo[form.ad_account_id].currency}</p></div>
                     </>
                   )}
@@ -429,7 +429,7 @@ export default function AlertasPage() {
                   <option value="cartao">Cartão de Crédito — alerta quando erro no pagamento</option>
                 </select>
                 {form.monitorar_como === "saldo" && (
-                  <p style={{ fontSize: "11px", color: "#f59e0b", marginTop: "4px" }}>⚠️ Use quando o cartão está cadastrado no Meta mas a cliente abastece via PIX.</p>
+                  <p style={{ fontSize: "11px", color: "#C2620E", marginTop: "4px" }}>⚠️ Use quando o cartão está cadastrado no Meta mas a cliente abastece via PIX.</p>
                 )}
               </div>
 

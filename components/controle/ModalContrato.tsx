@@ -75,7 +75,7 @@ export default function ModalContrato({ clienteId, nome, email, cnpj, cpf, rg, e
         {sucesso ? (
           <div style={{ padding:"40px 24px", textAlign:"center" }}>
             <div style={{ width:"56px", height:"56px", borderRadius:"50%", background:"#052e16", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
-              <Check size={28} color="#22c55e"/>
+              <Check size={28} color="#1E6B52"/>
             </div>
             <p style={{ fontSize:"16px", fontWeight:"600", color:"#0A1826", margin:"0 0 8px" }}>Contrato enviado!</p>
             <p style={{ fontSize:"13px", color:"#4A5B6C", margin:"0 0 24px" }}>
@@ -130,7 +130,7 @@ export default function ModalContrato({ clienteId, nome, email, cnpj, cpf, rg, e
               </div>
 
               {erro && (
-                <p style={{ color:"#ef4444", fontSize:"12px", margin:0, background:"#1a0a0a", border:"1px solid #3a1a1a", borderRadius:"6px", padding:"8px 12px" }}>{erro}</p>
+                <p style={{ color:"#B42318", fontSize:"12px", margin:0, background:"#1a0a0a", border:"1px solid #3a1a1a", borderRadius:"6px", padding:"8px 12px" }}>{erro}</p>
               )}
             </div>
 

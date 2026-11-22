@@ -165,8 +165,8 @@ export default function FinancasPage() {
 
       {successMsg && (
         <div style={{
-          background: successMsg.startsWith("Erro") ? "rgba(239,68,68,0.1)" : "rgba(34,197,94,0.1)",
-          border: `1px solid ${successMsg.startsWith("Erro") ? "rgba(239,68,68,0.3)" : "rgba(34,197,94,0.3)"}`,
+          background: successMsg.startsWith("Erro") ? "rgba(180,35,24,0.1)" : "rgba(30,107,82,0.1)",
+          border: `1px solid ${successMsg.startsWith("Erro") ? "rgba(180,35,24,0.3)" : "rgba(30,107,82,0.3)"}`,
           borderRadius: "8px",
           padding: "12px 16px",
           marginBottom: "20px",
@@ -233,12 +233,12 @@ export default function FinancasPage() {
                 onClick={sincronizarAgenda}
                 disabled={syncing}
                 style={{
-                  background: syncing ? "rgba(34,197,94,0.07)" : "rgba(34,197,94,0.12)",
-                  border: "1px solid rgba(34,197,94,0.3)",
+                  background: syncing ? "rgba(30,107,82,0.07)" : "rgba(30,107,82,0.12)",
+                  border: "1px solid rgba(30,107,82,0.3)",
                   borderRadius: "6px",
                   padding: "7px 14px",
                   fontSize: "12px",
-                  color: syncing ? "rgba(34,197,94,0.6)" : "var(--success)",
+                  color: syncing ? "rgba(30,107,82,0.6)" : "var(--success)",
                   cursor: syncing ? "not-allowed" : "pointer",
                   opacity: syncing ? 0.8 : 1,
                 }}

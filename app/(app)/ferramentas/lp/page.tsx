@@ -275,7 +275,7 @@ function LandingPagesPageInner() {
                   onChange={e => setEditando(prev => ({ ...prev, ativo: e.target.checked }))}
                   style={{ width: 16, height: 16, accentColor: "#1C6CA6" }}
                 />
-                <span style={{ fontSize: 14, color: "#c0c0c0" }}>Página ativa (acessível publicamente)</span>
+                <span style={{ fontSize: 14, color: "#7E93A8" }}>Página ativa (acessível publicamente)</span>
               </label>
             </div>
 
@@ -330,7 +330,7 @@ function LandingPagesPageInner() {
                 <button
                   onClick={() => copiarUrl(lp.slug)}
                   title="Copiar URL"
-                  style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #E6EBF0", background: "#FFFFFF", color: copiado === lp.slug ? "#22c55e" : "#808080", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}
+                  style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #E6EBF0", background: "#FFFFFF", color: copiado === lp.slug ? "#1E6B52" : "#808080", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}
                 >
                   <Copy size={14} />
                   {copiado === lp.slug ? "Copiado!" : "Copiar"}

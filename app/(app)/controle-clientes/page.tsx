@@ -112,8 +112,8 @@ const STATUS_OPTS = [
   { value:"ativo", label:"Ativo", cor:"var(--success)" },
   { value:"pausado", label:"Pausado", cor:"var(--caution-text)" },
   { value:"saiu", label:"Churn", cor:"var(--alert-text)" },
-  { value:"entrada", label:"Entrada", cor:"#eab308" /* warning */ },
-  { value:"debito", label:"Em Débito", cor:"#f97316" },
+  { value:"entrada", label:"Entrada", cor:"#C2620E" /* warning */ },
+  { value:"debito", label:"Em Débito", cor:"#C2620E" },
   { value:"renovar", label:"Renovar", cor:"var(--brand)" },
 ];
 
@@ -223,11 +223,11 @@ function CelulaRenovacao({ cliente, onRenovou }: { cliente: ControleCliente; onR
       return (
         <div style={{ display:"flex", gap:"4px" }}>
           <button onClick={() => onRenovou(true)}
-            style={{ flex:1, padding:"3px 6px", borderRadius:"4px", border:"1px solid rgba(34,197,94,0.3)", background:"rgba(34,197,94,0.1)", color:"var(--success)", fontSize:"10px", cursor:"pointer", fontWeight:"600" }}>
+            style={{ flex:1, padding:"3px 6px", borderRadius:"4px", border:"1px solid rgba(30,107,82,0.3)", background:"rgba(30,107,82,0.1)", color:"var(--success)", fontSize:"10px", cursor:"pointer", fontWeight:"600" }}>
             Renovou
           </button>
           <button onClick={() => onRenovou(false)}
-            style={{ flex:1, padding:"3px 6px", borderRadius:"4px", border:"1px solid rgba(239,68,68,0.3)", background:"rgba(239,68,68,0.1)", color:"var(--alert-text)", fontSize:"10px", cursor:"pointer", fontWeight:"600" }}>
+            style={{ flex:1, padding:"3px 6px", borderRadius:"4px", border:"1px solid rgba(180,35,24,0.3)", background:"rgba(180,35,24,0.1)", color:"var(--alert-text)", fontSize:"10px", cursor:"pointer", fontWeight:"600" }}>
             Não
           </button>
         </div>
@@ -422,7 +422,7 @@ function PainelPerfil({ cliente, cadastro, todos_cadastros, relatorios, alertas,
         {cadastro ? (
           <>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"16px" }}>
-              <span style={{ fontSize:"11px", color:"var(--success)", background:"rgba(34,197,94,0.1)", padding:"3px 8px", borderRadius:"10px" }}>✓ Cadastro vinculado</span>
+              <span style={{ fontSize:"11px", color:"var(--success)", background:"rgba(30,107,82,0.1)", padding:"3px 8px", borderRadius:"10px" }}>✓ Cadastro vinculado</span>
               <button onClick={()=>setMostraBusca(v=>!v)}
                 style={{ background:"none", border:"1px solid var(--border)", borderRadius:"6px", padding:"4px 10px", cursor:"pointer", color:"var(--text-secondary)", fontSize:"11px" }}>
                 Trocar
@@ -511,7 +511,7 @@ function PainelPerfil({ cliente, cadastro, todos_cadastros, relatorios, alertas,
               <>
                 {relVinculado ? (
                   <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"8px" }}>
-                    <span style={{ fontSize:"12px", color:relVinculado.ativo?"var(--success)":"var(--alert-text)", background:relVinculado.ativo?"rgba(34,197,94,0.1)":"rgba(239,68,68,0.1)", padding:"3px 8px", borderRadius:"10px" }}>
+                    <span style={{ fontSize:"12px", color:relVinculado.ativo?"var(--success)":"var(--alert-text)", background:relVinculado.ativo?"rgba(30,107,82,0.1)":"rgba(180,35,24,0.1)", padding:"3px 8px", borderRadius:"10px" }}>
                       {relVinculado.ativo ? "✓ Ativo" : "✗ Inativo"}
                     </span>
                     <span style={{ fontSize:"12px", color:"var(--navy)", flex:1 }}>{relVinculado.nome_cliente || relVinculado.nome}</span>
@@ -1175,7 +1175,7 @@ export default function ControleClientesPage() {
           {(() => {
             const qtd = clientes.filter(semFinanceiro).length;
             return qtd > 0 ? (
-              <button onClick={()=>setFiltraSemFinanceiro(v=>!v)} style={{ background: filtraSemFinanceiro ? "rgba(239,68,68,0.08)" : "var(--hover-row)", border:`1px solid ${filtraSemFinanceiro?"var(--alert-text)":"var(--border)"}`, borderRadius:"8px", padding:"7px 12px", cursor:"pointer", color: filtraSemFinanceiro ? "var(--alert-text)" : "var(--caution-text)", fontWeight:"600", fontSize:"12px", display:"flex", alignItems:"center", gap:"6px" }}
+              <button onClick={()=>setFiltraSemFinanceiro(v=>!v)} style={{ background: filtraSemFinanceiro ? "rgba(180,35,24,0.08)" : "var(--hover-row)", border:`1px solid ${filtraSemFinanceiro?"var(--alert-text)":"var(--border)"}`, borderRadius:"8px", padding:"7px 12px", cursor:"pointer", color: filtraSemFinanceiro ? "var(--alert-text)" : "var(--caution-text)", fontWeight:"600", fontSize:"12px", display:"flex", alignItems:"center", gap:"6px" }}
                 title="Clientes no controle mas sem cadastro no financeiro">
                 ⚠ {qtd} sem financeiro
               </button>
@@ -1208,7 +1208,7 @@ export default function ControleClientesPage() {
           { label:"Clientes Totais", value:clientes.length, cor:"var(--navy)" },
           { label:"Clientes Ativos", value:ativos.length, cor:"var(--success)" },
           { label:"Pausados", value:pausados.length, cor:"var(--caution-text)" },
-          { label:"Em Entrada", value:entrada.length, cor:"#eab308" /* warning */ },
+          { label:"Em Entrada", value:entrada.length, cor:"#C2620E" /* warning */ },
           { label:`Base ${mesPassadoStr}`, value: basePassada || "—", cor:"var(--brand)" },
           { label:"Tempo Médio (meses)", value:tempoMedioDias > 0 ? tempoMedioDias.toFixed(1) : "—", cor:"var(--navy)" },
           { label:`Churn ${mesAtualStr2}`, value: churnsMes.filter((c:any) => c.data_churn === mesAtualStr2).length, cor:"var(--alert-text)" },
@@ -1319,7 +1319,7 @@ export default function ControleClientesPage() {
             {diasPorCliente.length > 0 && (
               <div style={{ display:"flex", flexWrap:"wrap", gap:"6px" }}>
                 {diasPorCliente.map(c => (
-                  <span key={c.nome} style={{ fontSize:"11px", padding:"2px 8px", borderRadius:"12px", background:c.dias <= metaDiasInicio ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", color:c.dias <= metaDiasInicio ? "var(--success)" : "var(--alert-text)", border:`1px solid ${c.dias <= metaDiasInicio ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}` }}>
+                  <span key={c.nome} style={{ fontSize:"11px", padding:"2px 8px", borderRadius:"12px", background:c.dias <= metaDiasInicio ? "rgba(30,107,82,0.1)" : "rgba(180,35,24,0.1)", color:c.dias <= metaDiasInicio ? "var(--success)" : "var(--alert-text)", border:`1px solid ${c.dias <= metaDiasInicio ? "rgba(30,107,82,0.2)" : "rgba(180,35,24,0.2)"}` }}>
                     {c.nome}: {c.dias}d
                   </span>
                 ))}
@@ -1340,7 +1340,7 @@ export default function ControleClientesPage() {
               {/* Coluna Info. Cliente */}
               <th style={{ padding:"10px 8px", textAlign:"center", fontSize:"11px", color:"var(--text-secondary)", fontWeight:"600", width:"60px", whiteSpace:"nowrap" }}>INFO.</th>
               {/* Coluna UTI fixa */}
-              <th style={{ padding:"10px 8px", textAlign:"center", fontSize:"11px", color:"var(--alert-text)", fontWeight:"700", width:"48px", whiteSpace:"nowrap", borderLeft:"1px solid rgba(239,68,68,0.18)" }}>UTI</th>
+              <th style={{ padding:"10px 8px", textAlign:"center", fontSize:"11px", color:"var(--alert-text)", fontWeight:"700", width:"48px", whiteSpace:"nowrap", borderLeft:"1px solid rgba(180,35,24,0.18)" }}>UTI</th>
               {colunas.map((col: any)=>(
                 <th key={col.key} className="th-group" style={{ padding:"10px 8px", textAlign:"left", fontSize:"11px", color:"var(--text-secondary)", fontWeight:"600", width:colWidths[col.key]||col.w, position:"relative", whiteSpace:"nowrap", overflow:"hidden", borderLeft:"1px solid rgba(28,108,166,0.12)" }}>
                   {editandoHeader === col.key ? (
@@ -1355,7 +1355,7 @@ export default function ControleClientesPage() {
                         <button onClick={()=>setEditandoHeader(col.key)} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--text-secondary)", padding:"1px" }} title="Renomear">
                           <Pencil size={10}/>
                         </button>
-                        <button onClick={()=>excluirColuna(col.key)} style={{ background:"none", border:"none", cursor:"pointer", color:"rgba(239,68,68,0.5)", padding:"1px" }} title="Excluir coluna">
+                        <button onClick={()=>excluirColuna(col.key)} style={{ background:"none", border:"none", cursor:"pointer", color:"rgba(180,35,24,0.5)", padding:"1px" }} title="Excluir coluna">
                           <Trash2 size={10}/>
                         </button>
                       </span>
@@ -1377,7 +1377,7 @@ export default function ControleClientesPage() {
               <tr><td colSpan={colunas.length+5} style={{ textAlign:"center", color:"var(--text-secondary)", padding:"48px" }}>Nenhum cliente encontrado.</td></tr>
             ) : filtrados.map((c,idx)=>(
               <React.Fragment key={c.id}>
-              <tr style={{ borderBottom:"1px solid rgba(28,108,166,0.18)", background:c.uti?(idx%2===0?"rgba(239,68,68,0.06)":"rgba(239,68,68,0.04)"):(idx%2===0?"transparent":"var(--hover-row)") }}>
+              <tr style={{ borderBottom:"1px solid rgba(28,108,166,0.18)", background:c.uti?(idx%2===0?"rgba(180,35,24,0.06)":"rgba(180,35,24,0.04)"):(idx%2===0?"transparent":"var(--hover-row)") }}>
                 <td style={{ padding:"4px 6px", textAlign:"center" }}>
                   <button onClick={()=>toggleExpandir(c.id)} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--text-secondary)", padding:"2px" }}>
                     {expandidos.has(c.id)?<ChevronDown size={14}/>:<ChevronRight size={14}/>}
@@ -1431,7 +1431,7 @@ export default function ControleClientesPage() {
                   </button>
                 </td>
                 {/* Célula UTI fixa */}
-                <td style={{ padding:"2px 4px", textAlign:"center", width:"48px", borderLeft:"1px solid rgba(239,68,68,0.18)" }}>
+                <td style={{ padding:"2px 4px", textAlign:"center", width:"48px", borderLeft:"1px solid rgba(180,35,24,0.18)" }}>
                   <button
                     onClick={()=>atualizar(c.id,"uti",!c.uti,c.nome)}
                     title={c.uti ? "Remover da UTI" : "Enviar para UTI"}
@@ -1480,7 +1480,7 @@ export default function ControleClientesPage() {
                     ) : col.key==="fixados" ? (
                       <select value={(c as any).fixados||""} onChange={e=>atualizar(c.id,"fixados",e.target.value,c.nome)}
                         style={{
-                          background: (c as any).fixados==="sim"?"rgba(34,197,94,0.1)":(c as any).fixados==="nao"?"rgba(239,68,68,0.1)":"var(--hover-row)",
+                          background: (c as any).fixados==="sim"?"rgba(30,107,82,0.1)":(c as any).fixados==="nao"?"rgba(180,35,24,0.1)":"var(--hover-row)",
                           border:"1px solid var(--border)", borderRadius:"4px", padding:"3px 6px",
                           color:(c as any).fixados==="sim"?"var(--success)":(c as any).fixados==="nao"?"var(--alert-text)":"var(--text-secondary)",
                           fontSize:"12px", cursor:"pointer", width:"100%", fontWeight:600,
@@ -1523,7 +1523,7 @@ export default function ControleClientesPage() {
                     ) : col.key==="resposta_planilha" ? (
                       <select value={(c as any).resposta_planilha||""} onChange={e=>atualizar(c.id,"resposta_planilha",e.target.value,c.nome)}
                         style={{
-                          background: (c as any).resposta_planilha==="sim"?"rgba(34,197,94,0.1)":(c as any).resposta_planilha==="parcialmente"?"rgba(245,158,11,0.08)":(c as any).resposta_planilha==="nao"?"rgba(239,68,68,0.1)":"var(--hover-row)",
+                          background: (c as any).resposta_planilha==="sim"?"rgba(30,107,82,0.1)":(c as any).resposta_planilha==="parcialmente"?"rgba(194,98,14,0.08)":(c as any).resposta_planilha==="nao"?"rgba(180,35,24,0.1)":"var(--hover-row)",
                           border:"1px solid var(--border)", borderRadius:"4px", padding:"3px 6px",
                           color:(c as any).resposta_planilha==="sim"?"var(--success)":(c as any).resposta_planilha==="parcialmente"?"var(--caution-text)":(c as any).resposta_planilha==="nao"?"var(--alert-text)":"var(--text-secondary)",
                           fontSize:"12px", cursor:"pointer", width:"100%", fontWeight:600,

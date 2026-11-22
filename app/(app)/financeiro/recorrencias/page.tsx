@@ -169,7 +169,7 @@ function RecModal({ rec, onClose, onSave }: { rec?: Recorrencia; onClose:()=>voi
                 <button key={t} onClick={() => set("tipo", t)} style={{
                   flex:1, padding:"10px", borderRadius:"8px", cursor:"pointer",
                   border:`1px solid ${form.tipo===t?(t==="entrada"?"var(--brand)":"var(--alert-text)"):"var(--border)"}`,
-                  background:form.tipo===t?(t==="entrada"?"rgba(41,171,226,0.1)":"rgba(239,68,68,0.1)"):"#E6EBF0",
+                  background:form.tipo===t?(t==="entrada"?"rgba(41,171,226,0.1)":"rgba(180,35,24,0.1)"):"#E6EBF0",
                   color:form.tipo===t?(t==="entrada"?"var(--brand)":"var(--alert-text)"):"var(--text-secondary)",
                   fontSize:"13px", fontWeight:"500",
                 }}>

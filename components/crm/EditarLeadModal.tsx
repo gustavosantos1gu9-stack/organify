@@ -148,7 +148,7 @@ export default function EditarLeadModal({ lead, onClose, onSave }: EditarLeadMod
                     onClick={() => isDone && setStep(n)}>
                     {isDone ? <Check size={14} /> : n}
                   </div>
-                  <span style={{ fontSize: "11px", color: isActive ? "#22c55e" : isDone ? "#22c55e" : "#4A5B6C", whiteSpace: "nowrap" }}>
+                  <span style={{ fontSize: "11px", color: isActive ? "#1E6B52" : isDone ? "#1E6B52" : "#4A5B6C", whiteSpace: "nowrap" }}>
                     {label}
                   </span>
                 </div>
@@ -262,7 +262,7 @@ export default function EditarLeadModal({ lead, onClose, onSave }: EditarLeadMod
                         padding: "8px 16px", background: "none", border: "none", cursor: "pointer",
                         fontSize: "13px", fontWeight: "500",
                         color: abaAtividade === aba.key ? "#0A1826" : "#4A5B6C",
-                        borderBottom: abaAtividade === aba.key ? "2px solid #22c55e" : "2px solid transparent",
+                        borderBottom: abaAtividade === aba.key ? "2px solid #1E6B52" : "2px solid transparent",
                         marginBottom: "-1px", display: "flex", alignItems: "center", gap: "6px",
                       }}>
                       {aba.label}
@@ -281,7 +281,7 @@ export default function EditarLeadModal({ lead, onClose, onSave }: EditarLeadMod
                     )}
                     {comentarios.map((c, i) => (
                       <div key={i} style={{ display: "flex", gap: "10px" }}>
-                        <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "#22c55e", color: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700", flexShrink: 0 }}>G</div>
+                        <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "#1E6B52", color: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700", flexShrink: 0 }}>G</div>
                         <div style={{ flex: 1, background: "#FFFFFF", borderRadius: "8px", padding: "10px 12px" }}>
                           <p style={{ fontSize: "13px", color: "#0A1826", marginBottom: "4px" }}>{c.texto}</p>
                           <p style={{ fontSize: "11px", color: "#4A5B6C" }}>{c.data}</p>
@@ -289,7 +289,7 @@ export default function EditarLeadModal({ lead, onClose, onSave }: EditarLeadMod
                       </div>
                     ))}
                     <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
-                      <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "#22c55e", color: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700", flexShrink: 0 }}>G</div>
+                      <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "#1E6B52", color: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700", flexShrink: 0 }}>G</div>
                       <div style={{ flex: 1 }}>
                         <textarea className="form-input" placeholder="Adicione um comentário..." value={comentario} onChange={(e) => setComentario(e.target.value)} rows={3} style={{ resize: "none", marginBottom: "8px" }} />
                         <div style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -319,7 +319,7 @@ export default function EditarLeadModal({ lead, onClose, onSave }: EditarLeadMod
 
                     {/* Lead criado */}
                     <div style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
-                      <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "rgba(34,197,94,0.15)", color: "#22c55e", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700", flexShrink: 0 }}>G</div>
+                      <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "rgba(30,107,82,0.15)", color: "#1E6B52", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700", flexShrink: 0 }}>G</div>
                       <div style={{ flex: 1, background: "#FFFFFF", borderRadius: "8px", padding: "10px 14px" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
                           <span style={{ fontSize: "13px", fontWeight: "500" }}>Gustavo</span>
@@ -334,7 +334,7 @@ export default function EditarLeadModal({ lead, onClose, onSave }: EditarLeadMod
                       <p style={{ fontSize: "13px", color: "#4A5B6C", textAlign: "center", padding: "12px 0" }}>Nenhuma mudança de etapa registrada.</p>
                     ) : historico.map((h) => (
                       <div key={h.id} style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
-                        <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "rgba(59,130,246,0.15)", color: "#3b82f6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700", flexShrink: 0 }}>G</div>
+                        <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "rgba(28,108,166,0.15)", color: "#1C6CA6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700", flexShrink: 0 }}>G</div>
                         <div style={{ flex: 1, background: "#FFFFFF", borderRadius: "8px", padding: "10px 14px" }}>
                           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
                             <span style={{ fontSize: "13px", fontWeight: "500" }}>Gustavo</span>
@@ -350,7 +350,7 @@ export default function EditarLeadModal({ lead, onClose, onSave }: EditarLeadMod
                             </div>
                             <div style={{ background: "#E6EBF0", borderRadius: "6px", padding: "8px 10px" }}>
                               <p style={{ fontSize: "11px", color: "#4A5B6C", marginBottom: "4px" }}>Novo valor:</p>
-                              <p style={{ fontSize: "12px", color: "#22c55e" }}>{getEtapaLabel(h.etapa_nova)}</p>
+                              <p style={{ fontSize: "12px", color: "#1E6B52" }}>{getEtapaLabel(h.etapa_nova)}</p>
                             </div>
                           </div>
                         </div>
@@ -377,7 +377,7 @@ export default function EditarLeadModal({ lead, onClose, onSave }: EditarLeadMod
                       <div key={i} style={{ display: "flex", alignItems: "center", gap: "8px", background: "#FFFFFF", borderRadius: "8px", padding: "8px 12px" }}>
                         <input type="date" className="form-input" value={f} style={{ flex: 1, fontSize: "12px", padding: "4px 8px" }} readOnly />
                         <button onClick={() => setFollowups((prev) => prev.filter((_, idx) => idx !== i))}
-                          style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: "4px" }}>
+                          style={{ background: "none", border: "none", color: "#B42318", cursor: "pointer", padding: "4px" }}>
                           <X size={14} />
                         </button>
                       </div>

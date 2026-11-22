@@ -92,21 +92,21 @@ export default function WhatsAppStatusPage() {
       {/* KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "16px", marginBottom: "28px" }}>
         <div className="card" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: "12px" }}>
-          <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(34,197,94,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <CheckCircle2 size={18} color="#22c55e" />
+          <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(30,107,82,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <CheckCircle2 size={18} color="#1E6B52" />
           </div>
           <div>
             <p style={{ fontSize: 11, color: "#4A5B6C", margin: 0 }}>Sem alertas</p>
-            <p style={{ fontSize: 22, fontWeight: 700, color: "#22c55e", margin: 0 }}>{totalOk}</p>
+            <p style={{ fontSize: 22, fontWeight: 700, color: "#1E6B52", margin: 0 }}>{totalOk}</p>
           </div>
         </div>
         <div className="card" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: "12px" }}>
-          <div style={{ width: 36, height: 36, borderRadius: 8, background: alertasAbertos ? "rgba(239,68,68,0.15)" : "rgba(100,100,100,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <AlertTriangle size={18} color={alertasAbertos ? "#ef4444" : "#4A5B6C"} />
+          <div style={{ width: 36, height: 36, borderRadius: 8, background: alertasAbertos ? "rgba(180,35,24,0.15)" : "rgba(100,100,100,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <AlertTriangle size={18} color={alertasAbertos ? "#B42318" : "#4A5B6C"} />
           </div>
           <div>
             <p style={{ fontSize: 11, color: "#4A5B6C", margin: 0 }}>Alertas abertos</p>
-            <p style={{ fontSize: 22, fontWeight: 700, color: alertasAbertos ? "#ef4444" : "#0A1826", margin: 0 }}>{alertasAbertos}</p>
+            <p style={{ fontSize: 22, fontWeight: 700, color: alertasAbertos ? "#B42318" : "#0A1826", margin: 0 }}>{alertasAbertos}</p>
           </div>
         </div>
         <div className="card" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: "12px" }}>
@@ -122,17 +122,17 @@ export default function WhatsAppStatusPage() {
 
       {/* Alertas ativos */}
       {alertasAbertos > 0 && (
-        <div style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 8, padding: "16px 20px", marginBottom: "20px" }}>
+        <div style={{ background: "rgba(180,35,24,0.08)", border: "1px solid rgba(180,35,24,0.3)", borderRadius: 8, padding: "16px 20px", marginBottom: "20px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <AlertTriangle size={16} color="#ef4444" />
-            <strong style={{ color: "#ef4444", fontSize: 14 }}>Alertas ativos</strong>
+            <AlertTriangle size={16} color="#B42318" />
+            <strong style={{ color: "#B42318", fontSize: 14 }}>Alertas ativos</strong>
           </div>
           {instancias.filter(i => i.alertas_abertos.length > 0).map(i =>
             i.alertas_abertos.map(a => (
-              <div key={`${i.instancia}-${a.tipo}`} style={{ marginBottom: 10, paddingBottom: 10, borderBottom: "1px solid rgba(239,68,68,0.15)" }}>
+              <div key={`${i.instancia}-${a.tipo}`} style={{ marginBottom: 10, paddingBottom: 10, borderBottom: "1px solid rgba(180,35,24,0.15)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
                   <TipoIcon tipo={a.tipo} />
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "#ef4444" }}>{tipoLabel(a.tipo)}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "#B42318" }}>{tipoLabel(a.tipo)}</span>
                   <span style={{ fontSize: 11, color: "#4A5B6C" }}>· {i.nome} ({i.instancia})</span>
                 </div>
                 <p style={{ margin: "2px 0 0 18px", fontSize: 12, color: "#4A5B6C" }}>{a.mensagem}</p>
@@ -175,13 +175,13 @@ export default function WhatsAppStatusPage() {
                 </td>
                 <td>
                   {inst.alertas_abertos.length === 0 ? (
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, padding: "3px 10px", borderRadius: 20, fontWeight: 600, background: "rgba(34,197,94,0.1)", color: "#22c55e" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, padding: "3px 10px", borderRadius: 20, fontWeight: 600, background: "rgba(30,107,82,0.1)", color: "#1E6B52" }}>
                       <CheckCircle2 size={11} /> OK
                     </span>
                   ) : (
                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                       {inst.alertas_abertos.map(a => (
-                        <span key={a.tipo} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, padding: "2px 8px", borderRadius: 20, fontWeight: 600, background: "rgba(239,68,68,0.15)", color: "#ef4444", width: "fit-content" }}>
+                        <span key={a.tipo} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, padding: "2px 8px", borderRadius: 20, fontWeight: 600, background: "rgba(180,35,24,0.15)", color: "#B42318", width: "fit-content" }}>
                           <TipoIcon tipo={a.tipo} /> {tipoLabel(a.tipo)}
                         </span>
                       ))}

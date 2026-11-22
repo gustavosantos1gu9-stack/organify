@@ -58,8 +58,8 @@ function StatusSelect({ cliente, onRefresh }: { cliente: Cliente; onRefresh: () 
 
   const opcoes = [
     { value:"ativo", label:"Ativo", color:"#1C6CA6" },
-    { value:"pendencia", label:"Pendência", color:"#f59e0b" },
-    { value:"saiu", label:"Saiu", color:"#ef4444" },
+    { value:"pendencia", label:"Pendência", color:"#C2620E" },
+    { value:"saiu", label:"Saiu", color:"#B42318" },
   ];
 
   const atual = opcoes.find(o => o.value === sr) || opcoes[0];
@@ -256,7 +256,7 @@ function ModalRecorrencia({ cliente, onClose, onSucesso }: { cliente: Cliente; o
               {salvando ? "Criando..." : "Criar Recorrência e Lançamentos"}
             </button>
           )}
-          {sucesso && <p style={{ color:"#22c55e", fontSize:"12px", margin:0, textAlign:"center" }}>{sucesso}</p>}
+          {sucesso && <p style={{ color:"#1E6B52", fontSize:"12px", margin:0, textAlign:"center" }}>{sucesso}</p>}
 
           {recorrencias.length > 0 && (
             <div style={{ marginTop:"8px", borderTop:"1px solid #E6EBF0", paddingTop:"12px" }}>
@@ -267,7 +267,7 @@ function ModalRecorrencia({ cliente, onClose, onSucesso }: { cliente: Cliente; o
                     <p style={{ fontSize:"13px", color:"#0A1826", margin:0 }}>{r.descricao}</p>
                     <p style={{ fontSize:"11px", color:"#4A5B6C", margin:0 }}>Dia {r.dia_vencimento} • {r.periodicidade}</p>
                   </div>
-                  <span style={{ fontSize:"13px", color:"#22c55e", fontWeight:"600" }}>R$ {Number(r.valor).toFixed(2)}</span>
+                  <span style={{ fontSize:"13px", color:"#1E6B52", fontWeight:"600" }}>R$ {Number(r.valor).toFixed(2)}</span>
                 </div>
               ))}
             </div>
@@ -490,7 +490,7 @@ export default function ClientesPage() {
             }).length;
             return qtd > 0 ? (
               <button onClick={() => setFiltraSemControle(v => !v)}
-                style={{ background: filtraSemControle ? "#ef444420" : "#FFFFFF", border: `1px solid ${filtraSemControle ? "#ef4444" : "#E6EBF0"}`, borderRadius:"8px", padding:"7px 12px", cursor:"pointer", color: filtraSemControle ? "#ef4444" : "#f59e0b", fontWeight:"600", fontSize:"12px", display:"flex", alignItems:"center", gap:"6px" }}
+                style={{ background: filtraSemControle ? "#ef444420" : "#FFFFFF", border: `1px solid ${filtraSemControle ? "#B42318" : "#E6EBF0"}`, borderRadius:"8px", padding:"7px 12px", cursor:"pointer", color: filtraSemControle ? "#B42318" : "#C2620E", fontWeight:"600", fontSize:"12px", display:"flex", alignItems:"center", gap:"6px" }}
                 title="Clientes no financeiro mas sem cadastro no controle de clientes">
                 ⚠ {qtd} sem controle
               </button>
@@ -578,7 +578,7 @@ export default function ClientesPage() {
                   <td style={{ color:"#4A5B6C" }}>{new Date(c.created_at).toLocaleDateString("pt-BR")}</td>
                   <td>
                     <div style={{ display:"flex",gap:"6px" }}>
-                      <button className="btn-ghost" style={{ padding:"5px 8px", color: clientesComRec.has(c.id) ? "#22c55e" : undefined }} title={clientesComRec.has(c.id) ? "Recorrência ativa" : "Criar recorrência"} onClick={() => setRecCliente(c)}>
+                      <button className="btn-ghost" style={{ padding:"5px 8px", color: clientesComRec.has(c.id) ? "#1E6B52" : undefined }} title={clientesComRec.has(c.id) ? "Recorrência ativa" : "Criar recorrência"} onClick={() => setRecCliente(c)}>
                         <Repeat size={13}/>
                       </button>
                       <a href={`/clientes/${c.id}`} className="btn-ghost" style={{ padding:"5px 8px", textDecoration:"none", display:"flex", alignItems:"center", gap:"4px", fontSize:"12px" }} title="Ver detalhes">

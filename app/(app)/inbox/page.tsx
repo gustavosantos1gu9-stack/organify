@@ -66,7 +66,7 @@ function formatarData(d: string) {
 }
 
 function Avatar({ nome, foto, size=32 }: { nome: string; foto?: string; size?: number }) {
-  const cores = ["var(--brand)","#3b82f6","var(--oscillating-text)","var(--caution-text)","#ec4899","#06b6d4","var(--alert-text)"];
+  const cores = ["var(--brand)","#1C6CA6","var(--oscillating-text)","var(--caution-text)","#B4387A","#2A8FA8","var(--alert-text)"];
   const cor = cores[(nome||"").charCodeAt(0) % cores.length];
   if (foto) return <img src={foto} alt={nome} style={{ width:size, height:size, borderRadius:"50%", objectFit:"cover", flexShrink:0 }}/>;
   return <div style={{ width:size, height:size, borderRadius:"50%", background:cor, display:"flex", alignItems:"center", justifyContent:"center", fontSize:size*0.38, fontWeight:"700", color:"#fff", flexShrink:0 }}>{(nome||"?").charAt(0).toUpperCase()}</div>;
@@ -1379,21 +1379,18 @@ export default function InboxPage() {
       {/* KPIs clicáveis */}
       <div style={{ display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:"10px",marginBottom:"20px" }}>
         {[
-          {icon:"💬",label:"Total",value:kpis.total,filtro:""},
-          {icon:"🔷",label:"Meta Ads",value:kpis.meta,filtro:"Meta Ads"},
-          {icon:"📋",label:"Formulário Meta",value:kpis.formulario,filtro:"Formulário Meta"},
-          {icon:"🔺",label:"Google Ads",value:kpis.google,filtro:"Google Ads"},
-          {icon:"🌐",label:"Outras",value:kpis.outras,filtro:"Outras Origens"},
-          {icon:"❌",label:"Não Rastreada",value:kpis.naoRastreada,filtro:"Não Rastreada"},
+          {icon:"#0A1826",label:"Total",value:kpis.total,filtro:""},
+          {icon:"#1C6CA6",label:"Meta Ads",value:kpis.meta,filtro:"Meta Ads"},
+          {icon:"#144E73",label:"Formulário Meta",value:kpis.formulario,filtro:"Formulário Meta"},
+          {icon:"#C2620E",label:"Google Ads",value:kpis.google,filtro:"Google Ads"},
+          {icon:"#8CC6EC",label:"Outras",value:kpis.outras,filtro:"Outras Origens"},
+          {icon:"#CBD5DF",label:"Não Rastreada",value:kpis.naoRastreada,filtro:"Não Rastreada"},
         ].map(k=>(
           <div key={k.label} className="card" style={{ padding:"12px 14px",cursor:"pointer",borderColor:filtros.origem===k.filtro&&k.filtro?"var(--brand)":"" }}
             onClick={()=>setFiltros((f:any)=>({...f,origem:f.origem===k.filtro?"":k.filtro}))}>
-            <div style={{ display:"flex",alignItems:"center",gap:"8px" }}>
-              <span style={{ fontSize:"18px" }}>{k.icon}</span>
-              <div>
-                <p style={{ fontSize:"11px",color:"var(--text-secondary)",margin:0 }}>{k.label}</p>
-                <p style={{ fontSize:"22px",fontWeight:"700",color:"var(--navy)",margin:0,lineHeight:1 }}>{k.value}</p>
-              </div>
+            <div style={{ display:"flex",flexDirection:"column",gap:"6px" }}>
+              <p style={{ fontSize:"13px",color:"var(--ink-2)",margin:0,display:"flex",alignItems:"center",gap:"6px" }}><span style={{ width:"8px",height:"8px",borderRadius:"50%",background:k.icon,flex:"none" }}/>{k.label}</p>
+              <p className="font-title" style={{ fontSize:"26px",fontWeight:600,color:"var(--navy)",margin:0,lineHeight:1.1 }}>{k.value}</p>
             </div>
           </div>
         ))}

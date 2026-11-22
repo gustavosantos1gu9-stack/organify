@@ -149,7 +149,7 @@ function AgenciaModal({ item, onClose, onSave }: { item?: Agencia; onClose: () =
           </div>
         </div>
         {erro && (
-          <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "8px", padding: "10px 14px", fontSize: "13px", color: "#ef4444", marginTop: "12px" }}>{erro}</div>
+          <div style={{ background: "rgba(180,35,24,0.1)", border: "1px solid rgba(180,35,24,0.25)", borderRadius: "8px", padding: "10px 14px", fontSize: "13px", color: "#B42318", marginTop: "12px" }}>{erro}</div>
         )}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "24px" }}>
           <button className="btn-secondary" onClick={onClose} style={{ cursor: "pointer" }}>Cancelar</button>
@@ -207,7 +207,7 @@ function UserModal({ agenciaId, agenciaNome, onClose, onSave }: { agenciaId: str
           </div>
         </div>
         {erro && (
-          <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "8px", padding: "10px 14px", fontSize: "13px", color: "#ef4444", marginTop: "12px" }}>{erro}</div>
+          <div style={{ background: "rgba(180,35,24,0.1)", border: "1px solid rgba(180,35,24,0.25)", borderRadius: "8px", padding: "10px 14px", fontSize: "13px", color: "#B42318", marginTop: "12px" }}>{erro}</div>
         )}
         <p style={{ fontSize: "11px", color: "#4A5B6C", marginTop: "12px" }}>O usuário receberá um email de convite para acessar a plataforma.</p>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "20px" }}>
@@ -365,7 +365,7 @@ export default function ClientesSaasPage() {
                               {u._acesso_externo && (
                                 <span style={{
                                   fontSize: "10px", padding: "2px 8px", borderRadius: "12px",
-                                  background: "rgba(168,85,247,0.15)", color: "#a855f7",
+                                  background: "rgba(168,85,247,0.15)", color: "#6B4FC8",
                                 }}>Equipe</span>
                               )}
                               <span style={{
@@ -401,7 +401,7 @@ export default function ClientesSaasPage() {
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && !deletando && setConfirmDelete(null)}>
           <div className="modal animate-in" style={{ maxWidth: "440px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-              <h2 style={{ fontSize: "17px", fontWeight: "600", color: "#ef4444" }}>Excluir Cliente</h2>
+              <h2 style={{ fontSize: "17px", fontWeight: "600", color: "#B42318" }}>Excluir Cliente</h2>
               <button onClick={() => !deletando && setConfirmDelete(null)} className="btn-ghost" style={{ padding: "6px", cursor: "pointer" }}><X size={16} /></button>
             </div>
             <p style={{ fontSize: "13px", color: "#4A5B6C", lineHeight: "1.6", marginBottom: "8px" }}>
@@ -415,7 +415,7 @@ export default function ClientesSaasPage() {
               <li>Configurações de jornada e automações</li>
             </ul>
             <p style={{ fontSize: "12px", color: "#4A5B6C", marginBottom: "6px" }}>
-              Esta ação <strong style={{ color: "#ef4444" }}>não pode ser desfeita</strong> e não afeta nenhuma outra agência.
+              Esta ação <strong style={{ color: "#B42318" }}>não pode ser desfeita</strong> e não afeta nenhuma outra agência.
             </p>
             <p style={{ fontSize: "12px", color: "#4A5B6C", marginBottom: "8px" }}>
               Digite <strong style={{ color: "#0A1826" }}>{confirmDelete.nome}</strong> para confirmar:

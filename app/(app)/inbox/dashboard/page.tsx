@@ -22,9 +22,9 @@ const tooltipStyle = {
 };
 
 const ORIGEM_COLORS: Record<string, string> = {
-  "Meta Ads": "#3b82f6",
-  "Google Ads": "#22c55e",
-  "Link": "#f59e0b",
+  "Meta Ads": "#1C6CA6",
+  "Google Ads": "#1E6B52",
+  "Link": "#C2620E",
   "Não Rastreada": "#4A5B6C",
 };
 
@@ -322,7 +322,7 @@ export default function InboxDashboardPage() {
             ].map((item, i) => (
               <div key={i} style={{ textAlign: "center", padding: "0 16px", borderRight: i < 2 ? "1px solid #E6EBF0" : "none" }}>
                 <p style={{ fontSize: "12px", color: "#4A5B6C", marginBottom: "6px" }}>{item.label}</p>
-                <p style={{ fontSize: "22px", fontWeight: "700", color: item.value === "0.0%" ? "#404040" : "#22c55e" }}>{item.value}</p>
+                <p style={{ fontSize: "22px", fontWeight: "700", color: item.value === "0.0%" ? "#404040" : "#1E6B52" }}>{item.value}</p>
               </div>
             ))}
           </div>
@@ -347,7 +347,7 @@ export default function InboxDashboardPage() {
       {/* ══════════════════════════════════════════════════ */}
       {retornos.length > 0 && (
         <div style={{ marginBottom: "32px" }}>
-          <h2 style={{ fontSize: "16px", fontWeight: "600", marginBottom: "16px", color: "#f59e0b", display: "flex", alignItems: "center", gap: "8px" }}>
+          <h2 style={{ fontSize: "16px", fontWeight: "600", marginBottom: "16px", color: "#C2620E", display: "flex", alignItems: "center", gap: "8px" }}>
             <TrendingUp size={18} /> Retornos de Meses Anteriores
             <span style={{ fontSize: "12px", fontWeight: "400", color: "#4A5B6C" }}>(contatos antigos que agendaram/compareceram/fecharam neste período)</span>
           </h2>
@@ -372,7 +372,7 @@ export default function InboxDashboardPage() {
       {/* ── SEÇÃO 3: TOTAL GERAL ── */}
       {/* ══════════════════════════════════════════════════ */}
       <div style={{ marginBottom: "32px" }}>
-        <h2 style={{ fontSize: "16px", fontWeight: "600", marginBottom: "16px", color: "#22c55e", display: "flex", alignItems: "center", gap: "8px" }}>
+        <h2 style={{ fontSize: "16px", fontWeight: "600", marginBottom: "16px", color: "#1E6B52", display: "flex", alignItems: "center", gap: "8px" }}>
           <Flame size={18} /> Total Geral do Período
         </h2>
 
@@ -394,7 +394,7 @@ export default function InboxDashboardPage() {
             ].map((item, i) => (
               <div key={i} style={{ textAlign: "center", padding: "0 16px", borderRight: i < 2 ? "1px solid #E6EBF0" : "none" }}>
                 <p style={{ fontSize: "12px", color: "#4A5B6C", marginBottom: "6px" }}>{item.label}</p>
-                <p style={{ fontSize: "22px", fontWeight: "700", color: item.value === "0.0%" ? "#404040" : "#22c55e" }}>{item.value}</p>
+                <p style={{ fontSize: "22px", fontWeight: "700", color: item.value === "0.0%" ? "#404040" : "#1E6B52" }}>{item.value}</p>
               </div>
             ))}
           </div>
@@ -438,9 +438,9 @@ export default function InboxDashboardPage() {
               <XAxis dataKey="dia" tick={{ fontSize: 10, fill: "#4A5B6C" }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: "#4A5B6C" }} axisLine={false} tickLine={false} allowDecimals={false} />
               <Tooltip contentStyle={tooltipStyle} />
-              <Bar dataKey="Meta Ads" stackId="a" fill="#3b82f6" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="Google Ads" stackId="a" fill="#22c55e" />
-              <Bar dataKey="Link" stackId="a" fill="#f59e0b" />
+              <Bar dataKey="Meta Ads" stackId="a" fill="#1C6CA6" radius={[0, 0, 0, 0]} />
+              <Bar dataKey="Google Ads" stackId="a" fill="#1E6B52" />
+              <Bar dataKey="Link" stackId="a" fill="#C2620E" />
               <Bar dataKey="Não Rastreada" stackId="a" fill="#4A5B6C" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -475,9 +475,9 @@ export default function InboxDashboardPage() {
                     <Cell
                       key={entry.name}
                       fill={
-                        entry.name === "Meta Ads" ? "#3b82f6"
-                        : entry.name === "Google Ads" ? "#22c55e"
-                        : entry.name === "Link Rastreável" ? "#f59e0b"
+                        entry.name === "Meta Ads" ? "#1C6CA6"
+                        : entry.name === "Google Ads" ? "#1E6B52"
+                        : entry.name === "Link Rastreável" ? "#C2620E"
                         : "#4A5B6C"
                       }
                     />
@@ -512,7 +512,7 @@ export default function InboxDashboardPage() {
                       style={{
                         height: "32px",
                         width: `${widthPct}%`,
-                        background: `linear-gradient(to right, #1C6CA6 ${novosPct}%, #f59e0b ${novosPct}%)`,
+                        background: `linear-gradient(to right, #1C6CA6 ${novosPct}%, #C2620E ${novosPct}%)`,
                         borderRadius: "6px",
                         display: "flex",
                         alignItems: "center",
@@ -542,7 +542,7 @@ export default function InboxDashboardPage() {
               <span style={{ fontSize: "11px", color: "#4A5B6C" }}>Novos</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <div style={{ width: "10px", height: "10px", borderRadius: "2px", background: "#f59e0b" }} />
+              <div style={{ width: "10px", height: "10px", borderRadius: "2px", background: "#C2620E" }} />
               <span style={{ fontSize: "11px", color: "#4A5B6C" }}>Retornos</span>
             </div>
           </div>
@@ -591,7 +591,7 @@ export default function InboxDashboardPage() {
                   width={160}
                 />
                 <Tooltip contentStyle={tooltipStyle} />
-                <Bar dataKey="value" fill="#22c55e" radius={[0, 4, 4, 0]} name="Conversas" />
+                <Bar dataKey="value" fill="#1E6B52" radius={[0, 4, 4, 0]} name="Conversas" />
               </BarChart>
             </ResponsiveContainer>
           ) : (

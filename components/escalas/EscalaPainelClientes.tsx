@@ -40,7 +40,7 @@ const PRIORIDADES = ["Urgente", "Alta", "Media", "Baixa"] as const;
 
 const PRIO: Record<string, { cor: string; bg: string; label: string }> = {
   Urgente: { cor: "var(--alert-text)", bg: "var(--alert-bg)", label: "Urgente" },
-  Alta:    { cor: "#f97316", bg: "rgba(249,115,22,0.14)", label: "Alta" },
+  Alta:    { cor: "#C2620E", bg: "rgba(249,115,22,0.14)", label: "Alta" },
   Media:   { cor: "var(--caution-text)", bg: "var(--caution-bg)", label: "Média" },
   Baixa:   { cor: "var(--success)", bg: "var(--success-bg)", label: "Baixa" },
 };
@@ -57,7 +57,7 @@ const JORNADAS: { value: string; label: string; cor: string; bg: string; descric
     descricao: ["Sem mensagem", "Pouca mensagem", "Custo alto", "Não bate os dados com o tráfego"],
   },
   {
-    value: "etapa1", label: "Fase 1", cor: "#f97316", bg: "rgba(249,115,22,0.12)",
+    value: "etapa1", label: "Fase 1", cor: "#C2620E", bg: "rgba(249,115,22,0.12)",
     descricao: ["Bom custo por oportunidade", "Chegando mensagens igual o gerenciador"],
   },
   {
@@ -73,7 +73,7 @@ const JORNADAS: { value: string; label: string; cor: string; bg: string; descric
     descricao: ["Escala"],
   },
   {
-    value: "resultado_oscilando", label: "Oscilando", cor: "#a855f7", bg: "rgba(168,85,247,0.12)",
+    value: "resultado_oscilando", label: "Oscilando", cor: "#6B4FC8", bg: "rgba(168,85,247,0.12)",
     descricao: ["Resultado oscilando"],
   },
 ];
@@ -445,7 +445,7 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
 
   const selectInline = (cor?: string): React.CSSProperties => ({
     background: "transparent", border: "none",
-    color: cor || "#c0c0c0", fontSize: "12px", fontWeight: "500",
+    color: cor || "#7E93A8", fontSize: "12px", fontWeight: "500",
     cursor: "pointer", fontFamily: "inherit", outline: "none",
     padding: "0", maxWidth: "120px",
   });
@@ -493,7 +493,7 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
             </div>
 
             {totalUti > 0 && (
-              <div style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "10px", padding: "14px 20px", minWidth: "120px" }}>
+              <div style={{ background: "rgba(180,35,24,0.08)", border: "1px solid rgba(180,35,24,0.25)", borderRadius: "10px", padding: "14px 20px", minWidth: "120px" }}>
                 <div style={{ fontSize: "11px", color: "#a05050", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>UTI</div>
                 <div style={{ fontSize: "26px", fontWeight: "700", color: "var(--alert-text)", lineHeight: 1 }}>{totalUti}</div>
                 <div style={{ fontSize: "11px", color: "#a05050", marginTop: "6px" }}>em atenção crítica</div>
@@ -723,7 +723,7 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
                           onClick={() => toggleUti(cliente.id, cliente.uti)}
                           title={cliente.uti ? "Remover da UTI" : "Colocar na UTI (Urgente)"}
                           style={{
-                            background: cliente.uti ? "rgba(239,68,68,0.18)" : "transparent",
+                            background: cliente.uti ? "rgba(180,35,24,0.18)" : "transparent",
                             border: `1px solid ${cliente.uti ? "var(--alert-text)" : "var(--border)"}`,
                             borderRadius: "5px", padding: "2px 6px", cursor: "pointer",
                             fontSize: "10px", fontWeight: "700",

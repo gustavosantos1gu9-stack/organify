@@ -19,8 +19,8 @@ interface Anotacao {
 }
 
 const STATUS_CORES: Record<string, string> = {
-  ativo: "#1C6CA6", saiu: "#ef4444", pausado: "#f59e0b",
-  pendencia: "#f59e0b", prospecto: "#8b5cf6",
+  ativo: "#1C6CA6", saiu: "#B42318", pausado: "#C2620E",
+  pendencia: "#C2620E", prospecto: "#6B4FC8",
 };
 
 export default function ClienteDetalhePage() {
@@ -192,8 +192,8 @@ export default function ClienteDetalhePage() {
                 </div>
               ))}
               {cliente.status_recorrencia === "saiu" && cliente.motivo_churn && (
-                <div style={{ background:"rgba(239,68,68,0.08)", border:"1px solid rgba(239,68,68,0.2)", borderRadius:"8px", padding:"10px 12px" }}>
-                  <p style={{ fontSize:"11px", color:"#ef4444", margin:"0 0 4px" }}>
+                <div style={{ background:"rgba(180,35,24,0.08)", border:"1px solid rgba(180,35,24,0.2)", borderRadius:"8px", padding:"10px 12px" }}>
+                  <p style={{ fontSize:"11px", color:"#B42318", margin:"0 0 4px" }}>
                     <TrendingDown size={12} style={{ display:"inline", marginRight:"4px" }}/>Motivo do Churn
                   </p>
                   <p style={{ fontSize:"13px", color:"#0A1826", margin:0 }}>{cliente.motivo_churn}</p>

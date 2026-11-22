@@ -34,7 +34,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "radial-gradient(ellipse at 60% 30%, rgba(28,108,166,0.18) 0%, var(--navy) 60%)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
+    <div style={{ minHeight: "100vh", background: "linear-gradient(160deg, transparent 0 58%, rgba(28,108,166,.28) 58% 58.3%, transparent 58.3%), radial-gradient(900px 520px at 70% 20%, rgba(28,108,166,.32) 0%, rgba(10,24,38,0) 70%), #0A1826", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
       <div style={{ width: "100%", maxWidth: "380px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px", justifyContent: "center", marginBottom: "40px" }}>
           <img src="/logo-salx.png" alt="SALX Convert" style={{ width: "80px", height: "72px", objectFit: "contain" }}/>
@@ -50,7 +50,7 @@ export default function LoginPage() {
         <div style={{ background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: "16px", padding: "32px", boxShadow: "var(--shadow-modal)" }}>
           <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             {erro && (
-              <div style={{ background: "var(--alert-bg)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "8px", padding: "10px 14px", display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "var(--alert-text)" }}>
+              <div style={{ background: "var(--alert-bg)", border: "1px solid rgba(180,35,24,0.25)", borderRadius: "8px", padding: "10px 14px", display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "var(--alert-text)" }}>
                 <AlertCircle size={14} />{erro}
               </div>
             )}

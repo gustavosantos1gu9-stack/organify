@@ -48,15 +48,15 @@ export default function Filtros({ grupos, valores, onChange, onLimpar }: Filtros
         className="btn-secondary"
         onClick={() => setAberto(true)}
         style={{
-          background: totalAtivos > 0 ? "rgba(34,197,94,0.1)" : undefined,
+          background: totalAtivos > 0 ? "rgba(30,107,82,0.1)" : undefined,
           borderColor: totalAtivos > 0 ? "#22c55e44" : undefined,
-          color: totalAtivos > 0 ? "#22c55e" : undefined,
+          color: totalAtivos > 0 ? "#1E6B52" : undefined,
         }}
       >
         <SlidersHorizontal size={14}/>
         Filtros
         {totalAtivos > 0 && (
-          <span style={{ background:"#22c55e", color:"#000", borderRadius:"50%", width:"16px", height:"16px", fontSize:"10px", fontWeight:"700", display:"flex", alignItems:"center", justifyContent:"center" }}>
+          <span style={{ background:"#1E6B52", color:"#000", borderRadius:"50%", width:"16px", height:"16px", fontSize:"10px", fontWeight:"700", display:"flex", alignItems:"center", justifyContent:"center" }}>
             {totalAtivos}
           </span>
         )}

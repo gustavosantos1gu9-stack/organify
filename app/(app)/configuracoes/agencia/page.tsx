@@ -77,7 +77,7 @@ export default function ConfigAgenciaPage() {
             </>
           )}
           <div style={{ display:"flex",justifyContent:"flex-end",alignItems:"center",gap:"12px" }}>
-            {saved===secao && <span style={{ fontSize:"13px",color:"#22c55e",display:"flex",alignItems:"center",gap:"6px" }}><CheckCircle size={14}/> Salvo!</span>}
+            {saved===secao && <span style={{ fontSize:"13px",color:"#1E6B52",display:"flex",alignItems:"center",gap:"6px" }}><CheckCircle size={14}/> Salvo!</span>}
             <button className="btn-primary" onClick={() => {
               const payload = secao==="geral"?geral:secao==="contato"?contato:end;
               salvar(secao, payload as Record<string,string>);

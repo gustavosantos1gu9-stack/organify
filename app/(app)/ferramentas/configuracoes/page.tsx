@@ -107,7 +107,7 @@ export default function FerramentasConfigPage() {
               style={{
                 display: "flex", alignItems: "center", gap: 8,
                 padding: "10px 20px", borderRadius: 8, border: "none",
-                background: salvo ? "#22c55e" : "#1C6CA6",
+                background: salvo ? "#1E6B52" : "#1C6CA6",
                 color: "#000", fontSize: 14, fontWeight: 700,
                 cursor: "pointer", transition: "background 0.2s",
                 opacity: salvando ? 0.7 : 1,

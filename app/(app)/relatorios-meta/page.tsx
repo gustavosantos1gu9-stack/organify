@@ -445,11 +445,11 @@ export default function RelatoriosMetaPage() {
       {/* Alerta sem conexão */}
       {semConexao && (
         <div style={{
-          background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)",
+          background: "rgba(194,98,14,0.08)", border: "1px solid rgba(194,98,14,0.2)",
           borderRadius: "10px", padding: "16px 20px", marginBottom: "20px",
           display: "flex", alignItems: "center", gap: "12px",
         }}>
-          <AlertCircle size={18} style={{ color: "#f59e0b", flexShrink: 0 }} />
+          <AlertCircle size={18} style={{ color: "#C2620E", flexShrink: 0 }} />
           <div>
             <p style={{ fontSize: "13px", fontWeight: "600", color: "#0A1826" }}>Configure suas conexões primeiro</p>
             <p style={{ fontSize: "12px", color: "#4A5B6C" }}>
@@ -504,7 +504,7 @@ export default function RelatoriosMetaPage() {
               {filtrados.map(rel => (
                 <tr key={rel.id} style={{ borderBottom: "1px solid #FFFFFF" }}>
                   <td style={{ padding: "10px 14px" }}>
-                    <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: rel.ativo ? "#22c55e" : "#ef4444" }} />
+                    <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: rel.ativo ? "#1E6B52" : "#B42318" }} />
                   </td>
                   <td style={{ padding: "10px 14px", color: "#4A5B6C", fontSize: "12px" }}>{fmtData(rel.created_at)}</td>
                   <td style={{ padding: "10px 14px", fontWeight: "600", color: "#0A1826" }}>{rel.nome}</td>
@@ -516,8 +516,8 @@ export default function RelatoriosMetaPage() {
                   <td style={{ padding: "10px 14px" }}>
                     <span style={{
                       fontSize: "11px", padding: "3px 8px", borderRadius: "12px",
-                      background: rel.frequencia === "diario" ? "rgba(41,171,226,0.1)" : rel.frequencia === "semanal" ? "rgba(245,158,11,0.1)" : "rgba(160,160,160,0.1)",
-                      color: rel.frequencia === "diario" ? "#1C6CA6" : rel.frequencia === "semanal" ? "#f59e0b" : "#4A5B6C",
+                      background: rel.frequencia === "diario" ? "rgba(41,171,226,0.1)" : rel.frequencia === "semanal" ? "rgba(194,98,14,0.1)" : "rgba(160,160,160,0.1)",
+                      color: rel.frequencia === "diario" ? "#1C6CA6" : rel.frequencia === "semanal" ? "#C2620E" : "#4A5B6C",
                     }}>{FREQUENCIAS.find(f => f.value === rel.frequencia)?.label || rel.frequencia}</span>
                   </td>
                   <td style={{ padding: "10px 14px", color: "#4A5B6C", fontSize: "12px" }}>{PERIODOS.find(p => p.value === rel.periodo)?.label || rel.periodo}</td>
@@ -537,7 +537,7 @@ export default function RelatoriosMetaPage() {
                         <Edit3 size={13} />
                       </button>
                       <button onClick={() => toggleAtivo(rel)} title={rel.ativo ? "Pausar" : "Ativar"}
-                        style={{ background: "rgba(160,160,160,0.1)", border: "1px solid #E6EBF0", borderRadius: "6px", padding: "6px", cursor: "pointer", color: rel.ativo ? "#f59e0b" : "#22c55e" }}>
+                        style={{ background: "rgba(160,160,160,0.1)", border: "1px solid #E6EBF0", borderRadius: "6px", padding: "6px", cursor: "pointer", color: rel.ativo ? "#C2620E" : "#1E6B52" }}>
                         {rel.ativo ? <Pause size={13} /> : <Play size={13} />}
                       </button>
                       <button onClick={() => duplicar(rel)} title="Duplicar"
@@ -545,7 +545,7 @@ export default function RelatoriosMetaPage() {
                         <Copy size={13} />
                       </button>
                       <button onClick={() => deletar(rel.id)} title="Deletar"
-                        style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "6px", padding: "6px", cursor: "pointer", color: "#ef4444" }}>
+                        style={{ background: "rgba(180,35,24,0.1)", border: "1px solid rgba(180,35,24,0.2)", borderRadius: "6px", padding: "6px", cursor: "pointer", color: "#B42318" }}>
                         <Trash2 size={13} />
                       </button>
                     </div>
@@ -597,8 +597,8 @@ export default function RelatoriosMetaPage() {
                 <p style={{ fontSize: "12px", color: "#4A5B6C" }}>Carregando contas do Facebook...</p>
               ) : erroContas ? (
                 <div>
-                  <div style={{ padding: "12px 14px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "8px", marginBottom: "8px" }}>
-                    <p style={{ fontSize: "12px", color: "#ef4444", marginBottom: "6px" }}>{erroContas}</p>
+                  <div style={{ padding: "12px 14px", background: "rgba(180,35,24,0.1)", border: "1px solid rgba(180,35,24,0.2)", borderRadius: "8px", marginBottom: "8px" }}>
+                    <p style={{ fontSize: "12px", color: "#B42318", marginBottom: "6px" }}>{erroContas}</p>
                     <a href="/relatorios-meta/conexoes" style={{ fontSize: "12px", color: "#1C6CA6", textDecoration: "underline" }}>Ir para Conexões e reconectar</a>
                   </div>
                   <input className="form-input" placeholder="act_1234567890 (manual)" value={adAccountId} onChange={e => setAdAccountId(e.target.value)} />
@@ -678,7 +678,7 @@ export default function RelatoriosMetaPage() {
                 ) : grupos.length === 0 ? (
                   <div>
                     {semWhatsApp ? (
-                      <p style={{ fontSize: "12px", color: "#f59e0b" }}>
+                      <p style={{ fontSize: "12px", color: "#C2620E" }}>
                         WhatsApp não conectado. Conecte em <a href="/relatorios-meta/conexoes" style={{ color: "#1C6CA6", textDecoration: "underline" }}>Conexões</a> primeiro.
                       </p>
                     ) : (

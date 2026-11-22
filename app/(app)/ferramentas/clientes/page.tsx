@@ -174,7 +174,7 @@ export default function ClientesExternosPage() {
                 <span style={{ fontSize: 11, padding: "3px 8px", borderRadius: 6, background: c.meta_pixel_id ? "#29ABE215" : "#E6EBF0", color: c.meta_pixel_id ? "#1C6CA6" : "#6B7A89" }}>
                   Pixel {c.meta_pixel_id ? "✓" : "—"}
                 </span>
-                <span style={{ fontSize: 11, padding: "3px 8px", borderRadius: 6, background: c.whatsapp_notificacao ? "#22c55e15" : "#E6EBF0", color: c.whatsapp_notificacao ? "#22c55e" : "#6B7A89" }}>
+                <span style={{ fontSize: 11, padding: "3px 8px", borderRadius: 6, background: c.whatsapp_notificacao ? "#22c55e15" : "#E6EBF0", color: c.whatsapp_notificacao ? "#1E6B52" : "#6B7A89" }}>
                   WhatsApp {c.whatsapp_notificacao ? "✓" : "—"}
                 </span>
               </div>
@@ -224,7 +224,7 @@ export default function ClientesExternosPage() {
               </div>
               <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
                 <input type="checkbox" checked={modal.ativo ?? true} onChange={e => setModal(p => ({ ...p, ativo: e.target.checked }))} style={{ width: 16, height: 16, accentColor: "#1C6CA6" }} />
-                <span style={{ fontSize: 14, color: "#c0c0c0" }}>Cliente ativo</span>
+                <span style={{ fontSize: 14, color: "#7E93A8" }}>Cliente ativo</span>
               </label>
             </div>
 

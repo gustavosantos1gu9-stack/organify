@@ -129,9 +129,9 @@ export default function DisparosWebhookPage() {
                 <td>
                   <button onClick={() => toggleAtivo(wh)} style={{
                     fontSize: "11px", padding: "3px 10px", borderRadius: "20px", cursor: "pointer",
-                    background: wh.ativo ? "rgba(34,197,94,0.15)" : "rgba(96,96,96,0.15)",
-                    color: wh.ativo ? "#22c55e" : "#4A5B6C",
-                    border: `1px solid ${wh.ativo ? "rgba(34,197,94,0.3)" : "#E6EBF0"}`,
+                    background: wh.ativo ? "rgba(30,107,82,0.15)" : "rgba(96,96,96,0.15)",
+                    color: wh.ativo ? "#1E6B52" : "#4A5B6C",
+                    border: `1px solid ${wh.ativo ? "rgba(30,107,82,0.3)" : "#E6EBF0"}`,
                   }}>{wh.ativo ? "Ativo" : "Inativo"}</button>
                 </td>
                 <td>

@@ -203,7 +203,7 @@ export default function CadastrosPage() {
             <span style={{ fontSize: "12px", color: "#4A5B6C", whiteSpace: "nowrap" }}>Link público:</span>
             <span style={{ fontSize: "12px", color: "#1C6CA6", maxWidth: "220px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{LINK_PUBLICO}</span>
             <button onClick={copiarLink}
-              style={{ background: copiado ? "#052e16" : "#E6EBF0", border: "none", borderRadius: "6px", padding: "7px 10px", cursor: "pointer", color: copiado ? "#22c55e" : "#4A5B6C", display: "flex", alignItems: "center", gap: "4px", fontSize: "12px" }}>
+              style={{ background: copiado ? "#052e16" : "#E6EBF0", border: "none", borderRadius: "6px", padding: "7px 10px", cursor: "pointer", color: copiado ? "#1E6B52" : "#4A5B6C", display: "flex", alignItems: "center", gap: "4px", fontSize: "12px" }}>
               {copiado ? <><Check size={13} /> Copiado</> : <><Copy size={13} /> Copiar</>}
             </button>
           </div>
@@ -270,17 +270,17 @@ export default function CadastrosPage() {
                     {(filtro === "pendente" || filtro === "notificado") && (
                       <>
                         <button onClick={() => aprovar(c)} disabled={aprovando === c.id}
-                          style={{ background: "#052e16", border: "1px solid #22c55e40", borderRadius: "6px", padding: "6px 10px", cursor: "pointer", color: "#22c55e", display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", opacity: aprovando === c.id ? 0.6 : 1 }}>
+                          style={{ background: "#052e16", border: "1px solid #22c55e40", borderRadius: "6px", padding: "6px 10px", cursor: "pointer", color: "#1E6B52", display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", opacity: aprovando === c.id ? 0.6 : 1 }}>
                           <CheckCircle size={13} /> {aprovando === c.id ? "..." : "Aprovar"}
                         </button>
                         <button onClick={() => rejeitar(c.id)} disabled={rejeitando === c.id}
-                          style={{ background: "#2d0a0a", border: "1px solid #ef444440", borderRadius: "6px", padding: "6px 10px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", opacity: rejeitando === c.id ? 0.6 : 1 }}>
+                          style={{ background: "#2d0a0a", border: "1px solid #ef444440", borderRadius: "6px", padding: "6px 10px", cursor: "pointer", color: "#B42318", display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", opacity: rejeitando === c.id ? 0.6 : 1 }}>
                           <XCircle size={13} /> {rejeitando === c.id ? "..." : "Rejeitar"}
                         </button>
                       </>
                     )}
                     <button onClick={() => excluir(c)} disabled={excluindo === c.id}
-                      style={{ background: "#2d0a0a", border: "1px solid #ef444440", borderRadius: "6px", padding: "6px 10px", cursor: "pointer", color: "#ef4444", display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", opacity: excluindo === c.id ? 0.6 : 1 }}>
+                      style={{ background: "#2d0a0a", border: "1px solid #ef444440", borderRadius: "6px", padding: "6px 10px", cursor: "pointer", color: "#B42318", display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", opacity: excluindo === c.id ? 0.6 : 1 }}>
                       <Trash2 size={13} /> {excluindo === c.id ? "..." : "Excluir"}
                     </button>
                   </div>
@@ -333,11 +333,11 @@ export default function CadastrosPage() {
               {(detalhe.status === "pendente" || detalhe.status === "notificado") && (
                 <>
                   <button onClick={() => aprovar(detalhe)} disabled={aprovando === detalhe.id}
-                    style={{ flex: 1, padding: "12px", background: "#22c55e", border: "none", borderRadius: "8px", cursor: "pointer", color: "#000", fontWeight: "700", fontSize: "14px" }}>
+                    style={{ flex: 1, padding: "12px", background: "#1E6B52", border: "none", borderRadius: "8px", cursor: "pointer", color: "#000", fontWeight: "700", fontSize: "14px" }}>
                     {aprovando === detalhe.id ? "Aprovando..." : "✓ Aprovar"}
                   </button>
                   <button onClick={() => rejeitar(detalhe.id)} disabled={rejeitando === detalhe.id}
-                    style={{ flex: 1, padding: "12px", background: "#ef4444", border: "none", borderRadius: "8px", cursor: "pointer", color: "#fff", fontWeight: "700", fontSize: "14px" }}>
+                    style={{ flex: 1, padding: "12px", background: "#B42318", border: "none", borderRadius: "8px", cursor: "pointer", color: "#fff", fontWeight: "700", fontSize: "14px" }}>
                     {rejeitando === detalhe.id ? "Rejeitando..." : "✕ Rejeitar"}
                   </button>
                 </>
@@ -349,7 +349,7 @@ export default function CadastrosPage() {
                 </button>
               )}
               <button onClick={() => excluir(detalhe)} disabled={excluindo === detalhe.id}
-                style={{ width: "100%", padding: "12px", background: "transparent", border: "1px solid #ef444460", borderRadius: "8px", cursor: "pointer", color: "#ef4444", fontWeight: "600", fontSize: "13px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+                style={{ width: "100%", padding: "12px", background: "transparent", border: "1px solid #ef444460", borderRadius: "8px", cursor: "pointer", color: "#B42318", fontWeight: "600", fontSize: "13px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
                 <Trash2 size={14} /> {excluindo === detalhe.id ? "Excluindo..." : "Excluir cadastro"}
               </button>
             </div>
@@ -397,10 +397,10 @@ export default function CadastrosPage() {
                     <span onClick={() => setEditandoLabel(campo.id)} style={{ flex: 1, fontSize: "13px", color: "#0A1826", cursor: "pointer" }} title="Clique para editar">{campo.label}</span>
                   )}
                   <span style={{ fontSize: "11px", color: "#404040", background: "#E6EBF0", padding: "2px 6px", borderRadius: "4px" }}>{campo.type}</span>
-                  {campo.obrigatorio && <span style={{ fontSize: "10px", color: "#f59e0b" }}>*</span>}
+                  {campo.obrigatorio && <span style={{ fontSize: "10px", color: "#C2620E" }}>*</span>}
                   <button onClick={() => removerCampo(campo.id)}
                     style={{ background: "none", border: "none", cursor: "pointer", color: "#404040", padding: "2px", flexShrink: 0 }}
-                    onMouseEnter={e => (e.currentTarget.style.color = "#ef4444")}
+                    onMouseEnter={e => (e.currentTarget.style.color = "#B42318")}
                     onMouseLeave={e => (e.currentTarget.style.color = "#404040")}>
                     <Trash2 size={13} />
                   </button>

@@ -314,7 +314,7 @@ export default function ClienteExternoDetailPage() {
               <button
                 onClick={buscarContas}
                 disabled={buscandoContas}
-                style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", borderRadius: 8, border: "1px solid #E6EBF0", background: "#FFFFFF", color: "#c0c0c0", cursor: "pointer", fontSize: 13, width: "100%", opacity: buscandoContas ? 0.6 : 1 }}
+                style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", borderRadius: 8, border: "1px solid #E6EBF0", background: "#FFFFFF", color: "#7E93A8", cursor: "pointer", fontSize: 13, width: "100%", opacity: buscandoContas ? 0.6 : 1 }}
               >
                 <Search size={14} /> {buscandoContas ? "Buscando contas..." : "Buscar contas de anúncios"}
               </button>
@@ -334,7 +334,7 @@ export default function ClienteExternoDetailPage() {
                   {buscandoContas ? (
                     <div style={{ padding: 16, color: "#6B7A89", fontSize: 13, textAlign: "center" }}>Carregando...</div>
                   ) : erroContas ? (
-                    <div style={{ padding: 14, color: "#ef4444", fontSize: 12, background: "#ef444410", borderRadius: 6, margin: 8 }}>
+                    <div style={{ padding: 14, color: "#B42318", fontSize: 12, background: "#ef444410", borderRadius: 6, margin: 8 }}>
                       ⚠ {erroContas}
                     </div>
                   ) : contasFiltradas.length === 0 ? (
@@ -411,7 +411,7 @@ export default function ClienteExternoDetailPage() {
 
             <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
               <input type="checkbox" checked={form.ativo} onChange={e => setForm(p => p && ({ ...p, ativo: e.target.checked }))} style={{ width: 16, height: 16, accentColor: "#1C6CA6" }} />
-              <span style={{ fontSize: 14, color: "#c0c0c0" }}>Cliente ativo</span>
+              <span style={{ fontSize: 14, color: "#7E93A8" }}>Cliente ativo</span>
             </label>
 
             <button onClick={salvar} disabled={salvando} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 8, border: "none", background: "#1C6CA6", color: "#F3F5F7", fontSize: 14, fontWeight: 700, cursor: "pointer", opacity: salvando ? 0.7 : 1 }}>
@@ -447,7 +447,7 @@ export default function ClienteExternoDetailPage() {
                   <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
                     <button
                       onClick={() => copiar(`${appUrl}/f/${f.slug}`, `f-${f.id}`)}
-                      style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid #E6EBF0", background: "#FFFFFF", color: copiado === `f-${f.id}` ? "#22c55e" : "#808080", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}
+                      style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid #E6EBF0", background: "#FFFFFF", color: copiado === `f-${f.id}` ? "#1E6B52" : "#808080", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}
                     >
                       <Copy size={13} /> {copiado === `f-${f.id}` ? "Copiado!" : "Copiar"}
                     </button>
@@ -494,7 +494,7 @@ export default function ClienteExternoDetailPage() {
                   <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
                     <button
                       onClick={() => copiar(`${appUrl}/lp/${lp.slug}`, `lp-${lp.id}`)}
-                      style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid #E6EBF0", background: "#FFFFFF", color: copiado === `lp-${lp.id}` ? "#22c55e" : "#808080", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}
+                      style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid #E6EBF0", background: "#FFFFFF", color: copiado === `lp-${lp.id}` ? "#1E6B52" : "#808080", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}
                     >
                       <Copy size={13} /> {copiado === `lp-${lp.id}` ? "Copiado!" : "Copiar"}
                     </button>

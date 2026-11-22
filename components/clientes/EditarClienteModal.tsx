@@ -218,7 +218,7 @@ export default function EditarClienteModal({ cliente, onClose, onSave }: EditarC
               <span style={{ fontSize:"13px", color: cadastroVinculado ? "#0A1826" : "#4A5B6C", fontWeight: cadastroVinculado ? "600" : "400" }}>
                 {cadastroVinculado ? cadastroVinculado.nome : "Vincular formulário de cadastro"}
               </span>
-              {cadastroVinculado && <span style={{ fontSize:"11px", color:"#22c55e", background:"#052e16", padding:"2px 6px", borderRadius:"8px" }}>vinculado</span>}
+              {cadastroVinculado && <span style={{ fontSize:"11px", color:"#1E6B52", background:"#052e16", padding:"2px 6px", borderRadius:"8px" }}>vinculado</span>}
             </div>
             <div style={{ display:"flex", gap:"6px" }}>
               {cadastroVinculado && (
@@ -431,8 +431,8 @@ export default function EditarClienteModal({ cliente, onClose, onSave }: EditarC
               <div style={{ display:"flex", gap:"8px" }}>
                 {[
                   { value:"ativo", label:"Ativo", color:"#1C6CA6" },
-                  { value:"pendencia", label:"Pendência", color:"#f59e0b" },
-                  { value:"saiu", label:"Saiu", color:"#ef4444" },
+                  { value:"pendencia", label:"Pendência", color:"#C2620E" },
+                  { value:"saiu", label:"Saiu", color:"#B42318" },
                 ].map((s) => (
                   <button key={s.value} onClick={()=>set("status_recorrencia",s.value)} style={{
                     flex:1, padding:"8px", borderRadius:"8px", cursor:"pointer",

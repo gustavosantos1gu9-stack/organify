@@ -538,7 +538,7 @@ function IntegracoesCliente() {
                   ))}
               </select>
               {contasDisponiveis.length === 0 && !carregandoMeta && (
-                <p style={{ fontSize: "11px", color: "#ef4444", marginTop: "6px" }}>Nenhuma conta de anúncio disponível.</p>
+                <p style={{ fontSize: "11px", color: "#B42318", marginTop: "6px" }}>Nenhuma conta de anúncio disponível.</p>
               )}
             </div>
 
@@ -549,7 +549,7 @@ function IntegracoesCliente() {
                 {carregandoMeta ? (
                   <p style={{ fontSize: "12px", color: "#4A5B6C" }}>Carregando pixels...</p>
                 ) : pixelsDisponiveis.length === 0 ? (
-                  <p style={{ fontSize: "12px", color: "#f59e0b" }}>Nenhum pixel encontrado. Você pode criar um no Gerenciador de Eventos.</p>
+                  <p style={{ fontSize: "12px", color: "#C2620E" }}>Nenhum pixel encontrado. Você pode criar um no Gerenciador de Eventos.</p>
                 ) : (
                   <select className="form-input" value={pixelSelecionado} onChange={e => setPixelSelecionado(e.target.value)}>
                     <option value="">Sem pixel (opcional)</option>
@@ -574,7 +574,7 @@ function IntegracoesCliente() {
       {/* WhatsApp */}
       <div className="card" style={{ marginBottom: "20px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
-          <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: waConectado ? "#22c55e" : "#ef4444" }} />
+          <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: waConectado ? "#1E6B52" : "#B42318" }} />
           <MessageCircle size={20} color="#25d366" />
           <h2 style={{ fontSize: "16px", fontWeight: "600" }}>WhatsApp</h2>
         </div>
@@ -714,7 +714,7 @@ function IntegracoesCliente() {
               )}
             </div>
             {!evoUrl && (
-              <p style={{ fontSize: "11px", color: "#f59e0b", marginTop: "8px", textAlign: "center" }}>Evolution API não configurada para esta conta.</p>
+              <p style={{ fontSize: "11px", color: "#C2620E", marginTop: "8px", textAlign: "center" }}>Evolution API não configurada para esta conta.</p>
             )}
           </div>
         )}
@@ -756,7 +756,7 @@ function IntegracoesCliente() {
       {/* Meta Ads - Pixel */}
       <div className="card">
         <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
-          <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: metaAtivo ? "#1C6CA6" : "#ef4444" }} />
+          <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: metaAtivo ? "#1C6CA6" : "#B42318" }} />
           <Target size={18} color="#1877f2" />
           <h2 style={{ fontSize: "16px", fontWeight: "600" }}>Meta Ads</h2>
         </div>
@@ -807,8 +807,8 @@ function IntegracoesCliente() {
               <p style={{ fontSize: "12px", color: "#4A5B6C", margin: 0 }}>Para filtrar conversas por campanha e conjunto de anuncios</p>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: metaAdsAtivo ? "#1C6CA6" : "#ef4444" }} />
-              <span style={{ fontSize: "12px", color: metaAdsAtivo ? "#1C6CA6" : "#ef4444" }}>{metaAdsAtivo ? "Ativo" : "Inativo"}</span>
+              <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: metaAdsAtivo ? "#1C6CA6" : "#B42318" }} />
+              <span style={{ fontSize: "12px", color: metaAdsAtivo ? "#1C6CA6" : "#B42318" }}>{metaAdsAtivo ? "Ativo" : "Inativo"}</span>
             </div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
@@ -828,9 +828,9 @@ function IntegracoesCliente() {
               </div>
               {tokenStatus && (
                 <div style={{marginTop:"6px",padding:"6px 10px",borderRadius:"6px",fontSize:"11px",
-                  background: tokenStatus.valid ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.15)",
-                  border: `1px solid ${tokenStatus.valid ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"}`,
-                  color: tokenStatus.valid ? "#22c55e" : "#ef4444",
+                  background: tokenStatus.valid ? "rgba(30,107,82,0.1)" : "rgba(180,35,24,0.15)",
+                  border: `1px solid ${tokenStatus.valid ? "rgba(30,107,82,0.3)" : "rgba(180,35,24,0.3)"}`,
+                  color: tokenStatus.valid ? "#1E6B52" : "#B42318",
                 }}>
                   {tokenStatus.valid
                     ? `Token válido${tokenStatus.expires && tokenStatus.expires !== "—" ? ` — expira ${tokenStatus.expires}` : ""}${tokenStatus.name ? ` (${tokenStatus.name})` : ""}`
@@ -857,8 +857,8 @@ function IntegracoesCliente() {
                 <li>Marque as permissoes: <strong>ads_management</strong>, <strong>ads_read</strong> e <strong>business_management</strong></li>
                 <li>Clique em <strong>Gerar</strong> e copie o token</li>
               </ol>
-              <p style={{ marginTop: "10px", color: "#f59e0b", fontSize: "11px" }}>Este token nao expira. Gere um por portfolio empresarial do cliente.</p>
-              <p style={{ marginTop: "6px", color: "#ef4444", fontSize: "11px" }}>Importante: se o token foi gerado sem adicionar a conta de anuncios como ativo, as campanhas nao serao listadas nos filtros. Adicione o ativo e gere o token novamente.</p>
+              <p style={{ marginTop: "10px", color: "#C2620E", fontSize: "11px" }}>Este token nao expira. Gere um por portfolio empresarial do cliente.</p>
+              <p style={{ marginTop: "6px", color: "#B42318", fontSize: "11px" }}>Importante: se o token foi gerado sem adicionar a conta de anuncios como ativo, as campanhas nao serao listadas nos filtros. Adicione o ativo e gere o token novamente.</p>
             </div>
           </details>
         </div>
@@ -871,7 +871,7 @@ function IntegracoesCliente() {
       <div className="card" style={{marginBottom:"20px"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"20px"}}>
           <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-            <div style={{width:"10px",height:"10px",borderRadius:"50%",background:openaiAtivoC?"#22c55e":"#ef4444"}}/>
+            <div style={{width:"10px",height:"10px",borderRadius:"50%",background:openaiAtivoC?"#1E6B52":"#B42318"}}/>
             <Bot size={18} color="#4A5B6C"/>
             <h2 style={{fontSize:"16px",fontWeight:"600"}}>Assistente IA (WhatsApp)</h2>
           </div>
@@ -1383,12 +1383,12 @@ function IntegracoesMaster() {
                       ) : (
                         conectado
                           ? <Wifi size={16} style={{color:"#1C6CA6"}}/>
-                          : <WifiOff size={16} style={{color:"#ef4444"}}/>
+                          : <WifiOff size={16} style={{color:"#B42318"}}/>
                       )}
                       <div>
                         <p style={{fontSize:"13px",fontWeight:"600",color:"#0A1826"}}>{inst.profileName || nome}</p>
                         <p style={{fontSize:"11px",color:"#4A5B6C"}}>{nome}</p>
-                        <p style={{fontSize:"11px",color:conectado?"#1C6CA6":"#ef4444",textTransform:"capitalize"}}>{conectado?"● Conectado":"● Desconectado"}</p>
+                        <p style={{fontSize:"11px",color:conectado?"#1C6CA6":"#B42318",textTransform:"capitalize"}}>{conectado?"● Conectado":"● Desconectado"}</p>
                       </div>
                     </div>
                     <div style={{display:"flex",gap:"8px"}}>
@@ -1491,7 +1491,7 @@ function IntegracoesMaster() {
       <div className="card" style={{marginBottom:"20px"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"4px"}}>
           <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-            <div style={{width:"10px",height:"10px",borderRadius:"50%",background:metaAtivo?"#1C6CA6":"#ef4444"}}/>
+            <div style={{width:"10px",height:"10px",borderRadius:"50%",background:metaAtivo?"#1C6CA6":"#B42318"}}/>
             <Target size={18} color="#1877f2"/>
             <h2 style={{fontSize:"16px",fontWeight:"600"}}>Meta Ads</h2>
           </div>
@@ -1532,7 +1532,7 @@ function IntegracoesMaster() {
             <Target size={16}/> Conectar Facebook (Inbox / Formulários)
           </button>
           {metaTokenNome ? (
-            <div style={{fontSize:"12px",color:"#22c55e",padding:"6px 10px",borderRadius:"6px",background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.3)"}}>
+            <div style={{fontSize:"12px",color:"#1E6B52",padding:"6px 10px",borderRadius:"6px",background:"rgba(30,107,82,0.1)",border:"1px solid rgba(30,107,82,0.3)"}}>
               Conectado: {metaTokenNome}
             </div>
           ) : (
@@ -1547,8 +1547,8 @@ function IntegracoesMaster() {
               <p style={{fontSize:"12px",color:"#4A5B6C",margin:0}}>Para filtrar conversas por campanha e conjunto de anúncios</p>
             </div>
             <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
-              <div style={{width:"8px",height:"8px",borderRadius:"50%",background:metaAdsAtivo?"#1C6CA6":"#ef4444"}}/>
-              <span style={{fontSize:"12px",color:metaAdsAtivo?"#1C6CA6":"#ef4444"}}>{metaAdsAtivo?"Ativo":"Inativo"}</span>
+              <div style={{width:"8px",height:"8px",borderRadius:"50%",background:metaAdsAtivo?"#1C6CA6":"#B42318"}}/>
+              <span style={{fontSize:"12px",color:metaAdsAtivo?"#1C6CA6":"#B42318"}}>{metaAdsAtivo?"Ativo":"Inativo"}</span>
             </div>
           </div>
           <button onClick={async () => {
@@ -1562,7 +1562,7 @@ function IntegracoesMaster() {
             <Target size={16}/> Conectar Facebook (Gerenciador de Anúncios)
           </button>
           {metaBusinessTokenNome ? (
-            <div style={{fontSize:"12px",color:"#22c55e",padding:"6px 10px",borderRadius:"6px",background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.3)",marginBottom:"12px"}}>
+            <div style={{fontSize:"12px",color:"#1E6B52",padding:"6px 10px",borderRadius:"6px",background:"rgba(30,107,82,0.1)",border:"1px solid rgba(30,107,82,0.3)",marginBottom:"12px"}}>
               Conectado: {metaBusinessTokenNome}
             </div>
           ) : (
@@ -1603,8 +1603,8 @@ function IntegracoesMaster() {
                 <li>Marque as permissoes: <strong>ads_management</strong>, <strong>ads_read</strong> e <strong>business_management</strong></li>
                 <li>Clique em <strong>Gerar</strong> e copie o token</li>
               </ol>
-              <p style={{marginTop:"10px",color:"#f59e0b",fontSize:"11px"}}>Este token nao expira. Gere um por portfolio empresarial do cliente.</p>
-              <p style={{marginTop:"6px",color:"#ef4444",fontSize:"11px"}}>Importante: se o token foi gerado sem adicionar a conta de anuncios como ativo, as campanhas nao serao listadas nos filtros. Adicione o ativo e gere o token novamente.</p>
+              <p style={{marginTop:"10px",color:"#C2620E",fontSize:"11px"}}>Este token nao expira. Gere um por portfolio empresarial do cliente.</p>
+              <p style={{marginTop:"6px",color:"#B42318",fontSize:"11px"}}>Importante: se o token foi gerado sem adicionar a conta de anuncios como ativo, as campanhas nao serao listadas nos filtros. Adicione o ativo e gere o token novamente.</p>
             </div>
           </details>
         </div>
@@ -1617,7 +1617,7 @@ function IntegracoesMaster() {
       <div className="card" style={{marginBottom:"20px"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"20px"}}>
           <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-            <div style={{width:"10px",height:"10px",borderRadius:"50%",background:openaiAtivo?"#22c55e":"#ef4444"}}/>
+            <div style={{width:"10px",height:"10px",borderRadius:"50%",background:openaiAtivo?"#1E6B52":"#B42318"}}/>
             <Bot size={18} color="#4A5B6C"/>
             <h2 style={{fontSize:"16px",fontWeight:"600"}}>Assistente IA (WhatsApp)</h2>
           </div>
@@ -1694,7 +1694,7 @@ function IntegracoesMaster() {
       {/* Asaas */}
       <div className="card">
         <div style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:"16px"}}>
-          <div style={{width:"10px",height:"10px",borderRadius:"50%",background:"#ef4444"}}/>
+          <div style={{width:"10px",height:"10px",borderRadius:"50%",background:"#B42318"}}/>
           <CreditCard size={18} color="#4A5B6C"/>
           <h2 style={{fontSize:"16px",fontWeight:"600"}}>Asaas</h2>
         </div>

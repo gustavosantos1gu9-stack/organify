@@ -139,7 +139,7 @@ export default function CRMDashboardPage() {
           ].map((item, i) => (
             <div key={i} style={{ textAlign:"center", padding:"0 16px", borderRight: i < 2 ? "1px solid #E6EBF0" : "none" }}>
               <p style={{ fontSize:"12px", color:"#4A5B6C", marginBottom:"6px" }}>{item.label}</p>
-              <p style={{ fontSize:"22px", fontWeight:"700", color: item.value === "0.0%" ? "#404040" : "#22c55e" }}>{item.value}</p>
+              <p style={{ fontSize:"22px", fontWeight:"700", color: item.value === "0.0%" ? "#404040" : "#1E6B52" }}>{item.value}</p>
             </div>
           ))}
         </div>
@@ -194,7 +194,7 @@ export default function CRMDashboardPage() {
               <XAxis dataKey="etapa" tick={{ fontSize:10, fill:"#4A5B6C" }} axisLine={false} tickLine={false}/>
               <YAxis tick={{ fontSize:11, fill:"#4A5B6C" }} axisLine={false} tickLine={false} allowDecimals={false}/>
               <Tooltip contentStyle={tooltipStyle}/>
-              <Bar dataKey="valor" fill="#22c55e" radius={[4,4,0,0]} name="Leads"/>
+              <Bar dataKey="valor" fill="#1E6B52" radius={[4,4,0,0]} name="Leads"/>
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -205,7 +205,7 @@ export default function CRMDashboardPage() {
               <XAxis dataKey="origem" tick={{ fontSize:11, fill:"#4A5B6C" }} axisLine={false} tickLine={false}/>
               <YAxis tick={{ fontSize:11, fill:"#4A5B6C" }} axisLine={false} tickLine={false} allowDecimals={false}/>
               <Tooltip contentStyle={tooltipStyle}/>
-              <Bar dataKey="valor" fill="#22c55e" radius={[4,4,0,0]} name="Leads"/>
+              <Bar dataKey="valor" fill="#1E6B52" radius={[4,4,0,0]} name="Leads"/>
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -229,7 +229,7 @@ export default function CRMDashboardPage() {
                 <tr key={row.origem} style={{ borderBottom:"1px solid #E6EBF0" }}>
                   <td style={{ padding:"10px 14px", fontSize:"13px", fontWeight:"500" }}>{row.origem}</td>
                   {row.etapas.map((v, i) => (
-                    <td key={i} style={{ padding:"10px", textAlign:"center", fontSize:"13px", color: v > 0 ? "#22c55e" : "#404040" }}>{v}</td>
+                    <td key={i} style={{ padding:"10px", textAlign:"center", fontSize:"13px", color: v > 0 ? "#1E6B52" : "#404040" }}>{v}</td>
                   ))}
                 </tr>
               ))}

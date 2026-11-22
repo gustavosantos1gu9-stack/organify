@@ -40,14 +40,14 @@ export default function RedefinirSenhaPage() {
         <div style={{ background:"#FFFFFF", border:"1px solid #E6EBF0", borderRadius:"16px", padding:"32px" }}>
           {enviado ? (
             <div style={{ textAlign:"center" }}>
-              <div style={{ width:"48px", height:"48px", background:"rgba(34,197,94,0.15)", borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
-                <Check size={24} style={{ color:"#22c55e" }}/>
+              <div style={{ width:"48px", height:"48px", background:"rgba(30,107,82,0.15)", borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
+                <Check size={24} style={{ color:"#1E6B52" }}/>
               </div>
               <h2 style={{ fontSize:"16px", fontWeight:"600", color:"#0A1826", marginBottom:"8px" }}>Email enviado!</h2>
               <p style={{ fontSize:"13px", color:"#4A5B6C", marginBottom:"20px" }}>
                 Verifique sua caixa de entrada em <strong style={{ color:"#0A1826" }}>{email}</strong> e clique no link para redefinir sua senha.
               </p>
-              <Link href="/login" style={{ fontSize:"13px", color:"#22c55e", textDecoration:"none", display:"flex", alignItems:"center", justifyContent:"center", gap:"6px" }}>
+              <Link href="/login" style={{ fontSize:"13px", color:"#1E6B52", textDecoration:"none", display:"flex", alignItems:"center", justifyContent:"center", gap:"6px" }}>
                 <ArrowLeft size={13}/> Voltar para o login
               </Link>
             </div>
@@ -58,7 +58,7 @@ export default function RedefinirSenhaPage() {
                 <p style={{ fontSize:"13px", color:"#4A5B6C" }}>Digite seu e-mail e enviaremos um link para redefinir sua senha.</p>
               </div>
               {erro && (
-                <div style={{ background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.25)", borderRadius:"8px", padding:"10px 14px", display:"flex", alignItems:"center", gap:"8px", fontSize:"13px", color:"#ef4444" }}>
+                <div style={{ background:"rgba(180,35,24,0.1)", border:"1px solid rgba(180,35,24,0.25)", borderRadius:"8px", padding:"10px 14px", display:"flex", alignItems:"center", gap:"8px", fontSize:"13px", color:"#B42318" }}>
                   <AlertCircle size={14}/>{erro}
                 </div>
               )}

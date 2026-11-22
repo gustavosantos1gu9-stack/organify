@@ -154,8 +154,8 @@ export default function DREPage() {
                 <XAxis dataKey="mes" tick={{ fontSize:11,fill:"var(--text-secondary)" }} axisLine={false} tickLine={false}/>
                 <YAxis tick={{ fontSize:11,fill:"var(--text-secondary)" }} axisLine={false} tickLine={false} tickFormatter={(v)=>`R$${v}`}/>
                 <Tooltip contentStyle={tooltipStyle} formatter={(v:number)=>formatCurrency(v)}/>
-                <Line type="monotone" dataKey="entrada" stroke="#22c55e" strokeWidth={2} dot={false} name="Entrada"/>
-                <Line type="monotone" dataKey="saida" stroke="#ef4444" strokeWidth={2} dot={false} name="Saída"/>
+                <Line type="monotone" dataKey="entrada" stroke="#1E6B52" strokeWidth={2} dot={false} name="Entrada"/>
+                <Line type="monotone" dataKey="saida" stroke="#B42318" strokeWidth={2} dot={false} name="Saída"/>
                 <Legend wrapperStyle={{ fontSize:"11px" }}/>
               </LineChart>
             </ResponsiveContainer>
@@ -171,7 +171,7 @@ export default function DREPage() {
                 <XAxis dataKey="categoria" tick={{ fontSize:10,fill:"var(--text-secondary)" }} axisLine={false} tickLine={false}/>
                 <YAxis tick={{ fontSize:11,fill:"var(--text-secondary)" }} axisLine={false} tickLine={false} tickFormatter={(v)=>`R$${v}`}/>
                 <Tooltip contentStyle={tooltipStyle} formatter={(v:number)=>formatCurrency(v)}/>
-                <Bar dataKey="valor" fill="#22c55e" radius={[4,4,0,0]} name="Valor"/>
+                <Bar dataKey="valor" fill="#1E6B52" radius={[4,4,0,0]} name="Valor"/>
               </BarChart>
             </ResponsiveContainer>
           )}

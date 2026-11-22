@@ -163,7 +163,7 @@ function ModalSaida({ item, onClose, onSave }: { item?:any; onClose:()=>void; on
             if(!form.valor||!form.data_vencimento){alert("Preencha valor e data");return;}
             await onSave({tipo:"saida",...form, id:item?.id});
             onClose();
-          }} style={{background:"rgba(239,68,68,0.15)",color:"var(--alert-text)",border:"1px solid rgba(239,68,68,0.3)",padding:"8px 16px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px"}}>
+          }} style={{background:"rgba(180,35,24,0.15)",color:"var(--alert-text)",border:"1px solid rgba(180,35,24,0.3)",padding:"8px 16px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px"}}>
             Salvar
           </button>
         </div>
@@ -437,7 +437,7 @@ export default function LancamentosFuturosPage() {
           <button className="btn-primary" onClick={()=>setShowEntrada(true)}>
             <Plus size={14}/> Nova entrada prevista
           </button>
-          <button onClick={()=>setShowSaida(true)} style={{background:"rgba(239,68,68,0.12)",color:"var(--alert-text)",border:"1px solid rgba(239,68,68,0.2)",padding:"8px 16px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px"}}>
+          <button onClick={()=>setShowSaida(true)} style={{background:"rgba(180,35,24,0.12)",color:"var(--alert-text)",border:"1px solid rgba(180,35,24,0.2)",padding:"8px 16px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px"}}>
             <Plus size={14}/> Nova saída prevista
           </button>
         </div>
@@ -481,9 +481,9 @@ export default function LancamentosFuturosPage() {
                       <td><input type="checkbox" style={{width:"14px",height:"14px"}}/></td>
                       <td>
                         {l.pago ? (
-                          <span title="Lançado" style={{fontSize:"10px",background:"rgba(34,197,94,0.1)",color:"var(--success)",padding:"2px 6px",borderRadius:"4px"}}>✓</span>
+                          <span title="Lançado" style={{fontSize:"10px",background:"rgba(30,107,82,0.1)",color:"var(--success)",padding:"2px 6px",borderRadius:"4px"}}>✓</span>
                         ) : (
-                          <span title="Pendente" style={{fontSize:"10px",background:"rgba(245,158,11,0.1)",color:"var(--caution-text)",padding:"2px 6px",borderRadius:"4px"}}>⏳</span>
+                          <span title="Pendente" style={{fontSize:"10px",background:"rgba(194,98,14,0.1)",color:"var(--caution-text)",padding:"2px 6px",borderRadius:"4px"}}>⏳</span>
                         )}
                       </td>
                       <td style={{color:"var(--text-secondary)",fontSize:"12px"}}>{l.categorias_financeiras?.nome||"—"}</td>
@@ -498,7 +498,7 @@ export default function LancamentosFuturosPage() {
                           {!l.pago && (
                             <button
                               onClick={()=>setLancando({id:l.id,valor:l.valor,descricao:l.descricao})}
-                              style={{display:"flex",alignItems:"center",gap:"5px",padding:"5px 10px",borderRadius:"6px",border:"1px solid rgba(34,197,94,0.3)",background:"rgba(34,197,94,0.08)",color:"var(--success)",cursor:"pointer",fontSize:"12px"}}
+                              style={{display:"flex",alignItems:"center",gap:"5px",padding:"5px 10px",borderRadius:"6px",border:"1px solid rgba(30,107,82,0.3)",background:"rgba(30,107,82,0.08)",color:"var(--success)",cursor:"pointer",fontSize:"12px"}}
                             >
                               <ExternalLink size={12}/> Lançar
                             </button>

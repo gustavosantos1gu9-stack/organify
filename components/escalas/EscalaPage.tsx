@@ -574,7 +574,7 @@ function RelatorioModal({ historico, onClose }: RelatorioProps) {
                   <div style={{ padding: "14px 18px", borderBottom: "1px solid #E6EBF0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                       <span style={{ fontSize: "15px", fontWeight: "600", color: "var(--navy)" }}>{cliente.nome}</span>
-                      <span style={{ fontSize: "12px", color: "#a855f7", fontWeight: "600", background: "rgba(168,85,247,0.12)", padding: "2px 8px", borderRadius: "4px" }}>
+                      <span style={{ fontSize: "12px", color: "#6B4FC8", fontWeight: "600", background: "rgba(168,85,247,0.12)", padding: "2px 8px", borderRadius: "4px" }}>
                         {cliente.totalEscalas}x escalou
                       </span>
                     </div>

@@ -142,7 +142,7 @@ export default function MovimentacoesPage() {
           </select>
           <Filtros grupos={FILTROS_GRUPOS} valores={filtros} onChange={(k,v)=>setFiltros((f)=>({...f,[k]:v}))} onLimpar={()=>setFiltros({})}/>
           <button className="btn-primary" onClick={()=>setShowModal("entrada")}><Plus size={14}/> Nova entrada</button>
-          <button onClick={()=>setShowModal("saida")} style={{ background:"rgba(239,68,68,0.12)",color:"var(--alert-text)",border:"1px solid rgba(239,68,68,0.2)",padding:"8px 16px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px" }}>
+          <button onClick={()=>setShowModal("saida")} style={{ background:"rgba(180,35,24,0.12)",color:"var(--alert-text)",border:"1px solid rgba(180,35,24,0.2)",padding:"8px 16px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px" }}>
             <Plus size={14}/> Nova saída
           </button>
         </div>

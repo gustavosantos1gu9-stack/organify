@@ -139,7 +139,7 @@ export default function ChurnPage() {
           <p style={{ fontSize:"11px", color:"#4A5B6C", margin:"0 0 4px" }}>
             Churn Total{filtroMes!=="Todos"?` — ${filtroMes}`:""}
           </p>
-          <p style={{ fontSize:"28px", fontWeight:"700", color:"#ef4444", margin:0 }}>{churnTotal}</p>
+          <p style={{ fontSize:"28px", fontWeight:"700", color:"#B42318", margin:0 }}>{churnTotal}</p>
           <p style={{ fontSize:"11px", color:"#4A5B6C", margin:"4px 0 0" }}>Base {mesBaseAno}: {baseMes} clientes</p>
         </div>
         {/* Tempo Médio */}
@@ -154,7 +154,7 @@ export default function ChurnPage() {
         {/* Churn Rate */}
         <div className="card" style={{ padding:"16px 20px" }}>
           <p style={{ fontSize:"11px", color:"#4A5B6C", margin:"0 0 4px" }}>Churn Rate</p>
-          <p style={{ fontSize:"28px", fontWeight:"700", color:"#ef4444", margin:0 }}>{churnRate}%</p>
+          <p style={{ fontSize:"28px", fontWeight:"700", color:"#B42318", margin:0 }}>{churnRate}%</p>
           <p style={{ fontSize:"11px", color:"#4A5B6C", margin:"4px 0 0" }}>{churnTotal} churns ÷ {baseMes} base</p>
         </div>
 
@@ -171,7 +171,7 @@ export default function ChurnPage() {
             </div>
           ) : (
             <>
-              <p style={{ fontSize:"28px", fontWeight:"700", color:metaChurn&&churnTotal<=Number(metaChurn)?"#22c55e":"#f59e0b", margin:0 }}>
+              <p style={{ fontSize:"28px", fontWeight:"700", color:metaChurn&&churnTotal<=Number(metaChurn)?"#1E6B52":"#C2620E", margin:0 }}>
                 {metaChurn||"—"}
               </p>
               <p style={{ fontSize:"11px", color:"#4A5B6C", margin:"4px 0 0" }}>
@@ -217,9 +217,9 @@ export default function ChurnPage() {
                       {h.data_calculo ? new Date(h.data_calculo).toLocaleDateString("pt-BR") : "—"}
                     </td>
                     <td style={{ padding:"8px 12px", color:"#0A1826", borderRight:"1px solid #29ABE215" }}>{h.base_clientes||"—"}</td>
-                    <td style={{ padding:"8px 12px", color:"#ef4444", borderRight:"1px solid #29ABE215" }}>{h.total_churn||"—"}</td>
+                    <td style={{ padding:"8px 12px", color:"#B42318", borderRight:"1px solid #29ABE215" }}>{h.total_churn||"—"}</td>
                     <td style={{ padding:"8px 12px", borderRight:"1px solid #29ABE215" }}>
-                      {h.churn_rate ? <span style={{ color:"#ef4444", fontWeight:"600" }}>{h.churn_rate}%</span> : "—"}
+                      {h.churn_rate ? <span style={{ color:"#B42318", fontWeight:"600" }}>{h.churn_rate}%</span> : "—"}
                     </td>
                     <td style={{ padding:"8px 12px", color:"#1C6CA6" }}>
                       {h.tempo_medio_meses ? `${h.tempo_medio_meses} meses` : "—"}
@@ -237,9 +237,9 @@ export default function ChurnPage() {
         <div style={{ display:"flex", gap:"6px", minWidth:"max-content" }}>
           <button onClick={()=>setFiltroMes("Todos")} style={{
             padding:"4px 12px", borderRadius:"20px", border:"1px solid", cursor:"pointer", fontSize:"12px",
-            borderColor:filtroMes==="Todos"?"#ef4444":"#E6EBF0",
-            background:filtroMes==="Todos"?"rgba(239,68,68,0.1)":"transparent",
-            color:filtroMes==="Todos"?"#ef4444":"#4A5B6C",
+            borderColor:filtroMes==="Todos"?"#B42318":"#E6EBF0",
+            background:filtroMes==="Todos"?"rgba(180,35,24,0.1)":"transparent",
+            color:filtroMes==="Todos"?"#B42318":"#4A5B6C",
           }}>Todos ({clientes.length})</button>
           {MESES_FIXOS.map(m => {
             const count = clientes.filter(c=>c.data_churn===m).length;
@@ -253,9 +253,9 @@ export default function ChurnPage() {
             return (
               <button key={m} onClick={()=>setFiltroMes(m)} style={{
                 padding:"4px 12px", borderRadius:"20px", border:"1px solid", cursor:"pointer", fontSize:"12px", whiteSpace:"nowrap",
-                borderColor:filtroMes===m?"#ef4444":temDados?"#E6EBF0":"#FFFFFF",
-                background:filtroMes===m?"rgba(239,68,68,0.1)":"transparent",
-                color:filtroMes===m?"#ef4444":temDados?"#4A5B6C":"#E6EBF0",
+                borderColor:filtroMes===m?"#B42318":temDados?"#E6EBF0":"#FFFFFF",
+                background:filtroMes===m?"rgba(180,35,24,0.1)":"transparent",
+                color:filtroMes===m?"#B42318":temDados?"#4A5B6C":"#E6EBF0",
                 opacity:temDados?1:0.4,
               }}>
                 {m}{temDados?` (${count})`:""}
@@ -286,7 +286,7 @@ export default function ChurnPage() {
                 <td style={{ fontWeight:"600", color:"#0A1826", borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>{c.nome}</td>
                 <td style={{ color:"#4A5B6C", fontSize:"12px", borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>{formatarData(c.data_entrada)}</td>
                 <td style={{ borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>
-                  <span style={{ fontSize:"12px", padding:"2px 8px", borderRadius:"10px", background:"rgba(239,68,68,0.1)", color:"#ef4444" }}>{c.data_churn||"—"}</span>
+                  <span style={{ fontSize:"12px", padding:"2px 8px", borderRadius:"10px", background:"rgba(180,35,24,0.1)", color:"#B42318" }}>{c.data_churn||"—"}</span>
                 </td>
                 <td style={{ color:"#4A5B6C", fontSize:"12px", borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>{c.consultor||"—"}</td>
                 <td style={{ color:"#4A5B6C", fontSize:"12px", borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>{c.gestor||"—"}</td>

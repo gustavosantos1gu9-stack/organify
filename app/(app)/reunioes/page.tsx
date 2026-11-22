@@ -33,10 +33,10 @@ const MESES = [
 ];
 
 const STATUS_OPTIONS = [
-  { value: "Agendado", label: "Agendado", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
-  { value: "Realizado", label: "Realizado", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
-  { value: "Cancelado", label: "Cancelado", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
-  { value: "Não compareceu", label: "Não compareceu", color: "#a855f7", bg: "rgba(168,85,247,0.12)" },
+  { value: "Agendado", label: "Agendado", color: "#C2620E", bg: "rgba(194,98,14,0.12)" },
+  { value: "Realizado", label: "Realizado", color: "#1E6B52", bg: "rgba(30,107,82,0.12)" },
+  { value: "Cancelado", label: "Cancelado", color: "#B42318", bg: "rgba(180,35,24,0.12)" },
+  { value: "Não compareceu", label: "Não compareceu", color: "#6B4FC8", bg: "rgba(168,85,247,0.12)" },
 ];
 
 const MOTIVO_OPTIONS = ["Alinhamento", "Reunião de apresentação", "Follow-up", "Outro"];
@@ -239,7 +239,7 @@ export default function ReunioesPage() {
         <div className="kpi-card">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
             <span style={{ fontSize: "13px", color: "#4A5B6C" }}>Total de Reuniões</span>
-            <div style={{ width: "34px", height: "34px", borderRadius: "8px", background: "rgba(59,130,246,0.12)", display: "flex", alignItems: "center", justifyContent: "center", color: "#3b82f6" }}>
+            <div style={{ width: "34px", height: "34px", borderRadius: "8px", background: "rgba(28,108,166,0.12)", display: "flex", alignItems: "center", justifyContent: "center", color: "#1C6CA6" }}>
               <CalendarCheck size={18} />
             </div>
           </div>
@@ -248,9 +248,9 @@ export default function ReunioesPage() {
             <div style={{ marginTop: "8px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#707070", marginBottom: "4px" }}>
                 <span>Meta: {metaData.meta_total}</span>
-                <span style={{ color: metaPercent.total >= 100 ? "#22c55e" : "#f59e0b" }}>{metaPercent.total}%</span>
+                <span style={{ color: metaPercent.total >= 100 ? "#1E6B52" : "#C2620E" }}>{metaPercent.total}%</span>
               </div>
-              <ProgressBar value={kpis.total} max={metaData.meta_total} color="#3b82f6" />
+              <ProgressBar value={kpis.total} max={metaData.meta_total} color="#1C6CA6" />
             </div>
           )}
         </div>
@@ -259,7 +259,7 @@ export default function ReunioesPage() {
         <div className="kpi-card">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
             <span style={{ fontSize: "13px", color: "#4A5B6C" }}>Realizadas</span>
-            <div style={{ width: "34px", height: "34px", borderRadius: "8px", background: "rgba(34,197,94,0.12)", display: "flex", alignItems: "center", justifyContent: "center", color: "#22c55e" }}>
+            <div style={{ width: "34px", height: "34px", borderRadius: "8px", background: "rgba(30,107,82,0.12)", display: "flex", alignItems: "center", justifyContent: "center", color: "#1E6B52" }}>
               <CheckCircle2 size={18} />
             </div>
           </div>
@@ -268,9 +268,9 @@ export default function ReunioesPage() {
             <div style={{ marginTop: "8px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#707070", marginBottom: "4px" }}>
                 <span>Meta: {metaData.meta_realizadas}</span>
-                <span style={{ color: metaPercent.realizadas >= 100 ? "#22c55e" : "#f59e0b" }}>{metaPercent.realizadas}%</span>
+                <span style={{ color: metaPercent.realizadas >= 100 ? "#1E6B52" : "#C2620E" }}>{metaPercent.realizadas}%</span>
               </div>
-              <ProgressBar value={kpis.realizadas} max={metaData.meta_realizadas} color="#22c55e" />
+              <ProgressBar value={kpis.realizadas} max={metaData.meta_realizadas} color="#1E6B52" />
             </div>
           )}
         </div>
@@ -279,7 +279,7 @@ export default function ReunioesPage() {
         <div className="kpi-card">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
             <span style={{ fontSize: "13px", color: "#4A5B6C" }}>Apresentação</span>
-            <div style={{ width: "34px", height: "34px", borderRadius: "8px", background: "rgba(168,85,247,0.12)", display: "flex", alignItems: "center", justifyContent: "center", color: "#a855f7" }}>
+            <div style={{ width: "34px", height: "34px", borderRadius: "8px", background: "rgba(168,85,247,0.12)", display: "flex", alignItems: "center", justifyContent: "center", color: "#6B4FC8" }}>
               <Users size={18} />
             </div>
           </div>
@@ -288,9 +288,9 @@ export default function ReunioesPage() {
             <div style={{ marginTop: "8px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#707070", marginBottom: "4px" }}>
                 <span>Meta: {metaData.meta_apresentacao}</span>
-                <span style={{ color: metaPercent.apresentacao >= 100 ? "#22c55e" : "#f59e0b" }}>{metaPercent.apresentacao}%</span>
+                <span style={{ color: metaPercent.apresentacao >= 100 ? "#1E6B52" : "#C2620E" }}>{metaPercent.apresentacao}%</span>
               </div>
-              <ProgressBar value={kpis.apresentacao} max={metaData.meta_apresentacao} color="#a855f7" />
+              <ProgressBar value={kpis.apresentacao} max={metaData.meta_apresentacao} color="#6B4FC8" />
             </div>
           )}
         </div>
@@ -299,7 +299,7 @@ export default function ReunioesPage() {
         <div className="kpi-card">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
             <span style={{ fontSize: "13px", color: "#4A5B6C" }}>Alinhamento</span>
-            <div style={{ width: "34px", height: "34px", borderRadius: "8px", background: "rgba(245,158,11,0.12)", display: "flex", alignItems: "center", justifyContent: "center", color: "#f59e0b" }}>
+            <div style={{ width: "34px", height: "34px", borderRadius: "8px", background: "rgba(194,98,14,0.12)", display: "flex", alignItems: "center", justifyContent: "center", color: "#C2620E" }}>
               <MessageSquare size={18} />
             </div>
           </div>
@@ -308,9 +308,9 @@ export default function ReunioesPage() {
             <div style={{ marginTop: "8px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#707070", marginBottom: "4px" }}>
                 <span>Meta: {metaData.meta_alinhamento}</span>
-                <span style={{ color: metaPercent.alinhamento >= 100 ? "#22c55e" : "#f59e0b" }}>{metaPercent.alinhamento}%</span>
+                <span style={{ color: metaPercent.alinhamento >= 100 ? "#1E6B52" : "#C2620E" }}>{metaPercent.alinhamento}%</span>
               </div>
-              <ProgressBar value={kpis.alinhamento} max={metaData.meta_alinhamento} color="#f59e0b" />
+              <ProgressBar value={kpis.alinhamento} max={metaData.meta_alinhamento} color="#C2620E" />
             </div>
           )}
         </div>
@@ -328,7 +328,7 @@ export default function ReunioesPage() {
             </span>
             <span style={{
               fontSize: "16px", fontWeight: "700",
-              color: (kpis.realizadas / kpis.total) * 100 >= 80 ? "#22c55e" : (kpis.realizadas / kpis.total) * 100 >= 50 ? "#f59e0b" : "#ef4444",
+              color: (kpis.realizadas / kpis.total) * 100 >= 80 ? "#1E6B52" : (kpis.realizadas / kpis.total) * 100 >= 50 ? "#C2620E" : "#B42318",
             }}>
               {Math.round((kpis.realizadas / kpis.total) * 100)}%
             </span>

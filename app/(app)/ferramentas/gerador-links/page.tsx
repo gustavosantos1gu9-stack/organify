@@ -99,11 +99,11 @@ function DetalhesLink({ link, onVoltar, waNumero, conversasPorLink }: { link: Li
             </div>
             <div className="card" style={{ padding:"16px" }}>
               <p style={{ fontSize:"12px", color:"#4A5B6C", marginBottom:"4px" }}>Agendamentos</p>
-              <p style={{ fontSize:"28px", fontWeight:"700", color:"#f59e0b" }}>{agendamentos}</p>
+              <p style={{ fontSize:"28px", fontWeight:"700", color:"#C2620E" }}>{agendamentos}</p>
             </div>
             <div className="card" style={{ padding:"16px" }}>
               <p style={{ fontSize:"12px", color:"#4A5B6C", marginBottom:"4px" }}>Vendas</p>
-              <p style={{ fontSize:"28px", fontWeight:"700", color:"#22c55e" }}>{vendas}</p>
+              <p style={{ fontSize:"28px", fontWeight:"700", color:"#1E6B52" }}>{vendas}</p>
             </div>
           </div>
         );
@@ -242,7 +242,7 @@ function DetalhesLink({ link, onVoltar, waNumero, conversasPorLink }: { link: Li
           <div>
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"6px" }}>
               <p style={{ fontSize:"13px", fontWeight:"600", color:"#0A1826" }}>
-                Caso você <span style={{ color:"#ef4444" }}>NÃO utilize UTMs</span>
+                Caso você <span style={{ color:"#B42318" }}>NÃO utilize UTMs</span>
               </p>
               <CopiarBotao texto={utmSemExistentes}/>
             </div>

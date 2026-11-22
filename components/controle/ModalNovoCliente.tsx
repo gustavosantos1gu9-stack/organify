@@ -100,7 +100,7 @@ export default function ModalNovoCliente({ agId, cadastros, onClose, onSave }: P
                 <span style={{ fontSize:"13px", color: cadastroVinculado ? "#0A1826" : "#4A5B6C", fontWeight: cadastroVinculado ? "600" : "400" }}>
                   {cadastroVinculado ? cadastroVinculado.nome : "Vincular formulário de cadastro"}
                 </span>
-                {cadastroVinculado && <span style={{ fontSize:"11px", color:"#22c55e", background:"#052e16", padding:"2px 6px", borderRadius:"8px" }}>vinculado</span>}
+                {cadastroVinculado && <span style={{ fontSize:"11px", color:"#1E6B52", background:"#052e16", padding:"2px 6px", borderRadius:"8px" }}>vinculado</span>}
               </div>
               <div style={{ display:"flex", gap:"6px" }}>
                 {cadastroVinculado && (
@@ -178,7 +178,7 @@ export default function ModalNovoCliente({ agId, cadastros, onClose, onSave }: P
             </div>
           </div>
 
-          {erro && <p style={{ color:"#ef4444", fontSize:"13px", margin:0 }}>{erro}</p>}
+          {erro && <p style={{ color:"#B42318", fontSize:"13px", margin:0 }}>{erro}</p>}
         </div>
 
         {/* Footer */}

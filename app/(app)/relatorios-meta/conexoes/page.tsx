@@ -572,16 +572,16 @@ export default function ConexoesPage() {
       <div className="card" style={{ marginBottom: "20px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: metaConectado ? "#22c55e" : "#ef4444" }} />
+            <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: metaConectado ? "#1E6B52" : "#B42318" }} />
             <Target size={18} color="#1877f2" />
             <h2 style={{ fontSize: "16px", fontWeight: "600" }}>Facebook / Meta Ads</h2>
           </div>
           {metaConectado && (
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span style={{ fontSize: "12px", color: "#22c55e" }}>Conectado como {metaNome}</span>
+              <span style={{ fontSize: "12px", color: "#1E6B52" }}>Conectado como {metaNome}</span>
               <button onClick={desconectarMeta} style={{
-                background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)",
-                borderRadius: "6px", padding: "4px 10px", cursor: "pointer", color: "#ef4444", fontSize: "11px",
+                background: "rgba(180,35,24,0.1)", border: "1px solid rgba(180,35,24,0.2)",
+                borderRadius: "6px", padding: "4px 10px", cursor: "pointer", color: "#B42318", fontSize: "11px",
               }}>Desconectar</button>
             </div>
           )}
@@ -625,7 +625,7 @@ export default function ConexoesPage() {
             {/* Estender token pra 60 dias */}
             {metaToken.trim() && (
               <details style={{ marginBottom: "12px" }}>
-                <summary style={{ fontSize: "12px", color: "#22c55e", cursor: "pointer", userSelect: "none" }}>Estender token para 60 dias</summary>
+                <summary style={{ fontSize: "12px", color: "#1E6B52", cursor: "pointer", userSelect: "none" }}>Estender token para 60 dias</summary>
                 <div style={{ marginTop: "10px", padding: "14px", background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: "8px", fontSize: "12px", color: "#4A5B6C", lineHeight: "1.8" }}>
                   <p style={{ fontSize: "11px", color: "#4A5B6C", marginBottom: "10px" }}>
                     Encontre o App ID e App Secret em <strong style={{ color: "#1C6CA6" }}>developers.facebook.com</strong> → seu app → Configurações → Básico
@@ -640,7 +640,7 @@ export default function ConexoesPage() {
                     </div>
                   </div>
                   <button onClick={estenderToken} disabled={estendendo} style={{
-                    background: "#22c55e", color: "#fff", border: "none", borderRadius: "6px",
+                    background: "#1E6B52", color: "#fff", border: "none", borderRadius: "6px",
                     padding: "6px 16px", fontSize: "12px", fontWeight: "600", cursor: "pointer", width: "100%",
                   }}>{estendendo ? "Estendendo..." : "Estender para 60 dias"}</button>
                 </div>
@@ -660,7 +660,7 @@ export default function ConexoesPage() {
                   <li>Marque as permissoes: <strong>ads_read</strong>, <strong>ads_management</strong> e <strong>business_management</strong></li>
                   <li>Copie o token gerado e cole acima</li>
                 </ol>
-                <p style={{ marginTop: "10px", color: "#f59e0b", fontSize: "11px" }}>Use o token da conta pessoal para ter acesso a todas as contas de anúncio dos seus clientes. Este token expira — gere um novo quando necessário.</p>
+                <p style={{ marginTop: "10px", color: "#C2620E", fontSize: "11px" }}>Use o token da conta pessoal para ter acesso a todas as contas de anúncio dos seus clientes. Este token expira — gere um novo quando necessário.</p>
               </div>
             </details>
           </>
@@ -677,9 +677,9 @@ export default function ConexoesPage() {
             {loadingContas ? (
               <p style={{ fontSize: "12px", color: "#4A5B6C" }}>Carregando contas...</p>
             ) : erroContas ? (
-              <div style={{ padding: "12px 14px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "8px" }}>
-                <p style={{ fontSize: "12px", color: "#ef4444", marginBottom: "6px" }}>{erroContas}</p>
-                <p style={{ fontSize: "11px", color: "#f59e0b" }}>Desconecte e reconecte com um novo token.</p>
+              <div style={{ padding: "12px 14px", background: "rgba(180,35,24,0.1)", border: "1px solid rgba(180,35,24,0.2)", borderRadius: "8px" }}>
+                <p style={{ fontSize: "12px", color: "#B42318", marginBottom: "6px" }}>{erroContas}</p>
+                <p style={{ fontSize: "11px", color: "#C2620E" }}>Desconecte e reconecte com um novo token.</p>
               </div>
             ) : contas.length === 0 ? (
               <p style={{ fontSize: "12px", color: "#4A5B6C" }}>Nenhuma conta encontrada.</p>
@@ -696,8 +696,8 @@ export default function ConexoesPage() {
                     </div>
                     <span style={{
                       fontSize: "11px", padding: "3px 8px", borderRadius: "12px",
-                      background: c.account_status === 1 ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)",
-                      color: c.account_status === 1 ? "#22c55e" : "#ef4444",
+                      background: c.account_status === 1 ? "rgba(30,107,82,0.1)" : "rgba(180,35,24,0.1)",
+                      color: c.account_status === 1 ? "#1E6B52" : "#B42318",
                     }}>
                       {c.account_status === 1 ? "Ativa" : "Inativa"}
                     </span>
@@ -713,7 +713,7 @@ export default function ConexoesPage() {
       <div className="card">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: waConectado ? "#22c55e" : "#ef4444" }} />
+            <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: waConectado ? "#1E6B52" : "#B42318" }} />
             <MessageCircle size={18} color="#25d366" />
             <h2 style={{ fontSize: "16px", fontWeight: "600" }}>WhatsApp</h2>
           </div>
@@ -746,8 +746,8 @@ export default function ConexoesPage() {
                 <RefreshCw size={14} />
               </button>
               <button onClick={desconectarWA} style={{
-                background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)",
-                borderRadius: "6px", padding: "6px 12px", cursor: "pointer", color: "#ef4444", fontSize: "12px",
+                background: "rgba(180,35,24,0.1)", border: "1px solid rgba(180,35,24,0.2)",
+                borderRadius: "6px", padding: "6px 12px", cursor: "pointer", color: "#B42318", fontSize: "12px",
               }}>Desconectar</button>
             </div>
           </div>
@@ -815,7 +815,7 @@ export default function ConexoesPage() {
               {criandoInst ? "Gerando QR Code..." : "Conectar WhatsApp"}
             </button>
             {!evoUrl && (
-              <p style={{ fontSize: "11px", color: "#ef4444", marginTop: "8px" }}>
+              <p style={{ fontSize: "11px", color: "#B42318", marginTop: "8px" }}>
                 Evolution API não configurada. Configure em Configurações → Integrações.
               </p>
             )}
@@ -845,7 +845,7 @@ export default function ConexoesPage() {
                 borderRadius: "10px",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: inst.conectado ? "#22c55e" : "#ef4444" }} />
+                  <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: inst.conectado ? "#1E6B52" : "#B42318" }} />
                   <div>
                     <p style={{ fontSize: "13px", fontWeight: "600", color: "#0A1826", margin: 0 }}>{inst.nome}</p>
                     <p style={{ fontSize: "11px", color: "#4A5B6C", margin: 0 }}>{inst.instancia}</p>
@@ -863,8 +863,8 @@ export default function ConexoesPage() {
                   )}
                   {inst.conectado && (
                     <button onClick={() => desconectarInstancia(inst)} style={{
-                      background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)",
-                      borderRadius: "6px", padding: "4px 10px", cursor: "pointer", color: "#ef4444", fontSize: "11px",
+                      background: "rgba(180,35,24,0.1)", border: "1px solid rgba(180,35,24,0.2)",
+                      borderRadius: "6px", padding: "4px 10px", cursor: "pointer", color: "#B42318", fontSize: "11px",
                     }}>Desconectar</button>
                   )}
                   <button onClick={() => removerInstancia(inst)} style={{
@@ -911,7 +911,7 @@ export default function ConexoesPage() {
           </button>
         </div>
         {!evoUrl && (
-          <p style={{ fontSize: "11px", color: "#ef4444", marginTop: "8px" }}>
+          <p style={{ fontSize: "11px", color: "#B42318", marginTop: "8px" }}>
             Evolution API não configurada. Configure em Configurações → Integrações.
           </p>
         )}
@@ -953,7 +953,7 @@ export default function ConexoesPage() {
                 borderRadius: "10px",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#22c55e" }} />
+                  <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#1E6B52" }} />
                   <div>
                     <p style={{ fontSize: "13px", fontWeight: "600", color: "#0A1826", margin: 0 }}>{inst.nome}</p>
                     <p style={{ fontSize: "11px", color: "#4A5B6C", margin: 0 }}>

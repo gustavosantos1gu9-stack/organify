@@ -134,7 +134,7 @@ export default function CampanhasPage() {
             {
               n: 3,
               titulo: "Cadastre o termo-chave na Jornada de Compra",
-              cor: "#8b5cf6",
+              cor: "#6B4FC8",
               conteudo: (
                 <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
                   <p style={{ fontSize:"13px", color:"#4A5B6C" }}>
@@ -147,7 +147,7 @@ export default function CampanhasPage() {
                     <p style={{ fontSize:"13px", color:"#0A1826" }}>• Termo-chave: <strong>Black Friday</strong></p>
                     <p style={{ fontSize:"13px", color:"#0A1826" }}>• É primeiro contato: <strong>✓ Sim</strong></p>
                   </div>
-                  <a href="/jornada" style={{ display:"flex", alignItems:"center", gap:"6px", color:"#8b5cf6", fontSize:"13px", textDecoration:"none" }}>
+                  <a href="/jornada" style={{ display:"flex", alignItems:"center", gap:"6px", color:"#6B4FC8", fontSize:"13px", textDecoration:"none" }}>
                     Ir para Jornada de Compra <ExternalLink size={12}/>
                   </a>
                 </div>
@@ -156,7 +156,7 @@ export default function CampanhasPage() {
             {
               n: 4,
               titulo: "Como o rastreamento funciona",
-              cor: "#f59e0b",
+              cor: "#C2620E",
               conteudo: (
                 <div style={{ background:"#FFFFFF", borderRadius:"8px", padding:"16px", border:"1px solid #E6EBF0" }}>
                   <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
@@ -245,8 +245,8 @@ export default function CampanhasPage() {
                     <p style={{ fontSize:"13px", color:"#0A1826" }}>• URL: <strong style={{color:"#1C6CA6"}}>seu link rastreável</strong></p>
                     <p style={{ fontSize:"13px", color:"#0A1826" }}>• Pixel: <strong>ativado ✓</strong></p>
                   </div>
-                  <div style={{ background:"rgba(245,158,11,0.08)", border:"1px solid rgba(245,158,11,0.2)", borderRadius:"8px", padding:"10px 14px" }}>
-                    <p style={{ fontSize:"12px", color:"#f59e0b" }}>
+                  <div style={{ background:"rgba(194,98,14,0.08)", border:"1px solid rgba(194,98,14,0.2)", borderRadius:"8px", padding:"10px 14px" }}>
+                    <p style={{ fontSize:"12px", color:"#C2620E" }}>
                       ⚠️ Para campanhas de conversão, configure o evento <strong>Lead</strong> no Pixel do Meta como meta de otimização.
                     </p>
                   </div>
@@ -256,7 +256,7 @@ export default function CampanhasPage() {
             {
               n: 3,
               titulo: "O que acontece quando o lead clica",
-              cor: "#8b5cf6",
+              cor: "#6B4FC8",
               conteudo: (
                 <div style={{ background:"#FFFFFF", borderRadius:"8px", padding:"16px", border:"1px solid #E6EBF0" }}>
                   <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
@@ -280,7 +280,7 @@ export default function CampanhasPage() {
             {
               n: 4,
               titulo: "Dica: crie um link por criativo",
-              cor: "#ec4899",
+              cor: "#B4387A",
               conteudo: (
                 <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
                   <p style={{ fontSize:"13px", color:"#4A5B6C" }}>

@@ -167,7 +167,7 @@ export default function ReconectarPage({ params }: PageProps) {
     return (
       <Wrapper>
         <div style={{ fontSize: 48, marginBottom: 12 }}>⚠️</div>
-        <p style={{ color: "#ef4444", fontSize: 15, textAlign: "center", maxWidth: 320 }}>{erro}</p>
+        <p style={{ color: "#B42318", fontSize: 15, textAlign: "center", maxWidth: 320 }}>{erro}</p>
         <button onClick={() => { setErro(""); reconexaoIniciadaRef.current = false; iniciarReconexao(); }}
           style={btnStyle}>Tentar novamente</button>
       </Wrapper>
@@ -178,7 +178,7 @@ export default function ReconectarPage({ params }: PageProps) {
     return (
       <Wrapper>
         <div style={{ fontSize: 64, marginBottom: 16 }}>✅</div>
-        <h2 style={{ color: "#22c55e", fontSize: 22, fontWeight: 700, margin: "0 0 8px" }}>
+        <h2 style={{ color: "#1E6B52", fontSize: 22, fontWeight: 700, margin: "0 0 8px" }}>
           Tudo certo!
         </h2>
         <p style={{ color: "#4A5B6C", fontSize: 15, textAlign: "center", maxWidth: 300 }}>
@@ -216,7 +216,7 @@ export default function ReconectarPage({ params }: PageProps) {
 
       {/* Erro */}
       {erro && (
-        <p style={{ color: "#ef4444", fontSize: 13, marginBottom: 16, textAlign: "center", maxWidth: 320 }}>{erro}</p>
+        <p style={{ color: "#B42318", fontSize: 13, marginBottom: 16, textAlign: "center", maxWidth: 320 }}>{erro}</p>
       )}
 
       {!pairingMode ? (

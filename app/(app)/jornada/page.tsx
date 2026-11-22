@@ -190,7 +190,7 @@ function OrdenarModal({ etapas, onClose, onSave }: { etapas: Etapa[]; onClose: (
                 onDrop={handleDrop}
                 style={{
                   display: "flex", alignItems: "center", gap: "10px",
-                  background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)",
+                  background: "rgba(30,107,82,0.08)", border: "1px solid rgba(30,107,82,0.2)",
                   borderRadius: "8px", padding: "10px 14px", cursor: "grab",
                   width: `${largura}%`, margin: "0 auto",
                   transition: "width 0.2s",
@@ -294,7 +294,7 @@ export default function JornadaPage() {
                 <td style={{ color: "#4A5B6C", fontSize: "12px", fontFamily: "monospace" }}>{e.id.slice(0,5).toUpperCase()}</td>
                 <td>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <div style={{ width: "24px", height: "24px", borderRadius: "50%", background: "rgba(34,197,94,0.15)", color: "#22c55e", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "600" }}>
+                    <div style={{ width: "24px", height: "24px", borderRadius: "50%", background: "rgba(30,107,82,0.15)", color: "#1E6B52", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "600" }}>
                       {e.ordem}
                     </div>
                   </div>
@@ -302,8 +302,8 @@ export default function JornadaPage() {
                 <td>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <span style={{ fontWeight: "500" }}>{e.nome}</span>
-                    {e.eh_venda && <span style={{ fontSize: "10px", background: "rgba(34,197,94,0.1)", color: "#22c55e", padding: "2px 6px", borderRadius: "4px" }}>Venda ✓</span>}
-                    {e.eh_primeiro_contato && <span style={{ fontSize: "10px", background: "rgba(59,130,246,0.1)", color: "#3b82f6", padding: "2px 6px", borderRadius: "4px" }}>1º Contato</span>}
+                    {e.eh_venda && <span style={{ fontSize: "10px", background: "rgba(30,107,82,0.1)", color: "#1E6B52", padding: "2px 6px", borderRadius: "4px" }}>Venda ✓</span>}
+                    {e.eh_primeiro_contato && <span style={{ fontSize: "10px", background: "rgba(28,108,166,0.1)", color: "#1C6CA6", padding: "2px 6px", borderRadius: "4px" }}>1º Contato</span>}
                   </div>
                 </td>
                 <td>
@@ -348,7 +348,7 @@ export default function JornadaPage() {
             <Edit2 size={13}/> Editar
           </button>
           <button onClick={() => { remover(menuAberto); }}
-            style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: "13px", color: "#ef4444", textAlign: "left", display: "flex", alignItems: "center", gap: "8px" }}>
+            style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: "13px", color: "#B42318", textAlign: "left", display: "flex", alignItems: "center", gap: "8px" }}>
             <Trash2 size={13}/> Excluir
           </button>
         </div>

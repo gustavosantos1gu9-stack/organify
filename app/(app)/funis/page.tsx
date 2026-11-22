@@ -87,7 +87,7 @@ const btnGhost: React.CSSProperties = {
   display: "inline-flex", alignItems: "center", gap: 4,
 };
 const btnDanger: React.CSSProperties = {
-  background: "transparent", color: "#f87171", border: "1px solid #3b1c1c",
+  background: "transparent", color: "#B42318", border: "1px solid #3b1c1c",
   borderRadius: 8, padding: "7px 12px", fontSize: 12, cursor: "pointer",
   display: "inline-flex", alignItems: "center", gap: 4,
 };
@@ -401,7 +401,7 @@ export default function FunisPage() {
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
               <button style={btnGhost} onClick={() => setDeleteId(null)}>Cancelar</button>
               <button
-                style={{ ...btnDanger, background: "#dc2626", color: "#fff", borderColor: "#dc2626" }}
+                style={{ ...btnDanger, background: "#B42318", color: "#fff", borderColor: "#B42318" }}
                 onClick={() => deletar(deleteId)}
               >
                 <Trash2 size={14} /> Excluir
@@ -487,7 +487,7 @@ export default function FunisPage() {
                       title="Mover para baixo"
                     ><ChevronDown size={16} /></button>
                     <button
-                      style={{ background: "none", border: "none", color: "#f87171", cursor: "pointer", padding: 2 }}
+                      style={{ background: "none", border: "none", color: "#B42318", cursor: "pointer", padding: 2 }}
                       onClick={() => removeEtapa(idx)}
                       title="Remover etapa"
                     ><Trash2 size={14} /></button>
@@ -585,10 +585,10 @@ export default function FunisPage() {
                         </label>
                         {etapa.midia_url && (
                           <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 6 }}>
-                            <span style={{ fontSize: 11, color: "#22c55e", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            <span style={{ fontSize: 11, color: "#1E6B52", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                               {etapa.midia_url.split("/").pop()?.slice(0, 30) || "Arquivo enviado"}
                             </span>
-                            <button onClick={() => updateEtapa(idx, { midia_url: "" })} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: 2 }}>
+                            <button onClick={() => updateEtapa(idx, { midia_url: "" })} style={{ background: "none", border: "none", color: "#B42318", cursor: "pointer", padding: 2 }}>
                               <X size={13} />
                             </button>
                           </div>

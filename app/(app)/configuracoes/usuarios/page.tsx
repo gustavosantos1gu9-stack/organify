@@ -130,7 +130,7 @@ function UsuarioModal({ item, times, agenciasFilhas, onClose, onSave }: { item?:
           )}
         </div>
         {erro && (
-          <div style={{ background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.25)", borderRadius:"8px", padding:"10px 14px", fontSize:"13px", color:"#ef4444", marginTop:"12px" }}>{erro}</div>
+          <div style={{ background:"rgba(180,35,24,0.1)", border:"1px solid rgba(180,35,24,0.25)", borderRadius:"8px", padding:"10px 14px", fontSize:"13px", color:"#B42318", marginTop:"12px" }}>{erro}</div>
         )}
         {!isEdit && (
           <p style={{ fontSize:"11px", color:"#4A5B6C", marginTop:"12px" }}>O usuário receberá um email de convite para definir sua senha e acessar a plataforma.</p>

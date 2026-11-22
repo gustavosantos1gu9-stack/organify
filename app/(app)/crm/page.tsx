@@ -12,25 +12,25 @@ import { formatCurrency } from "@/lib/utils";
 
 const ETAPAS_PADRAO = [
   { key:"novo", label:"Não respondeu", color:"#4A5B6C" },
-  { key:"em_contato", label:"Em contato", color:"#3b82f6" },
-  { key:"qualificado", label:"Qualificado", color:"#06b6d4" },
-  { key:"reuniao_agendada", label:"Reunião agendada", color:"#f59e0b" },
-  { key:"nao_compareceu", label:"Não compareceu", color:"#f97316" },
-  { key:"proposta_enviada", label:"Proposta enviada", color:"#8b5cf6" },
+  { key:"em_contato", label:"Em contato", color:"#1C6CA6" },
+  { key:"qualificado", label:"Qualificado", color:"#2A8FA8" },
+  { key:"reuniao_agendada", label:"Reunião agendada", color:"#C2620E" },
+  { key:"nao_compareceu", label:"Não compareceu", color:"#C2620E" },
+  { key:"proposta_enviada", label:"Proposta enviada", color:"#6B4FC8" },
   { key:"ganho", label:"Ganho", color:"#1C6CA6" },
-  { key:"perdido", label:"Perdido", color:"#ef4444" },
+  { key:"perdido", label:"Perdido", color:"#B42318" },
 ];
 
-const CORES_ETAPAS = ["#4A5B6C", "#3b82f6", "#06b6d4", "#f59e0b", "#f97316", "#8b5cf6", "#22c55e", "#ec4899", "#1C6CA6", "#ef4444"];
+const CORES_ETAPAS = ["#4A5B6C", "#1C6CA6", "#2A8FA8", "#C2620E", "#C2620E", "#6B4FC8", "#1E6B52", "#B4387A", "#1C6CA6", "#B42318"];
 
 function getQualificacao(etapa: string, etapas: { key: string; label: string; color: string }[]): { label: string; color: string; bg: string } {
   const total = etapas.length;
   const idx = etapas.findIndex(e => e.key === etapa);
   if (idx < 0) return { label: "—", color: "#4A5B6C", bg: "rgba(96,96,96,0.1)" };
   const pct = total > 1 ? idx / (total - 1) : 0;
-  if (pct < 0.33) return { label: "Frio", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" };
-  if (pct < 0.66) return { label: "Morno", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" };
-  return { label: "Quente", color: "#ef4444", bg: "rgba(239,68,68,0.12)" };
+  if (pct < 0.33) return { label: "Frio", color: "#1C6CA6", bg: "rgba(28,108,166,0.12)" };
+  if (pct < 0.66) return { label: "Morno", color: "#C2620E", bg: "rgba(194,98,14,0.12)" };
+  return { label: "Quente", color: "#B42318", bg: "rgba(180,35,24,0.12)" };
 }
 
 
@@ -146,7 +146,7 @@ function KanbanBoard({ leads, etapas, onEtapaChange, onRemover, onConverter, onE
                           📝 Anotar
                         </button>
                         <button onClick={(e)=>{ e.stopPropagation(); setMenuAberto(null); onRemover(lead.id); }}
-                          style={{ width:"100%", padding:"10px 14px", background:"none", border:"none", color:"#ef4444", cursor:"pointer", fontSize:"13px", textAlign:"left", display:"flex", alignItems:"center", gap:"8px" }}
+                          style={{ width:"100%", padding:"10px 14px", background:"none", border:"none", color:"#B42318", cursor:"pointer", fontSize:"13px", textAlign:"left", display:"flex", alignItems:"center", gap:"8px" }}
                           onMouseEnter={(e)=>(e.currentTarget.style.background="#E6EBF0")}
                           onMouseLeave={(e)=>(e.currentTarget.style.background="none")}>
                           🗑️ Remover
@@ -189,8 +189,8 @@ function KanbanBoard({ leads, etapas, onEtapaChange, onRemover, onConverter, onE
                       style={{
                         flex:1, padding:"5px 0", borderRadius:"6px", cursor:"pointer", fontSize:"12px", fontWeight:"500",
                         border:"none",
-                        background:"rgba(239,68,68,0.15)",
-                        color:"#ef4444",
+                        background:"rgba(180,35,24,0.15)",
+                        color:"#B42318",
                         display:"flex", alignItems:"center", justifyContent:"center", gap:"4px",
                       }}
                     >
@@ -226,7 +226,7 @@ function KanbanBoard({ leads, etapas, onEtapaChange, onRemover, onConverter, onE
                   {lead.observacoes && notaAberta!==lead.id && (
                     <div onClick={(e)=>{ e.stopPropagation(); abrirNota(lead); }}
                       style={{ background:"#FFFFFF", borderRadius:"4px", padding:"5px 8px", marginBottom:"6px", cursor:"pointer", display:"flex", alignItems:"flex-start", gap:"5px" }}>
-                      <StickyNote size={10} style={{ color:"#f59e0b", flexShrink:0, marginTop:"2px" }}/>
+                      <StickyNote size={10} style={{ color:"#C2620E", flexShrink:0, marginTop:"2px" }}/>
                       <p style={{ fontSize:"11px", color:"#4A5B6C", overflow:"hidden", textOverflow:"ellipsis", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical" as const }}>{lead.observacoes}</p>
                     </div>
                   )}
@@ -369,7 +369,7 @@ export default function CRMPage() {
             {Object.keys(filtros).length > 0 && <span style={{ position:"absolute",top:"-4px",right:"-4px",background:"#1C6CA6",color:"#F3F5F7",fontSize:"9px",fontWeight:"800",borderRadius:"50%",width:"14px",height:"14px",display:"flex",alignItems:"center",justifyContent:"center" }}>{Object.keys(filtros).length}</span>}
           </button>
           {Object.keys(filtros).length > 0 && (
-            <button onClick={()=>setFiltros({})} className="btn-ghost" style={{ cursor:"pointer",fontSize:"12px",color:"#ef4444" }}>
+            <button onClick={()=>setFiltros({})} className="btn-ghost" style={{ cursor:"pointer",fontSize:"12px",color:"#B42318" }}>
               <X size={12}/> Limpar
             </button>
           )}

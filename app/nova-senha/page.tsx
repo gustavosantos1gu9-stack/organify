@@ -67,15 +67,15 @@ function NovaSenhaContent() {
           {!sessionReady && !sucesso ? (
             <div style={{ textAlign:"center", color:"#4A5B6C", fontSize:"13px" }}>
               {erro ? (
-                <div style={{ background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.25)", borderRadius:"8px", padding:"10px 14px", display:"flex", alignItems:"center", gap:"8px", fontSize:"13px", color:"#ef4444" }}>
+                <div style={{ background:"rgba(180,35,24,0.1)", border:"1px solid rgba(180,35,24,0.25)", borderRadius:"8px", padding:"10px 14px", display:"flex", alignItems:"center", gap:"8px", fontSize:"13px", color:"#B42318" }}>
                   <AlertCircle size={14}/>{erro}
                 </div>
               ) : "Verificando link..."}
             </div>
           ) : sucesso ? (
             <div style={{ textAlign:"center" }}>
-              <div style={{ width:"48px", height:"48px", background:"rgba(34,197,94,0.15)", borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
-                <Check size={24} style={{ color:"#22c55e" }}/>
+              <div style={{ width:"48px", height:"48px", background:"rgba(30,107,82,0.15)", borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
+                <Check size={24} style={{ color:"#1E6B52" }}/>
               </div>
               <h2 style={{ fontSize:"16px", fontWeight:"600", color:"#0A1826", marginBottom:"8px" }}>Senha atualizada!</h2>
               <p style={{ fontSize:"13px", color:"#4A5B6C" }}>Redirecionando para o login...</p>
@@ -87,7 +87,7 @@ function NovaSenhaContent() {
                 <p style={{ fontSize:"13px", color:"#4A5B6C" }}>Digite sua nova senha abaixo.</p>
               </div>
               {erro && (
-                <div style={{ background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.25)", borderRadius:"8px", padding:"10px 14px", display:"flex", alignItems:"center", gap:"8px", fontSize:"13px", color:"#ef4444" }}>
+                <div style={{ background:"rgba(180,35,24,0.1)", border:"1px solid rgba(180,35,24,0.25)", borderRadius:"8px", padding:"10px 14px", display:"flex", alignItems:"center", gap:"8px", fontSize:"13px", color:"#B42318" }}>
                   <AlertCircle size={14}/>{erro}
                 </div>
               )}

@@ -101,8 +101,8 @@ export default function MensagensRastreavesPage() {
                 <td>
                   <span style={{
                     padding: "3px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: "500",
-                    background: m.rastreada ? "rgba(34,197,94,0.15)" : "rgba(239,68,68,0.15)",
-                    color: m.rastreada ? "#22c55e" : "#ef4444",
+                    background: m.rastreada ? "rgba(30,107,82,0.15)" : "rgba(180,35,24,0.15)",
+                    color: m.rastreada ? "#1E6B52" : "#B42318",
                   }}>
                     {m.rastreada ? "Sim" : "Não"}
                   </span>

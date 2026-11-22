@@ -17,23 +17,23 @@ interface DisparoPixel {
 }
 
 const ETAPA_CORES: Record<string, string> = {
-  "Entrou em contato": "#3b82f6",
-  "Fez Contato": "#3b82f6",
-  "Qualificado": "#8b5cf6",
-  "Agendou": "#f59e0b",
-  "Compareceu": "#06b6d4",
-  "Comprou": "#22c55e",
-  "Fechou": "#22c55e",
-  "Perdido": "#ef4444",
+  "Entrou em contato": "#1C6CA6",
+  "Fez Contato": "#1C6CA6",
+  "Qualificado": "#6B4FC8",
+  "Agendou": "#C2620E",
+  "Compareceu": "#2A8FA8",
+  "Comprou": "#1E6B52",
+  "Fechou": "#1E6B52",
+  "Perdido": "#B42318",
 };
 
 const EVENTO_CORES: Record<string, string> = {
-  Lead: "#3b82f6",
-  Contact: "#22c55e",
-  CompleteRegistration: "#8b5cf6",
-  Schedule: "#f59e0b",
-  Purchase: "#ec4899",
-  InitiateCheckout: "#06b6d4",
+  Lead: "#1C6CA6",
+  Contact: "#1E6B52",
+  CompleteRegistration: "#6B4FC8",
+  Schedule: "#C2620E",
+  Purchase: "#B4387A",
+  InitiateCheckout: "#2A8FA8",
 };
 
 export default function DisparosPixelPage() {
@@ -117,11 +117,11 @@ export default function DisparosPixelPage() {
         </div>
         <div className="card" style={{ padding: "16px", textAlign: "center" }}>
           <p style={{ fontSize: "12px", color: "#4A5B6C", marginBottom: "4px" }}>Sucesso</p>
-          <p style={{ fontSize: "24px", fontWeight: "700", color: "#22c55e" }}>{sucessos}</p>
+          <p style={{ fontSize: "24px", fontWeight: "700", color: "#1E6B52" }}>{sucessos}</p>
         </div>
         <div className="card" style={{ padding: "16px", textAlign: "center" }}>
           <p style={{ fontSize: "12px", color: "#4A5B6C", marginBottom: "4px" }}>Erro</p>
-          <p style={{ fontSize: "24px", fontWeight: "700", color: erros > 0 ? "#ef4444" : "#404040" }}>{erros}</p>
+          <p style={{ fontSize: "24px", fontWeight: "700", color: erros > 0 ? "#B42318" : "#404040" }}>{erros}</p>
         </div>
       </div>
 
@@ -179,9 +179,9 @@ export default function DisparosPixelPage() {
                 </td>
                 <td>
                   {d.status === "sucesso" ? (
-                    <span style={{ color: "#22c55e", fontSize: "12px", fontWeight: "600" }}>Sucesso</span>
+                    <span style={{ color: "#1E6B52", fontSize: "12px", fontWeight: "600" }}>Sucesso</span>
                   ) : (
-                    <span style={{ color: "#ef4444", fontSize: "12px", fontWeight: "600" }}>Erro</span>
+                    <span style={{ color: "#B42318", fontSize: "12px", fontWeight: "600" }}>Erro</span>
                   )}
                 </td>
                 <td style={{ fontSize: "11px", color: "#4A5B6C", maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

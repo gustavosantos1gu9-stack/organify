@@ -364,7 +364,7 @@ function FormulariosPageInner() {
                   <td style={{ color: "#1C6CA6", fontSize: 12 }}>/f/{f.slug}</td>
                   <td style={{ color: "#4A5B6C" }}>{f.perguntas?.length || 0} campos</td>
                   <td>
-                    <span style={{ fontSize: 12, padding: "3px 10px", borderRadius: 20, background: f.ativo ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", color: f.ativo ? "#22c55e" : "#ef4444" }}>
+                    <span style={{ fontSize: 12, padding: "3px 10px", borderRadius: 20, background: f.ativo ? "rgba(30,107,82,0.1)" : "rgba(180,35,24,0.1)", color: f.ativo ? "#1E6B52" : "#B42318" }}>
                       {f.ativo ? "Ativo" : "Inativo"}
                     </span>
                   </td>
@@ -635,7 +635,7 @@ function FormulariosPageInner() {
                               Obrigatório
                             </label>
                           )}
-                          <button onClick={() => removePergunta(idx)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: 2 }}><Trash2 size={13} /></button>
+                          <button onClick={() => removePergunta(idx)} style={{ background: "none", border: "none", color: "#B42318", cursor: "pointer", padding: 2 }}><Trash2 size={13} /></button>
                         </div>
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 8, marginBottom: 8 }}>
@@ -766,9 +766,9 @@ function FormulariosPageInner() {
                             onClick={() => updatePergunta(idx, "semDisparo", !p.semDisparo)}
                             style={{
                               display: "flex", alignItems: "center", gap: 8, padding: "8px 12px",
-                              borderRadius: 8, border: `1px solid ${p.semDisparo ? "#ef4444" : "#E6EBF0"}`,
+                              borderRadius: 8, border: `1px solid ${p.semDisparo ? "#B42318" : "#E6EBF0"}`,
                               background: p.semDisparo ? "#ef444415" : "transparent",
-                              color: p.semDisparo ? "#ef4444" : "#4A5B6C",
+                              color: p.semDisparo ? "#B42318" : "#4A5B6C",
                               fontSize: 12, fontWeight: 600, cursor: "pointer", textAlign: "left", width: "100%",
                             }}
                           >
@@ -830,7 +830,7 @@ function FormulariosPageInner() {
                                     const novas = (p.imagensGaleria || []).filter((_, i) => i !== gi);
                                     updatePergunta(idx, "imagensGaleria", novas);
                                   }}
-                                  style={{ position: "absolute", top: -5, right: -5, width: 18, height: 18, borderRadius: "50%", background: "#ef4444", border: "none", color: "#fff", fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
+                                  style={{ position: "absolute", top: -5, right: -5, width: 18, height: 18, borderRadius: "50%", background: "#B42318", border: "none", color: "#fff", fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
                                 >×</button>
                               </div>
                             ))}
@@ -848,7 +848,7 @@ function FormulariosPageInner() {
                             <div key={oi} style={{ marginBottom: 6 }}>
                               <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
                                 <input style={{ ...inp, flex: 1, fontSize: 12 }} placeholder={`Opção ${oi + 1}`} value={o} onChange={e => updateOpcao(idx, oi, e.target.value)} />
-                                <button onClick={() => removeOpcao(idx, oi)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: 2 }}><Trash2 size={12} /></button>
+                                <button onClick={() => removeOpcao(idx, oi)} style={{ background: "none", border: "none", color: "#B42318", cursor: "pointer", padding: 2 }}><Trash2 size={12} /></button>
                               </div>
                               {/* Lógica condicional por opção */}
                               <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, marginLeft: 4 }}>

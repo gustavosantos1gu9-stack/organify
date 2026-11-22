@@ -28,7 +28,7 @@ function MetaBar({ label, realizado, meta }: { label: string; realizado: number;
   const pctVal = meta > 0 ? Math.min((realizado / meta) * 100, 100) : 0;
   const pctReal = meta > 0 ? Math.round((realizado / meta) * 100) : 0;
   const atingiu = pctReal >= 100;
-  const cor = atingiu ? "#22c55e" : pctReal >= 70 ? "#f59e0b" : "#ef4444";
+  const cor = atingiu ? "#1E6B52" : pctReal >= 70 ? "#C2620E" : "#B42318";
   return (
     <div style={{ marginBottom: "18px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "7px" }}>
@@ -82,7 +82,7 @@ function Delta({ curr, prev }: { curr: number; prev: number }) {
   const p = Math.round(Math.abs(diff / prev) * 100);
   const isUp = diff > 0;
   return (
-    <span style={{ fontSize: "11px", fontWeight: "700", color: isUp ? "#22c55e" : "#ef4444", display: "inline-flex", alignItems: "center", gap: "1px" }}>
+    <span style={{ fontSize: "11px", fontWeight: "700", color: isUp ? "#1E6B52" : "#B42318", display: "inline-flex", alignItems: "center", gap: "1px" }}>
       {isUp ? "▲" : "▼"} {p}%
     </span>
   );
@@ -542,7 +542,7 @@ export default function ReunioesVendasPage() {
           <div className="card" style={{ padding: "16px 20px" }}>
             <p style={{ fontSize: "12px", color: "#4A5B6C", margin: "0 0 8px" }}>Compareceu</p>
             <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-              <p style={{ fontSize: "28px", fontWeight: "700", color: "#f59e0b", margin: 0 }}>{kpisLista.compareceu}</p>
+              <p style={{ fontSize: "28px", fontWeight: "700", color: "#C2620E", margin: 0 }}>{kpisLista.compareceu}</p>
               <Delta curr={kpisLista.compareceu} prev={listaPrevCounts.compareceu} />
             </div>
             <p style={{ fontSize: "11px", color: "#4A5B6C", margin: "4px 0 0" }}>Não fechou ainda</p>
@@ -550,14 +550,14 @@ export default function ReunioesVendasPage() {
           <div className="card" style={{ padding: "16px 20px" }}>
             <p style={{ fontSize: "12px", color: "#4A5B6C", margin: "0 0 8px" }}>Fechou</p>
             <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-              <p style={{ fontSize: "28px", fontWeight: "700", color: "#22c55e", margin: 0 }}>{kpisLista.fechou}</p>
+              <p style={{ fontSize: "28px", fontWeight: "700", color: "#1E6B52", margin: 0 }}>{kpisLista.fechou}</p>
               <Delta curr={kpisLista.fechou} prev={listaPrevCounts.fechou} />
             </div>
           </div>
           <div className="card" style={{ padding: "16px 20px" }}>
             <p style={{ fontSize: "12px", color: "#4A5B6C", margin: "0 0 8px" }}>Taxa de fechamento</p>
             <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-              <p style={{ fontSize: "28px", fontWeight: "700", color: kpisLista.taxa >= 50 ? "#22c55e" : "#f59e0b", margin: 0 }}>{kpisLista.taxa}%</p>
+              <p style={{ fontSize: "28px", fontWeight: "700", color: kpisLista.taxa >= 50 ? "#1E6B52" : "#C2620E", margin: 0 }}>{kpisLista.taxa}%</p>
               {listaPrevCounts.total > 0 && (() => {
                 const prevTaxa = listaPrevCounts.total > 0 ? Math.round((listaPrevCounts.fechou / listaPrevCounts.total) * 100) : 0;
                 return <Delta curr={kpisLista.taxa} prev={prevTaxa} />;
@@ -577,11 +577,11 @@ export default function ReunioesVendasPage() {
                 <p style={{ fontSize: "11px", color: "#4A5B6C", margin: "2px 0 10px" }}>reuniões</p>
                 <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "10px", display: "flex", justifyContent: "space-between" }}>
                   <div>
-                    <p style={{ fontSize: "16px", fontWeight: "700", color: "#22c55e", margin: 0 }}>{f}</p>
+                    <p style={{ fontSize: "16px", fontWeight: "700", color: "#1E6B52", margin: 0 }}>{f}</p>
                     <p style={{ fontSize: "10px", color: "#4A5B6C", margin: "2px 0 0" }}>fecharam</p>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <p style={{ fontSize: "16px", fontWeight: "700", color: taxa >= 50 ? "#22c55e" : "#f59e0b", margin: 0 }}>{taxa}%</p>
+                    <p style={{ fontSize: "16px", fontWeight: "700", color: taxa >= 50 ? "#1E6B52" : "#C2620E", margin: 0 }}>{taxa}%</p>
                     <p style={{ fontSize: "10px", color: "#4A5B6C", margin: "2px 0 0" }}>conversão</p>
                   </div>
                 </div>
@@ -607,8 +607,8 @@ export default function ReunioesVendasPage() {
                   <td>
                     <span style={{
                       fontSize:"11px", padding:"3px 10px", borderRadius:"12px", fontWeight:"600",
-                      background: l.etapa==="Fechou"||l.etapa==="Comprou" ? "rgba(34,197,94,0.12)" : "rgba(245,158,11,0.12)",
-                      color: l.etapa==="Fechou"||l.etapa==="Comprou" ? "#22c55e" : "#f59e0b",
+                      background: l.etapa==="Fechou"||l.etapa==="Comprou" ? "rgba(30,107,82,0.12)" : "rgba(194,98,14,0.12)",
+                      color: l.etapa==="Fechou"||l.etapa==="Comprou" ? "#1E6B52" : "#C2620E",
                     }}>
                       {l.etapa==="Fechou"||l.etapa==="Comprou" ? "Fechou" : "Compareceu"}
                     </span>
@@ -672,7 +672,7 @@ export default function ReunioesVendasPage() {
                   </div>
                   <div style={{ display:"flex", justifyContent:"flex-end", alignItems:"center", gap:"4px" }}>
                     <span style={{ fontSize:"9px", color:"#6B7A89" }}>{agendamentos} agend.</span>
-                    <span style={{ fontSize:"9px", fontWeight:"700", color: taxaAgend >= 30 ? "#22c55e" : taxaAgend >= 15 ? "#f59e0b" : "#ef4444" }}>
+                    <span style={{ fontSize:"9px", fontWeight:"700", color: taxaAgend >= 30 ? "#1E6B52" : taxaAgend >= 15 ? "#C2620E" : "#B42318" }}>
                       {taxaAgend}%
                     </span>
                   </div>
@@ -755,10 +755,10 @@ export default function ReunioesVendasPage() {
           <div className="card" style={{ padding:"14px 16px" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"4px" }}>
               <span style={{ fontSize:"9px", fontWeight:"700", color:"#4A5B6C", letterSpacing:"0.07em" }}>VENDAS</span>
-              <TrendingUp size={12} style={{ color:"#22c55e" }}/>
+              <TrendingUp size={12} style={{ color:"#1E6B52" }}/>
             </div>
             <div style={{ display:"flex", alignItems:"baseline", gap:"8px", margin:"4px 0 8px" }}>
-              <p style={{ fontSize:"30px", fontWeight:"700", color:"#22c55e", margin:0 }}>{dados.vendas}</p>
+              <p style={{ fontSize:"30px", fontWeight:"700", color:"#1E6B52", margin:0 }}>{dados.vendas}</p>
               <Delta curr={dados.vendas} prev={dadosPrev.vendas} />
             </div>
             <div style={{ borderTop:"1px solid #E6EBF0", paddingTop:"7px" }}>
@@ -780,9 +780,9 @@ export default function ReunioesVendasPage() {
 
         {/* ── Aviso: vendas sem cliente cadastrado ── */}
         {dados.vendas > 0 && dados.clientesMes < dados.vendas && (
-          <div style={{ background:"rgba(245,158,11,0.1)", border:"1px solid rgba(245,158,11,0.3)", borderRadius:"8px", padding:"10px 14px", marginBottom:"12px", display:"flex", alignItems:"center", gap:"8px" }}>
+          <div style={{ background:"rgba(194,98,14,0.1)", border:"1px solid rgba(194,98,14,0.3)", borderRadius:"8px", padding:"10px 14px", marginBottom:"12px", display:"flex", alignItems:"center", gap:"8px" }}>
             <span style={{ fontSize:"16px" }}>⚠️</span>
-            <span style={{ fontSize:"12px", color:"#f59e0b" }}>
+            <span style={{ fontSize:"12px", color:"#C2620E" }}>
               <strong>{dados.vendas - dados.clientesMes} venda{dados.vendas - dados.clientesMes > 1 ? "s" : ""}</strong> sem cliente cadastrado com data de entrada em {MESES[mes-1]} — receita gerada pode estar incompleta. Corrija a data de entrada dos clientes.
             </span>
           </div>
@@ -799,7 +799,7 @@ export default function ReunioesVendasPage() {
           <div className="card" style={{ padding:"16px 18px" }}>
             <span style={{ fontSize:"9px", fontWeight:"700", color:"#4A5B6C", letterSpacing:"0.07em" }}>RECEITA GERADA</span>
             <div style={{ display:"flex", alignItems:"baseline", gap:"8px", margin:"6px 0 4px" }}>
-              <p style={{ fontSize:"20px", fontWeight:"700", color:"#a855f7", margin:0, wordBreak:"break-all" }}>{dados.receitaGerada > 0 ? fmt(dados.receitaGerada) : "—"}</p>
+              <p style={{ fontSize:"20px", fontWeight:"700", color:"#6B4FC8", margin:0, wordBreak:"break-all" }}>{dados.receitaGerada > 0 ? fmt(dados.receitaGerada) : "—"}</p>
               {dados.receitaGerada > 0 && <Delta curr={dados.receitaGerada} prev={dadosPrev.receitaGerada} />}
             </div>
             <div style={{ display:"flex", justifyContent:"space-between" }}>
@@ -821,7 +821,7 @@ export default function ReunioesVendasPage() {
           {[
             { label:"ROAS", val: kpis.roas > 0 ? fmtX(kpis.roas) : "—", cor:"#1C6CA6", sub:"investimento", sub2:fmt(config.investimento) },
             { label:"TICKET MÉDIO", val: dados.ticketMedio > 0 ? fmt(dados.ticketMedio) : "—", cor:"#0A1826", sub: dados.clientesMes > 0 ? `${dados.clientesMes} contratos` : null, sub2: null },
-            { label:"MRR (×3)", val: dados.mrrCalculado > 0 ? fmt(dados.mrrCalculado) : "—", cor:"#f59e0b", sub: dados.mrrCalculado > 0 ? `base mensal` : null, sub2: dados.mrrCalculado > 0 ? fmt(dados.mrrCalculado / 3) : null },
+            { label:"MRR (×3)", val: dados.mrrCalculado > 0 ? fmt(dados.mrrCalculado) : "—", cor:"#C2620E", sub: dados.mrrCalculado > 0 ? `base mensal` : null, sub2: dados.mrrCalculado > 0 ? fmt(dados.mrrCalculado / 3) : null },
           ].map(k => (
             <div key={k.label} className="card" style={{ padding:"16px 18px" }}>
               <span style={{ fontSize:"9px", fontWeight:"700", color:"#4A5B6C", letterSpacing:"0.07em" }}>{k.label}</span>

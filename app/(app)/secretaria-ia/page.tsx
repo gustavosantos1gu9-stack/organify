@@ -381,7 +381,7 @@ export default function SecretariaIAPage() {
           <p style={{ fontSize: 13, color: "#4A5B6C", margin: "4px 0 0" }}>{nomeAgencia}</p>
         </div>
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, padding: "8px 14px", borderRadius: 8, background: ativo ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", border: `1px solid ${ativo ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"}`, color: ativo ? "#22c55e" : "#ef4444" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, padding: "8px 14px", borderRadius: 8, background: ativo ? "rgba(30,107,82,0.1)" : "rgba(180,35,24,0.1)", border: `1px solid ${ativo ? "rgba(30,107,82,0.3)" : "rgba(180,35,24,0.3)"}`, color: ativo ? "#1E6B52" : "#B42318" }}>
             <Power size={14} />
             <input type="checkbox" checked={ativo} onChange={e => setAtivo(e.target.checked)} style={{ display: "none" }} />
             {ativo ? "Ativa" : "Desativada"}
@@ -501,7 +501,7 @@ export default function SecretariaIAPage() {
           {/* Horário da IA */}
           <div style={cardStyle}>
             <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0A1826", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
-              <Clock size={16} color="#f59e0b" /> Horário da IA
+              <Clock size={16} color="#C2620E" /> Horário da IA
             </h3>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               <div>
@@ -522,13 +522,13 @@ export default function SecretariaIAPage() {
           {/* Serviços e Preços */}
           <div style={cardStyle}>
             <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0A1826", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
-              <Zap size={16} color="#f59e0b" /> Serviços e Preços
+              <Zap size={16} color="#C2620E" /> Serviços e Preços
             </h3>
             <label style={labelStyle}>Serviços oferecidos</label>
             {servicos.map((s, i) => (
               <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6 }}>
                 <input style={{ ...inputStyle, flex: 1 }} placeholder="Ex: Micropigmentação labial" value={s} onChange={e => updateItem(servicos, setServicos, i, e.target.value)} />
-                {servicos.length > 1 && <button onClick={() => removeItem(servicos, setServicos, i)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: 4 }}><Trash2 size={14} /></button>}
+                {servicos.length > 1 && <button onClick={() => removeItem(servicos, setServicos, i)} style={{ background: "none", border: "none", color: "#B42318", cursor: "pointer", padding: 4 }}><Trash2 size={14} /></button>}
               </div>
             ))}
             <button onClick={() => addItem(servicos, setServicos)} style={{ background: "none", border: "1px dashed #E6EBF0", borderRadius: 6, padding: "6px 12px", color: "#4A5B6C", fontSize: 12, cursor: "pointer", width: "100%", marginBottom: 16 }}><Plus size={12} /> Adicionar serviço</button>
@@ -537,7 +537,7 @@ export default function SecretariaIAPage() {
             {precos.map((s, i) => (
               <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6 }}>
                 <input style={{ ...inputStyle, flex: 1 }} placeholder="Ex: Micropigmentação labial: R$ 800" value={s} onChange={e => updateItem(precos, setPrecos, i, e.target.value)} />
-                {precos.length > 1 && <button onClick={() => removeItem(precos, setPrecos, i)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: 4 }}><Trash2 size={14} /></button>}
+                {precos.length > 1 && <button onClick={() => removeItem(precos, setPrecos, i)} style={{ background: "none", border: "none", color: "#B42318", cursor: "pointer", padding: 4 }}><Trash2 size={14} /></button>}
               </div>
             ))}
             <button onClick={() => addItem(precos, setPrecos)} style={{ background: "none", border: "1px dashed #E6EBF0", borderRadius: 6, padding: "6px 12px", color: "#4A5B6C", fontSize: 12, cursor: "pointer", width: "100%" }}><Plus size={12} /> Adicionar preço</button>
@@ -546,7 +546,7 @@ export default function SecretariaIAPage() {
           {/* Informações */}
           <div style={cardStyle}>
             <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0A1826", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
-              <Clock size={16} color="#22c55e" /> Informações
+              <Clock size={16} color="#1E6B52" /> Informações
             </h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
@@ -563,12 +563,12 @@ export default function SecretariaIAPage() {
           {/* Regras de Comportamento */}
           <div style={cardStyle}>
             <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0A1826", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
-              <Brain size={16} color="#8b5cf6" /> Regras de Comportamento
+              <Brain size={16} color="#6B4FC8" /> Regras de Comportamento
             </h3>
             {regras.map((s, i) => (
               <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6 }}>
                 <input style={{ ...inputStyle, flex: 1 }} placeholder="Ex: Nunca fale mal de concorrentes" value={s} onChange={e => updateItem(regras, setRegras, i, e.target.value)} />
-                <button onClick={() => removeItem(regras, setRegras, i)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: 4 }}><Trash2 size={14} /></button>
+                <button onClick={() => removeItem(regras, setRegras, i)} style={{ background: "none", border: "none", color: "#B42318", cursor: "pointer", padding: 4 }}><Trash2 size={14} /></button>
               </div>
             ))}
             <button onClick={() => addItem(regras, setRegras)} style={{ background: "none", border: "1px dashed #E6EBF0", borderRadius: 6, padding: "6px 12px", color: "#4A5B6C", fontSize: 12, cursor: "pointer", width: "100%" }}><Plus size={12} /> Adicionar regra</button>
@@ -600,7 +600,7 @@ export default function SecretariaIAPage() {
           <div style={cardStyle}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0A1826", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-                <MessageSquare size={16} color="#22c55e" /> Testar Secretária
+                <MessageSquare size={16} color="#1E6B52" /> Testar Secretária
               </h3>
               {testMsgs.length > 0 && (
                 <button onClick={() => setTestMsgs([])} style={{ background: "none", border: "none", color: "#4A5B6C", fontSize: 11, cursor: "pointer" }}>Limpar</button>
@@ -641,13 +641,13 @@ export default function SecretariaIAPage() {
                 <Send size={14} />
               </button>
             </div>
-            {!apiKey && <p style={{ fontSize: 11, color: "#ef4444", marginTop: 6 }}>Preencha a API Key para testar</p>}
+            {!apiKey && <p style={{ fontSize: 11, color: "#B42318", marginTop: 6 }}>Preencha a API Key para testar</p>}
           </div>
 
           {/* Mensagens Gatilho */}
           <div style={cardStyle}>
             <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0A1826", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 8 }}>
-              <Zap size={16} color="#22c55e" /> Mensagens Gatilho
+              <Zap size={16} color="#1E6B52" /> Mensagens Gatilho
             </h3>
             <p style={{ fontSize: 12, color: "#4A5B6C", marginBottom: 14 }}>
               A IA só responde conversas novas que começam com uma dessas mensagens (ex: mensagem automática do anúncio). Se vazio, responde todas as conversas novas.
@@ -658,7 +658,7 @@ export default function SecretariaIAPage() {
                   value={m} onChange={e => { const n = [...mensagensGatilho]; n[i] = e.target.value; setMensagensGatilho(n); }} />
                 {mensagensGatilho.length > 1 && (
                   <button onClick={() => setMensagensGatilho(mensagensGatilho.filter((_, j) => j !== i))}
-                    style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: 4 }}><Trash2 size={14} /></button>
+                    style={{ background: "none", border: "none", color: "#B42318", cursor: "pointer", padding: 4 }}><Trash2 size={14} /></button>
                 )}
               </div>
             ))}
@@ -676,7 +676,7 @@ export default function SecretariaIAPage() {
         {/* Confirmação de Agendamento */}
         <div style={cardStyle}>
           <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0A1826", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
-            <Clock size={16} color="#22c55e" /> Confirmação de Agendamento
+            <Clock size={16} color="#1E6B52" /> Confirmação de Agendamento
           </h3>
           <p style={{ fontSize: 11, color: "#4A5B6C", marginBottom: 12 }}>Envio automático de lembretes antes do evento. Variáveis: {"{nome}"}, {"{horario}"}, {"{data}"}, {"{tipo}"}</p>
           <div style={{ marginBottom: 12 }}>
@@ -686,9 +686,9 @@ export default function SecretariaIAPage() {
                 <button key={d} onClick={() => setConfirmacaoDias(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d].sort((a,b) => b - a))}
                   style={{
                     padding: "6px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 500,
-                    border: confirmacaoDias.includes(d) ? "1px solid #22c55e" : "1px solid #E6EBF0",
-                    background: confirmacaoDias.includes(d) ? "rgba(34,197,94,0.1)" : "#FFFFFF",
-                    color: confirmacaoDias.includes(d) ? "#22c55e" : "#4A5B6C",
+                    border: confirmacaoDias.includes(d) ? "1px solid #1E6B52" : "1px solid #E6EBF0",
+                    background: confirmacaoDias.includes(d) ? "rgba(30,107,82,0.1)" : "#FFFFFF",
+                    color: confirmacaoDias.includes(d) ? "#1E6B52" : "#4A5B6C",
                   }}>
                   {d === 0 ? "No dia" : d === 1 ? "1 dia antes" : `${d} dias antes`}
                 </button>
@@ -714,7 +714,7 @@ export default function SecretariaIAPage() {
             <button onClick={() => setAgendamentoAtivo(!agendamentoAtivo)}
               style={{
                 width: 44, height: 24, borderRadius: 12, border: "none", cursor: "pointer",
-                background: agendamentoAtivo ? "#22c55e" : "#E6EBF0", position: "relative", transition: "background 0.2s",
+                background: agendamentoAtivo ? "#1E6B52" : "#E6EBF0", position: "relative", transition: "background 0.2s",
               }}>
               <span style={{
                 position: "absolute", top: 3, left: agendamentoAtivo ? 23 : 3,
@@ -729,17 +729,17 @@ export default function SecretariaIAPage() {
 
           {/* Alerta: Google Calendar desconectado */}
           {!googleCalAtivo && googleCalEmail && agendamentoAtivo && (
-            <div style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.4)", borderRadius: 10, padding: "12px 16px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+            <div style={{ background: "rgba(180,35,24,0.08)", border: "1px solid rgba(180,35,24,0.4)", borderRadius: 10, padding: "12px 16px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ fontSize: 18 }}>⚠️</span>
                 <div>
-                  <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#ef4444" }}>Google Calendar desconectado</p>
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#B42318" }}>Google Calendar desconectado</p>
                   <p style={{ margin: "2px 0 0", fontSize: 11, color: "#a05050" }}>A IA está agendando mas os eventos não estão indo para a agenda. Reconecte agora.</p>
                 </div>
               </div>
               <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                 <button onClick={() => window.location.href = `/api/auth/google?agencia_id=${agId}`}
-                  style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8, border: "none", background: "#ef4444", color: "#fff", cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap" }}>
+                  style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8, border: "none", background: "#B42318", color: "#fff", cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap" }}>
                   Reconectar
                 </button>
                 <button onClick={() => {
@@ -748,7 +748,7 @@ export default function SecretariaIAPage() {
                   setLinkCopiado(true);
                   setTimeout(() => setLinkCopiado(false), 2000);
                 }}
-                  style={{ fontSize: 12, padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(239,68,68,0.3)", background: "transparent", color: linkCopiado ? "#22c55e" : "#ef4444", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
+                  style={{ fontSize: 12, padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(180,35,24,0.3)", background: "transparent", color: linkCopiado ? "#1E6B52" : "#B42318", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
                   {linkCopiado ? <><Check size={12} /> Copiado!</> : <><Copy size={12} /> Copiar link</>}
                 </button>
               </div>
@@ -756,20 +756,20 @@ export default function SecretariaIAPage() {
           )}
 
           {/* Google Calendar */}
-          <div style={{ background: "#0d0d0d", borderRadius: 8, border: `1px solid ${!googleCalAtivo && googleCalEmail ? "rgba(239,68,68,0.3)" : "#FFFFFF"}`, padding: 14, marginBottom: 12 }}>
+          <div style={{ background: "#0d0d0d", borderRadius: 8, border: `1px solid ${!googleCalAtivo && googleCalEmail ? "rgba(180,35,24,0.3)" : "#FFFFFF"}`, padding: 14, marginBottom: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <Calendar size={14} color={googleCalAtivo ? "#22c55e" : (!googleCalEmail ? "#4A5B6C" : "#ef4444")} />
+                <Calendar size={14} color={googleCalAtivo ? "#1E6B52" : (!googleCalEmail ? "#4A5B6C" : "#B42318")} />
                 <span style={{ fontSize: 13, color: "#0A1826" }}>Google Calendar</span>
                 {googleCalEmail && (
-                  <span style={{ fontSize: 11, color: googleCalAtivo ? "#22c55e" : "#ef4444" }}>({googleCalEmail})</span>
+                  <span style={{ fontSize: 11, color: googleCalAtivo ? "#1E6B52" : "#B42318" }}>({googleCalEmail})</span>
                 )}
               </div>
               {googleCalAtivo ? (
-                <span style={{ fontSize: 11, padding: "2px 10px", borderRadius: 12, background: "rgba(34,197,94,0.15)", color: "#22c55e" }}>Conectado</span>
+                <span style={{ fontSize: 11, padding: "2px 10px", borderRadius: 12, background: "rgba(30,107,82,0.15)", color: "#1E6B52" }}>Conectado</span>
               ) : (
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                  {googleCalEmail && <span style={{ fontSize: 11, padding: "2px 10px", borderRadius: 12, background: "rgba(239,68,68,0.1)", color: "#ef4444" }}>Desconectado</span>}
+                  {googleCalEmail && <span style={{ fontSize: 11, padding: "2px 10px", borderRadius: 12, background: "rgba(180,35,24,0.1)", color: "#B42318" }}>Desconectado</span>}
                   <button onClick={() => window.location.href = `/api/auth/google?agencia_id=${agId}`}
                     style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8, border: "1px solid #1C6CA6", background: "rgba(41,171,226,0.1)", color: "#1C6CA6", cursor: "pointer" }}>
                     {googleCalEmail ? "Reconectar" : "Conectar"}
@@ -780,7 +780,7 @@ export default function SecretariaIAPage() {
                     setLinkCopiado(true);
                     setTimeout(() => setLinkCopiado(false), 2000);
                   }}
-                    style={{ fontSize: 12, padding: "6px 10px", borderRadius: 8, border: "1px solid #E6EBF0", background: linkCopiado ? "rgba(34,197,94,0.1)" : "#FFFFFF", color: linkCopiado ? "#22c55e" : "#4A5B6C", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                    style={{ fontSize: 12, padding: "6px 10px", borderRadius: 8, border: "1px solid #E6EBF0", background: linkCopiado ? "rgba(30,107,82,0.1)" : "#FFFFFF", color: linkCopiado ? "#1E6B52" : "#4A5B6C", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
                     {linkCopiado ? <><Check size={12} /> Copiado!</> : <><Copy size={12} /> Copiar link</>}
                   </button>
                 </div>
@@ -872,7 +872,7 @@ export default function SecretariaIAPage() {
                   <option value={180}>3h</option>
                 </select>
                 <button onClick={() => setServicosAgenda(servicosAgenda.filter((_, j) => j !== i))}
-                  style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: 4 }}>
+                  style={{ background: "none", border: "none", color: "#B42318", cursor: "pointer", padding: 4 }}>
                   <Trash2 size={14} />
                 </button>
               </div>
@@ -916,12 +916,12 @@ export default function SecretariaIAPage() {
       <div style={{ ...cardStyle, marginTop: 0 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0A1826", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-            <Zap size={16} color="#f59e0b" /> Follow-up Automático
+            <Zap size={16} color="#C2620E" /> Follow-up Automático
           </h3>
           <button onClick={() => setFollowupAtivo(!followupAtivo)}
             style={{
               width: 44, height: 24, borderRadius: 12, border: "none", cursor: "pointer",
-              background: followupAtivo ? "#22c55e" : "#E6EBF0", position: "relative", transition: "background 0.2s",
+              background: followupAtivo ? "#1E6B52" : "#E6EBF0", position: "relative", transition: "background 0.2s",
             }}>
             <span style={{
               position: "absolute", top: 3, left: followupAtivo ? 23 : 3,
@@ -939,7 +939,7 @@ export default function SecretariaIAPage() {
             <div key={idx} style={{ background: "#0d0d0d", borderRadius: 8, border: "1px solid #FFFFFF", padding: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: "#4A5B6C" }}>Tentativa {idx + 1}</span>
-                <button onClick={() => removeEtapa(idx)} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", padding: 2 }}>
+                <button onClick={() => removeEtapa(idx)} style={{ background: "none", border: "none", cursor: "pointer", color: "#B42318", padding: 2 }}>
                   <Trash2 size={13} />
                 </button>
               </div>
@@ -1031,10 +1031,10 @@ export default function SecretariaIAPage() {
                         <option value="video">Vídeo</option>
                         <option value="audio">Áudio</option>
                       </select>
-                      <span style={{ fontSize: 11, color: "#22c55e", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <span style={{ fontSize: 11, color: "#1E6B52", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {etapa.midia_url.split("/").pop()?.slice(0, 30) || "Arquivo enviado"}
                       </span>
-                      <button onClick={() => { updateEtapa(idx, "midia_url", ""); updateEtapa(idx, "midia_tipo", ""); }} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: 2 }}>
+                      <button onClick={() => { updateEtapa(idx, "midia_url", ""); updateEtapa(idx, "midia_tipo", ""); }} style={{ background: "none", border: "none", color: "#B42318", cursor: "pointer", padding: 2 }}>
                         <Trash2 size={13} />
                       </button>
                     </div>
@@ -1051,7 +1051,7 @@ export default function SecretariaIAPage() {
         </button>
 
         <button onClick={salvarFollowup} disabled={salvandoFollowup}
-          style={{ width: "100%", background: "#f59e0b", border: "none", borderRadius: 8, padding: "10px 0", color: "#000", fontWeight: 600, fontSize: 13, cursor: "pointer", opacity: salvandoFollowup ? 0.6 : 1 }}>
+          style={{ width: "100%", background: "#C2620E", border: "none", borderRadius: 8, padding: "10px 0", color: "#000", fontWeight: 600, fontSize: 13, cursor: "pointer", opacity: salvandoFollowup ? 0.6 : 1 }}>
           {salvandoFollowup ? "Salvando..." : "Salvar Follow-up"}
         </button>
       </div>

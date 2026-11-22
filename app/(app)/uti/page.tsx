@@ -36,12 +36,12 @@ const ACOES_PADRAO = [
 ];
 
 function statusUTI(acoes: AcaoUTI[]): { label: string; cor: string } {
-  if (!acoes.length) return { label: "Crítico", cor: "#ef4444" };
+  if (!acoes.length) return { label: "Crítico", cor: "#B42318" };
   const feitas = acoes.filter(a => a.feito).length;
   const pct = feitas / acoes.length;
-  if (pct === 0) return { label: "Crítico", cor: "#ef4444" };
-  if (pct < 0.5) return { label: "Em Tratamento", cor: "#f59e0b" };
-  if (pct < 1) return { label: "Melhorando", cor: "#22c55e" };
+  if (pct === 0) return { label: "Crítico", cor: "#B42318" };
+  if (pct < 0.5) return { label: "Em Tratamento", cor: "#C2620E" };
+  if (pct < 1) return { label: "Melhorando", cor: "#1E6B52" };
   return { label: "Estável", cor: "#1C6CA6" };
 }
 
@@ -142,11 +142,9 @@ export default function PageUTI() {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "28px" }}>
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <span style={{ fontSize: "24px" }}>🏥</span>
-            <h1 style={{ fontSize: "20px", fontWeight: 700, color: "#0A1826", margin: 0 }}>UTI de Clientes</h1>
-          </div>
-          <p style={{ fontSize: "13px", color: "#4A5B6C", margin: "4px 0 0 34px" }}>
+          <div className="breadcrumb"><a href="/">Início</a><span>›</span><span className="current">UTI</span></div>
+          <h1 style={{ margin: 0 }}>UTI de clientes</h1>
+          <p style={{ fontSize: "14px", color: "#4A5B6C", margin: "6px 0 0" }}>
             Clientes com custo alto que precisam de recuperação
           </p>
         </div>
@@ -160,8 +158,7 @@ export default function PageUTI() {
         <div style={{ textAlign: "center", padding: "80px", color: "#4A5B6C" }}>Carregando...</div>
       ) : !clientes.length ? (
         <div style={{ textAlign: "center", padding: "80px", color: "#4A5B6C" }}>
-          <div style={{ fontSize: "40px", marginBottom: "12px" }}>🏥</div>
-          <div style={{ fontSize: "14px" }}>Nenhum cliente na UTI.</div>
+                    <div style={{ fontSize: "14px" }}>Nenhum cliente na UTI.</div>
           <div style={{ fontSize: "12px", color: "#404040", marginTop: "6px" }}>
             Marque clientes com o ícone 🏥 no Controle de Clientes.
           </div>
@@ -186,7 +183,7 @@ export default function PageUTI() {
                       <div style={{ fontSize: "16px", fontWeight: 700, color: "#0A1826" }}>{c.nome}</div>
                       <div style={{ display: "flex", gap: "12px", marginTop: "4px", flexWrap: "wrap" }}>
                         {c.investimento_mensal > 0 && (
-                          <span style={{ fontSize: "12px", color: "#ef4444", fontWeight: 600 }}>
+                          <span style={{ fontSize: "12px", color: "#B42318", fontWeight: 600 }}>
                             R$ {c.investimento_mensal.toLocaleString("pt-BR")} / mês
                           </span>
                         )}
@@ -240,7 +237,7 @@ export default function PageUTI() {
                         type="checkbox"
                         checked={a.feito}
                         onChange={() => toggleAcao(a)}
-                        style={{ accentColor: "#22c55e", width: "15px", height: "15px", cursor: "pointer", flexShrink: 0 }}
+                        style={{ accentColor: "#1E6B52", width: "15px", height: "15px", cursor: "pointer", flexShrink: 0 }}
                       />
                       <span style={{ flex: 1, fontSize: "13px", color: a.feito ? "#4A5B6C" : "#d0d0d0", textDecoration: a.feito ? "line-through" : "none" }}>
                         {a.acao}
