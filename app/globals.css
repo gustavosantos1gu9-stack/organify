@@ -817,8 +817,6 @@ input[type="checkbox"], input[type="radio"] { height: auto; accent-color: var(--
 }
 
 /* Menu lateral: hover dos itens (o ativo fica branco) */
-.nav-item { transition: background .2s ease, color .2s ease; }
-.nav-item:not([style*="font-weight: 600"]):hover { background: rgba(255,255,255,.10) !important; color: #FFFFFF !important; }
 
 /* Quando o cabeçalho do canvas aparece, o título antigo da página sai */
 .app-main:has(> .auto-head) > div .breadcrumb,
@@ -1073,3 +1071,114 @@ input[type="checkbox"], input[type="radio"] { height: auto; accent-color: var(--
 .ficha-evento { display: flex; gap: 12px; align-items: flex-start; }
 .ficha-ponto { width: 10px; height: 10px; border-radius: 50%; margin-top: 6px; flex: none; }
 @media (max-width: 720px) { .ficha-trilho { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* ═══════════════════════════════════════════════════════════════════
+   BARRA LATERAL — destaque deslizante, entrada e rodapé do usuário
+   ═══════════════════════════════════════════════════════════════════ */
+.sb {
+  background:
+    radial-gradient(140% 55% at 0% 0%, rgba(28,108,166,.38) 0%, rgba(28,108,166,0) 60%),
+    radial-gradient(120% 40% at 100% 100%, rgba(140,198,236,.10) 0%, rgba(140,198,236,0) 60%),
+    #0A1826;
+  border-radius: 24px;
+  box-shadow: 0 18px 48px rgba(10,24,38,.28), inset 0 0 0 1px rgba(255,255,255,.05);
+  font-family: var(--font-ui, inherit);
+}
+.sb-brand { display: flex; align-items: center; gap: 12px; padding: 22px 20px 14px; }
+.sb-logo {
+  width: 44px; height: 44px; object-fit: contain; flex-shrink: 0;
+  filter: drop-shadow(0 4px 14px rgba(41,171,226,.45));
+}
+.sb-brand-tx { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.sb-brand-nome { font-weight: 700; font-size: 17px; color: #FFFFFF; letter-spacing: -.01em; }
+.sb-brand-sub {
+  font-family: var(--font-serif, Georgia, serif); font-style: italic;
+  font-size: 14px; color: #8CC6EC; margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.sb-nav {
+  position: relative; flex: 1; overflow-y: auto; padding: 4px 12px 12px;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 14px, #000 calc(100% - 22px), transparent 100%);
+          mask-image: linear-gradient(to bottom, transparent 0, #000 14px, #000 calc(100% - 22px), transparent 100%);
+}
+.sb-nav::-webkit-scrollbar { display: none; }
+
+.sb-grupo { display: flex; flex-direction: column; gap: 1px; animation: sbIn .55s cubic-bezier(.2,.8,.2,1) both; }
+.sb-grupo:nth-of-type(1) { animation-delay: .04s; }
+.sb-grupo:nth-of-type(2) { animation-delay: .10s; }
+.sb-grupo:nth-of-type(3) { animation-delay: .16s; }
+.sb-grupo:nth-of-type(4) { animation-delay: .22s; }
+.sb-grupo:nth-of-type(5) { animation-delay: .28s; }
+.sb-grupo:nth-of-type(6) { animation-delay: .34s; }
+@keyframes sbIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: none; } }
+
+.sb-grupo-nome {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 10.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+  color: #5F7891; padding: 18px 12px 6px;
+}
+.sb-grupo-nome::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(255,255,255,.08), transparent); }
+
+/* destaque branco que desliza até o item ativo */
+.sb-pill {
+  position: absolute; left: 12px; right: 12px; top: 0; z-index: 0; pointer-events: none;
+  border-radius: 12px; background: #FFFFFF;
+  box-shadow: 0 8px 22px rgba(0,0,0,.28), 0 1px 0 rgba(255,255,255,.6) inset;
+  transition: transform .5s cubic-bezier(.3,1.35,.45,1), height .3s ease, opacity .25s ease;
+}
+.sb-pill::before {
+  content: ""; position: absolute; left: -12px; top: 22%; bottom: 22%; width: 4px;
+  border-radius: 0 4px 4px 0; background: #29ABE2; box-shadow: 0 0 12px rgba(41,171,226,.8);
+}
+
+.sb .nav-item {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; gap: 11px;
+  padding: 9px 12px; border-radius: 12px;
+  font-size: 14px; font-weight: 450; color: #B9C9D8; text-decoration: none;
+  transition: color .25s ease, background .25s ease;
+}
+.sb .nav-item:not(.is-active):hover { color: #FFFFFF; background: rgba(255,255,255,.06); }
+.sb .nav-item.is-active { color: #0A1826; font-weight: 600; transition-delay: .08s; }
+.sb .nav-ic { display: flex; flex-shrink: 0; transition: transform .3s cubic-bezier(.3,1.5,.5,1), color .25s ease; }
+.sb .nav-item:not(.is-active):hover .nav-ic { transform: translateX(2px) scale(1.08); color: #8CC6EC; }
+.sb .nav-item.is-active .nav-ic { color: #1C6CA6; }
+.sb .nav-tx { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb .nav-item:focus-visible { outline: 2px solid #29ABE2; outline-offset: 2px; }
+
+/* rodapé: quem está logado */
+.sb-rodape {
+  display: flex; align-items: center; gap: 10px;
+  margin: 8px 12px 12px; padding: 10px;
+  border-radius: 16px; background: rgba(255,255,255,.05);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+}
+.sb-avatar {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  display: grid; place-items: center;
+  font-size: 12px; font-weight: 700; color: #FFFFFF;
+  background: linear-gradient(135deg, #29ABE2, #1C6CA6);
+  box-shadow: 0 0 0 2px rgba(10,24,38,1), 0 0 0 3px rgba(41,171,226,.45);
+}
+.sb-user { display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.2; }
+.sb-user-nome { font-size: 13px; font-weight: 600; color: #FFFFFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-user-papel { font-size: 11.5px; color: #7E93A8; }
+.sb-sair {
+  width: 32px; height: 32px; border-radius: 10px; border: none; cursor: pointer;
+  display: grid; place-items: center; background: transparent; color: #8CC6EC;
+  transition: background .2s ease, color .2s ease, transform .2s ease;
+}
+.sb-sair:hover { background: rgba(239,68,68,.16); color: #FCA5A5; transform: translateX(2px); }
+
+/* celular: gaveta desliza da esquerda */
+.sb-drawer { animation: sbGaveta .32s cubic-bezier(.2,.8,.2,1) both; }
+.sb-veu { animation: sbVeu .25s ease both; }
+@keyframes sbGaveta { from { transform: translateX(-100%); } to { transform: none; } }
+@keyframes sbVeu { from { opacity: 0; } to { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-pill, .sb .nav-item, .sb .nav-ic { transition: none; }
+  .sb-grupo, .sb-drawer, .sb-veu { animation: none; }
+}

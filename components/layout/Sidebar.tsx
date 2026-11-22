@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -249,6 +249,9 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
   const [modulosAgencia, setModulosAgencia] = useState<Set<string> | null>(null);
   const [permLoaded, setPermLoaded] = useState(false);
   const [agenciaInfo, setAgenciaInfo] = useState<{ nome: string; isFilha: boolean } | null>(null);
+  const [perfil, setPerfil] = useState<{ nome: string; papel: string } | null>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const [pill, setPill] = useState<{ top: number; height: number; on: boolean }>({ top: 0, height: 38, on: false });
 
   useEffect(() => {
     async function loadPermissions() {
@@ -270,9 +273,16 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
           if (user) {
             const { data: usuarios } = await supabase
               .from("usuarios")
-              .select("agencia_id")
+              .select("agencia_id, nome")
               .eq("auth_user_id", user.id)
               .limit(1);
+            let nomeUsuario: string = (usuarios as any[] | null)?.[0]?.nome || "";
+            if (!nomeUsuario && user.email) {
+              const { data: porEmail } = await supabase.from("usuarios").select("nome").eq("email", user.email).limit(1);
+              nomeUsuario = (porEmail as any[] | null)?.[0]?.nome || "";
+            }
+            if (/\d/.test(nomeUsuario)) nomeUsuario = "";
+            setPerfil({ nome: nomeUsuario || (user.email || "").split("@")[0], papel: permissoes ? "Equipe" : "Administrador" });
             const agId = agenciaId || usuarios?.[0]?.agencia_id;
             if (agId) {
               const { data: ag } = await supabase
@@ -306,6 +316,19 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
 
   const isFilha = agenciaInfo?.isFilha ?? false;
 
+  // Destaque que desliza até o item ativo
+  useLayoutEffect(() => {
+    const medir = () => {
+      const el = navRef.current?.querySelector<HTMLElement>(".nav-item.is-active");
+      if (!el) { setPill(p => ({ ...p, on: false })); return; }
+      setPill({ top: el.offsetTop, height: el.offsetHeight, on: true });
+    };
+    medir();
+    const t = setTimeout(medir, 350);
+    window.addEventListener("resize", medir);
+    return () => { clearTimeout(t); window.removeEventListener("resize", medir); };
+  }, [pathname, permLoaded, allowedModulos, modulosAgencia, isFilha]);
+
   const isModuloAllowed = (key: string) => {
     if (allowedModulos && !allowedModulos.has(key)) return false;
     if (modulosAgencia && !modulosAgencia.has(key)) return false;
@@ -319,40 +342,21 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
   };
 
   // ─── Render flat item (cliente menu) ─────────────────────────
-  const renderFlatItem = (item: NavItem) => {
-    const active = isActive(item.href!);
-    return (
-      <Link
-        key={item.href}
-        href={item.href!}
-        onClick={onMobileClose}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          height: "36px",
-          padding: "0 8px",
-          borderRadius: "10px",
-          fontSize: "14px",
-          fontWeight: active ? "600" : "400",
-          color: active ? "var(--navy)" : "#C5D6E6",
-          background: active ? "#FFFFFF" : "transparent",
-          textDecoration: "none",
-          transition: "background 0.15s, color 0.15s",
-          cursor: "pointer",
-        }}
-        onMouseEnter={e => {
-          if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.08)";
-        }}
-        onMouseLeave={e => {
-          if (!active) e.currentTarget.style.background = "transparent";
-        }}
-      >
-        <span style={{ flexShrink: 0 }}>{item.icon}</span>
-        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</span>
-      </Link>
-    );
-  };
+  const itemLink = (key: string, href: string, active: boolean, icon: React.ReactNode, label: string) => (
+    <Link
+      key={key}
+      href={href}
+      onClick={onMobileClose}
+      className={`nav-item${active ? " is-active" : ""}`}
+      aria-current={active ? "page" : undefined}
+    >
+      <span className="nav-ic">{icon}</span>
+      <span className="nav-tx">{label}</span>
+    </Link>
+  );
+
+  const renderFlatItem = (item: NavItem) =>
+    itemLink(item.href!, item.href!, isActive(item.href!), item.icon, item.label);
 
   // ─── Área com várias telas: uma entrada só; as telas viram abas (SubNav) ───
   const renderExpandableItem = (item: NavItem) => {
@@ -366,58 +370,13 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
     const active = !!item.children?.some((c) =>
       c.href ? isActive(c.href) : c.children?.some(sc => isActive(sc.href))
     ) || (item.label === "Configurações" && pathname.startsWith("/configuracoes"));
-    return (
-      <Link
-        key={item.label}
-        href={destino}
-        onClick={onMobileClose}
-        className="nav-item"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-          padding: "9px 12px",
-          borderRadius: "12px",
-          fontSize: "14px",
-          fontWeight: active ? 600 : 400,
-          color: active ? "var(--navy)" : "#DCE5EE",
-          background: active ? "#FFFFFF" : "transparent",
-          textDecoration: "none",
-        }}
-      >
-        <span style={{ flexShrink: 0, display: "flex" }}>{item.icon}</span>
-        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</span>
-      </Link>
-    );
+    return itemLink(item.label, destino, active, item.icon, item.label);
   };
 
   // ─── Render master item (href or expandable) ─────────────────
   const renderMasterItem = (item: NavItem) => {
     if (item.children) return renderExpandableItem(item);
-    const active = isActive(item.href!);
-    return (
-      <Link
-        key={item.href}
-        href={item.href!}
-        onClick={onMobileClose}
-        className="nav-item"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-          padding: "9px 12px",
-          borderRadius: "12px",
-          fontSize: "14px",
-          fontWeight: active ? 600 : 400,
-          color: active ? "var(--navy)" : "#DCE5EE",
-          background: active ? "#FFFFFF" : "transparent",
-          textDecoration: "none",
-        }}
-      >
-        <span style={{ flexShrink: 0, display: "flex" }}>{item.icon}</span>
-        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</span>
-      </Link>
-    );
+    return itemLink(item.href!, item.href!, isActive(item.href!), item.icon, item.label);
   };
 
   // ─── Filter master groups ────────────────────────────────────
@@ -446,85 +405,52 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
     })).filter(g => g.items.length > 0);
   };
 
+  const iniciais = (perfil?.nome || "S").trim().split(/\s+/).slice(0, 2).map(p => p[0]).join("").toUpperCase();
+
   const sidebarContent = (
     <>
-      {/* Logo */}
-      <div style={{ padding: "20px 20px 16px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <img
-            src="/logo-salx.png"
-            alt="SALX Convert"
-            style={{ width: "60px", height: "60px", objectFit: "contain", flexShrink: 0 }}
-            onError={e => { (e.target as HTMLImageElement).src = "/logo.png"; }}
-          />
-          <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
-            <span style={{ fontWeight: 700, fontSize: "18px", color: "#FFFFFF" }}>
-              SALX Convert
-            </span>
-            {agenciaInfo?.isFilha ? (
-              <span style={{ fontSize: "11px", color: "#8CC6EC", marginTop: "3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "130px" }}>
-                {agenciaInfo.nome}
-              </span>
-            ) : (
-              <span style={{ fontSize: "11px", color: "#8CC6EC", fontWeight: "400", marginTop: "2px" }}>
-                Acelerador de vendas
-              </span>
-            )}
-          </div>
+      {/* Marca */}
+      <div className="sb-brand">
+        <img
+          src="/logo-salx.png"
+          alt=""
+          className="sb-logo"
+          onError={e => { (e.target as HTMLImageElement).src = "/logo.png"; }}
+        />
+        <div className="sb-brand-tx">
+          <span className="sb-brand-nome">SALX Convert</span>
+          <span className="sb-brand-sub">{agenciaInfo?.isFilha ? agenciaInfo.nome : "Acelerador de vendas"}</span>
         </div>
       </div>
 
-      {/* Nav */}
-      <nav style={{ flex: 1, overflowY: "auto", padding: "0 12px", display: "flex", flexDirection: "column", gap: "2px" }}>
+      {/* Navegação */}
+      <nav ref={navRef} className="sb-nav">
+        <span
+          className="sb-pill"
+          aria-hidden
+          style={{ transform: `translateY(${pill.top}px)`, height: pill.height, opacity: pill.on ? 1 : 0 }}
+        />
         {!permLoaded ? null : isFilha ? (
-          navItemsCliente.map(renderFlatItem)
+          <div className="sb-grupo">{navItemsCliente.map(renderFlatItem)}</div>
         ) : (
           filterMasterGroups(masterGroups).map(group => (
-            <div key={group.group || "_standalone"}>
-              {group.group && (
-                <div style={{
-                  fontSize: "11px",
-                  fontWeight: 600,
-                  letterSpacing: ".08em",
-                  textTransform: "uppercase",
-                  color: "#7E93A8",
-                  padding: "18px 12px 6px",
-                }}>
-                  {group.group}
-                </div>
-              )}
-              <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
-                {group.items.map(renderMasterItem)}
-              </div>
+            <div key={group.group || "_standalone"} className="sb-grupo">
+              {group.group && <div className="sb-grupo-nome">{group.group}</div>}
+              {group.items.map(renderMasterItem)}
             </div>
           ))
         )}
       </nav>
 
-      {/* Footer */}
-      <div style={{ padding: "12px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-        <button
-          onClick={handleSair}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            width: "100%",
-            height: "36px",
-            padding: "0 8px",
-            borderRadius: "10px",
-            fontSize: "14px",
-            color: "#8CC6EC",
-            background: "transparent",
-            border: "none",
-            cursor: "pointer",
-            transition: "background 0.15s",
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
-          onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
-        >
-          <LogOut size={16} strokeWidth={1.8} style={{ flexShrink: 0 }} />
-          <span>Sair</span>
+      {/* Rodapé: quem está logado */}
+      <div className="sb-rodape">
+        <div className="sb-avatar" aria-hidden>{iniciais}</div>
+        <div className="sb-user">
+          <span className="sb-user-nome">{perfil?.nome || "\u00A0"}</span>
+          <span className="sb-user-papel">{perfil?.papel || "\u00A0"}</span>
+        </div>
+        <button onClick={handleSair} className="sb-sair" title="Sair" aria-label="Sair">
+          <LogOut size={16} strokeWidth={1.8} />
         </button>
       </div>
     </>
@@ -533,9 +459,6 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
   const sidebarStyle: React.CSSProperties = {
     width: "248px",
     minWidth: "248px",
-    background: "#0A1826",
-    borderRadius: "24px",
-    boxShadow: "0 8px 32px rgba(10,24,38,0.18)",
     display: "flex",
     flexDirection: "column",
     overflow: "hidden",
@@ -545,6 +468,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
     <>
       {/* Desktop sidebar */}
       <aside
+        className="sb"
         style={{
           position: "fixed",
           left: "20px",
@@ -560,6 +484,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
       {/* Mobile drawer overlay */}
       {mobileOpen && (
         <div
+          className="sb-veu"
           style={{
             position: "fixed",
             inset: 0,
@@ -570,13 +495,12 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
           onClick={onMobileClose}
         >
           <aside
+            className="sb sb-drawer"
             style={{
               ...sidebarStyle,
               position: "relative",
               borderRadius: "0 24px 24px 0",
               height: "100%",
-              transform: mobileOpen ? "translateX(0)" : "translateX(-100%)",
-              transition: "transform 0.25s ease",
             }}
             onClick={e => e.stopPropagation()}
           >
