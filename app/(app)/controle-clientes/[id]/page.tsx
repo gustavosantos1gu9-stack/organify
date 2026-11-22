@@ -64,7 +64,14 @@ export default function FichaClientePage() {
         agId ? supabase.from("anotacoes").select("usuario, conteudo, created_at").eq("agencia_id", agId).eq("cliente_id", id).order("created_at", { ascending: false }).limit(40) : Promise.resolve({ data: [] }),
       ]);
       setCadastro((cad as any)?.data || null);
-      setFinanceiro(((fin as any)?.data || [])[0] || null);
+      let finRow = ((fin as any)?.data || [])[0] || null;
+      if (!finRow && cli.nome && agId) {
+        // Sem cadastro vinculado: procura no financeiro pelo nome (mesma ideia do aviso da Carteira)
+        const base = String(cli.nome).trim().split(/\s+/).slice(0, 2).join(" ");
+        const { data: porNome } = await supabase.from("clientes").select("*").eq("agencia_id", agId).ilike("nome", `${base}%`).limit(1);
+        finRow = (porNome || [])[0] || null;
+      }
+      setFinanceiro(finRow);
       const lista: Evento[] = [
         ...(((esc as any)?.data || []) as any[]).map((e) => ({ quando: e.created_at, quem: e.gestor || "", texto: e.texto || "", origem: "Escala" as const })),
         ...(((anot as any)?.data || []) as any[]).map((a) => ({ quando: a.created_at, quem: a.usuario || "", texto: a.conteudo || "", origem: "Carteira" as const })),
