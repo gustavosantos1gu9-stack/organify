@@ -5,7 +5,7 @@ import {
   useEscalas,
   useMetaEscala,
   useEscalasHistorico,
-  useControleClientes,
+  useClientes,
   criarEscala,
   atualizarEscala,
   removerEscala,

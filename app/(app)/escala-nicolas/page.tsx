@@ -8,6 +8,9 @@ export default function EscalaNicolasPage() {
       tipo="nicolas"
       titulo="Escala N."
       subtitulo="Escala Nicolas - Controle mensal de clientes"
+      gestor="Nicolas Kich"
+      gestorEscala="nicolas"
+      filtroGestor="Nicolas Kich"
     />
   );
 }

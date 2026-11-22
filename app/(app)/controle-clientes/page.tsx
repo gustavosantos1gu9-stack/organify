@@ -820,7 +820,7 @@ export default function ControleClientesPage() {
     );
     if (!elegiveis.length) return;
 
-    const relatorioIds = [...new Set(elegiveis.map(c => c.relatorio_id!))];
+    const relatorioIds = Array.from(new Set(elegiveis.map(c => c.relatorio_id!)));
     try {
       const res = await fetch("/api/controle/roas", {
         method: "POST",
@@ -1104,9 +1104,9 @@ export default function ControleClientesPage() {
 
       // Atualizar estado local para remover o ⚠
       if (modalFinanceiro.cadastro_id) {
-        setCadastrosFinanceiro(prev => new Set([...prev, modalFinanceiro.cadastro_id!]));
+        setCadastrosFinanceiro(prev => new Set(Array.from(prev).concat(modalFinanceiro.cadastro_id!)));
       } else {
-        setNomesFinanceiro(prev => new Set([...prev, modalFinanceiro.nome.toLowerCase().trim()]));
+        setNomesFinanceiro(prev => new Set(Array.from(prev).concat(modalFinanceiro.nome.toLowerCase().trim())));
       }
       setModalFinanceiro(null);
       setFinFreq("mensal"); setFinValor(""); setFinDia(""); setFinDia2("");
@@ -1117,7 +1117,7 @@ export default function ControleClientesPage() {
   const semFinanceiro = (c: ControleCliente) => {
     if (c.cadastro_id && cadastrosFinanceiro.has(c.cadastro_id)) return false;
     if (c.nome) {
-      for (const nomeF of nomesFinanceiro) {
+      for (const nomeF of Array.from(nomesFinanceiro)) {
         if (nomeSimilar(c.nome, nomeF)) return false;
       }
     }

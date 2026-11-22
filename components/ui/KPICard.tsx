@@ -6,6 +6,7 @@ interface KPICardProps {
   change?: number;
   icon: React.ReactNode;
   iconBg?: "green" | "red" | "blue" | "amber";
+  subtitle?: string;
 }
 
 const iconBgMap = {
@@ -27,6 +28,7 @@ export default function KPICard({
   change,
   icon,
   iconBg = "green",
+  subtitle,
 }: KPICardProps) {
   const changeColor =
     change === undefined ? "#606060"
@@ -60,7 +62,10 @@ export default function KPICard({
       <div style={{ fontSize: "24px", fontWeight: "700", color: "#f0f0f0", marginBottom: "8px" }}>
         {value}
       </div>
-      <div style={{ fontSize: "12px", color: changeColor }}>{changeLabel}</div>
+      {subtitle
+        ? <div style={{ fontSize: "12px", color: "#29ABE2" }}>{subtitle}</div>
+        : <div style={{ fontSize: "12px", color: changeColor }}>{changeLabel}</div>
+      }
     </div>
   );
 }
