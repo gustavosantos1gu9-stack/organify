@@ -331,7 +331,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
           borderRadius: "10px",
           fontSize: "14px",
           fontWeight: active ? "600" : "400",
-          color: active ? "var(--navy)" : "#8CC6EC",
+          color: active ? "var(--navy)" : "#C5D6E6",
           background: active ? "#FFFFFF" : "transparent",
           textDecoration: "none",
           transition: "background 0.15s, color 0.15s",
@@ -370,7 +370,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
             borderRadius: "10px",
             fontSize: "14px",
             fontWeight: hasActiveChild ? "600" : "400",
-            color: hasActiveChild ? "#FFFFFF" : "#8CC6EC",
+            color: hasActiveChild ? "#FFFFFF" : "#C5D6E6",
             background: hasActiveChild ? "rgba(255,255,255,0.08)" : "transparent",
             border: "none",
             cursor: "pointer",
@@ -461,7 +461,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
                   padding: "7px 8px",
                   borderRadius: "8px",
                   fontSize: "12px",
-                  color: childActive ? "#FFFFFF" : "#8CC6EC",
+                  color: childActive ? "#FFFFFF" : "#A9BED2",
                   background: childActive ? "rgba(255,255,255,0.1)" : "transparent",
                   textDecoration: "none",
                   borderLeft: childActive ? "2px solid #8CC6EC" : "2px solid transparent",
@@ -495,7 +495,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
           borderRadius: "10px",
           fontSize: "14px",
           fontWeight: active ? "600" : "400",
-          color: active ? "var(--navy)" : "#8CC6EC",
+          color: active ? "var(--navy)" : "#C5D6E6",
           background: active ? "#FFFFFF" : "transparent",
           textDecoration: "none",
           transition: "background 0.15s, color 0.15s",
@@ -576,14 +576,12 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
             <div key={group.group || "_standalone"}>
               {group.group && (
                 <div style={{
-                  fontSize: "10px",
-                  fontWeight: "600",
-                  color: "#8CC6EC",
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  padding: "12px 8px 4px",
+                  fontSize: "12px",
+                  fontWeight: "500",
+                  color: "#7E93A8",
+                  padding: "16px 8px 6px",
                 }}>
-                  {group.group}
+                  {group.group.charAt(0) + group.group.slice(1).toLowerCase()}
                 </div>
               )}
               <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>

@@ -1,19 +1,20 @@
 import type { Metadata } from "next";
-import { Inter, Instrument_Serif } from "next/font/google";
+import { Figtree, Bricolage_Grotesque } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
+// Texto da interface
+const body = Figtree({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
-  variable: "--font-inter",
+  variable: "--font-body",
   display: "swap",
 });
 
-const serif = Instrument_Serif({
+// Títulos e números grandes
+const display = Bricolage_Grotesque({
   subsets: ["latin"],
-  weight: "400",
-  style: ["italic"],
-  variable: "--font-serif",
+  weight: ["500", "600", "700"],
+  variable: "--font-display",
   display: "swap",
 });
 
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
-      <body className={`${inter.variable} ${serif.variable}`}>{children}</body>
+      <body className={`${body.variable} ${display.variable}`}>{children}</body>
     </html>
   );
 }

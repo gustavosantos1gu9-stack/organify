@@ -9,63 +9,38 @@ interface KPICardProps {
   subtitle?: string;
 }
 
-const iconBgMap = {
-  green: "rgba(34,197,94,0.12)",
-  red: "rgba(239,68,68,0.12)",
-  blue: "rgba(59,130,246,0.12)",
-  amber: "rgba(245,158,11,0.12)",
-};
-const iconColorMap = {
-  green: "#22c55e",
-  red: "#ef4444",
-  blue: "#3b82f6",
-  amber: "#f59e0b",
+// Tons do sistema: o ícone só indica a natureza do número (entrada, saída, neutro, alerta)
+const tons = {
+  green: { bg: "#E3F2EC", fg: "#1E6B52" },
+  red: { bg: "#FBE3E1", fg: "#B42318" },
+  blue: { bg: "#E8F1F9", fg: "#144E73" },
+  amber: { bg: "#FCE9DA", fg: "#8A3B12" },
 };
 
-export default function KPICard({
-  label,
-  value,
-  change,
-  icon,
-  iconBg = "green",
-  subtitle,
-}: KPICardProps) {
-  const changeColor =
-    change === undefined ? "#4A5B6C"
-    : change > 0 ? "#22c55e"
-    : change < 0 ? "#ef4444"
-    : "#4A5B6C";
-
-  const changeLabel =
-    change === undefined ? "0% vs. último período"
-    : `${change > 0 ? "+" : ""}${change.toFixed(1)}% vs. último período`;
+export default function KPICard({ label, value, change, icon, iconBg = "blue", subtitle }: KPICardProps) {
+  const tom = tons[iconBg] ?? tons.blue;
+  const changeColor = change === undefined || change === 0 ? "var(--ink-3)" : change > 0 ? "#1E6B52" : "#B42318";
+  const changeLabel = change === undefined ? "" : `${change > 0 ? "+" : ""}${change.toFixed(1).replace(".", ",")}% sobre o período anterior`;
 
   return (
-    <div className="kpi-card" style={{ position: "relative" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
-        <span style={{ fontSize: "13px", color: "#4A5B6C" }}>{label}</span>
-        <div
-          style={{
-            width: "34px",
-            height: "34px",
-            borderRadius: "8px",
-            background: iconBgMap[iconBg],
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: iconColorMap[iconBg],
-          }}
+    <div className="kpi-card" style={{ position: "relative", padding: "18px 20px", display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+        <span style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-2)" }}>{label}</span>
+        <span
+          aria-hidden="true"
+          style={{ width: 30, height: 30, flex: "none", borderRadius: "50%", background: tom.bg, color: tom.fg, display: "flex", alignItems: "center", justifyContent: "center" }}
         >
           {icon}
-        </div>
+        </span>
       </div>
-      <div style={{ fontSize: "24px", fontWeight: "700", color: "#0A1826", marginBottom: "8px" }}>
+      <div className="font-title" style={{ fontSize: 30, fontWeight: 600, color: "var(--ink)", lineHeight: 1.1, letterSpacing: "-0.02em" }}>
         {value}
       </div>
       {subtitle
-        ? <div style={{ fontSize: "12px", color: "#1C6CA6" }}>{subtitle}</div>
-        : (change !== undefined && change !== 0) ? <div style={{ fontSize: "12px", color: changeColor }}>{changeLabel}</div> : null
-      }
+        ? <div style={{ fontSize: 12.5, color: "var(--brand-deep)" }}>{subtitle}</div>
+        : change !== undefined && change !== 0
+          ? <div style={{ fontSize: 12.5, color: changeColor }}>{changeLabel}</div>
+          : null}
     </div>
   );
 }

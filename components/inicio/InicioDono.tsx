@@ -77,12 +77,11 @@ export default function InicioDono({ nome }: { nome: string }) {
 
   return (
     <div className="ui-page">
-      <Saudacao nome={nome} destaque="Sua operação hoje" />
+      <Saudacao nome={nome} destaque="Veja como a agência está hoje e o que pede atenção." />
 
       <Hero
-        kicker={`${mes.charAt(0).toUpperCase() + mes.slice(1)} · ao vivo`}
-        titulo={`${ativos.length} clientes ativos,`}
-        destaque="crescendo juntos"
+        kicker="Resumo da agência"
+        titulo={`${ativos.length} clientes ativos em ${mes.split(" ")[0]}`}
         acao={{ label: "Ver financeiro", href: "/dre" }}
         metricas={[
           { label: "Receita recorrente", valor: brl(receita.total), detalhe: `Ticket médio ${brl(ticket)}` },
@@ -99,7 +98,7 @@ export default function InicioDono({ nome }: { nome: string }) {
 
         <Painel
           titulo="Precisa de atenção hoje"
-          extra={<span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{uti.length} na UTI · {oscilando.length} oscilando</span>}
+          extra={<span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{uti.length} na UTI, {oscilando.length} oscilando</span>}
           delay={0.18}
         >
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -113,7 +112,7 @@ export default function InicioDono({ nome }: { nome: string }) {
       </div>
 
       <div className="ui-grid-2">
-        <Painel titulo="Equipe" extra={<span style={{ fontSize: 13, color: "var(--text-secondary)" }}>clientes por gestor</span>} delay={0.24}>
+        <Painel titulo="Equipe" extra={<span style={{ fontSize: 13, color: "var(--ink-3)" }}>Clientes por gestor</span>} delay={0.24}>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {gestores.length === 0 && <Vazio>Nenhum cliente na carteira.</Vazio>}
             {gestores.slice(0, 6).map(([g, v], i) => (
@@ -123,7 +122,7 @@ export default function InicioDono({ nome }: { nome: string }) {
                 valor={v.total}
                 max={maxGestor}
                 cor={i === 0 ? "var(--navy)" : "var(--brand)"}
-                direita={`${v.total} · ${v.escala} em escala${v.uti ? ` · ${v.uti} UTI` : ""}`}
+                direita={`${v.total} clientes, ${v.escala} em escala${v.uti ? `, ${v.uti} na UTI` : ""}`}
                 delay={0.25 + i * 0.05}
               />
             ))}
@@ -139,7 +138,7 @@ export default function InicioDono({ nome }: { nome: string }) {
             ].map((x) => (
               <div key={x.l} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{x.l}</span>
-                <span style={{ fontSize: 24, fontWeight: 600, color: x.c }}>{x.v.toLocaleString("pt-BR")}</span>
+                <span className="font-title" style={{ fontSize: 28, fontWeight: 600, color: x.c }}>{x.v.toLocaleString("pt-BR")}</span>
               </div>
             ))}
           </div>

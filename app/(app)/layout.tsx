@@ -143,9 +143,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "var(--off-white)" }}>
       <Sidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
-      <div style={{ flex: 1, marginLeft: "280px", display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <div className="app-shell-content" style={{ flex: 1, marginLeft: "280px", display: "flex", flexDirection: "column", minWidth: 0 }}>
         <Topbar onMenuToggle={() => setMobileOpen(true)} />
-        <main style={{ flex: 1, padding: "32px 40px", overflowX: "hidden" }}>
+        <main className="app-main" style={{ flex: 1, padding: "28px 40px 48px", overflowX: "hidden" }}>
           {children}
         </main>
       </div>

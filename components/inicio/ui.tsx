@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { ReactNode } from "react";
-import { ArrowRight } from "lucide-react";
 
 // ─── Fases da escala (mesmas chaves de controle_clientes.escala_jornada) ───
 export const FASES = [
@@ -42,13 +41,11 @@ export const normaliza = (s: string | null | undefined) =>
 // ─── Cabeçalho com saudação ────────────────────────────────────
 export function Saudacao({ nome, destaque, direita }: { nome: string; destaque: string; direita?: ReactNode }) {
   return (
-    <header className="ui-anim" style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "space-between", gap: 16 }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        <span style={{ fontSize: 14, color: "var(--text-secondary)" }}>{dataExtenso()}</span>
-        <h1 style={{ margin: 0, fontSize: 30, fontWeight: 600, letterSpacing: "-.02em", lineHeight: 1.2 }}>
-          {saudacao()}{nome ? `, ${nome}` : ""}.{" "}
-          <span className="font-serif-accent" style={{ fontSize: 34, color: "var(--brand-deep)" }}>{destaque}</span>
-        </h1>
+    <header style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "space-between", gap: 16 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <span style={{ fontSize: 13, color: "var(--ink-3)" }}>{dataExtenso()}</span>
+        <h1 style={{ margin: 0 }}>{saudacao()}{nome ? `, ${nome}` : ""}</h1>
+        <span style={{ fontSize: 15, color: "var(--ink-2)" }}>{destaque}</span>
       </div>
       {direita}
     </header>
@@ -63,27 +60,23 @@ export function Hero({ kicker, titulo, destaque, metricas, acao, delay = 0.05 }:
   acao?: { label: string; href: string }; delay?: number;
 }) {
   return (
-    <section className="ui-anim ui-hero" style={{ animationDelay: `${delay}s` }}>
-      <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", gap: 26 }}>
+    <section className="ui-hero" data-delay={delay}>
+      <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", gap: 28 }}>
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-end", gap: 12 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 13, color: "var(--brand-light)" }}>{kicker}</span>
-            <h2 style={{ margin: 0, fontSize: 26, fontWeight: 600, letterSpacing: "-.01em", color: "#F3F5F7" }}>
-              {titulo}{destaque && <> <span className="font-serif-accent" style={{ fontSize: 30, color: "var(--brand-light)" }}>{destaque}</span></>}
+            <h2 className="font-title" style={{ margin: 0, fontSize: 28, fontWeight: 600, color: "#F3F5F7", lineHeight: 1.15 }}>
+              {titulo}{destaque ? ` ${destaque}` : ""}
             </h2>
           </div>
-          {acao && (
-            <Link href={acao.href} className="ui-hero-link">
-              {acao.label} <ArrowRight size={14} />
-            </Link>
-          )}
+          {acao && <Link href={acao.href} className="ui-hero-link">{acao.label}</Link>}
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 24 }}>
-          {metricas.map((m) => (
-            <div key={m.label} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 0 }}>
+          {metricas.map((m, i) => (
+            <div key={m.label} style={{ display: "flex", flexDirection: "column", gap: 4, padding: "2px 20px", paddingLeft: i === 0 ? 0 : 20, borderLeft: i === 0 ? "none" : "1px solid rgba(140,198,236,.22)" }}>
               <span style={{ fontSize: 13, color: "#9FB3C6" }}>{m.label}</span>
-              <span style={{ fontSize: 30, fontWeight: 600, letterSpacing: "-.02em", color: "#F3F5F7", lineHeight: 1.15 }}>{m.valor}</span>
-              {m.detalhe && <span style={{ fontSize: 12, color: "#9FB3C6" }}>{m.detalhe}</span>}
+              <span className="font-title" style={{ fontSize: 34, fontWeight: 600, color: "#F3F5F7", lineHeight: 1.1 }}>{m.valor}</span>
+              {m.detalhe && <span style={{ fontSize: 12.5, color: "#9FB3C6" }}>{m.detalhe}</span>}
             </div>
           ))}
         </div>
@@ -97,9 +90,9 @@ export function Painel({ titulo, extra, children, delay = 0.1, lift = true, styl
   titulo: string; extra?: ReactNode; children: ReactNode; delay?: number; lift?: boolean; style?: React.CSSProperties;
 }) {
   return (
-    <section className={`ui-anim ui-panel${lift ? " ui-lift" : ""}`} style={{ animationDelay: `${delay}s`, display: "flex", flexDirection: "column", gap: 16, minWidth: 0, ...style }}>
+    <section className="ui-panel" data-delay={delay} data-lift={lift ? "1" : "0"} style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0, ...style }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
-        <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600 }}>{titulo}</h2>
+        <h2 style={{ margin: 0, fontSize: 18 }}>{titulo}</h2>
         {extra}
       </div>
       {children}
@@ -128,7 +121,7 @@ export function BarraFases({ contagem, semFase }: { contagem: Record<string, num
             <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: s.key === "sem" && s.n > 0 ? "var(--alert-text)" : "var(--text-secondary)" }}>
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: s.cor, flex: "none" }} />{s.label}
             </span>
-            <span style={{ fontSize: 20, fontWeight: 600, color: s.key === "sem" && s.n > 0 ? "var(--alert-text)" : "var(--navy)" }}>{s.n}</span>
+            <span className="font-title" style={{ fontSize: 24, fontWeight: 600, color: s.key === "sem" && s.n > 0 ? "var(--alert-text)" : "var(--navy)" }}>{s.n}</span>
           </div>
         ))}
       </div>
@@ -192,7 +185,7 @@ export function Atalhos({ grupos }: { grupos: { titulo: string; itens: Atalho[] 
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 20 }}>
       {visiveis.map((g) => (
         <div key={g.titulo} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--text-secondary)" }}>{g.titulo}</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-2)" }}>{g.titulo}</span>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {g.itens.map((a) => (
               <Link key={a.href + a.label} href={a.href} className="ui-chip">{a.icone}{a.label}</Link>

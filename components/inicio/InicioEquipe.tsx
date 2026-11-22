@@ -64,13 +64,12 @@ export default function InicioEquipe({ nome, permissoes }: { nome: string; permi
 
   return (
     <div className="ui-page">
-      <Saudacao nome={nome.split(" ")[0]} destaque={veCarteira ? "Seus clientes hoje" : "Bom trabalho hoje"} />
+      <Saudacao nome={nome.split(" ")[0]} destaque={veCarteira ? "Seus clientes e o que precisa de atenção hoje." : "Seus atalhos para o dia."} />
 
       {veCarteira && (
         <Hero
           kicker="Sua carteira"
-          titulo={meus.length ? `${meus.length} clientes com você,` : "Nenhum cliente vinculado"}
-          destaque={meus.length ? "um passo de cada vez" : undefined}
+          titulo={meus.length ? `${meus.length} clientes com você` : "Nenhum cliente vinculado a você"}
           acao={{ label: "Abrir carteira", href: "/controle-clientes" }}
           metricas={[
             { label: "Em escala (Fase 3 e 4)", valor: String(emEscala) },

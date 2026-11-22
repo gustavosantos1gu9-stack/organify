@@ -66,14 +66,13 @@ export default function InicioFilha() {
     <div className="ui-page">
       <Saudacao
         nome={agNome}
-        destaque="Seus resultados"
+        destaque="Conversas, rastreio e jornada dos seus leads."
         direita={<PeriodSelector onChange={(_p, f, t) => { setFrom(f); setTo(t); }} />}
       />
 
       <Hero
         kicker="Conversas no período"
-        titulo={`${total.toLocaleString("pt-BR")} novas conversas,`}
-        destaque={pct >= 70 ? "bem rastreadas" : "de olho no rastreio"}
+        titulo={`${total.toLocaleString("pt-BR")} conversas novas, ${pct}% rastreadas`}
         acao={{ label: "Abrir inbox", href: "/inbox" }}
         metricas={[
           { label: "Conversas novas", valor: total.toLocaleString("pt-BR") },
@@ -89,7 +88,7 @@ export default function InicioFilha() {
             {origens.length === 0 && <Vazio>Nenhuma conversa no período.</Vazio>}
             {origens.slice(0, 7).map(([o, n], i) => (
               <BarraLinha key={o} label={o} valor={n} max={maxOrigem} cor={o === "Não Rastreada" ? "#CBD5DF" : CORES[i % CORES.length]}
-                direita={`${n} · ${total ? Math.round((n / total) * 100) : 0}%`} delay={0.15 + i * 0.05} />
+                direita={`${n} (${total ? Math.round((n / total) * 100) : 0}%)`} delay={0.15 + i * 0.05} />
             ))}
           </div>
         </Painel>
