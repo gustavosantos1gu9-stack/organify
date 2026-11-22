@@ -139,6 +139,21 @@ export default function InicioDono({ nome }: { nome: string }) {
           </div>
         </Painel>
 
+        <Painel titulo="Atendimento no mês" extra={<LinkSutil href="/inbox">Abrir inbox</LinkSutil>} delay={0.3}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12 }}>
+            {[
+              { l: "Conversas novas", v: conv.total, c: "var(--navy)" },
+              { l: "Rastreadas", v: conv.rastreadas, c: "var(--success)" },
+              { l: "Não rastreadas", v: conv.naoRastreadas, c: "var(--alert-text)" },
+            ].map((x) => (
+              <div key={x.l} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{x.l}</span>
+                <span className="font-title" style={{ fontSize: 28, fontWeight: 600, color: x.c }}>{x.v.toLocaleString("pt-BR")}</span>
+              </div>
+            ))}
+          </div>
+          <BarraLinha label="Rastreio das conversas" valor={pctRastreio} max={100} cor="var(--success)" direita={`${pctRastreio}%`} delay={0.35} />
+        </Painel>
         </div>
         <Painel
           titulo="Precisa de atenção hoje"
@@ -154,22 +169,6 @@ export default function InicioDono({ nome }: { nome: string }) {
           </div>
         </Painel>
       </div>
-
-        <Painel titulo="Atendimento no mês" style={{}} extra={<LinkSutil href="/inbox">Abrir inbox</LinkSutil>} delay={0.3}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12 }}>
-            {[
-              { l: "Conversas novas", v: conv.total, c: "var(--navy)" },
-              { l: "Rastreadas", v: conv.rastreadas, c: "var(--success)" },
-              { l: "Não rastreadas", v: conv.naoRastreadas, c: "var(--alert-text)" },
-            ].map((x) => (
-              <div key={x.l} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{x.l}</span>
-                <span className="font-title" style={{ fontSize: 28, fontWeight: 600, color: x.c }}>{x.v.toLocaleString("pt-BR")}</span>
-              </div>
-            ))}
-          </div>
-          <BarraLinha label="Rastreio das conversas" valor={pctRastreio} max={100} cor="var(--success)" direita={`${pctRastreio}%`} delay={0.35} />
-        </Painel>
 
       <Painel titulo="Atalhos" delay={0.36} lift={false}>
         <Atalhos grupos={[

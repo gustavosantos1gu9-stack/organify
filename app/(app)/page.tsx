@@ -32,8 +32,15 @@ export default function InicioPage() {
       let nome = (user?.user_metadata?.nome || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "") as string;
       if (user) {
         const { data: linhas } = await supabase.from("usuarios").select("nome").eq("auth_user_id", user.id).limit(1);
-        const n = (linhas as any[] | null)?.[0]?.nome;
+        let n = (linhas as any[] | null)?.[0]?.nome;
+        if (!n && user.email) {
+          // Dono sem vínculo por auth: tenta o cadastro de usuários pelo e-mail
+          const { data: porEmail } = await supabase.from("usuarios").select("nome").eq("email", user.email).limit(1);
+          n = (porEmail as any[] | null)?.[0]?.nome;
+        }
         if (n) nome = n;
+        // Nome tirado do e-mail (com números) não serve de saudação
+        if (/\d/.test(nome)) nome = "";
       }
       nome = nome ? nome.charAt(0).toUpperCase() + nome.slice(1) : "";
 
