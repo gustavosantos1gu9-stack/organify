@@ -1432,3 +1432,7 @@ input[type="checkbox"], input[type="radio"] { height: auto; accent-color: var(--
 @media (prefers-reduced-motion: reduce) {
   .rv *, .rv *::before, .rv *::after { animation: none !important; transition: none !important; }
 }
+/* título da faixa escura: a regra geral de h2 da área de conteúdo pintava de escuro */
+.app-main .rv .rv-hero-tit { color: #FFFFFF !important; }
+.app-main .rv .rv-hero-tit .font-serif-accent { color: #8CC6EC !important; }
+.app-main .rv .rv-card-h h3, .app-main .rv .rv-janela-h h3 { color: #0A1826; }
