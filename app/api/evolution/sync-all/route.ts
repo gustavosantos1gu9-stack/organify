@@ -267,26 +267,129 @@ async function syncConversa(agencia: any, jid: string, info: any) {
         utm_content: conjunto ? `${conjunto}_${criativo}` : (sourceId || ""),
         utm_term: criativo || adReply.title || "",
         ...(ctwaClid ? { fbclid: ctwaClid } : {}),
+        ...(campanha ? { rastreio_status: "resolvido" } : {}),
       };
       break;
     }
-    // Se @lid mas sem externalAdReply, marcar ao menos como Meta Ads CTWA
-    if (!ctwaData) ctwaData = { origem: "Meta Ads", utm_source: "meta", utm_medium: "ctwa" };
+    // Se @lid mas sem externalAdReply → sem evidência real, não classificar como Meta Ads
+  }
+
+  // Tentar ref_code nas primeiras mensagens recebidas (se CTWA não resolveu com certeza)
+  let refCodeParaMarcar: string | null = null;
+  if (!ctwaData || ctwaData.rastreio_status !== "resolvido") {
+    const REF_CODE_RE = /c[oó]d\.?\s*([A-HJ-NP-Z2-9]{5})/i;
+    const primeirasRecebidas = msgsValidas.filter((m: any) => !m.key?.fromMe).slice(0, 10);
+    for (const msg of primeirasRecebidas) {
+      const ext = extrairConteudo(msg);
+      if (!ext?.conteudo) continue;
+      const refMatch = ext.conteudo.match(REF_CODE_RE);
+      if (!refMatch) continue;
+      const refCode = refMatch[1].toUpperCase();
+      try {
+        const { data: rpRef } = await supabase.from("rastreamentos_pendentes")
+          .select("*")
+          .eq("ref_code", refCode)
+          .is("usado_em", null)
+          .limit(1)
+          .maybeSingle();
+        if (rpRef) {
+          // Resolver nomes reais se utm_content/utm_term forem IDs numéricos
+          const adsToken = agencia.meta_business_token || agencia.meta_token || null;
+          const AD_ID_RE = /^\d{10,20}$/;
+          let utmContent = rpRef.utm_content || "";
+          let utmTerm = rpRef.utm_term || "";
+          let nomeCampanha = rpRef.utm_campaign || "";
+          let nomeAnuncio = "";
+          const idParaResolver = AD_ID_RE.test(utmContent) ? utmContent
+            : AD_ID_RE.test(utmTerm) ? utmTerm : null;
+          if (idParaResolver && adsToken) {
+            try {
+              const adRes = await fetch(`https://graph.facebook.com/v21.0/${idParaResolver}?fields=name,adset_id,campaign_id&access_token=${adsToken}`);
+              const adData = await adRes.json();
+              if (adData?.campaign_id) {
+                const [campRes, conjRes] = await Promise.all([
+                  fetch(`https://graph.facebook.com/v21.0/${adData.campaign_id}?fields=name&access_token=${adsToken}`),
+                  fetch(`https://graph.facebook.com/v21.0/${adData.adset_id}?fields=name&access_token=${adsToken}`),
+                ]);
+                if (!rpRef.link_id) nomeCampanha = (await campRes.json())?.name || nomeCampanha;
+                utmContent = (await conjRes.json())?.name || utmContent;
+                nomeAnuncio = adData.name || "";
+              }
+            } catch {}
+          }
+
+          // Buscar nome do link
+          let linkNome = "";
+          if (rpRef.link_id) {
+            try {
+              const { data: lnk } = await supabase.from("links_campanha")
+                .select("nome").eq("id", rpRef.link_id).single();
+              linkNome = lnk?.nome || "";
+            } catch {}
+          }
+
+          ctwaData = {
+            origem: rpRef.origem || "Meta Ads",
+            utm_source: rpRef.utm_source || "facebook",
+            utm_medium: rpRef.utm_medium || "link",
+            utm_campaign: nomeCampanha,
+            utm_content: utmContent,
+            utm_term: utmTerm,
+            ...(rpRef.leadgen_id ? { leadgen_id: rpRef.leadgen_id } : {}),
+            ...(rpRef.fbclid ? { fbclid: rpRef.fbclid } : {}),
+            ...(rpRef.link_id ? { link_id: rpRef.link_id } : {}),
+            ...(linkNome ? { link_nome: linkNome } : {}),
+            ...(nomeAnuncio ? { nome_anuncio: nomeAnuncio } : {}),
+            rastreio_status: "resolvido",
+          };
+          refCodeParaMarcar = refCode;
+          console.log(`[sync-all] ref_code ${refCode} → ${rpRef.origem || "Meta Ads"} link=${rpRef.link_id}`);
+        }
+      } catch {}
+      break; // só precisamos do primeiro match
+    }
   }
 
   // Criar/atualizar conversa
+  // Buscar pela jid é o fallback crítico para @lid: quando a conversa foi criada com o lid-number
+  // e o sync resolve para o número real, precisamos encontrá-la pelo jid antes de criar uma nova.
+  const STATUS_PROTEGIDOS_SYNC = ["resolvido","atribuido_por_texto_link","atribuido_por_data","sem_dados_anuncio"];
+
   let { data: conversa } = await supabase.from("conversas")
-    .select("id, origem").eq("agencia_id", agencia.id).eq("contato_numero", numeroFinal).single() as { data: { id: any; origem?: string } | null };
+    .select("id, origem, primeira_mensagem_at, rastreio_status, link_id, utm_campaign")
+    .eq("agencia_id", agencia.id).eq("contato_numero", numeroFinal)
+    .maybeSingle() as { data: any | null };
+
+  // Fallback: se não achou pelo número real, buscar pela jid (@lid pode estar salvo com o lid-number)
+  // Evita criar conversa duplicata quando sync resolve @lid → número real
+  if (!conversa && jid.includes("@lid")) {
+    const { data: porJid } = await supabase.from("conversas")
+      .select("id, origem, primeira_mensagem_at, rastreio_status, link_id, utm_campaign")
+      .eq("agencia_id", agencia.id).eq("contato_jid", jid)
+      .order("created_at", { ascending: true })
+      .limit(1).maybeSingle() as { data: any | null };
+    if (porJid) {
+      conversa = porJid;
+      // Atualizar contato_numero para o real para que buscas futuras por número funcionem
+      try { await supabase.from("conversas").update({ contato_numero: numeroFinal }).eq("id", porJid.id); } catch {}
+    }
+  }
 
   const conversaData: any = { contato_jid: jid, nao_lidas: info.naoLidas || 0 };
   if (nome) conversaData.contato_nome = nome;
   if (info.foto) conversaData.contato_foto = info.foto;
   if (ultimaMsgConteudo) conversaData.ultima_mensagem = ultimaMsgConteudo;
   if (ultimaMsgAt || info.ultimaAt) conversaData.ultima_mensagem_at = ultimaMsgAt || info.ultimaAt;
-  if (primeiraMsgAt || info.primeiraAt) conversaData.primeira_mensagem_at = primeiraMsgAt || info.primeiraAt;
-  // Aplicar dados CTWA se disponível (só sobrescreve se ainda não rastreada)
-  const jaRastreada = conversa && (conversa as any).origem && (conversa as any).origem !== "Não Rastreada";
-  if (ctwaData && !jaRastreada) Object.assign(conversaData, ctwaData);
+  // Só setar primeira_mensagem_at se a conversa ainda não tem — sync não deve sobrescrever data real
+  if ((primeiraMsgAt || info.primeiraAt) && !conversa?.primeira_mensagem_at) conversaData.primeira_mensagem_at = primeiraMsgAt || info.primeiraAt;
+  // Aplicar CTWA só se não há rastreio protegido (nunca rebaixar rastreio existente)
+  const rastreioProtegido = conversa && (
+    STATUS_PROTEGIDOS_SYNC.includes(conversa.rastreio_status) ||
+    conversa.link_id ||
+    (conversa.utm_campaign && conversa.utm_campaign !== "")
+  );
+  const jaRastreada = conversa && conversa.origem && conversa.origem !== "Não Rastreada";
+  if (ctwaData && !jaRastreada && !rastreioProtegido) Object.assign(conversaData, ctwaData);
 
   if (!conversa) {
     const { data: nova, error: insertErr } = await supabase.from("conversas").insert({
@@ -300,10 +403,17 @@ async function syncConversa(agencia: any, jid: string, info: any) {
       ...(ctwaData || {}),
     }).select("id").single();
     if (insertErr) {
-      // Duplicata (race condition) — buscar existente
+      // Duplicata (race condition) — buscar existente por número ou por jid
       const { data: existente } = await supabase.from("conversas")
-        .select("id").eq("agencia_id", agencia.id).eq("contato_numero", numeroFinal).single();
-      conversa = existente;
+        .select("id").eq("agencia_id", agencia.id).eq("contato_numero", numeroFinal).maybeSingle();
+      if (existente) {
+        conversa = existente;
+      } else if (jid.includes("@lid")) {
+        const { data: existenteJid } = await supabase.from("conversas")
+          .select("id").eq("agencia_id", agencia.id).eq("contato_jid", jid)
+          .order("created_at", { ascending: true }).limit(1).maybeSingle();
+        conversa = existenteJid;
+      }
     } else {
       conversa = nova;
     }
@@ -312,6 +422,16 @@ async function syncConversa(agencia: any, jid: string, info: any) {
   }
 
   if (!conversa?.id) return 0;
+
+  // Marcar ref_code como usado agora que temos conversa.id
+  if (refCodeParaMarcar) {
+    try {
+      await supabase.from("rastreamentos_pendentes")
+        .update({ usado_em: new Date().toISOString(), conversa_id: conversa.id })
+        .eq("ref_code", refCodeParaMarcar)
+        .is("usado_em", null);
+    } catch {}
+  }
 
   // Salvar mensagens em lotes de 50
   let totalSalvas = 0;

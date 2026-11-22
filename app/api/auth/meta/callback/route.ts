@@ -70,59 +70,56 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(`${url.origin}${returnTo}?meta_error=${encodeURIComponent(meData.error.message)}`);
     }
 
-    // 4. Salvar token na conexão de relatórios
+    // 4. Salvar token conforme o contexto
     if (agenciaId) {
-      // Verificar se já existe conexão
-      const { data: existing } = await supabase
-        .from("relatorios_conexoes")
-        .select("id")
-        .eq("agencia_id", agenciaId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
-
-      if (existing) {
-        await supabase.from("relatorios_conexoes").update({
+      if (tokenType === "pixel" || tokenType === "master") {
+        // MASTER INBOX: conectando para inbox/formulários — salva em agencias.meta_token
+        await supabase.from("agencias").update({
           meta_token: longToken,
-          meta_nome: meData.name,
-          meta_user_id: meData.id,
-          updated_at: new Date().toISOString(),
-        }).eq("id", existing.id);
+        }).eq("id", agenciaId);
+      } else if (tokenType === "gerenciador") {
+        // MASTER GERENCIADOR: conectando para ad manager — salva em agencias.meta_business_token
+        await supabase.from("agencias").update({
+          meta_business_token: longToken,
+        }).eq("id", agenciaId);
       } else {
-        await supabase.from("relatorios_conexoes").insert({
-          agencia_id: agenciaId,
-          meta_token: longToken,
-          meta_nome: meData.name,
-          meta_user_id: meData.id,
-        });
-      }
+        // MASTER OPERACIONAL: conectando para relatórios — salva só em relatorios_conexoes
+        // NÃO toca em agencias (não quebra inbox nem formulários)
+        const { data: existing } = await supabase
+          .from("relatorios_conexoes")
+          .select("id")
+          .eq("agencia_id", agenciaId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
 
-      // token_type=pixel  → salva em meta_token (Conversions API / rastreamento inbox)
-      // token_type=business → salva em meta_business_token (BM / relatórios de ads)
-      let updateData: Record<string, string>;
-      if (tokenType === "pixel") {
-        // Conectando para rastrear eventos do inbox — salva só no meta_token
-        updateData = { meta_token: longToken };
-      } else {
-        // Conectando para relatórios / BM — salva no meta_business_token
-        updateData = { meta_business_token: longToken };
-        // Preenche meta_token só se ainda estiver vazio (não sobrescreve pixel configurado)
-        const { data: agAtual } = await supabase.from("agencias").select("meta_token").eq("id", agenciaId).single();
-        if (!agAtual?.meta_token) updateData.meta_token = longToken;
-      }
-      await supabase.from("agencias").update(updateData).eq("id", agenciaId);
+        if (existing) {
+          await supabase.from("relatorios_conexoes").update({
+            meta_token: longToken,
+            meta_nome: meData.name,
+            meta_user_id: meData.id,
+            updated_at: new Date().toISOString(),
+          }).eq("id", existing.id);
+        } else {
+          await supabase.from("relatorios_conexoes").insert({
+            agencia_id: agenciaId,
+            meta_token: longToken,
+            meta_nome: meData.name,
+            meta_user_id: meData.id,
+          });
+        }
 
-      // Sincronizar leads de formulário do Meta (fire-and-forget)
-      // Associa conversas existentes com leadgen_id quando tem campanha de formulário
-      fetch(`${url.origin}/api/meta/sync-leads`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agencia_id: agenciaId }),
-      }).catch(() => {});
+        // Sincronizar leads de formulário do Meta (fire-and-forget)
+        fetch(`${url.origin}/api/meta/sync-leads`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agencia_id: agenciaId }),
+        }).catch(() => {});
+      }
     }
 
     const agenciaParam = agenciaId ? `&agencia_id=${agenciaId}` : "";
-    return NextResponse.redirect(`${url.origin}${returnTo}?meta_success=true&meta_nome=${encodeURIComponent(meData.name)}${agenciaParam}`);
+    return NextResponse.redirect(`${url.origin}${returnTo}?meta_success=true&meta_nome=${encodeURIComponent(meData.name)}&token_type=${tokenType}${agenciaParam}`);
 
   } catch (e: any) {
     return NextResponse.redirect(`${url.origin}${returnTo}?meta_error=${encodeURIComponent(e.message || "Erro na autenticação")}`);

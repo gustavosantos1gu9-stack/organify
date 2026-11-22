@@ -35,6 +35,7 @@ const EVENTOS_META = [
   { value: "SubmitApplication", label: "SubmitApplication (Meta Ads)" },
   { value: "Subscribe", label: "Subscribe (Meta Ads)" },
   { value: "ViewContent", label: "ViewContent (Meta Ads)" },
+  { value: "CompareceuReuniao", label: "CompareceuReuniao (Evento customizado)" },
 ];
 
 function EtapaModal({ etapa, onClose, onSave }: { etapa?: Etapa; onClose: () => void; onSave: () => void }) {
@@ -220,6 +221,7 @@ export default function JornadaPage() {
   const [showOrdenar, setShowOrdenar] = useState(false);
   const [editando, setEditando] = useState<Etapa | null>(null);
   const [menuAberto, setMenuAberto] = useState<string | null>(null);
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
 
   const carregar = async () => {
     setLoading(true);
@@ -315,22 +317,16 @@ export default function JornadaPage() {
                 </td>
                 <td style={{ color: "#a0a0a0", fontSize: "12px" }}>{formatarData(e.created_at)}</td>
                 <td onClick={ev => ev.stopPropagation()}>
-                  <div style={{ position: "relative" }}>
-                    <button className="btn-ghost" style={{ padding: "6px", cursor: "pointer" }}
-                      onClick={() => setMenuAberto(menuAberto === e.id ? null : e.id)}>
-                      <MoreVertical size={15}/>
-                    </button>
-                    {menuAberto === e.id && (
-                      <div style={{ position: "absolute", right: 0, top: "100%", background: "#1e1e1e", border: "1px solid #3a3a3a", borderRadius: "8px", overflow: "hidden", minWidth: "130px", zIndex: 100, boxShadow: "0 4px 12px rgba(0,0,0,0.4)" }}>
-                        <button onClick={() => { setEditando(e); setMenuAberto(null); }} style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: "13px", color: "#f0f0f0", textAlign: "left", display: "flex", alignItems: "center", gap: "8px" }}>
-                          <Edit2 size={13}/> Editar
-                        </button>
-                        <button onClick={() => remover(e.id)} style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: "13px", color: "#ef4444", textAlign: "left", display: "flex", alignItems: "center", gap: "8px" }}>
-                          <Trash2 size={13}/> Excluir
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  <button className="btn-ghost" style={{ padding: "6px", cursor: "pointer" }}
+                    onClick={ev => {
+                      ev.stopPropagation();
+                      if (menuAberto === e.id) { setMenuAberto(null); return; }
+                      const rect = (ev.currentTarget as HTMLButtonElement).getBoundingClientRect();
+                      setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+                      setMenuAberto(e.id);
+                    }}>
+                    <MoreVertical size={15}/>
+                  </button>
                 </td>
               </tr>
             ))}
@@ -341,6 +337,22 @@ export default function JornadaPage() {
       {showModal && <EtapaModal onClose={() => setShowModal(false)} onSave={carregar}/>}
       {editando && <EtapaModal etapa={editando} onClose={() => setEditando(null)} onSave={carregar}/>}
       {showOrdenar && <OrdenarModal etapas={etapas} onClose={() => setShowOrdenar(false)} onSave={salvarOrdem}/>}
+
+      {menuAberto && (
+        <div
+          style={{ position: "fixed", top: menuPos.top, right: menuPos.right, background: "#1e1e1e", border: "1px solid #3a3a3a", borderRadius: "8px", overflow: "hidden", minWidth: "130px", zIndex: 9999, boxShadow: "0 4px 12px rgba(0,0,0,0.4)" }}
+          onClick={ev => ev.stopPropagation()}
+        >
+          <button onClick={() => { const et = etapas.find(x => x.id === menuAberto) || null; setEditando(et); setMenuAberto(null); }}
+            style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: "13px", color: "#f0f0f0", textAlign: "left", display: "flex", alignItems: "center", gap: "8px" }}>
+            <Edit2 size={13}/> Editar
+          </button>
+          <button onClick={() => { remover(menuAberto); }}
+            style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: "13px", color: "#ef4444", textAlign: "left", display: "flex", alignItems: "center", gap: "8px" }}>
+            <Trash2 size={13}/> Excluir
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
+export const maxDuration = 60;
+
 const AUTENTIQUE_TOKEN = process.env.AUTENTIQUE_TOKEN!;
 const AUTENTIQUE_URL = "https://api.autentique.com.br/v2/graphql";
 
@@ -18,7 +20,8 @@ interface ContratoPayload {
 }
 
 // Remove emojis e caracteres fora do WinAnsi (Latin-1) que o pdf-lib não suporta
-function sanitizarTexto(texto: string): string {
+function sanitizarTexto(texto: string | null | undefined): string {
+  if (!texto) return "";
   // eslint-disable-next-line no-control-regex
   return texto.replace(/[^\x00-\xFF]/g, "").trim();
 }
@@ -53,7 +56,7 @@ Pelo presente instrumento particular, e na melhor forma de direito, as partes a 
 
 SALX COMPANY inscrita no CNPJ n°.43.797.856/0001-42, com sede na Rua Joaquim Nabuco, 1155 apto 1202 Novo Hamburgo - RS, neste ato representada na forma de seu Contrato Social, por seu representante legal Gustavo Guilherme Silva dos Santos, portador do Documento de Identidade RG nº 5119527769, inscrito no CPF sob o nº. 05336369063, residente e domiciliado em Rua Joaquim Nabuco, 1155 apto 1202 Novo Hamburgo - RS, doravante denominado CONTRATADA e;
 
-${d.nome}, inscrita no CNPJ n°.${d.cnpj} com sede na ${d.endereco_empresa} neste ato representada na forma de seu Contrato Social, por seu representante legal, portador do Documento de Identidade RG ${d.rg} inscrito no CPF sob o n ${d.cpf}., residente e domiciliado em ${d.endereco_pessoal || d.endereco_empresa} doravante denominado CONTRATANTE.
+${d.nome}, inscrita no CNPJ n°.${d.cnpj || "não informado"} com sede na ${d.endereco_empresa || "não informado"} neste ato representada na forma de seu Contrato Social, por seu representante legal, portador do Documento de Identidade RG ${d.rg || "não informado"} inscrito no CPF sob o n ${d.cpf || "não informado"}., residente e domiciliado em ${d.endereco_pessoal || d.endereco_empresa || "não informado"} doravante denominado CONTRATANTE.
 
 Decidem as partes, na melhor forma de direito, celebrar o presente CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE MARKETING DIGITAL, que reger-se-á mediante as cláusulas e condições adiante estipuladas.
 

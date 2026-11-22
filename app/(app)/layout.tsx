@@ -23,6 +23,7 @@ const hrefToModuloKey: Record<string, string> = {
   "/reunioes": "reunioes",
   "/escala-ester": "escala_ester",
   "/escala-nicolas": "escala_nicolas",
+  "/escala-lavinia": "escala_lavinia",
   "/gerador-de-leads": "churn",
   "/ferramentas/gerador-links": "links_campanhas",
   "/ferramentas/campanhas": "configurar_campanha",
@@ -60,7 +61,33 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     async function verificar() {
-      const { data: { session } } = await supabase.auth.getSession();
+      // Se há access_token no hash (magic link ou recovery), esperar o Supabase processar
+      let session = null;
+      if (typeof window !== "undefined" && window.location.hash.includes("access_token")) {
+        const hash = window.location.hash;
+
+        // Recovery: redirecionar para troca de senha
+        if (hash.includes("type=recovery")) {
+          router.push("/nova-senha" + hash);
+          return;
+        }
+
+        // Magic link / outro: esperar o Supabase estabelecer a sessão (até 3s)
+        session = await new Promise<any>(resolve => {
+          const timer = setTimeout(() => resolve(null), 3000);
+          const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+            if (s) { clearTimeout(timer); subscription.unsubscribe(); resolve(s); }
+          });
+          // Checar sessão já existente também
+          supabase.auth.getSession().then(({ data }) => {
+            if (data.session) { clearTimeout(timer); subscription.unsubscribe(); resolve(data.session); }
+          });
+        });
+      } else {
+        const { data } = await supabase.auth.getSession();
+        session = data.session;
+      }
+
       if (!session) { router.push("/login"); return; }
 
       if (cancelled) return;
@@ -102,6 +129,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     verificar();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") { router.push("/nova-senha"); return; }
       if (!session) router.push("/login");
     });
 

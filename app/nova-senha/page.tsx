@@ -13,6 +13,30 @@ function NovaSenhaContent() {
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
+
+  useEffect(() => {
+    // Parse hash tokens from Supabase recovery redirect
+    const hash = window.location.hash.substring(1);
+    const params = new URLSearchParams(hash);
+    const accessToken = params.get("access_token");
+    const refreshToken = params.get("refresh_token");
+    const type = params.get("type");
+
+    if (accessToken && type === "recovery") {
+      supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken || "" })
+        .then(({ error }) => {
+          if (error) setErro("Link inválido ou expirado. Solicite um novo link.");
+          else setSessionReady(true);
+        });
+    } else {
+      // Check if already has a valid session (e.g. PKCE flow)
+      supabase.auth.getSession().then(({ data }) => {
+        if (data.session) setSessionReady(true);
+        else setErro("Link inválido ou expirado. Solicite um novo link.");
+      });
+    }
+  }, []);
 
   const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,13 +58,21 @@ function NovaSenhaContent() {
     <div style={{ minHeight:"100vh", background:"#0f0f0f", display:"flex", alignItems:"center", justifyContent:"center", padding:"20px" }}>
       <div style={{ width:"100%", maxWidth:"380px" }}>
         <div style={{ display:"flex", alignItems:"center", gap:"10px", justifyContent:"center", marginBottom:"40px" }}>
-          <div style={{ width:"36px", height:"36px", background:"#22c55e", borderRadius:"10px", display:"flex", alignItems:"center", justifyContent:"center" }}>
-            <span style={{ fontSize:"18px", fontWeight:"800", color:"#000" }}>O</span>
+          <img src="/logo.png" alt="SALX Convert" style={{ width:"48px", height:"48px", objectFit:"contain" }}/>
+          <div style={{ display:"flex", flexDirection:"column", lineHeight:1 }}>
+            <span style={{ fontSize:"20px", fontWeight:"800", color:"#f0f0f0", letterSpacing:"-0.5px" }}>SALX <span style={{ color:"#29ABE2" }}>Convert</span></span>
           </div>
-          <span style={{ fontSize:"20px", fontWeight:"700", color:"#f0f0f0" }}>ORGANIFY</span>
         </div>
         <div style={{ background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"16px", padding:"32px" }}>
-          {sucesso ? (
+          {!sessionReady && !sucesso ? (
+            <div style={{ textAlign:"center", color:"#606060", fontSize:"13px" }}>
+              {erro ? (
+                <div style={{ background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.25)", borderRadius:"8px", padding:"10px 14px", display:"flex", alignItems:"center", gap:"8px", fontSize:"13px", color:"#ef4444" }}>
+                  <AlertCircle size={14}/>{erro}
+                </div>
+              ) : "Verificando link..."}
+            </div>
+          ) : sucesso ? (
             <div style={{ textAlign:"center" }}>
               <div style={{ width:"48px", height:"48px", background:"rgba(34,197,94,0.15)", borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
                 <Check size={24} style={{ color:"#22c55e" }}/>
@@ -77,6 +109,7 @@ function NovaSenhaContent() {
               </button>
             </form>
           )}
+
         </div>
       </div>
     </div>

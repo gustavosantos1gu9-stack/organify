@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     const resultados = [];
     for (const ag of agencias) {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_APP_URL || "https://salxconvert-blond.vercel.app"}/api/churn/calcular`,
+        `${process.env.NEXT_PUBLIC_APP_URL || "https://www.salxconvert.com.br"}/api/churn/calcular`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -30,6 +30,37 @@ export async function GET(req: NextRequest) {
       );
       const data = await res.json();
       resultados.push({ agencia_id: ag.id, ...data });
+    }
+
+    // Salvar snapshots mensais (último dia do mês)
+    const hoje = new Date();
+    const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
+    if (hoje.getDate() >= ultimoDia - 1) {
+      const mesesNomes = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+      const mesNome = mesesNomes[hoje.getMonth()];
+      const anoNum = hoje.getFullYear();
+      const mesAno = `${mesNome}/${anoNum}`;
+
+      for (const ag of agencias) {
+        try {
+          const { data: jaExiste } = await supabase.from("snapshots_mensais")
+            .select("id").eq("agencia_id", ag.id).eq("mes_ano", mesAno).limit(1);
+          if (jaExiste?.length) continue;
+
+          const { data: cc } = await supabase.from("controle_clientes")
+            .select("status").eq("agencia_id", ag.id);
+          if (!cc?.length) continue;
+
+          await supabase.from("snapshots_mensais").insert({
+            agencia_id: ag.id,
+            mes: mesNome, ano: anoNum, mes_ano: mesAno,
+            clientes_ativos: cc.filter(c => c.status === "ativo").length,
+            clientes_pausados: cc.filter(c => c.status === "pausado").length,
+            clientes_entrada: cc.filter(c => c.status === "entrada").length,
+            clientes_total: cc.filter(c => c.status !== "saiu").length,
+          });
+        } catch {}
+      }
     }
 
     return NextResponse.json({ ok: true, resultados });

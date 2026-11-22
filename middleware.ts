@@ -15,6 +15,8 @@ const PUBLIC_PATHS = [
   "/api/cadastro",
   "/api/pixel",
   "/api/auth/",
+  "/reconectar/",
+  "/api/reconexao/",
 ];
 
 function isPublicPath(pathname: string): boolean {

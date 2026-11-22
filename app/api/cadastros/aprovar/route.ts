@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
 const AGENCIA_ID = '32cdce6e-4664-4ac6-979d-6d68a1a68745'
@@ -64,6 +64,7 @@ export async function POST(req: NextRequest) {
     motivo: '',
     razao_nome: cadastro.cnpj,
     grupo: '',
+    cadastro_id: id,
     created_at: new Date().toISOString(),
   })
 

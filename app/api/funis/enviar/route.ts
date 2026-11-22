@@ -11,13 +11,24 @@ export async function POST(req: NextRequest) {
     const { funil_fila_id } = await req.json();
     if (!funil_fila_id) return NextResponse.json({ ok: false, motivo: "ID obrigatório" });
 
-    // 1. Buscar item da fila + etapa
+    // 1. Claim atômico: UPDATE só executa se status='pendente' — evita race condition
+    // Dois processos simultâneos não conseguem processar o mesmo item
+    const { data: claimed } = await supabase.from("funil_fila")
+      .update({ status: "processando" })
+      .eq("id", funil_fila_id)
+      .eq("status", "pendente")
+      .select("id, agencia_id, conversa_id, contato_numero, contato_jid, funil_id, created_at");
+
+    if (!claimed?.length) {
+      return NextResponse.json({ ok: false, motivo: "Item não encontrado ou já processado" });
+    }
+
+    // Buscar dados completos da fila + etapa
     const { data: fila } = await supabase.from("funil_fila")
       .select("*, etapa:funil_etapas(*)")
       .eq("id", funil_fila_id).single();
 
     if (!fila) return NextResponse.json({ ok: false, motivo: "Item não encontrado" });
-    if (fila.status !== "pendente") return NextResponse.json({ ok: false, motivo: "Já processado" });
 
     const etapa = fila.etapa;
     if (!etapa) return NextResponse.json({ ok: false, motivo: "Etapa não encontrada" });
@@ -70,6 +81,16 @@ export async function POST(req: NextRequest) {
     const tipo = etapa.tipo_conteudo || "text";
     let evoRes: Response;
     let textoEnviado = etapa.texto || "";
+
+    // Simular digitação antes de enviar
+    try {
+      await fetch(`${evoUrl}/chat/sendPresence/${ag.whatsapp_instancia}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: evoKey },
+        body: JSON.stringify({ number: destino, presence: "composing", delay: 1500 }),
+      });
+      await new Promise(r => setTimeout(r, 1500));
+    } catch {}
 
     if (tipo === "text") {
       if (!etapa.texto) {

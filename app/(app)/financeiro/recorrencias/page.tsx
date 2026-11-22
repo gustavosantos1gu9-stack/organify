@@ -51,13 +51,50 @@ function RecModal({ rec, onClose, onSave }: { rec?: Recorrencia; onClose:()=>voi
           considerar_cac: form.tipo === "saida" ? form.considerar_cac : false,
         }).eq("id", rec!.id);
 
-        // Atualizar lançamentos futuros não pagos
-        let q = supabase.from("lancamentos_futuros").update({
-          valor, descricao: form.descricao, tipo: form.tipo,
-        }).eq("pago", false).eq("descricao", descAnterior);
-        if (rec!.cliente_id) q = q.eq("cliente_id", rec!.cliente_id);
-        else q = q.eq("agencia_id", agenciaId!);
-        await q;
+        // Deletar lançamentos futuros não pagos antigos (por agencia_id + descrição — confiável em todos os casos)
+        await supabase.from("lancamentos_futuros").delete()
+          .eq("pago", false)
+          .eq("agencia_id", agenciaId!)
+          .eq("descricao", descAnterior);
+
+        // Regenerar lançamentos futuros com nova periodicidade/dia/valor
+        const hoje = new Date();
+        const qtdeNew = QTDE[form.periodicidade] || 12;
+        const intervaloNew = INTERVALO[form.periodicidade] || 1;
+        const lancamentosNew: any[] = [];
+
+        if (form.periodicidade === "quinzenal") {
+          for (let i = 0; i < 24; i++) {
+            const data = new Date(hoje);
+            data.setDate(data.getDate() + i * 15);
+            lancamentosNew.push({
+              agencia_id: agenciaId,
+              tipo: form.tipo,
+              descricao: form.descricao,
+              valor,
+              data_vencimento: data.toISOString().split("T")[0],
+              pago: false,
+              cliente_id: rec!.cliente_id || null,
+            });
+          }
+        } else {
+          for (let i = 0; i < qtdeNew; i++) {
+            const data = new Date(hoje.getFullYear(), hoje.getMonth() + i * intervaloNew, dia);
+            lancamentosNew.push({
+              agencia_id: agenciaId,
+              tipo: form.tipo,
+              descricao: form.descricao,
+              valor,
+              data_vencimento: data.toISOString().split("T")[0],
+              pago: false,
+              cliente_id: rec!.cliente_id || null,
+            });
+          }
+        }
+
+        if (lancamentosNew.length > 0) {
+          await supabase.from("lancamentos_futuros").insert(lancamentosNew);
+        }
       } else {
         // Criar nova recorrência
         await supabase.from("recorrencias").insert({

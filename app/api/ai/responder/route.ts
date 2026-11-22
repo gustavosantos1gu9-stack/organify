@@ -73,6 +73,20 @@ export async function POST(req: NextRequest) {
     ).eq("id", agencia_id).single();
 
     if (!ag) return NextResponse.json({ ok: false, motivo: "Agência não encontrada" });
+
+    // Fallback para parent: herdar openai_key e openai_prompt_sistema se filha não tiver
+    if (ag.parent_id && (!ag.openai_key || !ag.openai_prompt_sistema)) {
+      try {
+        const { data: parentAg } = await supabase.from("agencias")
+          .select("openai_key, openai_prompt_sistema, openai_ativo")
+          .eq("id", ag.parent_id).single();
+        if (parentAg) {
+          if (!ag.openai_key && parentAg.openai_key) (ag as any).openai_key = parentAg.openai_key;
+          if (!ag.openai_prompt_sistema && parentAg.openai_prompt_sistema) (ag as any).openai_prompt_sistema = parentAg.openai_prompt_sistema;
+        }
+      } catch {}
+    }
+
     if (!ag.openai_ativo || !ag.openai_key) return NextResponse.json({ ok: false, motivo: "IA não ativa" });
     if (!ag.openai_prompt_sistema) return NextResponse.json({ ok: false, motivo: "Prompt não configurado" });
 
@@ -124,7 +138,7 @@ export async function POST(req: NextRequest) {
       // Liberar lock e repassar para a mensagem mais recente (lead enviou várias em sequência)
       await supabase.from("conversas").update({ ia_processando_at: null }).eq("id", conversa_id);
       _lockConversaId = null;
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://salxconvert-blond.vercel.app";
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.salxconvert.com.br";
       fetch(`${appUrl}/api/ai/responder`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -184,7 +198,7 @@ export async function POST(req: NextRequest) {
             // Liberar lock e repassar para a mensagem mais recente (delay já foi cumprido)
             await supabase.from("conversas").update({ ia_processando_at: null }).eq("id", conversa_id);
             _lockConversaId = null;
-            const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://salxconvert-blond.vercel.app";
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.salxconvert.com.br";
             fetch(`${appUrl}/api/ai/responder`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -454,7 +468,8 @@ REGRAS:
 - Ao mencionar datas para o lead, use SEMPRE o formato dd/mm (ex: 04/08). NUNCA escreva o ano.
 - CRÍTICO: Se o lead disser que não pode neste mês (ex: "esse mês não consigo", "esse mês não dá", "mês que vem"), ignore TODOS os horários do mês atual e ofereça apenas horários do próximo mês.
 - CRÍTICO: "Semana que vem" ou "próxima semana" significa a semana SEGUINTE à atual, não esta semana. Se hoje é terça-feira e o lead diz "semana que vem na sexta", quer a sexta-feira da semana que vem — não a mais próxima desta semana. Ao gerar [AGENDAR:...], use a data correta da semana solicitada.
-- CRÍTICO: Se a cliente disser que precisa verificar a agenda dela antes de confirmar (ex: "vou ver meu horário", "preciso verificar", "dai te confirmo"), NÃO peça que ela te fale os horários disponíveis. Em vez disso, apresente AGORA os horários da lista acima e diga que ela pode escolher um e, se precisar remarcar, é só avisar.`;
+- CRÍTICO: Se a cliente disser que precisa verificar a agenda dela antes de confirmar (ex: "vou ver meu horário", "preciso verificar", "dai te confirmo"), NÃO peça que ela te fale os horários disponíveis. Em vez disso, apresente AGORA os horários da lista acima e diga que ela pode escolher um e, se precisar remarcar, é só avisar.
+- CRÍTICO — VERIFICAÇÃO DUPLA DE DATA: Antes de gerar [AGENDAR:...], confirme mentalmente: "A data YYYY-MM-DD que vou colocar no comando corresponde exatamente ao dd/mm que mencionei na minha mensagem?" Se não corresponder, corrija o comando antes de enviar. A data no comando deve ser IDÊNTICA à data mencionada na mensagem de confirmação.`;
         } else {
           // MODO SIMPLES: duração única para todos
           const config = { ...baseConfig, duracao_minutos: ag.reuniao_duracao_minutos || 60 };
@@ -485,7 +500,8 @@ REGRAS DE SUGESTÃO DE HORÁRIOS:
 - Use EXATAMENTE o horário que a pessoa escolheu. Nunca troque.
 - CRÍTICO: Se o lead disser que não pode neste mês (ex: "esse mês não consigo", "esse mês não dá", "mês que vem"), ignore TODOS os horários do mês atual e ofereça apenas horários do próximo mês.
 - CRÍTICO: "Semana que vem" ou "próxima semana" significa a semana SEGUINTE à atual, não esta semana. Se hoje é terça-feira e o lead diz "semana que vem na sexta", quer a sexta-feira da semana que vem — não a mais próxima desta semana. Ao gerar [AGENDAR:...], use a data correta da semana solicitada.
-- CRÍTICO: Se a cliente disser que precisa verificar a agenda dela antes de confirmar (ex: "vou ver meu horário", "preciso verificar", "dai te confirmo"), NÃO peça que ela te fale os horários disponíveis. Em vez disso, apresente AGORA os horários da lista acima e diga que ela pode escolher um e, se precisar remarcar, é só avisar.`;
+- CRÍTICO: Se a cliente disser que precisa verificar a agenda dela antes de confirmar (ex: "vou ver meu horário", "preciso verificar", "dai te confirmo"), NÃO peça que ela te fale os horários disponíveis. Em vez disso, apresente AGORA os horários da lista acima e diga que ela pode escolher um e, se precisar remarcar, é só avisar.
+- CRÍTICO — VERIFICAÇÃO DUPLA DE DATA: Antes de gerar [AGENDAR:...], confirme mentalmente: "A data YYYY-MM-DD que vou colocar no comando corresponde exatamente ao dd/mm que mencionei na minha mensagem?" Se não corresponder, corrija o comando antes de enviar. A data no comando deve ser IDÊNTICA à data mencionada na mensagem de confirmação.`;
         }
       } catch (e) {
         console.error("[IA] Erro ao buscar slots:", e);
@@ -578,7 +594,33 @@ ${funisAtivos.map(f => `- "${f.nome}"${f.descricao ? `: ${f.descricao}` : ""}`).
       const anthropicData = await anthropicRes.json();
       if (anthropicData.error) {
         console.error("[IA] Erro Anthropic:", anthropicData.error);
-        return NextResponse.json({ ok: false, motivo: anthropicData.error.message });
+        const errMsg: string = anthropicData.error.message || "";
+        const isBillingError = /credit|quota|billing|insufficient/i.test(errMsg);
+        if (isBillingError) {
+          try {
+            const quatroHAtras = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
+            const { data: agAlert } = await supabase.from("agencias")
+              .select("openai_alerta_credito_at, nome, parent_id").eq("id", agencia_id).single();
+            const jaAlertou = agAlert?.openai_alerta_credito_at && agAlert.openai_alerta_credito_at > quatroHAtras;
+            if (!jaAlertou) {
+              await supabase.from("agencias").update({ openai_alerta_credito_at: new Date().toISOString() }).eq("id", agencia_id);
+              const masterId = agAlert?.parent_id || agencia_id;
+              const { data: master } = await supabase.from("agencias")
+                .select("evolution_url, evolution_key, whatsapp_instancia, grupo_notificacao_jid").eq("id", masterId).single();
+              const grupoJid = master?.grupo_notificacao_jid;
+              if (master?.evolution_url && master?.evolution_key && master?.whatsapp_instancia && grupoJid) {
+                const nomeCliente = agAlert?.nome || agencia_id;
+                const msgAlerta = `⚠️ *Alerta: Crédito IA Esgotado*\n\nCliente: *${nomeCliente}*\nA IA parou de responder por falta de crédito.\n\nAcesse o painel para atualizar a chave de API.`;
+                await fetch(`${master.evolution_url}/message/sendText/${master.whatsapp_instancia}`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", apikey: master.evolution_key },
+                  body: JSON.stringify({ number: grupoJid, text: msgAlerta }),
+                }).catch(() => {});
+              }
+            }
+          } catch {}
+        }
+        return NextResponse.json({ ok: false, motivo: errMsg });
       }
 
       resposta = anthropicData.content?.[0]?.text?.trim() || "";
@@ -601,7 +643,34 @@ ${funisAtivos.map(f => `- "${f.nome}"${f.descricao ? `: ${f.descricao}` : ""}`).
       const openaiData = await openaiRes.json();
       if (openaiData.error) {
         console.error("[IA] Erro OpenAI:", openaiData.error);
-        return NextResponse.json({ ok: false, motivo: openaiData.error.message });
+        const errMsg: string = openaiData.error.message || "";
+        const isBillingError = /credit|quota|billing|insufficient/i.test(errMsg);
+        if (isBillingError) {
+          // Enviar alerta WhatsApp ao grupo de leads (máx 1 vez a cada 4h por agência)
+          try {
+            const quatroHAtras = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
+            const { data: agAlert } = await supabase.from("agencias")
+              .select("openai_alerta_credito_at, nome, parent_id").eq("id", agencia_id).single();
+            const jaAlertou = agAlert?.openai_alerta_credito_at && agAlert.openai_alerta_credito_at > quatroHAtras;
+            if (!jaAlertou) {
+              await supabase.from("agencias").update({ openai_alerta_credito_at: new Date().toISOString() }).eq("id", agencia_id);
+              const masterId = agAlert?.parent_id || agencia_id;
+              const { data: master } = await supabase.from("agencias")
+                .select("evolution_url, evolution_key, whatsapp_instancia, grupo_notificacao_jid").eq("id", masterId).single();
+              const grupoJid = master?.grupo_notificacao_jid;
+              if (master?.evolution_url && master?.evolution_key && master?.whatsapp_instancia && grupoJid) {
+                const nomeCliente = agAlert?.nome || agencia_id;
+                const msgAlerta = `⚠️ *Alerta: Crédito OpenAI Esgotado*\n\nCliente: *${nomeCliente}*\nA IA parou de responder por falta de crédito na OpenAI.\n\nAcesse: platform.openai.com/settings/organization/billing`;
+                await fetch(`${master.evolution_url}/message/sendText/${master.whatsapp_instancia}`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", apikey: master.evolution_key },
+                  body: JSON.stringify({ number: grupoJid, text: msgAlerta }),
+                }).catch(() => {});
+              }
+            }
+          } catch {}
+        }
+        return NextResponse.json({ ok: false, motivo: errMsg });
       }
 
       resposta = openaiData.choices?.[0]?.message?.content?.trim() || "";
@@ -651,7 +720,15 @@ ${funisAtivos.map(f => `- "${f.nome}"${f.descricao ? `: ${f.descricao}` : ""}`).
     const agendarMatch = resposta.match(/\[AGENDAR:\s*(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})(?:\s+NOME:\s*(.+?))?(?:\s+TIPO:\s*(.+?))?(?:\s+DURACAO:\s*(\d+))?\s*\]/);
     if (agendarMatch && ag.agendamento_ativo && ag.google_calendar_refresh_token) {
       const [, dataAgendar, horarioAgendar, nomeDoComando, tipoDoComando, duracaoDoComando] = agendarMatch;
+
       try {
+        // Guard: data deve ser futura (não pode agendar no passado)
+        const startDtCheck = new Date(`${dataAgendar}T${horarioAgendar}:00-03:00`);
+        if (startDtCheck.getTime() < Date.now()) {
+          console.error(`[IA] AGENDAR com data no passado: ${dataAgendar} ${horarioAgendar} — bloqueando`);
+          resposta = resposta.replace(/\[AGENDAR:[^\]]+\]/, "").trim();
+          throw new Error("data_passado");
+        }
         const { data: convInfo } = await supabase.from("conversas")
           .select("contato_nome, contato_numero").eq("id", conversa_id).single();
 
@@ -709,14 +786,24 @@ ${funisAtivos.map(f => `- "${f.nome}"${f.descricao ? `: ${f.descricao}` : ""}`).
           evento_nome: nomeAgendamento,
         }).eq("id", conversa_id);
 
-        // Atualizar etapa da jornada para "Agendou" (ou etapa com evento_conversao="Lead")
+        // Atualizar etapa da jornada para "Agendou" (fallback para agência master se filha não tiver)
         try {
-          const { data: etapaAgendou } = await supabase.from("jornada_etapas")
+          let { data: etapaAgendou } = await supabase.from("jornada_etapas")
             .select("nome")
             .eq("agencia_id", agencia_id)
-            .or('nome.ilike.%agendou%,nome.ilike.%agendamento%,evento_conversao.eq.Lead')
+            .or('nome.ilike.%agendou%,nome.ilike.%agendamento%')
             .not("eh_primeiro_contato", "is", true)
             .limit(1).single();
+          // Fallback: buscar na agência master se filha não tiver etapa configurada
+          if (!etapaAgendou && ag.parent_id) {
+            const { data: etapaParent } = await supabase.from("jornada_etapas")
+              .select("nome")
+              .eq("agencia_id", ag.parent_id)
+              .or('nome.ilike.%agendou%,nome.ilike.%agendamento%')
+              .not("eh_primeiro_contato", "is", true)
+              .limit(1).single();
+            etapaAgendou = etapaParent;
+          }
           if (etapaAgendou) {
             const { data: convAtual } = await supabase.from("conversas")
               .select("etapa_jornada, contato_numero, fbclid, utm_campaign, utm_content, origem, contato_jid").eq("id", conversa_id).single();
@@ -731,7 +818,7 @@ ${funisAtivos.map(f => `- "${f.nome}"${f.descricao ? `: ${f.descricao}` : ""}`).
               alterado_por: "ia",
             });
             // Disparar pixel Meta (sem await para não bloquear a resposta)
-            const APP_URL_PIX = process.env.NEXT_PUBLIC_APP_URL || "https://salxconvert-blond.vercel.app";
+            const APP_URL_PIX = process.env.NEXT_PUBLIC_APP_URL || "https://www.salxconvert.com.br";
             fetch(`${APP_URL_PIX}/api/pixel`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -743,18 +830,29 @@ ${funisAtivos.map(f => `- "${f.nome}"${f.descricao ? `: ${f.descricao}` : ""}`).
                 fbclid: convAtual?.fbclid,
                 utm_campaign: convAtual?.utm_campaign,
                 utm_content: convAtual?.utm_content,
-                is_ctwa: convAtual?.origem === "Meta Ads" || !!convAtual?.fbclid || !!(convAtual?.contato_jid?.includes("@lid")),
+                is_ctwa: !!(convAtual?.contato_jid?.includes("@lid")),
               }),
             }).then(r => r.json()).then(d => {
               if (!d.ok) console.warn("[IA] Pixel:", d.motivo || d.error);
             }).catch(e => console.error("[IA] Pixel erro:", e));
             console.log(`[IA] Etapa jornada atualizada para: ${etapaAgendou.nome}`);
+          } else {
+            console.warn(`[IA] Nenhuma etapa 'agendou/agendamento' encontrada para agencia ${agencia_id} (parent: ${ag.parent_id})`);
           }
-        } catch {}
+        } catch (ejErr: any) {
+          console.error("[IA] Erro ao atualizar etapa jornada:", ejErr?.message || ejErr);
+        }
 
         console.log(`[IA] Agendamento criado: ${dataAgendar} ${horarioAgendar} (${tipo})`);
-      } catch (e) {
-        console.error("[IA] Erro ao criar agendamento:", e);
+      } catch (e: any) {
+        if (e?.message !== "data_passado") {
+          console.error("[IA] Erro ao criar agendamento:", e?.message || e);
+        }
+        // Token expirado/revogado → desativar Google Calendar para mostrar alerta de reconexão
+        if (e?.tokenExpirado) {
+          console.error(`[IA] Token Google Calendar expirado para agência ${agencia_id} — desativando para forçar reconexão`);
+          await supabase.from("agencias").update({ google_calendar_ativo: false }).eq("id", agencia_id);
+        }
         resposta = resposta.replace(/\[AGENDAR:[^\]]+\]/, "").trim();
       }
     }
@@ -833,7 +931,7 @@ ${funisAtivos.map(f => `- "${f.nome}"${f.descricao ? `: ${f.descricao}` : ""}`).
         const { data: convFunil } = await supabase.from("conversas")
           .select("contato_numero, contato_jid").eq("id", conversa_id).single();
         if (convFunil) {
-          const APP_URL_F = process.env.NEXT_PUBLIC_APP_URL || "https://salxconvert-blond.vercel.app";
+          const APP_URL_F = process.env.NEXT_PUBLIC_APP_URL || "https://www.salxconvert.com.br";
           // Disparar funil (fire-and-forget) — pós-texto vai junto pro funil enviar no final
           fetch(`${APP_URL_F}/api/funis/disparar`, {
             method: "POST",

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "@/lib/hooks";
 import { AlertCircle, Check, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
@@ -16,10 +15,13 @@ export default function RedefinirSenhaPage() {
     setLoading(true);
     setErro("");
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/nova-senha`,
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
       });
-      if (error) throw error;
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao enviar email");
       setEnviado(true);
     } catch(e: any) {
       setErro(e.message || "Erro ao enviar email");
@@ -30,10 +32,10 @@ export default function RedefinirSenhaPage() {
     <div style={{ minHeight:"100vh", background:"#0f0f0f", display:"flex", alignItems:"center", justifyContent:"center", padding:"20px" }}>
       <div style={{ width:"100%", maxWidth:"380px" }}>
         <div style={{ display:"flex", alignItems:"center", gap:"10px", justifyContent:"center", marginBottom:"40px" }}>
-          <div style={{ width:"36px", height:"36px", background:"#22c55e", borderRadius:"10px", display:"flex", alignItems:"center", justifyContent:"center" }}>
-            <span style={{ fontSize:"18px", fontWeight:"800", color:"#000" }}>O</span>
+          <img src="/logo.png" alt="SALX Convert" style={{ width:"48px", height:"48px", objectFit:"contain" }}/>
+          <div style={{ display:"flex", flexDirection:"column", lineHeight:1 }}>
+            <span style={{ fontSize:"20px", fontWeight:"800", color:"#f0f0f0", letterSpacing:"-0.5px" }}>SALX <span style={{ color:"#29ABE2" }}>Convert</span></span>
           </div>
-          <span style={{ fontSize:"20px", fontWeight:"700", color:"#f0f0f0" }}>ORGANIFY</span>
         </div>
         <div style={{ background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"16px", padding:"32px" }}>
           {enviado ? (

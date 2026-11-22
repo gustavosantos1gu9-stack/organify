@@ -31,7 +31,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: tokenData.error.message }, { status: 400 });
     }
 
-    const userToken = tokenData.access_token;
+    const shortToken = tokenData.access_token;
+
+    // 1b. Estender para token de longa duração (60 dias)
+    let userToken = shortToken;
+    try {
+      const extRes = await fetch(
+        `${META_API}/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${shortToken}`
+      );
+      const extData = await extRes.json();
+      if (extData.access_token) userToken = extData.access_token;
+    } catch {}
 
     // 2. Registrar o número WhatsApp no sistema (requer a permissão whatsapp_business_management)
     // Ativa o número pra receber mensagens

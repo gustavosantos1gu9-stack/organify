@@ -18,6 +18,9 @@ interface MetaEventData {
   external_id?: string;
   is_ctwa?: boolean;
   event_id?: string;
+  event_time?: number;     // Unix timestamp em segundos — se omitido usa Date.now()
+  lead_id?: string;        // Lead Ads: leadgen_id do formulário Meta
+  action_source?: string;  // Lead Ads: "crm" em vez de "website"
 }
 
 async function sha256(text: string): Promise<string> {
@@ -33,7 +36,7 @@ export async function dispararEventoMeta(data: MetaEventData): Promise<{ ok: boo
       pixel_id, access_token, event_name, phone, email, fbclid, fbp,
       contato_nome, client_ip, client_user_agent,
       utm_campaign, utm_content, source_url, valor, moeda,
-      external_id, is_ctwa, event_id,
+      external_id, is_ctwa, event_id, event_time, lead_id, action_source,
     } = data;
 
     if (!pixel_id || !access_token) return { ok: false, error: "Pixel ID ou token não configurado" };
@@ -67,9 +70,16 @@ export async function dispararEventoMeta(data: MetaEventData): Promise<{ ok: boo
     // País — sempre Brasil — +0.25 pts
     userData.country = [await sha256("br")];
 
-    // fbc: formato fb.{subdomain_index}.{creation_time}.{fbclid} — +1.0 pt
+    // fbc / ctwa_clid: identificador do clique do anúncio — +1.0 pt
+    // CTWA (Click to WhatsApp): o campo correto é ctwa_clid, não fbc
+    // Para leads de web/link: usar fbc com formato padrão fb.1.{timestamp}.{fbclid}
     if (fbclid) {
-      userData.fbc = `fb.1.${Date.now()}.${fbclid}`;
+      if (is_ctwa) {
+        // ctwaClid salvo no banco como fbclid — enviar como ctwa_clid para atribuição CTWA
+        userData.ctwa_clid = fbclid;
+      } else {
+        userData.fbc = `fb.1.${Date.now()}.${fbclid}`;
+      }
     }
 
     // fbp: cookie do browser — +1.0 pt
@@ -80,6 +90,11 @@ export async function dispararEventoMeta(data: MetaEventData): Promise<{ ok: boo
     // external_id para matching — +0.5 pts
     if (external_id) {
       userData.external_id = [await sha256(external_id)];
+    }
+
+    // lead_id: obrigatório para atribuição em campanhas de Lead Ads (formulário)
+    if (lead_id) {
+      userData.lead_id = lead_id;
     }
 
     // IP do cliente — +0.5 pts
@@ -114,12 +129,14 @@ export async function dispararEventoMeta(data: MetaEventData): Promise<{ ok: boo
     if (utm_content) customData.utm_content = utm_content;
 
     // ── Action source ──
-    // Usar sempre "website" — "messaging" exige configuração especial no pixel
-    const actionSource = "website";
+    // Lead Ads (formulário): "crm" + lead_id → Meta atribui via lead_id (sem fbclid)
+    // CTWA (WhatsApp): "chat" → Meta atribui ao clique do anúncio via phone matching
+    // Outros: "website" + fbclid
+    const actionSource = action_source || (lead_id ? "crm" : is_ctwa ? "chat" : "website");
 
     const eventData: Record<string, any> = {
       event_name,
-      event_time: Math.floor(Date.now() / 1000),
+      event_time: event_time ?? Math.floor(Date.now() / 1000),
       action_source: actionSource,
       user_data: userData,
     };
@@ -129,7 +146,7 @@ export async function dispararEventoMeta(data: MetaEventData): Promise<{ ok: boo
       eventData.event_id = event_id;
     }
 
-    eventData.event_source_url = source_url || "https://salxconvert-blond.vercel.app/";
+    eventData.event_source_url = source_url || "https://www.salxconvert.com.br/";
 
     if (Object.keys(customData).length > 0) {
       eventData.custom_data = customData;

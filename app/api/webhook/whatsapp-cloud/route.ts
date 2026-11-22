@@ -190,7 +190,7 @@ export async function POST(req: NextRequest) {
 
           // Disparar pixel se veio de anúncio e é nova conversa
           if (referral && eraNovaConversa && agencia.meta_pixel_id && agencia.meta_token && agencia.meta_ativo) {
-            const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://salxconvert-blond.vercel.app";
+            const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.salxconvert.com.br";
             const { data: etapaPrimeiro } = await supabase.from("jornada_etapas")
               .select("nome").eq("agencia_id", agencia.id).eq("eh_primeiro_contato", true).single();
             const nomeEtapa = etapaPrimeiro?.nome || "Entrou em contato";

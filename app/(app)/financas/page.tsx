@@ -34,13 +34,36 @@ export default function FinancasPage() {
   const [instanciaInput, setInstanciaInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
+  const [isMaster, setIsMaster] = useState<boolean | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ criados: number; pulados: number } | null>(null);
 
   useEffect(() => {
+    async function checkMaster() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setIsMaster(false); return; }
+      // Usuários da equipe têm registro em "usuarios" — dono não tem
+      const { data: usuarios } = await supabase
+        .from("usuarios")
+        .select("agencia_id")
+        .eq("auth_user_id", user.id)
+        .limit(1);
+      if (usuarios && usuarios.length > 0) { setIsMaster(false); return; }
+      // Dono: verificar se a agência não é filha
+      const { data: agencias } = await supabase
+        .from("agencias")
+        .select("id, parent_id")
+        .is("parent_id", null)
+        .limit(1);
+      setIsMaster(!!(agencias && agencias.length > 0));
+    }
+    checkMaster();
+
     const params = new URLSearchParams(window.location.search);
     if (params.get("success") === "true") setSuccessMsg("Google Sheets conectado com sucesso!");
     if (params.get("error")) setSuccessMsg(`Erro: ${params.get("error")}`);
     loadData();
-  }, []);
+  }, [])
 
   async function loadData() {
     setLoading(true);
@@ -65,6 +88,26 @@ export default function FinancasPage() {
       console.error(e);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function sincronizarAgenda() {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await fetch("/api/financas/sincronizar-agenda");
+      const data = await res.json();
+      if (data.ok) {
+        setSyncResult({ criados: data.criados, pulados: data.pulados });
+      } else {
+        setSuccessMsg(`Erro ao sincronizar: ${data.error || "tente novamente"}`);
+        setTimeout(() => setSuccessMsg(""), 5000);
+      }
+    } catch {
+      setSuccessMsg("Erro ao sincronizar com a agenda");
+      setTimeout(() => setSuccessMsg(""), 5000);
+    } finally {
+      setSyncing(false);
     }
   }
 
@@ -99,9 +142,15 @@ export default function FinancasPage() {
     return v.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
   }
 
-  if (loading) {
+  if (isMaster === null || loading) {
     return (
       <div style={{ padding: "32px", color: "#a0a0a0" }}>Carregando...</div>
+    );
+  }
+
+  if (!isMaster) {
+    return (
+      <div style={{ padding: "32px", color: "#a0a0a0" }}>Acesso restrito.</div>
     );
   }
 
@@ -165,7 +214,7 @@ export default function FinancasPage() {
                 Abrir Planilha →
               </a>
             )}
-            <div>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
               <button
                 onClick={() => window.location.href = "/api/auth/google/financas"}
                 style={{
@@ -180,6 +229,28 @@ export default function FinancasPage() {
               >
                 Reconectar Google
               </button>
+              <button
+                onClick={sincronizarAgenda}
+                disabled={syncing}
+                style={{
+                  background: syncing ? "#1e3a2a" : "#153a25",
+                  border: "1px solid #1e6a35",
+                  borderRadius: "6px",
+                  padding: "7px 14px",
+                  fontSize: "12px",
+                  color: syncing ? "#4ade80aa" : "#4ade80",
+                  cursor: syncing ? "not-allowed" : "pointer",
+                  opacity: syncing ? 0.8 : 1,
+                }}
+              >
+                {syncing ? "Sincronizando..." : "📅 Sincronizar com Agenda"}
+              </button>
+              {syncResult && (
+                <span style={{ fontSize: "12px", color: "#4ade80" }}>
+                  ✓ {syncResult.criados} evento{syncResult.criados !== 1 ? "s" : ""} criado{syncResult.criados !== 1 ? "s" : ""}
+                  {syncResult.pulados > 0 ? `, ${syncResult.pulados} já existiam` : ""}
+                </span>
+              )}
             </div>
           </div>
         ) : (

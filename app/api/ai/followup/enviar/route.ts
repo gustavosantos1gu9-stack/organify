@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getAvailableSlotsMultipleDays } from "@/lib/google-calendar";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
 
     // 2. Buscar config da agência
     const { data: ag } = await supabase.from("agencias").select(
-      "openai_key, openai_ativo, openai_modelo, openai_prompt_sistema, openai_max_tokens, openai_temperatura, openai_contexto_mensagens, openai_horario_inicio, openai_horario_fim, evolution_url, evolution_key, whatsapp_instancia, parent_id, nome"
+      "openai_key, openai_ativo, openai_modelo, openai_prompt_sistema, openai_max_tokens, openai_temperatura, openai_contexto_mensagens, openai_horario_inicio, openai_horario_fim, evolution_url, evolution_key, whatsapp_instancia, parent_id, nome, google_calendar_refresh_token, google_calendar_ativo, agendamento_ativo, reuniao_horario_inicio, reuniao_horario_fim, reuniao_dias_semana, reuniao_duracao_minutos, reuniao_intervalo_minutos"
     ).eq("id", fila.agencia_id).single();
 
     if (!ag) {
@@ -61,11 +62,16 @@ export async function POST(req: NextRequest) {
     }
 
     // 3b. Verificar se conversa já tem agendamento — não precisa de follow-up
+    // Também: teto máximo de 2 follow-ups por lead (BLOCO 2.3)
     const { data: convCheck } = await supabase.from("conversas")
-      .select("agendou_at").eq("id", fila.conversa_id).single();
+      .select("agendou_at, followup_count").eq("id", fila.conversa_id).single();
     if (convCheck?.agendou_at) {
       await supabase.from("followup_fila").update({ status: "cancelado" }).eq("id", followup_fila_id);
       return NextResponse.json({ ok: false, motivo: "Conversa já agendou, cancelado" });
+    }
+    if ((convCheck?.followup_count ?? 0) > 2) {
+      await supabase.from("followup_fila").update({ status: "cancelado" }).eq("id", followup_fila_id);
+      return NextResponse.json({ ok: false, motivo: "Teto de 2 follow-ups atingido" });
     }
 
     // 4. Verificar se lead respondeu desde que o follow-up foi agendado
@@ -113,8 +119,101 @@ export async function POST(req: NextRequest) {
       const numTentativa = tentativa || etapa.ordem;
       const faseLabel = fila.fase_jornada ? (faseNumeros[fila.fase_jornada] || fila.fase_jornada) : "NÃO IDENTIFICADA";
 
+      // Injetar horários reais do Google Calendar quando fase = recebeu_horarios
+      let slotsCtx = "";
+      if (fila.fase_jornada === "recebeu_horarios" && ag.google_calendar_ativo && ag.google_calendar_refresh_token && ag.agendamento_ativo) {
+        try {
+          const diasSemana = ["domingo","segunda-feira","terça-feira","quarta-feira","quinta-feira","sexta-feira","sábado"];
+          const baseConfig = {
+            horario_inicio: ag.reuniao_horario_inicio || "09:00",
+            horario_fim: ag.reuniao_horario_fim || "18:00",
+            dias_semana: ag.reuniao_dias_semana || [1,2,3,4,5],
+            intervalo_minutos: ag.reuniao_intervalo_minutos || 0,
+            duracao_minutos: ag.reuniao_duracao_minutos || 60,
+          };
+          // BRT = UTC-3, sem DST (Brasil não observa horário de verão desde 2019)
+          const BRT_OFFSET_MS = 3 * 60 * 60 * 1000;
+          const brtNow = new Date(Date.now() - BRT_OFFSET_MS);
+          const brtTodayStr = `${brtNow.getUTCFullYear()}-${String(brtNow.getUTCMonth()+1).padStart(2,"0")}-${String(brtNow.getUTCDate()).padStart(2,"0")}`;
+          const brtTodayMidnight = new Date(`${brtTodayStr}T00:00:00Z`);
+          const dates: string[] = [];
+          const dateDisplay: Record<string, string> = {};
+          const dateLabels: Record<string, string> = {};
+          for (let i = 1; i <= 7; i++) {
+            const brtDay = new Date(brtTodayMidnight.getTime() + i * 86400000);
+            const dataStr = `${brtDay.getUTCFullYear()}-${String(brtDay.getUTCMonth()+1).padStart(2,"0")}-${String(brtDay.getUTCDate()).padStart(2,"0")}`;
+            dates.push(dataStr);
+            dateLabels[dataStr] = diasSemana[brtDay.getUTCDay()];
+            dateDisplay[dataStr] = `${String(brtDay.getUTCDate()).padStart(2,"0")}/${String(brtDay.getUTCMonth()+1).padStart(2,"0")}`;
+          }
+          const resultados = await getAvailableSlotsMultipleDays(ag.google_calendar_refresh_token, dates, baseConfig);
+          const diasComSlots = resultados.filter(r => r.slots.length > 0);
+          if (diasComSlots.length > 0) {
+            const slotsTexto = diasComSlots.map(d => `${dateLabels[d.data]} (${dateDisplay[d.data]}): ${d.slots.join(", ")}`).join("\n");
+            slotsCtx = `\nHORÁRIOS DISPONÍVEIS AGORA:\n${slotsTexto}\nUse esses horários ao sugerir opções — sugira apenas 2 (manhã e tarde do próximo dia disponível). NUNCA invente horários. Ao mencionar datas use formato dd/mm (ex: 04/08), nunca o ano.`;
+          }
+        } catch (e) {
+          console.error("[followup/enviar] Erro ao buscar slots:", e);
+        }
+      }
+
+      // BLOCO 3.3 — Detectar desconto já mencionado no histórico para evitar repetição
+      const { data: historicoCompleto } = await supabase.from("mensagens")
+        .select("conteudo, de_mim, enviada_por_ia")
+        .eq("conversa_id", fila.conversa_id)
+        .order("created_at", { ascending: false })
+        .limit(30);
+
+      const temDescontoNoHistorico = (historicoCompleto || []).some(m => {
+        const c = (m.conteudo || "").toLowerCase();
+        return (m.de_mim || m.enviada_por_ia) && (
+          /r\$\s*\d/.test(c) ||
+          /desconto/.test(c) ||
+          /valor especial/.test(c) ||
+          /condição especial/.test(c) ||
+          /promoção/.test(c)
+        );
+      });
+
+      // Instrução de diferenciação para tentativas subsequentes (BLOCO 2.5)
+      let diferenciacaoInstrucao = "";
+      if (numTentativa > 1) {
+        // Buscar textos dos follow-ups anteriores para proibir repetição explícita
+        const { data: followupsAnteriores } = await supabase.from("mensagens")
+          .select("conteudo")
+          .eq("conversa_id", fila.conversa_id)
+          .eq("enviada_por_ia", true)
+          .eq("de_mim", true)
+          .order("created_at", { ascending: false })
+          .limit(3);
+
+        const textosAnteriores = (followupsAnteriores || [])
+          .map(m => m.conteudo)
+          .filter(Boolean)
+          .map((t, i) => `[Mensagem ${i + 1} já enviada]: "${t}"`)
+          .join("\n");
+
+        diferenciacaoInstrucao = `\n\nATENÇÃO OBRIGATÓRIA — ${numTentativa}ª TENTATIVA DE FOLLOW-UP:
+Você já enviou follow-ups anteriores para este lead. As mensagens abaixo JÁ FORAM ENVIADAS e NÃO DEVEM ser repetidas ou parafraseadas de nenhuma forma:
+${textosAnteriores}
+
+REGRAS ABSOLUTAS:
+1. NUNCA repita ou parafraseie qualquer frase das mensagens acima.
+2. Use um ângulo completamente diferente: se antes falou de resultados, fale agora de urgência, benefício único, dor do problema ou depoimento.
+3. A mensagem deve ser claramente distinta em estrutura, abertura e conteúdo.
+4. Seja breve (1-2 frases no máximo).`;
+      }
+
+      // BLOCO 3.3 — Injetar instrução anti-desconto se já foi mencionado
+      const antiDescontoInstrucao = temDescontoNoHistorico
+        ? `\n\nINSTRUÇÃO ANTI-REPETIÇÃO (BLOCO 3.3):
+O desconto ou condição especial já foi mencionado anteriormente nesta conversa.
+NÃO mencione desconto, valor especial, promoção ou condição de preço de forma alguma.
+Mude o ângulo completamente: pergunte se ficou alguma dúvida, explore o desejo da cliente, ou pergunte para qual mês ela está pensando em fazer.`
+        : "";
+
       // Bloco de contexto injetado antes do histórico
-      const ctxBlock = `---\nFASE: ${faseLabel}\nTENTATIVA: ${numTentativa}ª tentativa\n---`;
+      const ctxBlock = `---\nFASE: ${faseLabel}\nTENTATIVA: ${numTentativa}ª tentativa${diferenciacaoInstrucao}${antiDescontoInstrucao}${slotsCtx}\n---`;
 
       const promptBase = etapa.prompt_ia
         || `Envie uma mensagem de follow-up amigável. ${ctxBlock} Seja breve e natural. Nome do lead: ${conv?.contato_nome || "cliente"}.`;

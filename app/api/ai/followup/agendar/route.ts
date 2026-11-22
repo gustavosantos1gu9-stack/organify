@@ -13,10 +13,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, motivo: "Dados incompletos" });
     }
 
-    // 1. Verificar se follow-up está ativo
+    // 1. Verificar se follow-up e IA estão ativos
     const { data: ag } = await supabase.from("agencias")
-      .select("followup_ativo")
+      .select("followup_ativo, openai_ativo")
       .eq("id", agencia_id).single();
+
+    if (!ag?.openai_ativo) {
+      return NextResponse.json({ ok: false, motivo: "IA desativada" });
+    }
 
     if (!ag?.followup_ativo) {
       return NextResponse.json({ ok: false, motivo: "Follow-up não ativo" });
@@ -33,11 +37,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, motivo: "Sem etapas configuradas" });
     }
 
-    // 3. Cancelar follow-ups pendentes anteriores desta conversa
-    await supabase.from("followup_fila")
-      .update({ status: "cancelado" })
-      .eq("conversa_id", conversa_id)
-      .eq("status", "pendente");
+    // 3. Verificar se já foi enviado follow-up pra essa conversa (não repetir)
+    const { data: jaEnviado } = await supabase.from("followup_fila")
+      .select("id").eq("conversa_id", conversa_id)
+      .in("status", ["enviado", "pendente", "processando"])
+      .limit(1);
+    if (jaEnviado?.length) {
+      return NextResponse.json({ ok: false, motivo: "Follow-up já agendado/enviado para esta conversa" });
+    }
 
     // 4. Calcular horários e inserir na fila
     const agora = Date.now();

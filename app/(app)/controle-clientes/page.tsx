@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 import { Search, RefreshCw, ChevronDown, ChevronRight, ChevronUp, MessageSquare, X, Send, Check, UserCircle2, Pencil, Trash2, Plus, FileText, ArrowUp, ArrowDown, BarChart2 } from "lucide-react";
 import ModalContrato from "@/components/controle/ModalContrato";
 import ModalNovoCliente from "@/components/controle/ModalNovoCliente";
-import { supabase, getAgenciaId } from "@/lib/hooks";
+import { supabase, getAgenciaId, gerarLancamentosRecorrencia } from "@/lib/hooks";
 
 interface ControleCliente {
-  id: string; nome: string; status: string; instagram: string;
+  id: string; nome: string; status: string; instagram: string; oferta: string;
   data_entrada: string; data_inicio_campanha: string; agendamentos: string;
   faturamento_medio: string; progresso_gestor: string; progresso_consultor: string;
   feed: string; feedback: string; sdr: string; head_squad: string;
@@ -17,8 +18,10 @@ interface ControleCliente {
   grupo: string; created_at: string; cadastro_id?: string; ordem?: number;
   renovou?: boolean | null;
   relatorio_id?: string; link_planilha?: string;
+  uti?: boolean;
 }
-interface Relatorio { id: string; nome: string; nome_cliente: string; }
+interface Relatorio { id: string; nome: string; nome_cliente: string; ativo: boolean; }
+interface AlertaSaldo { id: string; nome_cliente: string; ad_account_id: string; ativo: boolean; }
 interface Subitem { id: string; cliente_id: string; texto: string; feito: boolean; created_at: string; }
 interface Anotacao { id: string; cliente_id: string; usuario: string; conteudo: string; created_at: string; tipo: string; }
 interface Cadastro {
@@ -26,6 +29,83 @@ interface Cadastro {
   endereco_empresa: string; endereco_pessoal: string; email: string;
   investimento_anuncios: string; ticket_micro_laser: string;
   regiao_anunciar: string; faturamento_medio: string; login_facebook: string; criado_em: string;
+}
+
+function DashboardVincular({ clienteId, clienteNome, relatorioId, relatorios, onVincular }: {
+  clienteId: string; clienteNome: string; relatorioId?: string; relatorios: Relatorio[];
+  onVincular: (relId: string | null) => void;
+}) {
+  const [trocando, setTrocando] = useState(false);
+  const [busca, setBusca] = useState("");
+  const [dropPos, setDropPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (trocando && wrapRef.current) {
+      const r = wrapRef.current.getBoundingClientRect();
+      setDropPos({ top: r.bottom + 2, left: r.left, width: Math.max(r.width, 240) });
+    } else if (!trocando) {
+      setDropPos(null);
+    }
+  }, [trocando]);
+
+  const fechar = () => { setDropPos(null); if (relatorioId) setTrocando(false); setBusca(""); };
+
+  if (relatorioId && !trocando) {
+    return (
+      <div style={{ display:"flex", alignItems:"center", gap:"4px" }}>
+        <a href={`/relatorios-meta/dashboard?id=${relatorioId}&tab=performance`} target="_blank" rel="noopener"
+          style={{ display:"inline-flex", alignItems:"center", gap:"4px", background:"rgba(41,171,226,0.15)", color:"#29ABE2", border:"none", borderRadius:"4px", padding:"4px 10px", fontSize:"11px", fontWeight:600, cursor:"pointer", textDecoration:"none", whiteSpace:"nowrap" }}>
+          <BarChart2 size={12}/> Performance
+        </a>
+        <button onClick={() => setTrocando(true)} title="Trocar relatório"
+          style={{ background:"none", border:"1px solid #2e2e2e", borderRadius:"4px", padding:"2px 6px", cursor:"pointer", color:"#606060", fontSize:"10px" }}>
+          ⇄
+        </button>
+      </div>
+    );
+  }
+
+  const filtered = busca
+    ? relatorios.filter(r => (r.nome_cliente || r.nome || "").toLowerCase().includes(busca.toLowerCase()))
+    : relatorios;
+
+  const dropdown = dropPos ? createPortal(
+    <div style={{ position:"fixed", top: dropPos.top, left: dropPos.left, width: dropPos.width, zIndex:999999, background:"#1e1e1e", border:"1px solid #3a3a3a", borderRadius:"6px", maxHeight:"260px", overflowY:"auto", boxShadow:"0 8px 32px rgba(0,0,0,0.9)" }}>
+      {trocando && (
+        <button onMouseDown={() => { onVincular(null); setTrocando(false); setBusca(""); setDropPos(null); }}
+          style={{ display:"block", width:"100%", padding:"8px 12px", background:"none", border:"none", cursor:"pointer", color:"#ef4444", fontSize:"11px", textAlign:"left", borderBottom:"1px solid #2e2e2e" }}>
+          Desvincular
+        </button>
+      )}
+      {filtered.slice(0, 40).map(r => (
+        <button key={r.id} onMouseDown={() => { onVincular(r.id); setTrocando(false); setBusca(""); setDropPos(null); }}
+          style={{ display:"block", width:"100%", padding:"8px 12px", background:"none", border:"none", cursor:"pointer", color:"#f0f0f0", fontSize:"11px", textAlign:"left" }}
+          onMouseEnter={e => e.currentTarget.style.background="#2a2a2a"}
+          onMouseLeave={e => e.currentTarget.style.background="none"}>
+          {r.nome_cliente || r.nome}
+        </button>
+      ))}
+      {filtered.length === 0 && <p style={{ color:"#606060", fontSize:"11px", padding:"8px 12px", margin:0 }}>Nenhum resultado</p>}
+    </div>,
+    document.body
+  ) : null;
+
+  return (
+    <>
+      <div ref={wrapRef} style={{ minWidth:"140px" }}>
+        <input
+          autoFocus
+          value={busca}
+          onChange={e => setBusca(e.target.value)}
+          placeholder="Buscar relatório..."
+          onBlur={() => setTimeout(fechar, 200)}
+          style={{ width:"100%", background:"#1a1a1a", border:"1px solid #29ABE240", borderRadius:"4px", padding:"4px 6px", color:"#f0f0f0", fontSize:"11px", boxSizing:"border-box" as any }}
+        />
+      </div>
+      {dropdown}
+    </>
+  );
 }
 
 const STATUS_OPTS = [
@@ -70,10 +150,14 @@ const COLUNAS_PADRAO = [
   { key:"datas_otimizacoes", label:"Datas Otim.", w:120 },
   { key:"motivo", label:"Motivo", w:140 },
   { key:"razao_nome", label:"Razão + Nome", w:140 },
+  { key:"fixados", label:"Fixados", w:80 },
   { key:"dashboard", label:"Dashboard", w:100 },
   { key:"link_planilha", label:"Planilha", w:100 },
+  { key:"instagram_link", label:"Instagram", w:100 },
+  { key:"oferta", label:"Oferta", w:80 },
   { key:"resposta_planilha", label:"Resp. Planilha", w:120 },
   { key:"acao_atual", label:"Ação Atual", w:160 },
+  { key:"roas_mes", label:"ROAS (mês ant.)", w:110 },
 ];
 
 const SORT_OPTS = [
@@ -108,6 +192,14 @@ function parseData(d: string): Date | null {
   }
   if (limpo.match(/^\d{4}-\d{2}-\d{2}$/)) return new Date(limpo + "T12:00:00");
   return null;
+}
+
+function iniciouAntesMesAtual(dataInicio: string): boolean {
+  const inicio = parseData(dataInicio);
+  if (!inicio) return false;
+  const hoje = new Date();
+  const inicioMesAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  return inicio < inicioMesAtual;
 }
 
 function CelulaRenovacao({ cliente, onRenovou }: { cliente: ControleCliente; onRenovou: (val: boolean) => void }) {
@@ -194,6 +286,38 @@ function CelulaEditavel({ valor, onSave, tipo="text", placeholder }: { valor: st
   );
 }
 
+function CelulaInstagram({ valor, onSave }: { valor: string; onSave: (v: string) => void }) {
+  const [editando, setEditando] = useState(false);
+  const [v, setV] = useState(valor||"");
+  if (editando) return (
+    <input autoFocus value={v} onChange={e=>setV(e.target.value)}
+      onBlur={()=>{ setEditando(false); onSave(v); }}
+      onKeyDown={e=>{ if(e.key==="Enter"){setEditando(false);onSave(v);} if(e.key==="Escape"){setEditando(false);setV(valor||"");} }}
+      placeholder="@usuario"
+      style={{ background:"#1a1a1a", border:"1px solid #E1306C", borderRadius:"4px", padding:"3px 6px", color:"#f0f0f0", fontSize:"12px", width:"100%", minWidth:"60px" }}/>
+  );
+  if (valor) {
+    const handle = valor.replace(/^.*instagram\.com\//,"").replace(/^@/,"").replace(/\/$/,"");
+    const href = valor.startsWith("http") ? valor : `https://instagram.com/${handle}`;
+    return (
+      <div style={{ display:"flex", alignItems:"center", gap:"4px", overflow:"hidden" }}>
+        <a href={href} target="_blank" rel="noopener"
+          style={{ color:"#E1306C", fontSize:"12px", fontWeight:600, textDecoration:"none", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1 }}>
+          @{handle}
+        </a>
+        <span onClick={()=>setEditando(true)} title="Editar Instagram"
+          style={{ cursor:"pointer", color:"#555", fontSize:"11px", flexShrink:0, lineHeight:1 }}>✏️</span>
+      </div>
+    );
+  }
+  return (
+    <span onClick={()=>setEditando(true)} title="Clique para editar"
+      style={{ cursor:"pointer", padding:"3px 4px", borderRadius:"4px", display:"block", minHeight:"22px", fontSize:"12px", color:"#404040" }}>
+      @usuario
+    </span>
+  );
+}
+
 function StatusSelect({ valor, onSave }: { valor: string; onSave: (v: string) => void }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0 });
@@ -237,16 +361,34 @@ function StatusSelect({ valor, onSave }: { valor: string; onSave: (v: string) =>
   );
 }
 
-function PainelPerfil({ cliente, cadastro, todos_cadastros, onClose, onVincular }: {
+function PainelPerfil({ cliente, cadastro, todos_cadastros, relatorios, alertas, onClose, onVincular, onVincularRelatorio, onVincularAlerta }: {
   cliente: ControleCliente;
   cadastro: Cadastro | null;
   todos_cadastros: Cadastro[];
+  relatorios: Relatorio[];
+  alertas: AlertaSaldo[];
   onClose: () => void;
   onVincular: (cadastroId: string) => void;
+  onVincularRelatorio: (relatorioId: string | null) => void;
+  onVincularAlerta: (alertaId: string, nome: string, ativo: boolean) => void;
 }) {
   const [buscaCadastro, setBuscaCadastro] = useState("");
   const [mostraBusca, setMostraBusca] = useState(false);
   const [modalContrato, setModalContrato] = useState(false);
+  const [senhaDecrypt, setSenhaDecrypt] = useState("");
+  const [senhaVisivel, setSenhaVisivel] = useState(false);
+
+  // Descriptografar senha ao vincular cadastro
+  useEffect(() => {
+    if (cadastro?.id) {
+      setSenhaDecrypt(""); setSenhaVisivel(false);
+      fetch("/api/cadastros/senha", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: cadastro.id }),
+      }).then(r => r.json()).then(d => setSenhaDecrypt(d.senha || "—")).catch(() => setSenhaDecrypt("Erro"));
+    }
+  }, [cadastro?.id]);
+
   const filtrados = todos_cadastros.filter(c =>
     c.nome.toLowerCase().includes(buscaCadastro.toLowerCase())
   );
@@ -262,6 +404,7 @@ function PainelPerfil({ cliente, cadastro, todos_cadastros, onClose, onVincular 
     { label: "Região", key: "regiao_anunciar" },
     { label: "Faturamento Médio", key: "faturamento_medio" },
     { label: "Login Facebook", key: "login_facebook" },
+    { label: "Senha Facebook", key: "_senha_facebook" },
   ];
   return (
     <div style={{ position:"fixed", right:0, top:0, bottom:0, width:"400px", background:"#141414", borderLeft:"1px solid #2e2e2e", zIndex:200, display:"flex", flexDirection:"column", boxShadow:"-4px 0 20px rgba(0,0,0,0.3)" }}>
@@ -305,9 +448,27 @@ function PainelPerfil({ cliente, cadastro, todos_cadastros, onClose, onVincular 
             {campos.map(campo=>(
               <div key={campo.key} style={{ marginBottom:"12px" }}>
                 <p style={{ fontSize:"10px", color:"#606060", margin:"0 0 2px", textTransform:"uppercase" }}>{campo.label}</p>
-                <p style={{ fontSize:"13px", color:"#f0f0f0", margin:0, wordBreak:"break-word" }}>
-                  {(cadastro as any)[campo.key] || "—"}
-                </p>
+                {campo.key === "_senha_facebook" ? (
+                  <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
+                    <p style={{ fontSize:"13px", color:"#f0f0f0", margin:0, wordBreak:"break-word" }}>
+                      {senhaVisivel ? senhaDecrypt || "—" : "••••••••"}
+                    </p>
+                    <button onClick={()=>setSenhaVisivel(!senhaVisivel)}
+                      style={{ background:"none", border:"1px solid #2e2e2e", borderRadius:"4px", padding:"2px 8px", cursor:"pointer", color:"#606060", fontSize:"11px" }}>
+                      {senhaVisivel ? "Ocultar" : "Ver"}
+                    </button>
+                    {senhaVisivel && senhaDecrypt && senhaDecrypt !== "—" && (
+                      <button onClick={()=>navigator.clipboard.writeText(senhaDecrypt)}
+                        style={{ background:"none", border:"1px solid #2e2e2e", borderRadius:"4px", padding:"2px 8px", cursor:"pointer", color:"#606060", fontSize:"11px" }}>
+                        Copiar
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <p style={{ fontSize:"13px", color:"#f0f0f0", margin:0, wordBreak:"break-word" }}>
+                    {(cadastro as any)[campo.key] || "—"}
+                  </p>
+                )}
               </div>
             ))}
           </>
@@ -339,6 +500,75 @@ function PainelPerfil({ cliente, cadastro, todos_cadastros, onClose, onVincular 
             )}
           </div>
         )}
+
+        {/* ── Relatório vinculado ── */}
+        <div style={{ borderTop:"1px solid #2e2e2e", paddingTop:"16px", marginTop:"16px" }}>
+          <p style={{ fontSize:"10px", color:"#606060", margin:"0 0 8px", textTransform:"uppercase", fontWeight:"600" }}>Relatório automático</p>
+          {(() => {
+            const relVinculado = cliente.relatorio_id ? relatorios.find(r => r.id === cliente.relatorio_id) : null;
+            const relPorNome = !relVinculado ? relatorios.filter(r => r.nome_cliente && cliente.nome && r.nome_cliente.toLowerCase().trim() === cliente.nome.toLowerCase().trim()) : [];
+            return (
+              <>
+                {relVinculado ? (
+                  <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"8px" }}>
+                    <span style={{ fontSize:"12px", color:relVinculado.ativo?"#22c55e":"#ef4444", background:relVinculado.ativo?"#052e16":"#3b0a0a", padding:"3px 8px", borderRadius:"10px" }}>
+                      {relVinculado.ativo ? "✓ Ativo" : "✗ Inativo"}
+                    </span>
+                    <span style={{ fontSize:"12px", color:"#f0f0f0", flex:1 }}>{relVinculado.nome_cliente || relVinculado.nome}</span>
+                    <button onClick={() => onVincularRelatorio(null)}
+                      style={{ background:"none", border:"1px solid #2e2e2e", borderRadius:"4px", padding:"2px 6px", cursor:"pointer", color:"#606060", fontSize:"10px" }}>
+                      Desvincular
+                    </button>
+                  </div>
+                ) : relPorNome.length > 0 ? (
+                  <div>
+                    <p style={{ fontSize:"11px", color:"#f59e0b", marginBottom:"6px" }}>Encontrado por nome:</p>
+                    {relPorNome.map(r => (
+                      <div key={r.id} style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"4px" }}>
+                        <span style={{ fontSize:"12px", color:r.ativo?"#22c55e":"#ef4444" }}>{r.ativo ? "●" : "○"}</span>
+                        <span style={{ fontSize:"12px", color:"#f0f0f0", flex:1 }}>{r.nome_cliente || r.nome}</span>
+                        <button onClick={() => onVincularRelatorio(r.id)}
+                          style={{ background:"#29ABE215", border:"1px solid #29ABE240", borderRadius:"4px", padding:"2px 8px", cursor:"pointer", color:"#29ABE2", fontSize:"10px" }}>
+                          Vincular
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                <select value={cliente.relatorio_id || ""} onChange={e => onVincularRelatorio(e.target.value || null)}
+                  style={{ width:"100%", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"6px", padding:"6px 8px", color:"#f0f0f0", fontSize:"12px", marginTop:"4px" }}>
+                  <option value="">{relVinculado ? "Trocar relatório..." : "Vincular relatório..."}</option>
+                  {relatorios.map(r => <option key={r.id} value={r.id}>{r.nome_cliente || r.nome} {r.ativo ? "" : "(inativo)"}</option>)}
+                </select>
+              </>
+            );
+          })()}
+        </div>
+
+        {/* ── Alertas de saldo ── */}
+        <div style={{ borderTop:"1px solid #2e2e2e", paddingTop:"16px", marginTop:"16px" }}>
+          <p style={{ fontSize:"10px", color:"#606060", margin:"0 0 8px", textTransform:"uppercase", fontWeight:"600" }}>Alertas de saldo</p>
+          {(() => {
+            const alertasCliente = alertas.filter(a =>
+              a.nome_cliente && cliente.nome &&
+              a.nome_cliente.toLowerCase().trim() === cliente.nome.toLowerCase().trim()
+            );
+            return alertasCliente.length > 0 ? (
+              alertasCliente.map(a => (
+                <div key={a.id} style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"6px", padding:"6px 8px", background:"#1a1a1a", borderRadius:"6px", border:"1px solid #2e2e2e" }}>
+                  <span style={{ fontSize:"12px", color:a.ativo?"#22c55e":"#ef4444" }}>{a.ativo ? "●" : "○"}</span>
+                  <span style={{ fontSize:"12px", color:"#f0f0f0", flex:1 }}>{a.ad_account_id}</span>
+                  <button onClick={() => onVincularAlerta(a.id, a.nome_cliente, !a.ativo)}
+                    style={{ background:"none", border:"1px solid #2e2e2e", borderRadius:"4px", padding:"2px 8px", cursor:"pointer", color:a.ativo?"#ef4444":"#22c55e", fontSize:"10px" }}>
+                    {a.ativo ? "Desativar" : "Ativar"}
+                  </button>
+                </div>
+              ))
+            ) : (
+              <p style={{ fontSize:"12px", color:"#606060" }}>Nenhum alerta vinculado a este cliente.</p>
+            );
+          })()}
+        </div>
 
       </div>
       {modalContrato && (
@@ -500,8 +730,21 @@ export default function ControleClientesPage() {
   const [cadastrosMap, setCadastrosMap] = useState<Record<string,Cadastro>>({});
   const [relatorios, setRelatorios] = useState<Relatorio[]>([]);
   const [relatoriosMap, setRelatoriosMap] = useState<Record<string,Relatorio>>({});
+  const [alertas, setAlertas] = useState<AlertaSaldo[]>([]);
+  const [roasData, setRoasData] = useState<Record<string, { spend: number | null; faturamento: number | null } | null>>({});
   const [modalNovoCliente, setModalNovoCliente] = useState(false);
   const [modalColunas, setModalColunas] = useState(false);
+  // IDs de cadastro_id presentes no financeiro (tabela clientes)
+  const [cadastrosFinanceiro, setCadastrosFinanceiro] = useState<Set<string>>(new Set());
+  // Nomes presentes no financeiro (fallback quando sem cadastro_id)
+  const [nomesFinanceiro, setNomesFinanceiro] = useState<Set<string>>(new Set());
+  const [filtraSemFinanceiro, setFiltraSemFinanceiro] = useState(false);
+  const [modalFinanceiro, setModalFinanceiro] = useState<ControleCliente | null>(null);
+  const [finFreq, setFinFreq] = useState("mensal");
+  const [finValor, setFinValor] = useState("");
+  const [finDia, setFinDia] = useState("");
+  const [finDia2, setFinDia2] = useState("");
+  const [finSalvando, setFinSalvando] = useState(false);
   const resizing = useRef<{key:string;startX:number;startW:number}|null>(null);
 
   const salvarColunas = (novas: typeof COLUNAS_PADRAO) => {
@@ -542,14 +785,55 @@ export default function ControleClientesPage() {
     setCadastrosMap(mapa);
 
     // Carregar relatórios para associação Dashboard
-    const { data: rels } = await supabase.from("relatorios").select("id, nome, nome_cliente").eq("agencia_id", id!);
+    const { data: rels } = await supabase.from("relatorios").select("id, nome, nome_cliente, ativo").eq("agencia_id", id!);
     const listaRels = rels || [];
     setRelatorios(listaRels);
     const mapaRels: Record<string,Relatorio> = {};
     listaRels.forEach((r: Relatorio) => { mapaRels[r.id] = r; });
     setRelatoriosMap(mapaRels);
 
+    // Carregar alertas de saldo
+    const { data: alts } = await supabase.from("alertas_saldo").select("id, nome_cliente, ad_account_id, ativo").eq("agencia_id", id!);
+    setAlertas(alts || []);
+
+    // Carregar clientes do financeiro para reconciliação
+    const { data: clientesFinan } = await supabase.from("clientes").select("cadastro_id, nome").eq("agencia_id", id!).neq("status", "inativo");
+    const setCadFinan = new Set<string>();
+    const setNomesFinan = new Set<string>();
+    (clientesFinan || []).forEach((c: any) => {
+      if (c.cadastro_id) setCadFinan.add(c.cadastro_id);
+      if (c.nome) setNomesFinan.add(c.nome.toLowerCase().trim());
+    });
+    setCadastrosFinanceiro(setCadFinan);
+    setNomesFinanceiro(setNomesFinan);
+
     setLoading(false);
+
+    // Carregar ROAS do mês atual para clientes elegíveis (>1 mês de campanha + relatório vinculado)
+    carregarRoas(data || [], rels || []);
+  };
+
+  const carregarRoas = async (clientesList: ControleCliente[], relsList: Relatorio[]) => {
+    const relIds = new Set(relsList.map(r => r.id));
+    const elegiveis = clientesList.filter(c =>
+      c.relatorio_id && relIds.has(c.relatorio_id) && iniciouAntesMesAtual(c.data_inicio_campanha)
+    );
+    if (!elegiveis.length) return;
+
+    const relatorioIds = [...new Set(elegiveis.map(c => c.relatorio_id!))];
+    try {
+      const res = await fetch("/api/controle/roas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ relatorio_ids: relatorioIds }),
+      });
+      const json = await res.json();
+      const byRelId: Record<string, { spend: number | null; faturamento: number | null }> = {};
+      (json.results || []).forEach((r: any) => { byRelId[r.relatorio_id] = { spend: r.spend, faturamento: r.faturamento ?? null }; });
+      const novo: Record<string, { spend: number | null; faturamento: number | null } | null> = {};
+      elegiveis.forEach(c => { novo[c.id] = c.relatorio_id ? (byRelId[c.relatorio_id] ?? null) : null; });
+      setRoasData(novo);
+    } catch {}
   };
 
   // Auto-associar por nome ao carregar
@@ -597,9 +881,25 @@ export default function ControleClientesPage() {
     await supabase.from("controle_clientes").update(updates).eq("id", id);
     setClientes(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
 
-    // Se virou churn, remove da lista visível após um tick
+    // Se virou churn, remove da lista visível e desativa automações
     if (campo === "status" && valor === "saiu") {
       setTimeout(() => setClientes(prev => prev.filter(c => c.id !== id)), 800);
+
+      // Desativar relatórios vinculados (por nome ou relatorio_id)
+      const clienteChurn = clientes.find(c => c.id === id);
+      if (clienteChurn) {
+        // Desativar por nome_cliente
+        await supabase.from("relatorios").update({ ativo: false })
+          .ilike("nome_cliente", clienteChurn.nome);
+        // Desativar alertas de saldo por nome_cliente
+        await supabase.from("alertas_saldo").update({ ativo: false })
+          .ilike("nome_cliente", clienteChurn.nome);
+        // Se tem relatorio_id vinculado, desativar também
+        if (clienteChurn.relatorio_id) {
+          await supabase.from("relatorios").update({ ativo: false })
+            .eq("id", clienteChurn.relatorio_id);
+        }
+      }
     }
 
     try {
@@ -620,6 +920,25 @@ export default function ControleClientesPage() {
         tipo: "log", created_at: new Date().toISOString(),
       });
     } catch(e) { console.error("Log exceção:", e); }
+  };
+
+  const excluirCliente = async (id: string, nome: string) => {
+    if (!confirm(`Excluir "${nome}" do controle de clientes? Isso NÃO será contado como churn.`)) return;
+    // Desativar automações vinculadas
+    await supabase.from("relatorios").update({ ativo: false }).ilike("nome_cliente", nome);
+    await supabase.from("alertas_saldo").update({ ativo: false }).ilike("nome_cliente", nome);
+    const cliente = clientes.find(c => c.id === id);
+    if (cliente?.relatorio_id) {
+      await supabase.from("relatorios").update({ ativo: false }).eq("id", cliente.relatorio_id);
+    }
+    // Deletar subitens e anotações
+    await supabase.from("subitens_clientes").delete().eq("cliente_id", id);
+    await supabase.from("anotacoes").delete().eq("cliente_id", id);
+    // Deletar o registro (sem registrar data_churn)
+    await supabase.from("controle_clientes").delete().eq("id", id);
+    setClientes(prev => prev.filter(c => c.id !== id));
+    if (perfilAberto?.id === id) setPerfilAberto(null);
+    if (painelAberto?.id === id) setPainelAberto(null);
   };
 
   const vincularCadastro = async (clienteId: string, cadastroId: string) => {
@@ -685,8 +1004,9 @@ export default function ControleClientesPage() {
     resizing.current = { key, startX: e.clientX, startW: colWidths[key] || 120 };
     const onMove = (ev: MouseEvent) => {
       if (!resizing.current) return;
-      const newW = Math.max(60, resizing.current.startW + ev.clientX - resizing.current.startX);
-      setColWidths(prev=>({...prev,[resizing.current!.key]:newW}));
+      const key = resizing.current.key;
+      const newW = Math.max(60, Math.min(800, resizing.current.startW + ev.clientX - resizing.current.startX));
+      setColWidths(prev=>({...prev,[key]:newW}));
     };
     const onUp = () => { resizing.current = null; document.removeEventListener("mousemove",onMove); document.removeEventListener("mouseup",onUp); };
     document.addEventListener("mousemove",onMove);
@@ -695,8 +1015,118 @@ export default function ControleClientesPage() {
 
   useEffect(() => { carregar(); }, []);
 
+  // Similaridade fuzzy: palavras relevantes em comum (ignora preposições e palavras curtas)
+  const nomeSimilar = (a: string, b: string): boolean => {
+    const stopWords = new Set(["de","da","do","das","dos","e","a","o","as","os","em","na","no","nas","nos","ltda","me","eireli","sa","s/a"]);
+    const palavras = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9\s]/g,"").split(/\s+/).filter(w => w.length > 1 && !stopWords.has(w));
+    const wa = palavras(a); const wb = palavras(b);
+    if (!wa.length || !wb.length) return false;
+    // Uma contém a outra (substring de palavras)
+    const strA = wa.join(" "); const strB = wb.join(" ");
+    if (strA.includes(strB) || strB.includes(strA)) return true;
+    // 60% das palavras do menor em comum com o maior
+    const [menor, maior] = wa.length <= wb.length ? [wa, wb] : [wb, wa];
+    const emComum = menor.filter(w => maior.includes(w));
+    return emComum.length / menor.length >= 0.6;
+  };
+
+  const criarNoFinanceiro = async () => {
+    if (!modalFinanceiro) return;
+    const v = parseFloat(finValor.replace(",", "."));
+    if (!v || v <= 0) { alert("Preencha o valor mensal."); return; }
+    setFinSalvando(true);
+    try {
+      // Parse data_entrada → created_at
+      const de = modalFinanceiro.data_entrada || "";
+      let createdAt: string;
+      if (de.includes("/")) {
+        const parts = de.split("/");
+        createdAt = `${parts[2]}-${parts[1]}-${parts[0]}T12:00:00.000Z`;
+      } else if (de) {
+        createdAt = de.includes("T") ? de : `${de}T12:00:00.000Z`;
+      } else {
+        createdAt = new Date().toISOString();
+      }
+
+      // Criar em clientes (igual ao fluxo padrão)
+      const { data: novoCliente, error: errCliente } = await supabase.from("clientes").insert({
+        agencia_id: agId,
+        nome: modalFinanceiro.nome,
+        status: "ativo",
+        status_recorrencia: "ativo",
+        servico: "assessoria",
+        valor_oportunidade: v,
+        frequencia: finFreq,
+        cadastro_id: modalFinanceiro.cadastro_id || null,
+        created_at: createdAt,
+        updated_at: new Date().toISOString(),
+      }).select().single();
+      if (errCliente) throw errCliente;
+
+      // Usar a mesma função do fluxo padrão de clientes
+      // Se informou dia, ajusta a data de hoje para refletir o dia correto
+      const diaNum = parseInt(finDia);
+      if (diaNum >= 1 && diaNum <= 31) {
+        const hoje2 = new Date();
+        hoje2.setDate(diaNum);
+        // Substituir temporariamente Date para a função usar o dia certo não é possível,
+        // então geramos os lançamentos manualmente com o dia correto
+        const agId2 = await getAgenciaId();
+        const lancamentos: any[] = [];
+        const anoIni = hoje2.getFullYear();
+        const mesIni = hoje2.getMonth(); // 0-indexed
+        const d1 = diaNum;
+        const d2 = finFreq === "quinzenal" ? (parseInt(finDia2) || d1 + 15) : 0;
+        if (finFreq === "quinzenal") {
+          const valorMetade = Math.round(v * 100 / 2) / 100;
+          for (let m = 0; m < 12; m++) {
+            for (const dd of [d1, d2]) {
+              lancamentos.push({ agencia_id: agId2, tipo: "entrada", descricao: `Assessoria quinzenal - ${novoCliente.nome} (parcela ${m*2+(dd===d1?1:2)})`, valor: valorMetade, data_vencimento: new Date(anoIni, mesIni + m, dd).toISOString().split("T")[0], cliente_id: novoCliente.id, pago: false });
+            }
+          }
+        } else if (finFreq === "trimestral") {
+          const valorTri = Math.round(v * 3 * 100) / 100;
+          for (let i = 0; i < 4; i++) {
+            lancamentos.push({ agencia_id: agId2, tipo: "entrada", descricao: `Assessoria trimestral - ${novoCliente.nome} (trimestre ${i+1})`, valor: valorTri, data_vencimento: new Date(anoIni, mesIni + i*3, d1).toISOString().split("T")[0], cliente_id: novoCliente.id, pago: false });
+          }
+        } else {
+          for (let i = 0; i < 12; i++) {
+            lancamentos.push({ agencia_id: agId2, tipo: "entrada", descricao: `Assessoria - ${novoCliente.nome} (${i===0?"1º mês":`${i+1}º mês`})`, valor: v, data_vencimento: new Date(anoIni, mesIni + i, d1).toISOString().split("T")[0], cliente_id: novoCliente.id, pago: false });
+          }
+        }
+        const periodicidade = finFreq === "quinzenal" ? "mensal" : finFreq;
+        const diaVenc = finFreq === "quinzenal" ? `${d1},${d2}` : String(d1);
+        await supabase.from("recorrencias").insert({ agencia_id: agId2, tipo: "entrada", descricao: `Assessoria - ${novoCliente.nome}`, valor: finFreq==="quinzenal"?Math.round(v/2*100)/100:finFreq==="trimestral"?Math.round(v*3*100)/100:v, periodicidade, dia_vencimento: diaVenc, ativo: true, cliente_id: novoCliente.id });
+        if (lancamentos.length) await supabase.from("lancamentos_futuros").insert(lancamentos);
+      } else {
+        await gerarLancamentosRecorrencia({ ...novoCliente, valor_oportunidade: v, servico: "assessoria", frequencia: finFreq });
+      }
+
+      // Atualizar estado local para remover o ⚠
+      if (modalFinanceiro.cadastro_id) {
+        setCadastrosFinanceiro(prev => new Set([...prev, modalFinanceiro.cadastro_id!]));
+      } else {
+        setNomesFinanceiro(prev => new Set([...prev, modalFinanceiro.nome.toLowerCase().trim()]));
+      }
+      setModalFinanceiro(null);
+      setFinFreq("mensal"); setFinValor(""); setFinDia(""); setFinDia2("");
+    } catch (e: any) { alert("Erro: " + (e?.message || e)); }
+    setFinSalvando(false);
+  };
+
+  const semFinanceiro = (c: ControleCliente) => {
+    if (c.cadastro_id && cadastrosFinanceiro.has(c.cadastro_id)) return false;
+    if (c.nome) {
+      for (const nomeF of nomesFinanceiro) {
+        if (nomeSimilar(c.nome, nomeF)) return false;
+      }
+    }
+    return true;
+  };
+
   const filtrados = clientes
     .filter(c=>c.nome?.toLowerCase().includes(busca.toLowerCase()))
+    .filter(c=> !filtraSemFinanceiro || semFinanceiro(c))
     .sort((a,b) => {
       let va=(a as any)[sort]||""; let vb=(b as any)[sort]||"";
       if (sort==="investimento_mensal"||sort==="ordem"){va=Number(va)||0;vb=Number(vb)||0;}
@@ -742,6 +1172,15 @@ export default function ControleClientesPage() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
             Colunas
           </button>
+          {(() => {
+            const qtd = clientes.filter(semFinanceiro).length;
+            return qtd > 0 ? (
+              <button onClick={()=>setFiltraSemFinanceiro(v=>!v)} style={{ background: filtraSemFinanceiro ? "#ef444420" : "#1a1a1a", border:`1px solid ${filtraSemFinanceiro?"#ef4444":"#3a3a3a"}`, borderRadius:"8px", padding:"7px 12px", cursor:"pointer", color: filtraSemFinanceiro ? "#ef4444" : "#f59e0b", fontWeight:"600", fontSize:"12px", display:"flex", alignItems:"center", gap:"6px" }}
+                title="Clientes no controle mas sem cadastro no financeiro">
+                ⚠ {qtd} sem financeiro
+              </button>
+            ) : null;
+          })()}
           <button onClick={()=>setModalNovoCliente(true)} style={{ background:"#29ABE2", border:"none", borderRadius:"8px", padding:"8px 14px", cursor:"pointer", color:"#000", fontWeight:"600", fontSize:"13px", display:"flex", alignItems:"center", gap:"6px" }}><Plus size={14}/> Novo Cliente</button>
         </div>
       </div>
@@ -900,6 +1339,8 @@ export default function ControleClientesPage() {
               <th style={{ padding:"10px 12px", textAlign:"left", fontSize:"11px", color:"#606060", fontWeight:"600", position:"sticky", left:0, background:"#1a1a1a", zIndex:2, width:"160px", whiteSpace:"nowrap" }}>NOME</th>
               {/* Coluna Info. Cliente */}
               <th style={{ padding:"10px 8px", textAlign:"center", fontSize:"11px", color:"#606060", fontWeight:"600", width:"60px", whiteSpace:"nowrap" }}>INFO.</th>
+              {/* Coluna UTI fixa */}
+              <th style={{ padding:"10px 8px", textAlign:"center", fontSize:"11px", color:"#ef4444", fontWeight:"700", width:"48px", whiteSpace:"nowrap", borderLeft:"1px solid #ef444430" }}>UTI</th>
               {colunas.map((col: any)=>(
                 <th key={col.key} className="th-group" style={{ padding:"10px 8px", textAlign:"left", fontSize:"11px", color:"#606060", fontWeight:"600", width:colWidths[col.key]||col.w, position:"relative", whiteSpace:"nowrap", overflow:"hidden", borderLeft:"1px solid #29ABE220" }}>
                   {editandoHeader === col.key ? (
@@ -920,7 +1361,11 @@ export default function ControleClientesPage() {
                       </span>
                     </div>
                   )}
-                  <div className="resize-handle" onMouseDown={e=>startResize(col.key,e)}/>
+                  <div className="resize-handle"
+                    onMouseDown={e=>startResize(col.key,e)}
+                    onDoubleClick={e=>{ e.stopPropagation(); const padrao = COLUNAS_PADRAO.find(c=>c.key===col.key)?.w||120; const atual = colWidths[col.key]||padrao; setColWidths(prev=>({...prev,[col.key]: atual===padrao ? Math.min(padrao*2.5, 400) : padrao})); }}
+                    title="Duplo clique para expandir/resetar"
+                  />
                 </th>
               ))}
             </tr>
@@ -931,8 +1376,8 @@ export default function ControleClientesPage() {
             ) : !filtrados.length ? (
               <tr><td colSpan={colunas.length+5} style={{ textAlign:"center", color:"#606060", padding:"48px" }}>Nenhum cliente encontrado.</td></tr>
             ) : filtrados.map((c,idx)=>(
-              <>
-              <tr key={c.id} style={{ borderBottom:"1px solid #29ABE230", background:idx%2===0?"transparent":"#0a0a0a" }}>
+              <React.Fragment key={c.id}>
+              <tr style={{ borderBottom:"1px solid #29ABE230", background:c.uti?(idx%2===0?"#2a0a0a":"#220808"):(idx%2===0?"transparent":"#0a0a0a") }}>
                 <td style={{ padding:"4px 6px", textAlign:"center" }}>
                   <button onClick={()=>toggleExpandir(c.id)} style={{ background:"none", border:"none", cursor:"pointer", color:"#606060", padding:"2px" }}>
                     {expandidos.has(c.id)?<ChevronDown size={14}/>:<ChevronRight size={14}/>}
@@ -954,7 +1399,17 @@ export default function ControleClientesPage() {
                 )}
                 <td style={{ padding:"4px 8px 4px 12px", position:"sticky", left:0, background:idx%2===0?"#141414":"#111", zIndex:1, whiteSpace:"nowrap", width:"200px" }}>
                   <div style={{ display:"flex", alignItems:"center", gap:"6px" }}>
-                    <span style={{ fontWeight:"600", color:"#f0f0f0", overflow:"hidden", textOverflow:"ellipsis", flex:1 }}>{c.nome}</span>
+                    <div style={{ flex:1, overflow:"hidden" }}>
+                      <CelulaEditavel valor={c.nome||""} onSave={v=>atualizar(c.id,"nome",v,c.nome)} placeholder="Nome do cliente"/>
+                    </div>
+                    {semFinanceiro(c) && (
+                      <button
+                        onClick={() => { setModalFinanceiro(c); setFinValor(c.investimento_mensal ? String(c.investimento_mensal) : ""); setFinFreq("mensal"); setFinDia(""); setFinDia2(""); }}
+                        title="Criar no financeiro"
+                        style={{ fontSize:"10px", color:"#f59e0b", background:"none", border:"none", cursor:"pointer", padding:"2px", flexShrink:0 }}>
+                        ⚠
+                      </button>
+                    )}
                     <button onClick={()=>{ setPainelAberto(painelAberto?.id===c.id?null:c); setPerfilAberto(null); }}
                       style={{ background:"none", border:"none", cursor:"pointer", color:painelAberto?.id===c.id?"#29ABE2":"#404040", padding:"2px", flexShrink:0 }}
                       title="Atualizações">
@@ -969,11 +1424,34 @@ export default function ControleClientesPage() {
                     title="Ver perfil do cliente">
                     <UserCircle2 size={18} color={c.cadastro_id ? "#29ABE2" : (perfilAberto?.id===c.id ? "#29ABE2" : "#3a3a3a")}/>
                   </button>
+                  <button onClick={()=>excluirCliente(c.id, c.nome)}
+                    style={{ background:"none", border:"none", cursor:"pointer", padding:"2px", color:"#404040" }}
+                    title="Excluir cliente">
+                    <Trash2 size={13}/>
+                  </button>
+                </td>
+                {/* Célula UTI fixa */}
+                <td style={{ padding:"2px 4px", textAlign:"center", width:"48px", borderLeft:"1px solid #ef444430" }}>
+                  <button
+                    onClick={()=>atualizar(c.id,"uti",!c.uti,c.nome)}
+                    title={c.uti ? "Remover da UTI" : "Enviar para UTI"}
+                    style={{ background:"none", border:"none", cursor:"pointer", fontSize:"15px", padding:"2px", lineHeight:1, opacity: c.uti ? 1 : 0.2 }}>
+                    🏥
+                  </button>
                 </td>
                 {colunas.map((col: any)=>(
                   <td key={col.key} style={{ padding:"2px 6px", overflow:"hidden", width:colWidths[col.key]||col.w, borderLeft:"1px solid #29ABE215", whiteSpace:"nowrap", maxWidth:colWidths[col.key]||col.w, height:"36px" }}>
                     {col.key==="status" ? (
                       <StatusSelect valor={c.status} onSave={v=>atualizar(c.id,"status",v,c.nome)}/>
+                    ) : col.key==="instagram_link" ? (
+                      <CelulaInstagram valor={c.instagram||""} onSave={v=>atualizar(c.id,"instagram",v,c.nome)}/>
+                    ) : col.key==="oferta" ? (
+                      <select value={c.oferta||""} onChange={e=>atualizar(c.id,"oferta",e.target.value,c.nome)}
+                        style={{ background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"4px", padding:"3px 6px", color: c.oferta==="sim"?"#22c55e":c.oferta==="nao"?"#ef4444":"#606060", fontSize:"12px", cursor:"pointer", width:"100%" }}>
+                        <option value="">—</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                      </select>
                     ) : col.key==="regiao_anunciar" ? (
                       <span style={{ fontSize:"12px", color:"#a0a0a0", display:"block", overflow:"hidden", textOverflow:"ellipsis" }} title={c.cadastro_id ? cadastrosMap[c.cadastro_id]?.regiao_anunciar || "—" : "—"}>
                         {c.cadastro_id ? cadastrosMap[c.cadastro_id]?.regiao_anunciar || "—" : "—"}
@@ -999,19 +1477,26 @@ export default function ControleClientesPage() {
                       <CelulaEditavel valor={(c as any)[col.key]||""} tipo="date" onSave={v=>atualizar(c.id,col.key,v,c.nome)}/>
                     ) : col.key==="investimento_mensal" ? (
                       <CelulaEditavel valor={c.investimento_mensal?String(c.investimento_mensal):""} onSave={v=>atualizar(c.id,col.key,Number(v.replace(/\D/g,"")),c.nome)}/>
+                    ) : col.key==="fixados" ? (
+                      <select value={(c as any).fixados||""} onChange={e=>atualizar(c.id,"fixados",e.target.value,c.nome)}
+                        style={{
+                          background: (c as any).fixados==="sim"?"rgba(34,197,94,0.15)":(c as any).fixados==="nao"?"rgba(239,68,68,0.15)":"#1a1a1a",
+                          border:"1px solid #2e2e2e", borderRadius:"4px", padding:"3px 6px",
+                          color:(c as any).fixados==="sim"?"#22c55e":(c as any).fixados==="nao"?"#ef4444":"#606060",
+                          fontSize:"12px", cursor:"pointer", width:"100%", fontWeight:600,
+                        }}>
+                        <option value="">—</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                      </select>
                     ) : col.key==="dashboard" ? (
-                      c.relatorio_id ? (
-                        <a href={`/relatorios-meta/dashboard?id=${c.relatorio_id}&tab=performance`} target="_blank" rel="noopener"
-                          style={{ display:"inline-flex", alignItems:"center", gap:"4px", background:"rgba(41,171,226,0.15)", color:"#29ABE2", border:"none", borderRadius:"4px", padding:"4px 10px", fontSize:"11px", fontWeight:600, cursor:"pointer", textDecoration:"none", whiteSpace:"nowrap" }}>
-                          <BarChart2 size={12}/> Performance
-                        </a>
-                      ) : (
-                        <select value="" onChange={e => { if (e.target.value) atualizar(c.id, "relatorio_id", e.target.value, c.nome); }}
-                          style={{ background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"4px", padding:"3px 6px", color:"#606060", fontSize:"11px", cursor:"pointer", width:"100%" }}>
-                          <option value="">Vincular...</option>
-                          {relatorios.map(r => <option key={r.id} value={r.id}>{r.nome_cliente || r.nome}</option>)}
-                        </select>
-                      )
+                      <DashboardVincular
+                        clienteId={c.id}
+                        clienteNome={c.nome}
+                        relatorioId={c.relatorio_id}
+                        relatorios={relatorios}
+                        onVincular={(relId) => atualizar(c.id, "relatorio_id", relId, c.nome)}
+                      />
                     ) : col.key==="link_planilha" ? (
                       c.link_planilha ? (
                         <div style={{ display:"flex", alignItems:"center", gap:"4px" }}>
@@ -1025,7 +1510,15 @@ export default function ControleClientesPage() {
                           </button>
                         </div>
                       ) : (
-                        <CelulaEditavel valor="" placeholder="Colar link..." onSave={v => { if (v) atualizar(c.id, "link_planilha", v, c.nome); }}/>
+                        <CelulaEditavel valor="" placeholder="Colar link..." onSave={v => {
+                          if (!v) return;
+                          // Garantir gid da aba Dashboard Mensal
+                          let link = v;
+                          if (link.includes('docs.google.com/spreadsheets') && !link.includes('gid=')) {
+                            link = link.replace(/\/edit.*$/, '/edit?gid=393388794#gid=393388794');
+                          }
+                          atualizar(c.id, "link_planilha", link, c.nome);
+                        }}/>
                       )
                     ) : col.key==="resposta_planilha" ? (
                       <select value={(c as any).resposta_planilha||""} onChange={e=>atualizar(c.id,"resposta_planilha",e.target.value,c.nome)}
@@ -1042,6 +1535,32 @@ export default function ControleClientesPage() {
                       </select>
                     ) : col.key==="acao_atual" ? (
                       <CelulaEditavel valor={(c as any).acao_atual||""} onSave={v=>atualizar(c.id,"acao_atual",v,c.nome)}/>
+                    ) : col.key==="roas_mes" ? (
+                      (() => {
+                        if (!iniciouAntesMesAtual(c.data_inicio_campanha))
+                          return <span style={{ fontSize:"11px", color:"#606060" }}>—</span>;
+                        if (!c.relatorio_id)
+                          return <span style={{ fontSize:"11px", color:"#606060" }}>Sem rel.</span>;
+                        if (!(c.id in roasData))
+                          return <span style={{ fontSize:"11px", color:"#a0a0a0" }}>carregando...</span>;
+                        const entry = roasData[c.id];
+                        if (!entry || entry.spend === null || entry.spend === 0)
+                          return <span style={{ fontSize:"11px", color:"#606060" }}>Sem dados</span>;
+                        const fat = entry.faturamento;
+                        if (!fat)
+                          return (
+                            <span style={{ fontSize:"11px", color:"#a0a0a0" }} title={`Gasto: R$ ${entry.spend.toFixed(2)}`}>
+                              R$ {entry.spend.toLocaleString("pt-BR",{minimumFractionDigits:0,maximumFractionDigits:0})}
+                            </span>
+                          );
+                        const roas = fat / entry.spend;
+                        const cor = roas >= 5 ? "#22c55e" : roas >= 3 ? "#29ABE2" : roas >= 1.5 ? "#f59e0b" : "#ef4444";
+                        return (
+                          <span style={{ fontSize:"12px", fontWeight:600, color: cor }} title={`Fat: R$ ${fat.toLocaleString("pt-BR")} / Gasto: R$ ${entry.spend.toFixed(2)}`}>
+                            {roas.toFixed(2)}x
+                          </span>
+                        );
+                      })()
                     ) : (
                       <CelulaEditavel valor={(c as any)[col.key]||""} onSave={v=>atualizar(c.id,col.key,v,c.nome)}/>
                     )}
@@ -1075,12 +1594,65 @@ export default function ControleClientesPage() {
                   </td>
                 </tr>
               )}
-              </>
+              </React.Fragment>
             ))}
           </tbody>
         </table>
       </div>
 
+      {modalFinanceiro && (
+        <div onClick={()=>setModalFinanceiro(null)} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.7)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center" }}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:"#141414", border:"1px solid #2e2e2e", borderRadius:"12px", width:"400px", boxShadow:"0 20px 60px rgba(0,0,0,0.8)" }}>
+            <div style={{ padding:"16px 20px", borderBottom:"1px solid #2e2e2e", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+              <div>
+                <p style={{ fontSize:"15px", fontWeight:"700", color:"#f0f0f0", margin:0 }}>Criar no Financeiro</p>
+                <p style={{ fontSize:"12px", color:"#606060", margin:"2px 0 0" }}>{modalFinanceiro.nome}</p>
+              </div>
+              <button onClick={()=>setModalFinanceiro(null)} style={{ background:"none", border:"none", cursor:"pointer", color:"#606060" }}><X size={16}/></button>
+            </div>
+            <div style={{ padding:"20px", display:"flex", flexDirection:"column", gap:"12px" }}>
+              <div>
+                <label style={{ display:"block", fontSize:"11px", color:"#606060", marginBottom:"6px" }}>CONDIÇÃO</label>
+                <select value={finFreq} onChange={e=>{setFinFreq(e.target.value);setFinDia2("");}}
+                  style={{ width:"100%", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", padding:"9px 12px", color:"#f0f0f0", fontSize:"13px", cursor:"pointer" }}>
+                  <option value="mensal">Mensal</option>
+                  <option value="trimestral">Trimestral</option>
+                  <option value="quinzenal">Quinzenal</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display:"block", fontSize:"11px", color:"#606060", marginBottom:"6px" }}>VALOR MENSAL (R$)</label>
+                <input type="number" step="0.01" value={finValor} onChange={e=>setFinValor(e.target.value)} placeholder="Ex: 1500"
+                  style={{ width:"100%", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", padding:"9px 12px", color:"#f0f0f0", fontSize:"13px", boxSizing:"border-box" as const }}/>
+              </div>
+              <div style={{ display:"flex", gap:"10px" }}>
+                <div style={{ flex:1 }}>
+                  <label style={{ display:"block", fontSize:"11px", color:"#606060", marginBottom:"6px" }}>{finFreq==="quinzenal"?"1º DIA":"DIA DE VENCIMENTO"}</label>
+                  <input type="number" min="1" max="31" value={finDia} onChange={e=>setFinDia(e.target.value)} placeholder="Ex: 5"
+                    style={{ width:"100%", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", padding:"9px 12px", color:"#f0f0f0", fontSize:"13px", boxSizing:"border-box" as const, textAlign:"center" as const }}/>
+                </div>
+                {finFreq==="quinzenal" && (
+                  <div style={{ flex:1 }}>
+                    <label style={{ display:"block", fontSize:"11px", color:"#606060", marginBottom:"6px" }}>2º DIA</label>
+                    <input type="number" min="1" max="31" value={finDia2} onChange={e=>setFinDia2(e.target.value)} placeholder="Ex: 20"
+                      style={{ width:"100%", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", padding:"9px 12px", color:"#f0f0f0", fontSize:"13px", boxSizing:"border-box" as const, textAlign:"center" as const }}/>
+                  </div>
+                )}
+              </div>
+              {modalFinanceiro.data_entrada && (
+                <p style={{ fontSize:"11px", color:"#606060", margin:0 }}>Data de entrada usada: <strong style={{ color:"#a0a0a0" }}>{modalFinanceiro.data_entrada}</strong></p>
+              )}
+            </div>
+            <div style={{ padding:"14px 20px", borderTop:"1px solid #2e2e2e", display:"flex", justifyContent:"flex-end", gap:"8px" }}>
+              <button onClick={()=>setModalFinanceiro(null)} style={{ background:"#2a2a2a", border:"none", borderRadius:"8px", padding:"10px 20px", cursor:"pointer", color:"#f0f0f0", fontSize:"13px" }}>Cancelar</button>
+              <button onClick={criarNoFinanceiro} disabled={finSalvando}
+                style={{ background:"#22c55e", border:"none", borderRadius:"8px", padding:"10px 20px", cursor:"pointer", color:"#000", fontWeight:"700", fontSize:"13px", opacity:finSalvando?0.7:1 }}>
+                {finSalvando ? "Criando..." : "Criar Cliente + Recorrência"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {modalNovoCliente && <ModalNovoCliente agId={agId} cadastros={cadastros} onClose={()=>setModalNovoCliente(false)} onSave={()=>{setModalNovoCliente(false);carregar();}}/>}
       {modalColunas && <ModalColunas colunas={colunas} onSave={(novas: any) => { salvarColunas(novas); setModalColunas(false); }} onClose={() => setModalColunas(false)} />}
       {painelAberto && <PainelLateral cliente={painelAberto} onClose={()=>setPainelAberto(null)}/>}
@@ -1089,8 +1661,19 @@ export default function ControleClientesPage() {
           cliente={perfilAberto}
           cadastro={perfilAberto.cadastro_id ? cadastrosMap[perfilAberto.cadastro_id] || null : null}
           todos_cadastros={cadastros}
+          relatorios={relatorios}
+          alertas={alertas}
           onClose={()=>setPerfilAberto(null)}
           onVincular={(cadastroId)=>vincularCadastro(perfilAberto.id, cadastroId)}
+          onVincularRelatorio={async (relId) => {
+            await supabase.from("controle_clientes").update({ relatorio_id: relId }).eq("id", perfilAberto.id);
+            setClientes(prev => prev.map(c => c.id === perfilAberto.id ? { ...c, relatorio_id: relId || undefined } : c));
+            setPerfilAberto(prev => prev ? { ...prev, relatorio_id: relId || undefined } : prev);
+          }}
+          onVincularAlerta={async (alertaId, _nome, ativo) => {
+            await supabase.from("alertas_saldo").update({ ativo }).eq("id", alertaId);
+            setAlertas(prev => prev.map(a => a.id === alertaId ? { ...a, ativo } : a));
+          }}
         />
       )}
     </div>

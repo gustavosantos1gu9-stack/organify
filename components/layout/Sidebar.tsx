@@ -36,6 +36,10 @@ import {
   Bot,
   FileText,
   Zap,
+  Wallet,
+  TrendingUp,
+  Wrench,
+  Globe,
 } from "lucide-react";
 
 interface NavItem {
@@ -51,84 +55,69 @@ interface NavChild {
   children?: { href: string; label: string }[];
 }
 
-// ─── Menu MASTER (agência SALX) ─────────────────────────────
+// ─── Menu MASTER — categorias com sub-links expansíveis ───────
 const navItems: NavItem[] = [
   { href: "/", label: "Início", icon: <LayoutDashboard size={16} /> },
   {
-    label: "Financeiro",
-    icon: <DollarSign size={16} />,
+    label: "Financeiro", icon: <DollarSign size={16} />,
     children: [
-      { href: "/clientes", label: "Clientes" },
+      { href: "/inicio", label: "Dashboard" },
       { href: "/dre", label: "DRE" },
-      { href: "/financeiro/lancamentos-futuros", label: "Lançamentos futuros" },
       { href: "/financeiro/movimentacoes", label: "Movimentações" },
+      { href: "/financeiro/lancamentos-futuros", label: "Lançamentos Futuros" },
       { href: "/financeiro/recorrencias", label: "Recorrências" },
+      { href: "/clientes", label: "Clientes" },
     ],
   },
   {
-    label: "SDR",
-    icon: <Headphones size={16} />,
+    label: "Ferramentas", icon: <Wrench size={16} />,
     children: [
-      { href: "/inbox", label: "Inbox WhatsApp" },
-      { href: "/inbox/dashboard", label: "Dashboard Inbox" },
+      { href: "/ferramentas/clientes", label: "Clientes" },
+      { href: "/secretaria-ia", label: "Secretária IA" },
+      { href: "/formularios", label: "Formulários" },
+      { href: "/ferramentas/lp", label: "Landing Pages" },
+      { href: "/ferramentas/configuracoes", label: "Configurações" },
+    ],
+  },
+  {
+    label: "SDR", icon: <Headphones size={16} />,
+    children: [
+      { href: "/inbox", label: "Inbox" },
+      { href: "/jornada", label: "Jornada" },
       { href: "/crm", label: "CRM" },
-    ],
-  },
-  { href: "/secretaria-ia", label: "Secretária IA", icon: <Bot size={16} /> },
-  { href: "/funis", label: "Funis", icon: <Zap size={16} /> },
-  { href: "/formularios", label: "Formulários", icon: <FileText size={16} /> },
-  {
-    label: "Relatórios Meta",
-    icon: <FileBarChart size={16} />,
-    children: [
-      { href: "/relatorios-meta", label: "Relatórios" },
-      { href: "/relatorios-meta/alertas", label: "Alertas" },
-      { href: "/relatorios-meta/conexoes", label: "Conexões" },
+      { href: "/reunioes-vendas", label: "Reuniões de Vendas" },
+      { href: "/funis", label: "Funis" },
+      { href: "/formularios", label: "Formulários" },
+      { href: "/mensagens-rastreaveis", label: "Mensagens Rastreáveis" },
+      { href: "/disparos-pixel", label: "Disparos Pixel" },
+      { href: "/disparos-webhook", label: "Disparos Webhook" },
     ],
   },
   {
-    label: "Operacional",
-    icon: <Briefcase size={16} />,
+    label: "Operacional", icon: <Briefcase size={16} />,
     children: [
       { href: "/controle-clientes", label: "Controle de Clientes" },
+      { href: "/uti", label: "UTI" },
       { href: "/cadastros", label: "Cadastros" },
-      { href: "/reunioes", label: "Reuniões" },
-      { href: "/escala-ester", label: "Escala E." },
-      { href: "/escala-nicolas", label: "Escala N." },
       { href: "/gerador-de-leads", label: "Churn" },
-    ],
-  },
-  {
-    label: "Rastreamento",
-    icon: <Radar size={16} />,
-    children: [
-      { href: "/ferramentas/gerador-links", label: "Links & Campanhas" },
-      { href: "/ferramentas/campanhas", label: "Configurar Campanha" },
-      { href: "/jornada", label: "Jornada de Compra" },
+      { href: "/relatorios-meta", label: "Relatórios Meta" },
+      { href: "/relatorios-meta/dashboard", label: "Dashboard Meta" },
+      { href: "/relatorios-meta/alertas", label: "Alertas" },
+      { href: "/relatorios-meta/conexoes", label: "Conexões WhatsApp" },
+      { href: "/escala-ester", label: "Escala Carol" },
+      { href: "/escala-nicolas", label: "Escala Nicolas" },
+      { href: "/escala-lavinia", label: "Escala Lavínia" },
+      { href: "/reunioes", label: "Reuniões" },
     ],
   },
   { href: "/clientes-saas", label: "Clientes SaaS", icon: <Building2 size={16} /> },
+  { href: "/financas", label: "Finanças", icon: <Wallet size={16} /> },
   {
-    label: "Configurações",
-    icon: <Settings size={16} />,
+    label: "Configurações", icon: <Settings size={16} />,
     children: [
-      { href: "/configuracoes/agencia", label: "Agência" },
       { href: "/configuracoes/integracoes", label: "Integrações" },
-      {
-        label: "Clientes",
-        children: [
-          { href: "/configuracoes/clientes/categorias", label: "Categorias/Tags" },
-          { href: "/configuracoes/clientes/origens", label: "Origens" },
-        ],
-      },
-      {
-        label: "Financeiro",
-        children: [
-          { href: "/configuracoes/financeiro/categorias-entrada", label: "Categorias de entrada" },
-          { href: "/configuracoes/financeiro/categorias-saida", label: "Categorias de saída" },
-        ],
-      },
-      { href: "/configuracoes/fornecedores", label: "Fornecedores" },
+      { href: "/configuracoes/whatsapp-contas", label: "WhatsApp Contas" },
+      { href: "/configuracoes/agencia", label: "Agência" },
       { href: "/configuracoes/usuarios", label: "Usuários" },
       { href: "/configuracoes/times", label: "Times" },
     ],
@@ -148,7 +137,7 @@ const navItemsCliente: NavItem[] = [
   { href: "/mensagens-rastreaveis", label: "Mensagens Rastreáveis", icon: <Mail size={16} /> },
   { href: "/disparos-pixel", label: "Disparos de Pixel", icon: <MousePointer size={16} /> },
   { href: "/disparos-webhook", label: "Disparos de Webhook", icon: <Webhook size={16} /> },
-  { href: "/relatorios-meta", label: "Relatórios", icon: <FileBarChart size={16} /> },
+  { href: "/performance", label: "Performance", icon: <TrendingUp size={16} /> },
   { href: "/configuracoes/integracoes", label: "Integrações", icon: <Plug size={16} /> },
   { href: "/configuracoes/usuarios", label: "Acessos", icon: <UserCheck size={16} /> },
   { href: "/configuracoes/agencia", label: "Informações", icon: <Info size={16} /> },
@@ -168,8 +157,10 @@ const hrefToModuloKey: Record<string, string> = {
   "/controle-clientes": "controle_clientes",
   "/cadastros": "cadastros",
   "/reunioes": "reunioes",
+  "/reunioes-vendas": "reunioes_vendas",
   "/escala-ester": "escala_ester",
   "/escala-nicolas": "escala_nicolas",
+  "/escala-lavinia": "escala_lavinia",
   "/gerador-de-leads": "churn",
   "/ferramentas/gerador-links": "links_campanhas",
   "/ferramentas/campanhas": "configurar_campanha",
@@ -186,9 +177,9 @@ const hrefToModuloKey: Record<string, string> = {
 
 const groupChildKeys: Record<string, string[]> = {
   Financeiro: ["clientes", "dre", "lancamentos", "movimentacoes", "recorrencias"],
-  SDR: ["inbox", "crm"],
+  SDR: ["inbox", "crm", "reunioes_vendas"],
   "Relatórios Meta": ["relatorios_meta", "relatorios_conexoes", "relatorios_alertas"],
-  Operacional: ["controle_clientes", "cadastros", "reunioes", "escala_ester", "escala_nicolas", "churn"],
+  Operacional: ["controle_clientes", "cadastros", "reunioes", "escala_ester", "escala_nicolas", "escala_lavinia", "churn"],
   Rastreamento: ["links_campanhas", "configurar_campanha", "jornada"],
 };
 
@@ -285,7 +276,12 @@ export default function Sidebar() {
       return true;
     };
 
-    if (item.label === "Clientes SaaS") {
+    // "Início" só aparece para ROOT (sem restrições de time nem agência)
+    if (item.href === "/") {
+      return allowedModulos === null && modulosAgencia === null;
+    }
+
+    if (item.label === "Clientes SaaS" || item.label === "Finanças") {
       return !modulosAgencia && !allowedModulos;
     }
 

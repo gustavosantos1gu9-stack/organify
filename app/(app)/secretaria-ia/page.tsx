@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Bot, Save, Power, Clock, MessageSquare, Zap, Brain, Plus, Trash2, Check, Send, Loader2, Calendar, Video, MapPin, Link2 } from "lucide-react";
+import { Bot, Save, Power, Clock, MessageSquare, Zap, Brain, Plus, Trash2, Check, Send, Loader2, Calendar, Video, MapPin, Link2, Copy } from "lucide-react";
 import { supabase, getAgenciaId } from "@/lib/hooks";
 
 export default function SecretariaIAPage() {
@@ -17,8 +17,14 @@ export default function SecretariaIAPage() {
   const [temperatura, setTemperatura] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(500);
   const [contexto, setContexto] = useState(10);
+  const [debounce, setDebounce] = useState(8);
+  const [delayResposta, setDelayResposta] = useState(3);
+  const [delayConversaAtiva, setDelayConversaAtiva] = useState(0);
   const [horarioInicio, setHorarioInicio] = useState("");
   const [horarioFim, setHorarioFim] = useState("");
+  const [confirmacaoDias, setConfirmacaoDias] = useState<number[]>([1, 0]);
+  const [confirmacaoVespera, setConfirmacaoVespera] = useState("Olá {nome}, passando para confirmar seu agendamento de amanhã às {horario}. Podemos contar com sua presença?");
+  const [confirmacaoDia, setConfirmacaoDia] = useState("Olá {nome}, lembrando que seu agendamento é hoje às {horario}. Te esperamos!");
   const [mensagensGatilho, setMensagensGatilho] = useState<string[]>([""]);
 
   // Prompt estruturado
@@ -52,6 +58,8 @@ export default function SecretariaIAPage() {
   const [reuniaoHorarioFim, setReuniaoHorarioFim] = useState("18:00");
   const [reuniaoDias, setReuniaDias] = useState([1,2,3,4,5]);
   const [reuniaoIntervalo, setReuniaoIntervalo] = useState(0);
+  const [linkCopiado, setLinkCopiado] = useState(false);
+  const [servicosAgenda, setServicosAgenda] = useState<{ nome: string; duracao_minutos: number }[]>([]);
 
   // Follow-up
   const [followupAtivo, setFollowupAtivo] = useState(false);
@@ -137,11 +145,24 @@ export default function SecretariaIAPage() {
     if (data) {
       setNomeAgencia(data.nome || "");
       setAtivo(data.openai_ativo || false);
-      setApiKey(data.openai_key || "");
+
+      // Se não tiver API key própria, herdar da agência pai
+      let resolvedApiKey = data.openai_key || "";
+      if (!resolvedApiKey && data.parent_id) {
+        const { data: parent } = await supabase.from("agencias").select("openai_key").eq("id", data.parent_id).single();
+        resolvedApiKey = parent?.openai_key || "";
+      }
+      setApiKey(resolvedApiKey);
       setModelo(data.openai_modelo || "gpt-4o-mini");
       setTemperatura(Number(data.openai_temperatura) || 0.7);
       setMaxTokens(data.openai_max_tokens || 500);
       setContexto(data.openai_contexto_mensagens || 10);
+      setDebounce(data.ia_debounce_segundos ?? 8);
+      setDelayResposta(data.ia_delay_resposta_segundos ?? 3);
+      setDelayConversaAtiva(data.ia_delay_conversa_ativa_segundos ?? 0);
+      try { setConfirmacaoDias(JSON.parse(data.confirmacao_dias || "[1,0]")); } catch {}
+      setConfirmacaoVespera(data.confirmacao_template_vespera || "Olá {nome}, passando para confirmar seu agendamento de amanhã às {horario}. Podemos contar com sua presença?");
+      setConfirmacaoDia(data.confirmacao_template_dia || "Olá {nome}, lembrando que seu agendamento é hoje às {horario}. Te esperamos!");
       setHorarioInicio(data.openai_horario_inicio || "");
       setHorarioFim(data.openai_horario_fim || "");
 
@@ -170,6 +191,10 @@ export default function SecretariaIAPage() {
       setReuniaoHorarioFim(data.reuniao_horario_fim || "18:00");
       setReuniaDias(data.reuniao_dias_semana || [1,2,3,4,5]);
       setReuniaoIntervalo(data.reuniao_intervalo_minutos || 0);
+      try {
+        const sa = data.servicos_agenda ? JSON.parse(typeof data.servicos_agenda === "string" ? data.servicos_agenda : JSON.stringify(data.servicos_agenda)) : [];
+        if (Array.isArray(sa) && sa.length) setServicosAgenda(sa);
+      } catch {}
 
       // Detectar retorno do Google OAuth
       if (typeof window !== "undefined") {
@@ -180,16 +205,37 @@ export default function SecretariaIAPage() {
         }
       }
     }
-    // Carregar etapas de follow-up
+
+    // Carregar etapas de follow-up (lista simples)
     const { data: etapas } = await supabase.from("followup_etapas")
       .select("*").eq("agencia_id", id).order("ordem", { ascending: true });
     if (etapas?.length) setFollowupEtapas(etapas.map((e: any) => ({
       id: e.id, ordem: e.ordem, nome: e.nome || "", delay_minutos: e.delay_minutos,
-      tipo_mensagem: e.tipo_mensagem || "template", texto_template: e.texto_template || "",
+      tipo_mensagem: e.tipo_mensagem || "ia", texto_template: e.texto_template || "",
       prompt_ia: e.prompt_ia || "", midia_url: e.midia_url || "", midia_tipo: e.midia_tipo || "",
       ativo: e.ativo,
     })));
+
     setLoading(false);
+  }
+
+  const [ativandoSemResposta, setAtivandoSemResposta] = useState(false);
+
+  async function ativarSemResposta() {
+    if (!agId) return;
+    setAtivandoSemResposta(true);
+    try {
+      const res = await fetch("/api/admin/ia-ativar-sem-resposta", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agencia_id: agId, horas: 48 }),
+      });
+      const data = await res.json();
+      if (data.error) { alert("Erro: " + data.error); return; }
+      const errosStr = data.erros?.length ? `\n\nErros: ${data.erros.join(", ")}` : "";
+      alert(`IA disparada!\n\nTotal sem resposta: ${data.candidatas}\nRespondidas agora: ${data.disparadas}${errosStr}`);
+    } catch (e: any) { alert("Erro: " + e.message); }
+    setAtivandoSemResposta(false);
   }
 
   async function salvar() {
@@ -197,9 +243,10 @@ export default function SecretariaIAPage() {
     try {
       await supabase.from("agencias").update({
         openai_key: apiKey, openai_ativo: ativo, openai_modelo: modelo,
+        openai_alerta_credito_at: null, // resetar alerta ao salvar nova key
         openai_prompt_sistema: promptFinal,
         openai_max_tokens: maxTokens, openai_temperatura: temperatura,
-        openai_contexto_mensagens: contexto,
+        openai_contexto_mensagens: contexto, ia_debounce_segundos: debounce, ia_delay_resposta_segundos: delayResposta, ia_delay_conversa_ativa_segundos: delayConversaAtiva,
         openai_horario_inicio: horarioInicio || null, openai_horario_fim: horarioFim || null,
         agendamento_ativo: agendamentoAtivo,
         reuniao_tipo: reuniaoTipo,
@@ -209,7 +256,11 @@ export default function SecretariaIAPage() {
         reuniao_horario_fim: reuniaoHorarioFim,
         reuniao_dias_semana: reuniaoDias,
         reuniao_intervalo_minutos: reuniaoIntervalo,
+        servicos_agenda: servicosAgenda.length ? JSON.stringify(servicosAgenda.filter(s => s.nome.trim())) : null,
         ia_mensagens_gatilho: JSON.stringify(mensagensGatilho.filter(m => m.trim())),
+        confirmacao_dias: JSON.stringify(confirmacaoDias),
+        confirmacao_template_vespera: confirmacaoVespera,
+        confirmacao_template_dia: confirmacaoDia,
       }).eq("id", agId);
       alert("Secretária IA salva!");
     } catch { alert("Erro ao salvar"); }
@@ -220,7 +271,6 @@ export default function SecretariaIAPage() {
     setSalvandoFollowup(true);
     try {
       await supabase.from("agencias").update({ followup_ativo: followupAtivo }).eq("id", agId);
-      // Deletar etapas antigas e inserir novas
       await supabase.from("followup_etapas").delete().eq("agencia_id", agId);
       if (followupEtapas.length) {
         await supabase.from("followup_etapas").insert(
@@ -229,7 +279,7 @@ export default function SecretariaIAPage() {
             delay_minutos: e.delay_minutos, tipo_mensagem: e.tipo_mensagem,
             texto_template: e.texto_template || null, prompt_ia: e.prompt_ia || null,
             midia_url: e.midia_url || null, midia_tipo: e.midia_tipo || null,
-            ativo: e.ativo,
+            ativo: e.ativo, fase_jornada: null, gatilho_palavra: null, gatilho_tipo: null,
           }))
         );
       }
@@ -240,19 +290,19 @@ export default function SecretariaIAPage() {
 
   function addEtapa() {
     setFollowupEtapas(prev => [...prev, {
-      ordem: prev.length + 1, nome: `Follow-up ${prev.length + 1}`,
-      delay_minutos: prev.length === 0 ? 120 : 1440,
-      tipo_mensagem: "template", texto_template: "", prompt_ia: "",
-      midia_url: "", midia_tipo: "", ativo: true,
+      ordem: prev.length + 1, nome: "", delay_minutos: prev.length === 0 ? 240 : 1440,
+      tipo_mensagem: "ia",
+      prompt_ia: "Analise o histórico da conversa e escreva uma mensagem de follow-up adequada ao contexto. Identifique o que foi discutido por último (qualificação inicial, preços, horários disponíveis, etc.) e escreva um acompanhamento natural e não repetitivo. Seja breve e direto.",
+      texto_template: "", midia_url: "", midia_tipo: "", ativo: true,
     }]);
-  }
-
-  function removeEtapa(idx: number) {
-    setFollowupEtapas(prev => prev.filter((_, i) => i !== idx));
   }
 
   function updateEtapa(idx: number, campo: string, valor: any) {
     setFollowupEtapas(prev => prev.map((e, i) => i === idx ? { ...e, [campo]: valor } : e));
+  }
+
+  function removeEtapa(idx: number) {
+    setFollowupEtapas(prev => prev.filter((_, i) => i !== idx));
   }
 
   function fmtDelay(min: number) {
@@ -320,7 +370,7 @@ export default function SecretariaIAPage() {
   if (loading) return <div style={{ padding: 40, color: "#606060" }}>Carregando...</div>;
 
   return (
-    <div className="animate-in" style={{ maxWidth: 900, margin: "0 auto" }}>
+    <div className="animate-in" style={{ padding: "0 32px", maxWidth: 1400 }}>
       <div className="breadcrumb">
         <a href="/">Início</a><span>›</span><span className="current">Secretária IA</span>
       </div>
@@ -336,14 +386,21 @@ export default function SecretariaIAPage() {
             <input type="checkbox" checked={ativo} onChange={e => setAtivo(e.target.checked)} style={{ display: "none" }} />
             {ativo ? "Ativa" : "Desativada"}
           </label>
+          {ativo && (
+            <button onClick={ativarSemResposta} disabled={ativandoSemResposta} title="Dispara a IA para conversas das últimas 48h que não receberam resposta" style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, border: "1px solid #2e2e2e", background: "transparent", color: "#a0a0a0", fontWeight: 500, fontSize: 12, cursor: "pointer" }}>
+              <Zap size={13} /> {ativandoSemResposta ? "Disparando..." : "Responder sem resposta"}
+            </button>
+          )}
           <button onClick={salvar} disabled={salvando} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 20px", borderRadius: 8, border: "none", background: "#29ABE2", color: "#000", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
             <Save size={14} /> {salvando ? "Salvando..." : "Salvar"}
           </button>
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        {/* Coluna esquerda — Configuração */}
+      {/* 3 colunas principais */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, alignItems: "start" }}>
+
+        {/* Coluna 1: Identidade + Configuração Técnica + Horário da IA */}
         <div>
           {/* Identidade */}
           <div style={cardStyle}>
@@ -386,6 +443,82 @@ export default function SecretariaIAPage() {
             </div>
           </div>
 
+          {/* Configuração Técnica */}
+          <div style={cardStyle}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 16px" }}>Configuração Técnica</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div>
+                <label style={labelStyle}>API Key (OpenAI ou Anthropic)</label>
+                <input style={inputStyle} type="password" placeholder="sk-... ou sk-ant-..." value={apiKey} onChange={e => setApiKey(e.target.value)} />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div>
+                  <label style={labelStyle}>Modelo</label>
+                  <select style={inputStyle} value={modelo} onChange={e => setModelo(e.target.value)}>
+                    <optgroup label="OpenAI">
+                      <option value="gpt-4o-mini">GPT-4o Mini</option>
+                      <option value="gpt-4o">GPT-4o</option>
+                    </optgroup>
+                    <optgroup label="Claude (Anthropic)">
+                      <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (mais barato)</option>
+                      <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
+                    </optgroup>
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Temperatura ({temperatura})</label>
+                  <input type="range" min="0" max="1" step="0.1" value={temperatura} onChange={e => setTemperatura(Number(e.target.value))} style={{ width: "100%", accentColor: "#29ABE2", marginTop: 8 }} />
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div>
+                  <label style={labelStyle}>Max Tokens</label>
+                  <input style={inputStyle} type="number" value={maxTokens} onChange={e => setMaxTokens(Number(e.target.value))} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Contexto (msgs)</label>
+                  <input style={inputStyle} type="number" value={contexto} onChange={e => setContexto(Number(e.target.value))} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Aguardar msgs (seg)</label>
+                  <input style={inputStyle} type="number" min="2" max="60" value={debounce} onChange={e => setDebounce(Number(e.target.value))} />
+                  <span style={{ fontSize: 10, color: "#606060" }}>Tempo para processar</span>
+                </div>
+                <div>
+                  <label style={labelStyle}>Delay entre msgs (seg)</label>
+                  <input style={inputStyle} type="number" min="1" max="15" value={delayResposta} onChange={e => setDelayResposta(Number(e.target.value))} />
+                  <span style={{ fontSize: 10, color: "#606060" }}>Pausa entre respostas</span>
+                </div>
+              </div>
+              <div>
+                <label style={labelStyle}>Delay em conversa ativa (seg)</label>
+                <input style={inputStyle} type="number" min="0" max="300" value={delayConversaAtiva} onChange={e => setDelayConversaAtiva(Number(e.target.value))} />
+                <span style={{ fontSize: 10, color: "#606060" }}>Tempo extra de espera quando a IA já está em conversa (0 = desativado). Ex: 60 = aguarda 1 minuto antes de responder.</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Horário da IA */}
+          <div style={cardStyle}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
+              <Clock size={16} color="#f59e0b" /> Horário da IA
+            </h3>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <div>
+                <label style={labelStyle}>Início</label>
+                <input style={inputStyle} type="time" value={horarioInicio} onChange={e => setHorarioInicio(e.target.value)} />
+              </div>
+              <div>
+                <label style={labelStyle}>Fim</label>
+                <input style={inputStyle} type="time" value={horarioFim} onChange={e => setHorarioFim(e.target.value)} />
+              </div>
+            </div>
+            <p style={{ fontSize: 11, color: "#606060", marginTop: 8 }}>Se vazio, responde 24h. A IA pausa automaticamente quando um humano responde.</p>
+          </div>
+        </div>
+
+        {/* Coluna 2: Serviços e Preços + Informações + Regras + Instruções extras */}
+        <div>
           {/* Serviços e Preços */}
           <div style={cardStyle}>
             <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
@@ -410,7 +543,7 @@ export default function SecretariaIAPage() {
             <button onClick={() => addItem(precos, setPrecos)} style={{ background: "none", border: "1px dashed #2e2e2e", borderRadius: 6, padding: "6px 12px", color: "#606060", fontSize: 12, cursor: "pointer", width: "100%" }}><Plus size={12} /> Adicionar preço</button>
           </div>
 
-          {/* Info */}
+          {/* Informações */}
           <div style={cardStyle}>
             <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
               <Clock size={16} color="#22c55e" /> Informações
@@ -427,7 +560,7 @@ export default function SecretariaIAPage() {
             </div>
           </div>
 
-          {/* Regras */}
+          {/* Regras de Comportamento */}
           <div style={cardStyle}>
             <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
               <Brain size={16} color="#8b5cf6" /> Regras de Comportamento
@@ -438,26 +571,32 @@ export default function SecretariaIAPage() {
                 <button onClick={() => removeItem(regras, setRegras, i)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: 4 }}><Trash2 size={14} /></button>
               </div>
             ))}
-            <button onClick={() => addItem(regras, setRegras)} style={{ background: "none", border: "1px dashed #2e2e2e", borderRadius: 6, padding: "6px 12px", color: "#606060", fontSize: 12, cursor: "pointer", width: "100%", marginBottom: 12 }}><Plus size={12} /> Adicionar regra</button>
+            <button onClick={() => addItem(regras, setRegras)} style={{ background: "none", border: "1px dashed #2e2e2e", borderRadius: 6, padding: "6px 12px", color: "#606060", fontSize: 12, cursor: "pointer", width: "100%" }}><Plus size={12} /> Adicionar regra</button>
+          </div>
 
-            <label style={labelStyle}>Instruções extras (opcional)</label>
-            <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 60 }} placeholder="Qualquer instrução adicional..." value={instrucaoExtra} onChange={e => setInstrucaoExtra(e.target.value)} />
+          {/* Instruções extras */}
+          <div style={cardStyle}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 12px" }}>Instruções extras</h3>
+            <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 80 }} placeholder="Qualquer instrução adicional..." value={instrucaoExtra} onChange={e => setInstrucaoExtra(e.target.value)} />
           </div>
         </div>
 
-        {/* Coluna direita — Preview e Config técnica */}
+        {/* Coluna 3: Preview do Prompt + Testar Secretária + Mensagens Gatilho */}
         <div>
-          {/* Preview do prompt */}
+          {/* Preview do Prompt */}
           <div style={cardStyle}>
             <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 8 }}>
               <MessageSquare size={16} color="#29ABE2" /> Preview do Prompt
             </h3>
-            <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 300, fontSize: 12, lineHeight: "1.6", fontFamily: "monospace" }}
-              value={promptFinal} onChange={e => { setPromptFinal(e.target.value); setPromptEditadoManualmente(true); }} />
+            <textarea
+              style={{ ...inputStyle, resize: "vertical", minHeight: 280, fontSize: 12, lineHeight: "1.6", fontFamily: "monospace" }}
+              value={promptFinal}
+              onChange={e => { setPromptFinal(e.target.value); setPromptEditadoManualmente(true); }}
+            />
             <p style={{ fontSize: 11, color: "#606060", marginTop: 6 }}>Este é o prompt enviado para a IA. Edite diretamente se quiser ajustar.</p>
           </div>
 
-          {/* Chat de teste */}
+          {/* Testar Secretária */}
           <div style={cardStyle}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
@@ -528,301 +667,393 @@ export default function SecretariaIAPage() {
               <Plus size={12} /> Adicionar mensagem
             </button>
           </div>
+        </div>
+      </div>
 
-          {/* Config técnica */}
-          <div style={cardStyle}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 16px" }}>Configuração Técnica</h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <div>
-                <label style={labelStyle}>API Key (OpenAI ou Anthropic)</label>
-                <input style={inputStyle} type="password" placeholder="sk-... ou sk-ant-..." value={apiKey} onChange={e => setApiKey(e.target.value)} />
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                <div>
-                  <label style={labelStyle}>Modelo</label>
-                  <select style={inputStyle} value={modelo} onChange={e => setModelo(e.target.value)}>
-                    <optgroup label="OpenAI">
-                      <option value="gpt-4o-mini">GPT-4o Mini</option>
-                      <option value="gpt-4o">GPT-4o</option>
-                    </optgroup>
-                    <optgroup label="Claude (Anthropic)">
-                      <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (mais barato)</option>
-                      <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
-                    </optgroup>
-                  </select>
-                </div>
-                <div>
-                  <label style={labelStyle}>Temperatura ({temperatura})</label>
-                  <input type="range" min="0" max="1" step="0.1" value={temperatura} onChange={e => setTemperatura(Number(e.target.value))} style={{ width: "100%", accentColor: "#29ABE2", marginTop: 8 }} />
-                </div>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                <div>
-                  <label style={labelStyle}>Max Tokens</label>
-                  <input style={inputStyle} type="number" value={maxTokens} onChange={e => setMaxTokens(Number(e.target.value))} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Contexto (msgs)</label>
-                  <input style={inputStyle} type="number" value={contexto} onChange={e => setContexto(Number(e.target.value))} />
-                </div>
-              </div>
+      {/* Grid 2 colunas: Confirmação de Agendamento + Agendamento Automático */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 0 }}>
+
+        {/* Confirmação de Agendamento */}
+        <div style={cardStyle}>
+          <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
+            <Clock size={16} color="#22c55e" /> Confirmação de Agendamento
+          </h3>
+          <p style={{ fontSize: 11, color: "#606060", marginBottom: 12 }}>Envio automático de lembretes antes do evento. Variáveis: {"{nome}"}, {"{horario}"}, {"{data}"}, {"{tipo}"}</p>
+          <div style={{ marginBottom: 12 }}>
+            <label style={labelStyle}>Enviar confirmação quantos dias antes</label>
+            <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+              {[0, 1, 2, 3, 5, 7].map(d => (
+                <button key={d} onClick={() => setConfirmacaoDias(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d].sort((a,b) => b - a))}
+                  style={{
+                    padding: "6px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 500,
+                    border: confirmacaoDias.includes(d) ? "1px solid #22c55e" : "1px solid #2e2e2e",
+                    background: confirmacaoDias.includes(d) ? "rgba(34,197,94,0.1)" : "#1a1a1a",
+                    color: confirmacaoDias.includes(d) ? "#22c55e" : "#606060",
+                  }}>
+                  {d === 0 ? "No dia" : d === 1 ? "1 dia antes" : `${d} dias antes`}
+                </button>
+              ))}
             </div>
           </div>
+          <div style={{ marginBottom: 12 }}>
+            <label style={labelStyle}>Mensagem na véspera</label>
+            <textarea style={{ ...inputStyle, minHeight: 60, resize: "vertical" }} value={confirmacaoVespera} onChange={e => setConfirmacaoVespera(e.target.value)} />
+          </div>
+          <div>
+            <label style={labelStyle}>Mensagem no dia</label>
+            <textarea style={{ ...inputStyle, minHeight: 60, resize: "vertical" }} value={confirmacaoDia} onChange={e => setConfirmacaoDia(e.target.value)} />
+          </div>
+        </div>
 
-          {/* Horário da IA */}
-          <div style={cardStyle}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
-              <Clock size={16} color="#f59e0b" /> Horário da IA
+        {/* Agendamento Automático */}
+        <div style={cardStyle}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+              <Calendar size={16} color="#29ABE2" /> Agendamento Automático
             </h3>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              <div>
-                <label style={labelStyle}>Início</label>
-                <input style={inputStyle} type="time" value={horarioInicio} onChange={e => setHorarioInicio(e.target.value)} />
-              </div>
-              <div>
-                <label style={labelStyle}>Fim</label>
-                <input style={inputStyle} type="time" value={horarioFim} onChange={e => setHorarioFim(e.target.value)} />
-              </div>
-            </div>
-            <p style={{ fontSize: 11, color: "#606060", marginTop: 8 }}>Se vazio, responde 24h. A IA pausa automaticamente quando um humano responde.</p>
+            <button onClick={() => setAgendamentoAtivo(!agendamentoAtivo)}
+              style={{
+                width: 44, height: 24, borderRadius: 12, border: "none", cursor: "pointer",
+                background: agendamentoAtivo ? "#22c55e" : "#333", position: "relative", transition: "background 0.2s",
+              }}>
+              <span style={{
+                position: "absolute", top: 3, left: agendamentoAtivo ? 23 : 3,
+                width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 0.2s",
+              }} />
+            </button>
           </div>
 
-          {/* Agendamento Automático */}
-          <div style={cardStyle}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-                <Calendar size={16} color="#29ABE2" /> Agendamento Automático
-              </h3>
-              <button onClick={() => setAgendamentoAtivo(!agendamentoAtivo)}
-                style={{
-                  width: 44, height: 24, borderRadius: 12, border: "none", cursor: "pointer",
-                  background: agendamentoAtivo ? "#22c55e" : "#333", position: "relative", transition: "background 0.2s",
-                }}>
-                <span style={{
-                  position: "absolute", top: 3, left: agendamentoAtivo ? 23 : 3,
-                  width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 0.2s",
-                }} />
-              </button>
-            </div>
+          <p style={{ fontSize: 12, color: "#606060", marginBottom: 16 }}>
+            A IA consulta sua agenda e agenda reuniões automaticamente quando o lead quiser marcar.
+          </p>
 
-            <p style={{ fontSize: 12, color: "#606060", marginBottom: 16 }}>
-              A IA consulta sua agenda e agenda reuniões automaticamente quando o lead quiser marcar.
-            </p>
-
-            {/* Google Calendar */}
-            <div style={{ background: "#0d0d0d", borderRadius: 8, border: "1px solid #1e1e1e", padding: 14, marginBottom: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Calendar size={14} color={googleCalAtivo ? "#22c55e" : "#606060"} />
-                  <span style={{ fontSize: 13, color: "#f0f0f0" }}>Google Calendar</span>
-                  {googleCalAtivo && googleCalEmail && (
-                    <span style={{ fontSize: 11, color: "#22c55e" }}>({googleCalEmail})</span>
-                  )}
+          {/* Alerta: Google Calendar desconectado */}
+          {!googleCalAtivo && googleCalEmail && agendamentoAtivo && (
+            <div style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.4)", borderRadius: 10, padding: "12px 16px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 18 }}>⚠️</span>
+                <div>
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#ef4444" }}>Google Calendar desconectado</p>
+                  <p style={{ margin: "2px 0 0", fontSize: 11, color: "#a05050" }}>A IA está agendando mas os eventos não estão indo para a agenda. Reconecte agora.</p>
                 </div>
-                {googleCalAtivo ? (
-                  <span style={{ fontSize: 11, padding: "2px 10px", borderRadius: 12, background: "rgba(34,197,94,0.15)", color: "#22c55e" }}>Conectado</span>
-                ) : (
-                  <button onClick={() => window.location.href = `/api/auth/google?agencia_id=${agId}`}
-                    style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8, border: "1px solid #29ABE2", background: "rgba(41,171,226,0.1)", color: "#29ABE2", cursor: "pointer" }}>
-                    Conectar
-                  </button>
+              </div>
+              <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                <button onClick={() => window.location.href = `/api/auth/google?agencia_id=${agId}`}
+                  style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8, border: "none", background: "#ef4444", color: "#fff", cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap" }}>
+                  Reconectar
+                </button>
+                <button onClick={() => {
+                  const link = `${window.location.origin}/api/auth/google?agencia_id=${agId}`;
+                  navigator.clipboard.writeText(link);
+                  setLinkCopiado(true);
+                  setTimeout(() => setLinkCopiado(false), 2000);
+                }}
+                  style={{ fontSize: 12, padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(239,68,68,0.3)", background: "transparent", color: linkCopiado ? "#22c55e" : "#ef4444", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
+                  {linkCopiado ? <><Check size={12} /> Copiado!</> : <><Copy size={12} /> Copiar link</>}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Google Calendar */}
+          <div style={{ background: "#0d0d0d", borderRadius: 8, border: `1px solid ${!googleCalAtivo && googleCalEmail ? "rgba(239,68,68,0.3)" : "#1e1e1e"}`, padding: 14, marginBottom: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Calendar size={14} color={googleCalAtivo ? "#22c55e" : (!googleCalEmail ? "#606060" : "#ef4444")} />
+                <span style={{ fontSize: 13, color: "#f0f0f0" }}>Google Calendar</span>
+                {googleCalEmail && (
+                  <span style={{ fontSize: 11, color: googleCalAtivo ? "#22c55e" : "#ef4444" }}>({googleCalEmail})</span>
                 )}
               </div>
-            </div>
-
-            {/* Tipo de reunião */}
-            <div style={{ marginBottom: 12 }}>
-              <label style={labelStyle}>Tipo de reunião</label>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-                {([
-                  { key: "google_meet", label: "Google Meet", icon: <Video size={13} /> },
-                  { key: "zoom", label: "Zoom", icon: <Video size={13} /> },
-                  { key: "presencial", label: "Presencial", icon: <MapPin size={13} /> },
-                  { key: "link_customizado", label: "Link personalizado", icon: <Link2 size={13} /> },
-                ] as const).map(t => (
-                  <button key={t.key} onClick={() => setReuniaoTipo(t.key)} style={{
-                    display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12,
-                    border: `1px solid ${reuniaoTipo === t.key ? "#29ABE2" : "#2e2e2e"}`,
-                    background: reuniaoTipo === t.key ? "rgba(41,171,226,0.1)" : "#1a1a1a",
-                    color: reuniaoTipo === t.key ? "#29ABE2" : "#a0a0a0",
-                  }}>
-                    {t.icon} {t.label}
+              {googleCalAtivo ? (
+                <span style={{ fontSize: 11, padding: "2px 10px", borderRadius: 12, background: "rgba(34,197,94,0.15)", color: "#22c55e" }}>Conectado</span>
+              ) : (
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  {googleCalEmail && <span style={{ fontSize: 11, padding: "2px 10px", borderRadius: 12, background: "rgba(239,68,68,0.1)", color: "#ef4444" }}>Desconectado</span>}
+                  <button onClick={() => window.location.href = `/api/auth/google?agencia_id=${agId}`}
+                    style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8, border: "1px solid #29ABE2", background: "rgba(41,171,226,0.1)", color: "#29ABE2", cursor: "pointer" }}>
+                    {googleCalEmail ? "Reconectar" : "Conectar"}
                   </button>
-                ))}
-              </div>
+                  <button onClick={() => {
+                    const link = `${window.location.origin}/api/auth/google?agencia_id=${agId}`;
+                    navigator.clipboard.writeText(link);
+                    setLinkCopiado(true);
+                    setTimeout(() => setLinkCopiado(false), 2000);
+                  }}
+                    style={{ fontSize: 12, padding: "6px 10px", borderRadius: 8, border: "1px solid #2e2e2e", background: linkCopiado ? "rgba(34,197,94,0.1)" : "#1a1a1a", color: linkCopiado ? "#22c55e" : "#a0a0a0", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                    {linkCopiado ? <><Check size={12} /> Copiado!</> : <><Copy size={12} /> Copiar link</>}
+                  </button>
+                </div>
+              )}
             </div>
+          </div>
 
-            {reuniaoTipo === "link_customizado" && (
-              <div style={{ marginBottom: 12 }}>
-                <label style={labelStyle}>Link da reunião</label>
-                <input style={inputStyle} placeholder="https://..." value={reuniaoLinkCustom} onChange={e => setReuniaoLinkCustom(e.target.value)} />
-              </div>
-            )}
+          {/* Tipo de reunião */}
+          <div style={{ marginBottom: 12 }}>
+            <label style={labelStyle}>Tipo de reunião</label>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+              {([
+                { key: "google_meet", label: "Google Meet", icon: <Video size={13} /> },
+                { key: "zoom", label: "Zoom", icon: <Video size={13} /> },
+                { key: "presencial", label: "Presencial", icon: <MapPin size={13} /> },
+                { key: "link_customizado", label: "Link personalizado", icon: <Link2 size={13} /> },
+              ] as const).map(t => (
+                <button key={t.key} onClick={() => setReuniaoTipo(t.key)} style={{
+                  display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12,
+                  border: `1px solid ${reuniaoTipo === t.key ? "#29ABE2" : "#2e2e2e"}`,
+                  background: reuniaoTipo === t.key ? "rgba(41,171,226,0.1)" : "#1a1a1a",
+                  color: reuniaoTipo === t.key ? "#29ABE2" : "#a0a0a0",
+                }}>
+                  {t.icon} {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
-              <div>
-                <label style={labelStyle}>Duração</label>
-                <select style={inputStyle} value={reuniaoDuracao} onChange={e => setReuniaooDuracao(Number(e.target.value))}>
+          {reuniaoTipo === "link_customizado" && (
+            <div style={{ marginBottom: 12 }}>
+              <label style={labelStyle}>Link da reunião</label>
+              <input style={inputStyle} placeholder="https://..." value={reuniaoLinkCustom} onChange={e => setReuniaoLinkCustom(e.target.value)} />
+            </div>
+          )}
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
+            <div>
+              <label style={labelStyle}>Duração</label>
+              <select style={inputStyle} value={reuniaoDuracao} onChange={e => setReuniaooDuracao(Number(e.target.value))}>
+                <option value={15}>15 min</option>
+                <option value={30}>30 min</option>
+                <option value={45}>45 min</option>
+                <option value={60}>1 hora</option>
+                <option value={90}>1h30</option>
+                <option value={120}>2 horas</option>
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>Início</label>
+              <input style={inputStyle} type="time" value={reuniaoHorarioInicio} onChange={e => setReuniaoHorarioInicio(e.target.value)} />
+            </div>
+            <div>
+              <label style={labelStyle}>Fim</label>
+              <input style={inputStyle} type="time" value={reuniaoHorarioFim} onChange={e => setReuniaoHorarioFim(e.target.value)} />
+            </div>
+          </div>
+
+          {/* Tipos de atendimento com durações diferentes */}
+          <div style={{ marginBottom: 12 }}>
+            <label style={labelStyle}>Tipos de atendimento e durações</label>
+            <p style={{ fontSize: 11, color: "#606060", marginBottom: 8 }}>
+              Se vazio, usa a duração padrão acima para todos. Com tipos configurados, a IA oferece horários certos para cada procedimento.
+            </p>
+            {servicosAgenda.map((s, i) => (
+              <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
+                <input
+                  style={{ ...inputStyle, flex: 1 }}
+                  placeholder="Ex: Avaliação, Micropigmentação..."
+                  value={s.nome}
+                  onChange={e => {
+                    const n = [...servicosAgenda]; n[i] = { ...n[i], nome: e.target.value }; setServicosAgenda(n);
+                  }}
+                />
+                <select
+                  style={{ ...inputStyle, width: 110 }}
+                  value={s.duracao_minutos}
+                  onChange={e => {
+                    const n = [...servicosAgenda]; n[i] = { ...n[i], duracao_minutos: Number(e.target.value) }; setServicosAgenda(n);
+                  }}
+                >
                   <option value={15}>15 min</option>
                   <option value={30}>30 min</option>
                   <option value={45}>45 min</option>
-                  <option value={60}>1 hora</option>
+                  <option value={60}>1h</option>
                   <option value={90}>1h30</option>
-                  <option value={120}>2 horas</option>
+                  <option value={120}>2h</option>
+                  <option value={150}>2h30</option>
+                  <option value={180}>3h</option>
                 </select>
+                <button onClick={() => setServicosAgenda(servicosAgenda.filter((_, j) => j !== i))}
+                  style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: 4 }}>
+                  <Trash2 size={14} />
+                </button>
               </div>
-              <div>
-                <label style={labelStyle}>Início</label>
-                <input style={inputStyle} type="time" value={reuniaoHorarioInicio} onChange={e => setReuniaoHorarioInicio(e.target.value)} />
-              </div>
-              <div>
-                <label style={labelStyle}>Fim</label>
-                <input style={inputStyle} type="time" value={reuniaoHorarioFim} onChange={e => setReuniaoHorarioFim(e.target.value)} />
-              </div>
-            </div>
+            ))}
+            <button
+              onClick={() => setServicosAgenda([...servicosAgenda, { nome: "", duracao_minutos: 60 }])}
+              style={{ background: "none", border: "1px dashed #2e2e2e", borderRadius: 6, padding: "6px 12px", color: "#606060", fontSize: 12, cursor: "pointer", width: "100%" }}>
+              <Plus size={12} /> Adicionar tipo de atendimento
+            </button>
+          </div>
 
-            <div style={{ marginBottom: 12 }}>
-              <label style={labelStyle}>Dias disponíveis</label>
-              <div style={{ display: "flex", gap: 4 }}>
-                {(["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"]).map((d, i) => (
-                  <button key={i} onClick={() => setReuniaDias(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i].sort())}
-                    style={{
-                      flex: 1, padding: "6px 0", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 500,
-                      border: `1px solid ${reuniaoDias.includes(i) ? "#29ABE2" : "#2e2e2e"}`,
-                      background: reuniaoDias.includes(i) ? "rgba(41,171,226,0.15)" : "#1a1a1a",
-                      color: reuniaoDias.includes(i) ? "#29ABE2" : "#606060",
-                    }}>
-                    {d}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label style={labelStyle}>Intervalo entre reuniões</label>
-              <select style={inputStyle} value={reuniaoIntervalo} onChange={e => setReuniaoIntervalo(Number(e.target.value))}>
-                <option value={0}>Sem intervalo</option>
-                <option value={15}>15 min</option>
-                <option value={30}>30 min</option>
-              </select>
+          <div style={{ marginBottom: 12 }}>
+            <label style={labelStyle}>Dias disponíveis</label>
+            <div style={{ display: "flex", gap: 4 }}>
+              {(["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"]).map((d, i) => (
+                <button key={i} onClick={() => setReuniaDias(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i].sort())}
+                  style={{
+                    flex: 1, padding: "6px 0", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 500,
+                    border: `1px solid ${reuniaoDias.includes(i) ? "#29ABE2" : "#2e2e2e"}`,
+                    background: reuniaoDias.includes(i) ? "rgba(41,171,226,0.15)" : "#1a1a1a",
+                    color: reuniaoDias.includes(i) ? "#29ABE2" : "#606060",
+                  }}>
+                  {d}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Follow-up Automático */}
-          <div style={cardStyle}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-                <Zap size={16} color="#f59e0b" /> Follow-up Automático
-              </h3>
-              <button onClick={() => setFollowupAtivo(!followupAtivo)}
-                style={{
-                  width: 44, height: 24, borderRadius: 12, border: "none", cursor: "pointer",
-                  background: followupAtivo ? "#22c55e" : "#333", position: "relative", transition: "background 0.2s",
-                }}>
-                <span style={{
-                  position: "absolute", top: 3, left: followupAtivo ? 23 : 3,
-                  width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 0.2s",
-                }} />
-              </button>
-            </div>
+          <div>
+            <label style={labelStyle}>Intervalo entre reuniões</label>
+            <select style={inputStyle} value={reuniaoIntervalo} onChange={e => setReuniaoIntervalo(Number(e.target.value))}>
+              <option value={0}>Sem intervalo</option>
+              <option value={15}>15 min</option>
+              <option value={30}>30 min</option>
+            </select>
+          </div>
+        </div>
+      </div>
 
-            <p style={{ fontSize: 12, color: "#606060", marginBottom: 16 }}>
-              Envia mensagens automaticamente quando o lead não responde. Para quando receber resposta.
-            </p>
+      {/* Follow-up Automático — full width */}
+      <div style={{ ...cardStyle, marginTop: 0 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+            <Zap size={16} color="#f59e0b" /> Follow-up Automático
+          </h3>
+          <button onClick={() => setFollowupAtivo(!followupAtivo)}
+            style={{
+              width: 44, height: 24, borderRadius: 12, border: "none", cursor: "pointer",
+              background: followupAtivo ? "#22c55e" : "#333", position: "relative", transition: "background 0.2s",
+            }}>
+            <span style={{
+              position: "absolute", top: 3, left: followupAtivo ? 23 : 3,
+              width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 0.2s",
+            }} />
+          </button>
+        </div>
 
-            {followupEtapas.map((etapa, idx) => (
-              <div key={idx} style={{ background: "#0d0d0d", borderRadius: 8, border: "1px solid #1e1e1e", padding: 14, marginBottom: 10 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "#a0a0a0" }}>Etapa {idx + 1}</span>
-                  <button onClick={() => removeEtapa(idx)} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", padding: 2 }}>
-                    <Trash2 size={13} />
-                  </button>
+        <p style={{ fontSize: 12, color: "#606060", marginBottom: 16 }}>
+          A IA analisa o contexto da conversa e envia a mensagem certa baseado no que foi discutido por último (preço, horários, qualificação, etc.)
+        </p>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 12, marginBottom: 12 }}>
+          {followupEtapas.map((etapa, idx) => (
+            <div key={idx} style={{ background: "#0d0d0d", borderRadius: 8, border: "1px solid #1e1e1e", padding: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "#a0a0a0" }}>Tentativa {idx + 1}</span>
+                <button onClick={() => removeEtapa(idx)} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", padding: 2 }}>
+                  <Trash2 size={13} />
+                </button>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+                <div>
+                  <label style={{ ...labelStyle, fontSize: 10 }}>Nome (opcional)</label>
+                  <input style={inputStyle} placeholder="Ex: Primeiro lembrete" value={etapa.nome} onChange={e => updateEtapa(idx, "nome", e.target.value)} />
                 </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
-                  <div>
-                    <label style={{ ...labelStyle, fontSize: 10 }}>Nome (opcional)</label>
-                    <input style={inputStyle} placeholder="Ex: Primeiro lembrete" value={etapa.nome} onChange={e => updateEtapa(idx, "nome", e.target.value)} />
-                  </div>
-                  <div>
-                    <label style={{ ...labelStyle, fontSize: 10 }}>Carência ({fmtDelay(etapa.delay_minutos)})</label>
-                    <div style={{ display: "flex", gap: 4 }}>
-                      <input style={{ ...inputStyle, width: 70 }} type="number" min="1"
-                        value={etapa.delay_minutos < 60 ? etapa.delay_minutos : etapa.delay_minutos < 1440 ? etapa.delay_minutos / 60 : etapa.delay_minutos / 1440}
-                        onChange={e => {
-                          const v = Number(e.target.value) || 1;
-                          const unit = etapa.delay_minutos < 60 ? 1 : etapa.delay_minutos < 1440 ? 60 : 1440;
-                          updateEtapa(idx, "delay_minutos", v * unit);
-                        }} />
-                      <select style={{ ...inputStyle, width: 80 }}
-                        value={etapa.delay_minutos < 60 ? "min" : etapa.delay_minutos < 1440 ? "h" : "d"}
-                        onChange={e => {
-                          const curr = etapa.delay_minutos;
-                          const currVal = curr < 60 ? curr : curr < 1440 ? curr / 60 : curr / 1440;
-                          const mult = e.target.value === "min" ? 1 : e.target.value === "h" ? 60 : 1440;
-                          updateEtapa(idx, "delay_minutos", Math.round(currVal * mult));
-                        }}>
-                        <option value="min">min</option>
-                        <option value="h">horas</option>
-                        <option value="d">dias</option>
-                      </select>
-                    </div>
+                <div>
+                  <label style={{ ...labelStyle, fontSize: 10 }}>Carência ({fmtDelay(etapa.delay_minutos)})</label>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <input style={{ ...inputStyle, width: 70 }} type="number" min="1"
+                      value={etapa.delay_minutos < 60 ? etapa.delay_minutos : etapa.delay_minutos < 1440 ? etapa.delay_minutos / 60 : etapa.delay_minutos / 1440}
+                      onChange={e => {
+                        const v = Number(e.target.value) || 1;
+                        const unit = etapa.delay_minutos < 60 ? 1 : etapa.delay_minutos < 1440 ? 60 : 1440;
+                        updateEtapa(idx, "delay_minutos", v * unit);
+                      }} />
+                    <select style={{ ...inputStyle, width: 80 }}
+                      value={etapa.delay_minutos < 60 ? "min" : etapa.delay_minutos < 1440 ? "h" : "d"}
+                      onChange={e => {
+                        const curr = etapa.delay_minutos;
+                        const currVal = curr < 60 ? curr : curr < 1440 ? curr / 60 : curr / 1440;
+                        const mult = e.target.value === "min" ? 1 : e.target.value === "h" ? 60 : 1440;
+                        updateEtapa(idx, "delay_minutos", Math.round(currVal * mult));
+                      }}>
+                      <option value="min">min</option>
+                      <option value="h">horas</option>
+                      <option value="d">dias</option>
+                    </select>
                   </div>
                 </div>
+              </div>
 
+              <div style={{ marginBottom: 8 }}>
+                <label style={{ ...labelStyle, fontSize: 10 }}>Tipo</label>
+                <select style={inputStyle} value={etapa.tipo_mensagem} onChange={e => updateEtapa(idx, "tipo_mensagem", e.target.value)}>
+                  <option value="template">Mensagem fixa</option>
+                  <option value="ia">IA gera a mensagem</option>
+                </select>
+              </div>
+
+              {etapa.tipo_mensagem === "template" ? (
                 <div style={{ marginBottom: 8 }}>
-                  <label style={{ ...labelStyle, fontSize: 10 }}>Tipo</label>
-                  <select style={inputStyle} value={etapa.tipo_mensagem} onChange={e => updateEtapa(idx, "tipo_mensagem", e.target.value)}>
-                    <option value="template">Mensagem fixa</option>
-                    <option value="ia">IA gera a mensagem</option>
-                  </select>
+                  <label style={{ ...labelStyle, fontSize: 10 }}>Mensagem (use {"{nome}"} e {"{empresa}"})</label>
+                  <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 60, fontSize: 12 }}
+                    placeholder="Olá {nome}! Vi que você se interessou pelos nossos serviços..."
+                    value={etapa.texto_template} onChange={e => updateEtapa(idx, "texto_template", e.target.value)} />
                 </div>
+              ) : (
+                <div style={{ marginBottom: 8 }}>
+                  <label style={{ ...labelStyle, fontSize: 10 }}>Prompt para a IA</label>
+                  <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 60, fontSize: 12 }}
+                    placeholder="Envie um follow-up amigável perguntando se o lead tem mais dúvidas..."
+                    value={etapa.prompt_ia} onChange={e => updateEtapa(idx, "prompt_ia", e.target.value)} />
+                </div>
+              )}
 
-                {etapa.tipo_mensagem === "template" ? (
-                  <div style={{ marginBottom: 8 }}>
-                    <label style={{ ...labelStyle, fontSize: 10 }}>Mensagem (use {"{nome}"} e {"{empresa}"})</label>
-                    <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 60, fontSize: 12 }}
-                      placeholder="Olá {nome}! Vi que você se interessou pelos nossos serviços..."
-                      value={etapa.texto_template} onChange={e => updateEtapa(idx, "texto_template", e.target.value)} />
-                  </div>
-                ) : (
-                  <div style={{ marginBottom: 8 }}>
-                    <label style={{ ...labelStyle, fontSize: 10 }}>Prompt para a IA</label>
-                    <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 60, fontSize: 12 }}
-                      placeholder="Envie um follow-up amigável perguntando se o lead tem mais dúvidas..."
-                      value={etapa.prompt_ia} onChange={e => updateEtapa(idx, "prompt_ia", e.target.value)} />
-                  </div>
-                )}
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
-                  <div>
-                    <label style={{ ...labelStyle, fontSize: 10 }}>Mídia (URL da imagem ou vídeo — opcional)</label>
-                    <input style={inputStyle} placeholder="https://..." value={etapa.midia_url} onChange={e => updateEtapa(idx, "midia_url", e.target.value)} />
-                  </div>
+              <div>
+                <label style={{ ...labelStyle, fontSize: 10 }}>Mídia (opcional)</label>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <label style={{
+                    cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "8px 14px", fontSize: 12, borderRadius: 8, border: "1px solid #2e2e2e",
+                    background: "#1a1a1a", color: "#a0a0a0",
+                  }}>
+                    <Plus size={13} /> Enviar arquivo
+                    <input type="file" style={{ display: "none" }}
+                      accept="image/*,video/*,audio/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const ext = file.name.split(".").pop() || "bin";
+                        const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+                        const { error } = await supabase.storage.from("funis-midia").upload(path, file);
+                        if (error) { alert("Erro ao enviar: " + error.message); return; }
+                        const { data: urlData } = supabase.storage.from("funis-midia").getPublicUrl(path);
+                        const tipo = file.type.startsWith("audio") ? "audio" : file.type.startsWith("video") ? "video" : "image";
+                        updateEtapa(idx, "midia_url", urlData.publicUrl);
+                        updateEtapa(idx, "midia_tipo", tipo);
+                      }}
+                    />
+                  </label>
                   {etapa.midia_url && (
-                    <div>
-                      <label style={{ ...labelStyle, fontSize: 10 }}>Tipo</label>
-                      <select style={inputStyle} value={etapa.midia_tipo || "image"} onChange={e => updateEtapa(idx, "midia_tipo", e.target.value)}>
+                    <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 6 }}>
+                      <select style={{ ...inputStyle, width: 90, padding: "4px 6px", fontSize: 11 }} value={etapa.midia_tipo || "image"} onChange={e => updateEtapa(idx, "midia_tipo", e.target.value)}>
                         <option value="image">Imagem</option>
                         <option value="video">Vídeo</option>
+                        <option value="audio">Áudio</option>
                       </select>
+                      <span style={{ fontSize: 11, color: "#22c55e", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {etapa.midia_url.split("/").pop()?.slice(0, 30) || "Arquivo enviado"}
+                      </span>
+                      <button onClick={() => { updateEtapa(idx, "midia_url", ""); updateEtapa(idx, "midia_tipo", ""); }} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: 2 }}>
+                        <Trash2 size={13} />
+                      </button>
                     </div>
                   )}
                 </div>
               </div>
-            ))}
-
-            <button onClick={addEtapa}
-              style={{ width: "100%", background: "#1e1e1e", border: "1px dashed #333", borderRadius: 8, padding: "10px 0", color: "#606060", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 12 }}>
-              <Plus size={14} /> Adicionar etapa
-            </button>
-
-            <button onClick={salvarFollowup} disabled={salvandoFollowup}
-              style={{ width: "100%", background: "#f59e0b", border: "none", borderRadius: 8, padding: "10px 0", color: "#000", fontWeight: 600, fontSize: 13, cursor: "pointer", opacity: salvandoFollowup ? 0.6 : 1 }}>
-              {salvandoFollowup ? "Salvando..." : "Salvar Follow-up"}
-            </button>
-          </div>
+            </div>
+          ))}
         </div>
+
+        <button onClick={addEtapa}
+          style={{ width: "100%", background: "transparent", border: "1px dashed #2e2e2e", borderRadius: 8, padding: "8px 0", color: "#606060", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 12 }}>
+          <Plus size={13} /> Adicionar tentativa
+        </button>
+
+        <button onClick={salvarFollowup} disabled={salvandoFollowup}
+          style={{ width: "100%", background: "#f59e0b", border: "none", borderRadius: 8, padding: "10px 0", color: "#000", fontWeight: 600, fontSize: 13, cursor: "pointer", opacity: salvandoFollowup ? 0.6 : 1 }}>
+          {salvandoFollowup ? "Salvando..." : "Salvar Follow-up"}
+        </button>
       </div>
     </div>
   );

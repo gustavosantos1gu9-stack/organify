@@ -58,22 +58,33 @@ export async function GET(req: NextRequest) {
         }
 
         const meta = await res.json();
-        // Saldo disponível real vem em funding_source_details.display_string
+        // Detectar tipo de pagamento: 1=Cartão de crédito, 2=PIX/Boleto
+        const fundType = meta.funding_source_details?.type;
+        const detectedCartao = fundType === 1;
+        // monitorar_como: 'auto' | 'saldo' | 'cartao'
+        // 'saldo' força monitoramento de saldo (mesmo que cartão cadastrado — cliente abastece via PIX)
+        // 'cartao' força monitoramento de erro de pagamento
+        const monitorarComo = alerta.monitorar_como || "auto";
+        const isCartao = monitorarComo === "cartao" ? true : monitorarComo === "saldo" ? false : detectedCartao;
         const displayStr = meta.funding_source_details?.display_string || "";
-        const matchSaldo = displayStr.match(/[\d.,]+/);
+
+        // Saldo só faz sentido para PIX/Boleto (pré-pago), não para cartão de crédito
         let balance = 0;
-        if (matchSaldo) {
-          balance = parseFloat(matchSaldo[0].replace(/\./g, "").replace(",", "."));
-        }
-        if (!balance || isNaN(balance)) {
-          const spendCap = meta.spend_cap ? parseFloat(meta.spend_cap) / 100 : 0;
-          const amountSpent = meta.amount_spent ? parseFloat(meta.amount_spent) / 100 : 0;
-          balance = spendCap > 0 ? spendCap - amountSpent : 0;
+        if (!isCartao) {
+          const matchSaldo = displayStr.match(/[\d.,]+/);
+          if (matchSaldo) {
+            balance = parseFloat(matchSaldo[0].replace(/\./g, "").replace(",", "."));
+          }
+          if (!balance || isNaN(balance)) {
+            const spendCap = meta.spend_cap ? parseFloat(meta.spend_cap) / 100 : 0;
+            const amountSpent = meta.amount_spent ? parseFloat(meta.amount_spent) / 100 : 0;
+            balance = spendCap > 0 ? spendCap - amountSpent : 0;
+          }
         }
 
         // Verificar status da conta
         const statusMap: Record<number, string> = {
-          1: "Ativa", 2: "Desativada", 3: "Não liquidada", 7: "Em revisão",
+          1: "Ativa", 2: "Desativada", 3: "Desativada com erro no pagamento", 7: "Em revisão",
           9: "Período de carência", 101: "Fechada", 100: "Suspensa",
         };
         const statusTexto = statusMap[meta.account_status] || `Status ${meta.account_status}`;
@@ -98,10 +109,12 @@ export async function GET(req: NextRequest) {
               erroPagamento = true;
               erroPagamentoMsg = disableReasons[payData.disable_reason] || `Motivo ${payData.disable_reason}`;
             }
-            // Verificar tipo de pagamento
-            const fundType = payData.funding_source_details?.type;
-            if (fundType && contaProblema) {
-              erroPagamentoMsg = `${erroPagamentoMsg ? erroPagamentoMsg + " — " : ""}Pagamento: ${fundType === 1 ? "Cartão de crédito" : fundType === 2 ? "PIX/Boleto" : fundType}`;
+            // Cartão de crédito com conta problemática = erro de pagamento
+            if (isCartao && contaProblema && !erroPagamento) {
+              erroPagamento = true;
+              erroPagamentoMsg = `Conta ${statusTexto.toLowerCase()} — Cartão de crédito (${displayStr})`;
+            } else if (isCartao && erroPagamento) {
+              erroPagamentoMsg = `${erroPagamentoMsg} — Cartão de crédito (${displayStr})`;
             }
           }
         } catch {}
@@ -115,12 +128,12 @@ export async function GET(req: NextRequest) {
           continue;
         }
 
-        // Evitar spam: não alertar se já alertou nas últimas 6h
+        // Evitar spam: máximo 1 alerta por dia (24h)
         if (alerta.ultimo_alerta) {
           const ultimoAlerta = new Date(alerta.ultimo_alerta);
-          const seisHorasAtras = new Date(Date.now() - 6 * 60 * 60 * 1000);
-          if (ultimoAlerta > seisHorasAtras) {
-            resultados.push({ id: alerta.id, nome: alerta.nome_cliente, status: "ja_alertado_recente", saldo: balance });
+          const vintEquatroHorasAtras = new Date(Date.now() - 24 * 60 * 60 * 1000);
+          if (ultimoAlerta > vintEquatroHorasAtras) {
+            resultados.push({ id: alerta.id, nome: alerta.nome_cliente, status: "ja_alertado_hoje", saldo: balance });
             continue;
           }
         }
@@ -131,17 +144,17 @@ export async function GET(req: NextRequest) {
           "<CA>": alerta.nome_cliente || "",
           "<CLIENTE>": alerta.nome_cliente || "",
           "<CONTA>": meta.name || acId,
-          "<SALDO>": formatMoney(balance),
+          "<SALDO>": isCartao ? "N/A (Cartão de crédito)" : formatMoney(balance),
           "<LIMITE>": formatMoney(alerta.saldo_alerta || 0),
           "<STATUS>": statusTexto,
           "<PAGAMENTO>": alerta.forma_pagamento || "PIX/Boleto",
           "<ERRO_PAGAMENTO>": erroPagamentoMsg || "",
         };
 
-        if (erroPagamento) {
-          mensagem = alerta.template_pagamento || `🚨 *ALERTA DE PAGAMENTO*\n\nCliente: *<CLIENTE>*\nConta: <CONTA>\nStatus: *<STATUS>*\nProblema: *<ERRO_PAGAMENTO>*\n\n_Verifique o método de pagamento (cartão/boleto) no Gerenciador de Anúncios._`;
+        if (erroPagamento || (isCartao && contaProblema)) {
+          mensagem = alerta.template_status || `🚨 *ALERTA — CARTÃO DE CRÉDITO*\n\nA conta de anúncios *<CLIENTE>* está com problema no pagamento.\n\nStatus: *<STATUS>*\nMétodo: Cartão de Crédito\n\n_O cartão pode estar expirado, sem limite ou foi recusado. Verifique o método de pagamento no Gerenciador de Anúncios para não parar os anúncios._`;
         } else if (contaProblema) {
-          mensagem = alerta.template_status || `🚨 *ALERTA DE CONTA*\n\nCliente: *<CLIENTE>*\nConta: <CONTA>\nStatus: *<STATUS>*\nSaldo: <SALDO>\n\n_A conta está com problema. Verifique no Gerenciador de Anúncios._`;
+          mensagem = alerta.template_status || `🚨 *ALERTA DE CONTA*\n\nCliente: *<CLIENTE>*\nConta: <CONTA>\nStatus: *<STATUS>*\n\n_A conta está com problema. Verifique no Gerenciador de Anúncios._`;
         } else if (saldoBaixo) {
           mensagem = alerta.template_saldo || `⚠️ *ALERTA DE SALDO BAIXO*\n\nCliente: *<CLIENTE>*\nConta: <CONTA>\nSaldo atual: *<SALDO>*\nLimite configurado: <LIMITE>\n\n_Recarregue via PIX para não parar os anúncios._`;
         }

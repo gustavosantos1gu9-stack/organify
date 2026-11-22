@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   useEscalas,
   useMetaEscala,
   useEscalasHistorico,
-  useClientes,
+  useControleClientes,
   criarEscala,
   atualizarEscala,
   removerEscala,
@@ -13,6 +13,7 @@ import {
   enviarEscalaProximoMes,
   Escala,
 } from "@/lib/hooks";
+import { supabase, getAgenciaId } from "@/lib/hooks";
 import { formatCurrency } from "@/lib/utils";
 import InputValor, { formatarValorBR, parsearValorBR } from "@/components/ui/InputValor";
 import {
@@ -34,6 +35,7 @@ import {
   XCircle,
   PieChart,
 } from "lucide-react";
+import EscalaPainelClientes from "./EscalaPainelClientes";
 
 const MESES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -41,20 +43,85 @@ const MESES = [
 ];
 
 interface EscalaPageProps {
-  tipo: "ester" | "nicolas";
+  tipo: "ester" | "nicolas" | "lavinia";
   titulo: string;
   subtitulo: string;
+  gestor: string;
+  gestorEscala: string;
+  filtroGestor?: string;
 }
 
-export default function EscalaPage({ tipo, titulo, subtitulo }: EscalaPageProps) {
+export default function EscalaPage({ tipo, titulo, subtitulo, gestor, gestorEscala, filtroGestor }: EscalaPageProps) {
   const hoje = new Date();
   const [mes, setMes] = useState(hoje.getMonth() + 1);
   const [ano, setAno] = useState(hoje.getFullYear());
   const { data: escalas, loading, refresh } = useEscalas(tipo, mes, ano);
   const { data: metaData, refresh: refreshMeta } = useMetaEscala(tipo, mes, ano);
-  const { data: clientes } = useClientes();
+  const { data: clientes } = useControleClientes();
 
   const { data: historicoAll } = useEscalasHistorico(tipo);
+
+  // KPIs de renovação (fase 3/4) e churn por gestor
+  const [kpisGestor, setKpisGestor] = useState<{
+    totalMais30: number;
+    fase34: number;
+    pctFase34: number;
+    churnMes: number;
+    totalGestor: number;
+    pctChurn: number;
+  } | null>(null);
+
+  useEffect(() => {
+    async function carregarKpisGestor() {
+      const agId = await getAgenciaId();
+      if (!agId || !filtroGestor) return;
+
+      const hoje = new Date();
+      const mesesNomes = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+      const mesAtualStr = `${mesesNomes[hoje.getMonth()]}/${hoje.getFullYear()}`;
+      const limite30 = new Date(hoje.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+      // Clientes ativos deste gestor
+      const { data: ativos } = await supabase
+        .from("controle_clientes")
+        .select("id, escala_jornada, data_inicio_campanha")
+        .eq("agencia_id", agId)
+        .eq("gestor", filtroGestor)
+        .neq("status", "saiu");
+
+      // Churns deste gestor no mês atual
+      const { data: churns } = await supabase
+        .from("controle_clientes")
+        .select("id")
+        .eq("agencia_id", agId)
+        .eq("gestor", filtroGestor)
+        .eq("status", "saiu")
+        .eq("data_churn", mesAtualStr);
+
+      const totalGestor = (ativos || []).length;
+      const churnMes = (churns || []).length;
+
+      // Clientes que já passaram 30 dias de campanha ativa
+      const mais30 = (ativos || []).filter(c => {
+        if (!c.data_inicio_campanha) return false;
+        const ini = c.data_inicio_campanha.includes("/")
+          ? c.data_inicio_campanha.split("/").reverse().join("-")
+          : c.data_inicio_campanha;
+        return ini <= limite30;
+      });
+
+      const totalMais30 = mais30.length;
+      const fase34 = mais30.filter(c => c.escala_jornada === "etapa3" || c.escala_jornada === "etapa4").length;
+      const pctFase34 = totalMais30 > 0 ? Math.round((fase34 / totalMais30) * 100) : 0;
+
+      // Taxa de churn: churns do mês / (ativos + churns do mês)
+      const baseChurn = totalGestor + churnMes;
+      const pctChurn = baseChurn > 0 ? Math.round((churnMes / baseChurn) * 100) : 0;
+
+      setKpisGestor({ totalMais30, fase34, pctFase34, churnMes, totalGestor, pctChurn });
+    }
+    carregarKpisGestor();
+  }, [filtroGestor]);
 
   const [showModal, setShowModal] = useState(false);
   const [showMetaModal, setShowMetaModal] = useState(false);
@@ -219,225 +286,47 @@ export default function EscalaPage({ tipo, titulo, subtitulo }: EscalaPageProps)
   return (
     <div className="animate-in" style={{ padding: "0" }}>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-        <div>
-          <h1 style={{ fontSize: "22px", fontWeight: "700", color: "#f0f0f0", margin: 0 }}>{titulo}</h1>
-          <p style={{ fontSize: "13px", color: "#606060", marginTop: "4px" }}>{subtitulo}</p>
-        </div>
-        <div style={{ display: "flex", gap: "8px" }}>
-          <button onClick={() => setShowRelatorio(true)} className="btn-secondary" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <PieChart size={14} /> Relatório
-          </button>
-          <button onClick={openMeta} className="btn-secondary" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <Target size={14} /> Definir Metas
-          </button>
-          <button onClick={openNew} className="btn-primary" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <Plus size={14} /> Novo Registro
-          </button>
-        </div>
+      <div style={{ marginBottom: "24px" }}>
+        <h1 style={{ fontSize: "22px", fontWeight: "700", color: "#f0f0f0", margin: 0 }}>{titulo}</h1>
+        <p style={{ fontSize: "13px", color: "#606060", marginTop: "4px" }}>{subtitulo}</p>
       </div>
 
-      {/* Month Selector */}
-      <div style={{
-        display: "flex", alignItems: "center", gap: "16px", marginBottom: "24px",
-        background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "10px", padding: "12px 20px",
-      }}>
-        <button onClick={prevMonth} style={{ background: "#2a2a2a", border: "1px solid #3a3a3a", borderRadius: "6px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#a0a0a0" }}>
-          <ChevronLeft size={16} />
-        </button>
-        <div style={{ flex: 1, textAlign: "center" }}>
-          <span style={{ fontSize: "18px", fontWeight: "600", color: "#f0f0f0" }}>{MESES[mes - 1]} {ano}</span>
-        </div>
-        <button onClick={nextMonth} style={{ background: "#2a2a2a", border: "1px solid #3a3a3a", borderRadius: "6px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#a0a0a0" }}>
-          <ChevronRight size={16} />
-        </button>
-      </div>
-
-      {/* KPI Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px", marginBottom: "24px" }}>
-        {/* Total */}
-        <div className="kpi-card">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
-            <span style={{ fontSize: "13px", color: "#a0a0a0" }}>Total Clientes</span>
-            <div style={{ width: "34px", height: "34px", borderRadius: "8px", background: "rgba(59,130,246,0.12)", display: "flex", alignItems: "center", justifyContent: "center", color: "#3b82f6" }}>
-              <BarChart3 size={18} />
-            </div>
+      {/* KPIs de renovação e churn por gestor */}
+      {kpisGestor && (
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"12px", marginBottom:"20px" }}>
+          <div className="card" style={{ padding:"14px 16px" }}>
+            <p style={{ fontSize:"11px", color:"#606060", margin:"0 0 4px" }}>Clientes +30 dias</p>
+            <p style={{ fontSize:"22px", fontWeight:"700", color:"#f0f0f0", margin:0 }}>{kpisGestor.totalMais30}</p>
+            <p style={{ fontSize:"11px", color:"#606060", margin:"4px 0 0" }}>de {kpisGestor.totalGestor} ativos</p>
           </div>
-          <div style={{ fontSize: "28px", fontWeight: "700", color: "#f0f0f0" }}>{kpis.total}</div>
-        </div>
-
-        {/* Planilhas preenchidas */}
-        <div className="kpi-card">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
-            <span style={{ fontSize: "13px", color: "#a0a0a0" }}>Planilhas Preenchidas</span>
-            <div style={{ width: "34px", height: "34px", borderRadius: "8px", background: "rgba(34,197,94,0.12)", display: "flex", alignItems: "center", justifyContent: "center", color: "#22c55e" }}>
-              <ClipboardCheck size={18} />
-            </div>
+          <div className="card" style={{ padding:"14px 16px" }}>
+            <p style={{ fontSize:"11px", color:"#606060", margin:"0 0 4px" }}>Fase 3 ou 4</p>
+            <p style={{ fontSize:"22px", fontWeight:"700", color: kpisGestor.pctFase34 >= 50 ? "#22c55e" : kpisGestor.pctFase34 >= 30 ? "#f59e0b" : "#ef4444", margin:0 }}>
+              {kpisGestor.pctFase34}%
+            </p>
+            <p style={{ fontSize:"11px", color:"#606060", margin:"4px 0 0" }}>{kpisGestor.fase34} de {kpisGestor.totalMais30} (+30 dias)</p>
           </div>
-          <div style={{ fontSize: "28px", fontWeight: "700", color: "#f0f0f0" }}>{kpis.planilhas}</div>
-          {metaData && metaData.meta_planilhas > 0 && (
-            <div style={{ marginTop: "8px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#707070", marginBottom: "4px" }}>
-                <span>Meta: {metaData.meta_planilhas}</span>
-                <span style={{ color: metaCalc.planilhasPct >= 100 ? "#22c55e" : "#f59e0b" }}>{metaCalc.planilhasPct}%</span>
-              </div>
-              <ProgressBar value={kpis.planilhas} max={metaData.meta_planilhas} color="#22c55e" />
-            </div>
-          )}
-        </div>
-
-        {/* Escalados */}
-        <div className="kpi-card">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
-            <span style={{ fontSize: "13px", color: "#a0a0a0" }}>Escalaram</span>
-            <div style={{ width: "34px", height: "34px", borderRadius: "8px", background: "rgba(168,85,247,0.12)", display: "flex", alignItems: "center", justifyContent: "center", color: "#a855f7" }}>
-              <TrendingUp size={18} />
-            </div>
+          <div className="card" style={{ padding:"14px 16px" }}>
+            <p style={{ fontSize:"11px", color:"#606060", margin:"0 0 4px" }}>Churn mês atual</p>
+            <p style={{ fontSize:"22px", fontWeight:"700", color: kpisGestor.churnMes === 0 ? "#22c55e" : "#ef4444", margin:0 }}>
+              {kpisGestor.churnMes}
+            </p>
+            <p style={{ fontSize:"11px", color:"#606060", margin:"4px 0 0" }}>saídas este mês</p>
           </div>
-          <div style={{ fontSize: "28px", fontWeight: "700", color: "#f0f0f0" }}>{kpis.escalados}</div>
-          {metaData && metaData.meta_escala_pct > 0 && kpis.planilhas > 0 && (
-            <div style={{ marginTop: "8px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#707070", marginBottom: "4px" }}>
-                <span>Meta: {metaCalc.escalaEsperadas} ({metaData.meta_escala_pct}% de {kpis.planilhas})</span>
-                <span style={{ color: metaCalc.escalaPctAlcancada >= 100 ? "#22c55e" : "#f59e0b" }}>{metaCalc.escalaPctAlcancada}%</span>
-              </div>
-              <ProgressBar value={kpis.escalados} max={metaCalc.escalaEsperadas} color="#a855f7" />
-            </div>
-          )}
-        </div>
-
-        {/* Investimento total */}
-        <div className="kpi-card">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
-            <span style={{ fontSize: "13px", color: "#a0a0a0" }}>Investimento Total</span>
-            <div style={{ width: "34px", height: "34px", borderRadius: "8px", background: "rgba(245,158,11,0.12)", display: "flex", alignItems: "center", justifyContent: "center", color: "#f59e0b" }}>
-              <FileSpreadsheet size={18} />
-            </div>
-          </div>
-          <div style={{ fontSize: "28px", fontWeight: "700", color: "#f0f0f0" }}>{formatCurrency(kpis.investTotal)}</div>
-          <div style={{ fontSize: "11px", color: "#606060", marginTop: "4px" }}>
-            Custo médio/agend.: {formatCurrency(kpis.custoMedio)}
-          </div>
-        </div>
-      </div>
-
-      {/* Barra taxa de escala */}
-      {kpis.planilhas > 0 && (
-        <div style={{
-          background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "10px",
-          padding: "16px 20px", marginBottom: "24px",
-        }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-            <span style={{ fontSize: "13px", color: "#a0a0a0", display: "flex", alignItems: "center", gap: "6px" }}>
-              <TrendingUp size={14} /> Taxa de Escala (sobre planilhas preenchidas)
-            </span>
-            <span style={{
-              fontSize: "16px", fontWeight: "700",
-              color: taxaEscala >= 60 ? "#22c55e" : taxaEscala >= 30 ? "#f59e0b" : "#ef4444",
-            }}>
-              {taxaEscala}%
-            </span>
-          </div>
-          <ProgressBar value={kpis.escalados} max={kpis.planilhas} color="#29ABE2" />
-          <div style={{ display: "flex", gap: "16px", marginTop: "8px", fontSize: "11px", color: "#606060" }}>
-            <span>{kpis.planilhas} planilhas preenchidas</span>
-            <span>{kpis.escalados} escalaram</span>
-            <span>{kpis.totalAgendamentos} agendamentos totais</span>
+          <div className="card" style={{ padding:"14px 16px" }}>
+            <p style={{ fontSize:"11px", color:"#606060", margin:"0 0 4px" }}>Taxa de Churn</p>
+            <p style={{ fontSize:"22px", fontWeight:"700", color: kpisGestor.pctChurn === 0 ? "#22c55e" : kpisGestor.pctChurn <= 5 ? "#f59e0b" : "#ef4444", margin:0 }}>
+              {kpisGestor.pctChurn}%
+            </p>
+            <p style={{ fontSize:"11px", color:"#606060", margin:"4px 0 0" }}>base: {kpisGestor.totalGestor + kpisGestor.churnMes} clientes</p>
           </div>
         </div>
       )}
 
-      {/* Busca */}
-      <div style={{ marginBottom: "16px" }}>
-        <input type="text" placeholder="Buscar por nome ou cliente..." value={busca} onChange={(e) => setBusca(e.target.value)} className="form-input" style={{ maxWidth: "400px" }} />
-      </div>
+      {/* Painel de clientes + Calendário */}
+      <EscalaPainelClientes gestor={gestor} gestorEscala={gestorEscala} filtroGestor={filtroGestor} />
 
-      {/* Tabela */}
-      {loading ? (
-        <div style={{ textAlign: "center", padding: "60px", color: "#606060" }}>Carregando...</div>
-      ) : filtradas.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "60px", color: "#606060", background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "10px" }}>
-          <FileSpreadsheet size={40} style={{ marginBottom: "12px", opacity: 0.3 }} />
-          <p>Nenhum registro em {MESES[mes - 1]} {ano}</p>
-          <button onClick={openNew} className="btn-primary" style={{ marginTop: "12px" }}>
-            <Plus size={14} /> Adicionar primeiro
-          </button>
-        </div>
-      ) : (
-        <div style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "10px", overflow: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "1000px" }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid #2e2e2e" }}>
-                {["Cliente", "Planilha", "Agend.", "Custo/Agend.", "Escala", "Invest. Anterior", "Invest. Atual", "Link", ""].map((h) => (
-                  <th key={h} style={{ padding: "12px 14px", textAlign: "left", fontSize: "11px", color: "#707070", fontWeight: "500", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtradas.map((e) => (
-                <tr key={e.id} style={{ borderBottom: "1px solid #1e1e1e" }}
-                  onMouseEnter={(ev) => (ev.currentTarget.style.background = "#222")}
-                  onMouseLeave={(ev) => (ev.currentTarget.style.background = "transparent")}
-                >
-                  <td style={{ padding: "12px 14px" }}>
-                    <span style={{ fontSize: "14px", color: "#f0f0f0", fontWeight: "500" }}>
-                      {e.clientes?.nome ?? e.nome}
-                    </span>
-                  </td>
-                  <td style={{ padding: "12px 14px" }}>
-                    <button onClick={() => handleToggle(e, "planilha_preenchida")} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
-                      <BoolBadge value={e.planilha_preenchida} />
-                    </button>
-                  </td>
-                  <td style={{ padding: "12px 14px", fontSize: "13px", color: "#f0f0f0", fontWeight: "500" }}>
-                    {e.agendamentos}
-                  </td>
-                  <td style={{ padding: "12px 14px", fontSize: "13px", color: "#a0a0a0" }}>
-                    {formatCurrency(e.custo_por_agendamento)}
-                  </td>
-                  <td style={{ padding: "12px 14px" }}>
-                    <button onClick={() => handleToggle(e, "escala")} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
-                      <BoolBadge value={e.escala} />
-                    </button>
-                  </td>
-                  <td style={{ padding: "12px 14px", fontSize: "13px", color: "#a0a0a0" }}>
-                    {formatCurrency(e.investimento_anterior)}
-                  </td>
-                  <td style={{ padding: "12px 14px", fontSize: "13px", color: "#f0f0f0" }}>
-                    {formatCurrency(e.investimento_atual)}
-                  </td>
-                  <td style={{ padding: "12px 14px" }}>
-                    {e.link_planilha ? (
-                      <a href={e.link_planilha} target="_blank" rel="noopener noreferrer" style={{ color: "#29ABE2", display: "flex", alignItems: "center", gap: "4px", fontSize: "12px" }}>
-                        <ExternalLink size={13} /> Abrir
-                      </a>
-                    ) : (
-                      <span style={{ color: "#606060", fontSize: "12px" }}>—</span>
-                    )}
-                  </td>
-                  <td style={{ padding: "12px 14px", textAlign: "right" }}>
-                    <div style={{ display: "flex", gap: "2px", justifyContent: "flex-end" }}>
-                      <button onClick={() => handleEnviarProximoMes(e)} className="btn-ghost" style={{ padding: "6px", color: "#29ABE2" }} title="Enviar para próximo mês">
-                        <ArrowRightCircle size={14} />
-                      </button>
-                      <button onClick={() => openEdit(e)} className="btn-ghost" style={{ padding: "6px", color: "#707070" }}>
-                        <Edit3 size={14} />
-                      </button>
-                      <button onClick={() => handleDelete(e.id)} className="btn-ghost" style={{ padding: "6px", color: "#707070" }}>
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Modal Novo/Editar */}
+      {/* Modal Novo/Editar — mantido para compatibilidade mas não acessível via UI */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal animate-in" onClick={(ev) => ev.stopPropagation()} style={{ maxWidth: "560px" }}>

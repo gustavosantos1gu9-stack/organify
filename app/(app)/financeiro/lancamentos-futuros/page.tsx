@@ -268,10 +268,37 @@ export default function LancamentosFuturosPage() {
   const [editando, setEditando] = useState<any>(null);
   const [busca, setBusca] = useState("");
   const [filtros, setFiltros] = useState<Record<string,string>>({});
+  const [mesSelecionado, setMesSelecionado] = useState("");
   const { data: lancs, loading, refresh } = useLancamentosFuturos(busca);
   const { data: clientes } = useClientes();
 
+  // KPIs: query separada sem filtros para garantir valor correto
+  const [kpiEntMes, setKpiEntMes] = useState(0);
+  const [kpiSaiMes, setKpiSaiMes] = useState(0);
+  useEffect(() => {
+    async function loadKpi() {
+      const agId = await getAgenciaId();
+      if (!agId) return;
+      const mesAtual = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,"0")}`;
+      const primeiroDia = `${mesAtual}-01`;
+      const ultimoDia = `${mesAtual}-31`;
+      const { data: kpiData } = await supabase
+        .from("lancamentos_futuros")
+        .select("tipo, valor")
+        .eq("agencia_id", agId)
+        .eq("pago", false)
+        .gte("data_vencimento", primeiroDia)
+        .lte("data_vencimento", ultimoDia);
+      if (kpiData) {
+        setKpiEntMes(kpiData.filter(l => l.tipo === "entrada").reduce((a, b) => a + b.valor, 0));
+        setKpiSaiMes(kpiData.filter(l => l.tipo === "saida").reduce((a, b) => a + b.valor, 0));
+      }
+    }
+    loadKpi();
+  }, [lancs]);
+
   const filtrados = (lancs??[]).filter(l => {
+    if (mesSelecionado && !l.data_vencimento.startsWith(mesSelecionado)) return false;
     if (filtros.tipo && l.tipo !== filtros.tipo) return false;
     if (filtros.data_de && l.data_vencimento < filtros.data_de) return false;
     if (filtros.data_ate && l.data_vencimento > filtros.data_ate) return false;
@@ -281,12 +308,16 @@ export default function LancamentosFuturosPage() {
 
   const totalEntradas = filtrados.filter(l=>l.tipo==="entrada"&&!l.pago).reduce((a,b)=>a+b.valor,0);
   const totalSaidas = filtrados.filter(l=>l.tipo==="saida"&&!l.pago).reduce((a,b)=>a+b.valor,0);
-  const mesAtual = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,"0")}`;
-  const entradasMes = filtrados.filter(l=>l.tipo==="entrada"&&!l.pago&&l.data_vencimento.startsWith(mesAtual)).reduce((a,b)=>a+b.valor,0);
-  const saidasMes = filtrados.filter(l=>l.tipo==="saida"&&!l.pago&&l.data_vencimento.startsWith(mesAtual)).reduce((a,b)=>a+b.valor,0);
+
+  const MESES_NOMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+
+  // Meses disponíveis para o seletor (baseado nos dados reais)
+  const mesesDisponiveis = Array.from(new Set((lancs??[]).map(l => {
+    const [ano, mes] = l.data_vencimento.split("-");
+    return `${ano}-${mes}`;
+  }))).sort();
 
   // Agrupar por mês
-  const MESES_NOMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
   const porMes = filtrados.reduce<Record<string, typeof filtrados>>((acc, l) => {
     const [ano, mes] = l.data_vencimento.split("-");
     const chave = `${ano}-${mes}`;
@@ -338,14 +369,13 @@ export default function LancamentosFuturosPage() {
 
       if (errBusca || !lanc) throw new Error("Lançamento não encontrado");
 
-      const hoje = new Date().toISOString().split("T")[0];
-
-      // Criar movimentação com o valor recebido
+      // Usar a data de vencimento do lançamento (não a data de hoje)
+      // Assim um pagamento de abril lançado em maio é contabilizado em abril
       await criarMovimentacao({
         tipo: lanc.tipo,
         descricao: lanc.descricao || "Lançamento",
         valor: valorRecebido,
-        data: hoje,
+        data: lanc.data_vencimento,
         categoria_id: lanc.categoria_id || undefined,
         cliente_id: lanc.cliente_id || undefined,
         despesa: lanc.despesa || false,
@@ -374,8 +404,8 @@ export default function LancamentosFuturosPage() {
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"16px",marginBottom:"28px"}}>
         <KPICard label="Entradas previstas (total)" value={formatCurrency(totalEntradas)} change={0} icon={<ArrowDownToLine size={16}/>} iconBg="green"/>
         <KPICard label="Saídas previstas (total)" value={formatCurrency(totalSaidas)} change={0} icon={<ArrowUpFromLine size={16}/>} iconBg="red"/>
-        <KPICard label="Entradas este mês" value={formatCurrency(entradasMes)} change={0} icon={<ArrowDownToLine size={16}/>} iconBg="green"/>
-        <KPICard label="Saídas este mês" value={formatCurrency(saidasMes)} change={0} icon={<ArrowUpFromLine size={16}/>} iconBg="red"/>
+        <KPICard label="Entradas este mês" value={formatCurrency(kpiEntMes)} change={0} icon={<ArrowDownToLine size={16}/>} iconBg="green"/>
+        <KPICard label="Saídas este mês" value={formatCurrency(kpiSaiMes)} change={0} icon={<ArrowUpFromLine size={16}/>} iconBg="red"/>
       </div>
 
       <div className="table-wrapper">
@@ -384,6 +414,18 @@ export default function LancamentosFuturosPage() {
             <Search size={14} style={{position:"absolute",left:"12px",top:"50%",transform:"translateY(-50%)",color:"#606060"}}/>
             <input className="search-input" placeholder="Buscar lançamentos..." value={busca} onChange={e=>setBusca(e.target.value)}/>
           </div>
+          <select
+            className="form-input"
+            style={{width:"auto",minWidth:"160px",fontSize:"13px",padding:"8px 12px"}}
+            value={mesSelecionado}
+            onChange={e=>setMesSelecionado(e.target.value)}
+          >
+            <option value="">Todos os meses</option>
+            {mesesDisponiveis.map(m => {
+              const [ano, mes] = m.split("-");
+              return <option key={m} value={m}>{MESES_NOMES[parseInt(mes)-1]} {ano}</option>;
+            })}
+          </select>
           <button className="btn-secondary" onClick={()=>setShowFiltros(true)}>
             <SlidersHorizontal size={14}/> Filtros
             {Object.values(filtros).some(Boolean) && (

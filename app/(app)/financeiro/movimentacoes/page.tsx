@@ -61,11 +61,31 @@ function NovaMovModal({ tipo, onClose, onSave, clientes }: { tipo:"entrada"|"sai
   );
 }
 
+const MESES_NOMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+
+function getMesAtual() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+}
+
+function mesParaDatas(mes: string): { de: string; ate: string } {
+  if (!mes) return { de: "", ate: "" };
+  const [ano, m] = mes.split("-").map(Number);
+  const de = `${ano}-${String(m).padStart(2,"0")}-01`;
+  const ultimoDia = new Date(ano, m, 0).getDate();
+  const ate = `${ano}-${String(m).padStart(2,"0")}-${String(ultimoDia).padStart(2,"0")}`;
+  return { de, ate };
+}
+
 export default function MovimentacoesPage() {
   const [showModal, setShowModal] = useState<"entrada"|"saida"|null>(null);
   const [busca, setBusca] = useState("");
   const [filtros, setFiltros] = useState<Record<string,string>>({});
-  const { data: movs, loading, refresh } = useMovimentacoes(busca, filtros.data_de||"", filtros.data_ate||"");
+  const [mesSelecionado, setMesSelecionado] = useState(getMesAtual());
+  const mesDatas = mesParaDatas(mesSelecionado);
+  const dataDeEfetiva = filtros.data_de || mesDatas.de;
+  const dataAteEfetiva = filtros.data_ate || mesDatas.ate;
+  const { data: movs, loading, refresh } = useMovimentacoes(busca, dataDeEfetiva, dataAteEfetiva);
   const { data: clientes } = useClientes();
 
   const filtrados = (movs??[]).filter((m)=>{
@@ -107,6 +127,19 @@ export default function MovimentacoesPage() {
             <Search size={14} style={{ position:"absolute",left:"12px",top:"50%",transform:"translateY(-50%)",color:"#606060" }}/>
             <input className="search-input" placeholder="Buscar movimentações..." value={busca} onChange={(e)=>setBusca(e.target.value)}/>
           </div>
+          <select
+            className="form-input"
+            style={{width:"auto",minWidth:"160px",fontSize:"13px",padding:"8px 12px"}}
+            value={mesSelecionado}
+            onChange={e=>setMesSelecionado(e.target.value)}
+          >
+            <option value="">Todos</option>
+            {Array.from({length:12},(_,i)=>{
+              const d = new Date(); d.setMonth(d.getMonth()-i);
+              const v = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+              return <option key={v} value={v}>{MESES_NOMES[d.getMonth()]} {d.getFullYear()}</option>;
+            })}
+          </select>
           <Filtros grupos={FILTROS_GRUPOS} valores={filtros} onChange={(k,v)=>setFiltros((f)=>({...f,[k]:v}))} onLimpar={()=>setFiltros({})}/>
           <button className="btn-primary" onClick={()=>setShowModal("entrada")}><Plus size={14}/> Nova entrada</button>
           <button onClick={()=>setShowModal("saida")} style={{ background:"rgba(239,68,68,0.12)",color:"#ef4444",border:"1px solid rgba(239,68,68,0.2)",padding:"8px 16px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px" }}>

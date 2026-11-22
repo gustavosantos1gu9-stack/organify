@@ -19,6 +19,7 @@ const MODULOS = [
   { key:"relatorios_alertas", label:"Relatórios — Alertas", perms:["Visualizar","Criar","Editar","Remover"] },
   { key:"escala_ester", label:"Escala Ester", perms:["Visualizar","Editar"] },
   { key:"escala_nicolas", label:"Escala Nicolas", perms:["Visualizar","Editar"] },
+  { key:"escala_lavinia", label:"Escala Lavínia", perms:["Visualizar","Editar"] },
   { key:"churn", label:"Churn", perms:["Visualizar"] },
   { key:"links_campanhas", label:"Links & Campanhas", perms:["Criar","Remover","Editar","Visualizar"] },
   { key:"configurar_campanha", label:"Configurar Campanha", perms:["Criar","Remover","Editar","Visualizar"] },

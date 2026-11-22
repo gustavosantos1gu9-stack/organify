@@ -59,6 +59,10 @@ export async function POST(req: NextRequest) {
       case "setWebhook":
         url = `${EVO_URL}/webhook/set/${instancia}`; method = "POST";
         body = JSON.stringify({ webhook: { ...payload, enabled: true } }); break;
+      case "pairingCode": {
+        const pNumber = (payload as any)?.number || "";
+        url = `${EVO_URL}/instance/connect/${instancia}${pNumber ? `?number=${pNumber}` : ""}`; method = "GET"; break;
+      }
       default:
         return NextResponse.json({ error: "Ação inválida" }, { status: 400 });
     }
@@ -75,7 +79,7 @@ export async function POST(req: NextRequest) {
     if (action === "create" && data && !data.error) {
       const novaInstancia = data.instance?.instanceName || data.name || payload?.instanceName;
       if (novaInstancia) {
-        const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://salxconvert-blond.vercel.app";
+        const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.salxconvert.com.br";
         try {
           await fetch(`${EVO_URL}/webhook/set/${novaInstancia}`, {
             method: "POST",

@@ -25,6 +25,8 @@ export default function Topbar() {
 
   // WhatsApp status
   const [waConectado, setWaConectado] = useState<boolean | null>(null);
+  const [reconexaoToken, setReconexaoToken] = useState<string | null>(null);
+  const [linkCopiado, setLinkCopiado] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -51,8 +53,11 @@ export default function Topbar() {
     try {
       const agId = await getAgenciaId();
       if (!agId) return;
-      const { data: ag } = await supabase.from("agencias").select("whatsapp_conectado, whatsapp_instancia, evolution_url, evolution_key, parent_id").eq("id", agId).single();
+      const { data: ag } = await supabase.from("agencias").select("whatsapp_conectado, whatsapp_instancia, evolution_url, evolution_key, parent_id, reconexao_token").eq("id", agId).single();
       if (!ag) return;
+
+      // Guardar token de reconexão
+      if (ag.reconexao_token) setReconexaoToken(ag.reconexao_token);
 
       // Primeiro: ler do banco (atualizado pelo webhook CONNECTION_UPDATE)
       if (ag.whatsapp_conectado) { setWaConectado(true); return; }
@@ -252,17 +257,42 @@ export default function Topbar() {
 
       {/* WhatsApp status */}
       {waConectado !== null && (
-        <Link href="/configuracoes/integracoes" style={{
-          display: "flex", alignItems: "center", gap: "6px",
-          padding: "4px 10px", borderRadius: "20px", textDecoration: "none",
-          fontSize: "11px", fontWeight: "500", cursor: "pointer",
-          background: waConectado ? "rgba(37,211,102,0.1)" : "rgba(239,68,68,0.1)",
-          border: `1px solid ${waConectado ? "rgba(37,211,102,0.3)" : "rgba(239,68,68,0.3)"}`,
-          color: waConectado ? "#25d366" : "#ef4444",
-        }}>
-          {waConectado ? <Wifi size={12} /> : <WifiOff size={12} />}
-          {waConectado ? "WhatsApp Conectado" : "WhatsApp Desconectado"}
-        </Link>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <Link href="/configuracoes/integracoes" style={{
+            display: "flex", alignItems: "center", gap: "6px",
+            padding: "4px 10px", borderRadius: "20px", textDecoration: "none",
+            fontSize: "11px", fontWeight: "500", cursor: "pointer",
+            background: waConectado ? "rgba(37,211,102,0.1)" : "rgba(239,68,68,0.1)",
+            border: `1px solid ${waConectado ? "rgba(37,211,102,0.3)" : "rgba(239,68,68,0.3)"}`,
+            color: waConectado ? "#25d366" : "#ef4444",
+          }}>
+            {waConectado ? <Wifi size={12} /> : <WifiOff size={12} />}
+            {waConectado ? "WhatsApp Conectado" : "WhatsApp Desconectado"}
+          </Link>
+          {/* Botão copiar link de reconexão quando desconectado */}
+          {!waConectado && reconexaoToken && (
+            <button
+              title="Copiar link de reconexão para enviar à cliente"
+              onClick={() => {
+                const link = `${window.location.origin}/reconectar/${reconexaoToken}`;
+                navigator.clipboard.writeText(link).then(() => {
+                  setLinkCopiado(true);
+                  setTimeout(() => setLinkCopiado(false), 2500);
+                }).catch(() => {});
+              }}
+              style={{
+                display: "flex", alignItems: "center", gap: "4px",
+                padding: "4px 8px", borderRadius: "20px", cursor: "pointer",
+                background: linkCopiado ? "rgba(37,211,102,0.1)" : "rgba(239,68,68,0.06)",
+                border: `1px solid ${linkCopiado ? "rgba(37,211,102,0.3)" : "rgba(239,68,68,0.2)"}`,
+                color: linkCopiado ? "#25d366" : "#ef4444",
+                fontSize: "11px", fontWeight: "500",
+              }}
+            >
+              {linkCopiado ? "✓ Copiado" : "📋 Copiar link"}
+            </button>
+          )}
+        </div>
       )}
 
       {isMaster && (

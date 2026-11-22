@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { waitUntil } from "@vercel/functions";
+import { getMetaToken, resolverAnuncioMeta, resolverIdsMeta, temMacroInvalida, AD_ID_REGEX, NUMERIC_ID_REGEX, isTextoPadraoCTWA, getTokenMetaDaAgencia } from "@/lib/meta-tracking";
+import { podeAplicarRastreio } from "@/lib/rastreio";
 
 export const maxDuration = 300;
 
@@ -9,7 +11,62 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://salxconvert-blond.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.salxconvert.com.br";
+
+/** Procura externalAdReply em QUALQUER chave de msg.message, incluindo mensagens aninhadas. */
+function extrairExternalAdReply(msg: any, data: any): any | null {
+  const msgObj = msg.message;
+  if (msgObj && typeof msgObj === "object") {
+    for (const val of Object.values(msgObj as Record<string, any>)) {
+      if (val && typeof val === "object" && !Array.isArray(val)) {
+        if ((val as any).contextInfo?.externalAdReply) return (val as any).contextInfo.externalAdReply;
+      }
+    }
+    // Mensagens aninhadas: ephemeral, viewOnce, viewOnceV2
+    const nested = msgObj.ephemeralMessage?.message
+      || msgObj.viewOnceMessage?.message
+      || msgObj.viewOnceMessageV2?.message;
+    if (nested && typeof nested === "object") {
+      for (const val of Object.values(nested as Record<string, any>)) {
+        if (val && typeof val === "object" && !Array.isArray(val)) {
+          if ((val as any).contextInfo?.externalAdReply) return (val as any).contextInfo.externalAdReply;
+        }
+      }
+    }
+  }
+  if (msg.contextInfo?.externalAdReply) return msg.contextInfo.externalAdReply;
+  if (data?.contextInfo?.externalAdReply) return data.contextInfo.externalAdReply;
+  return null;
+}
+
+/**
+ * Extrai ctwaClid de TODOS os tipos de mensagem.
+ * ctwaClid está em contextInfo (irmão de externalAdReply), não dentro do externalAdReply.
+ */
+function extrairCtwaClid(msg: any): string | null {
+  const msgObj = msg?.message;
+  if (msgObj && typeof msgObj === "object") {
+    for (const val of Object.values(msgObj as Record<string, any>)) {
+      if (val && typeof val === "object" && !Array.isArray(val)) {
+        const ctwa = (val as any).contextInfo?.ctwaClid;
+        if (ctwa) return ctwa;
+      }
+    }
+    const nested = msgObj.ephemeralMessage?.message
+      || msgObj.viewOnceMessage?.message
+      || msgObj.viewOnceMessageV2?.message;
+    if (nested && typeof nested === "object") {
+      for (const val of Object.values(nested as Record<string, any>)) {
+        if (val && typeof val === "object" && !Array.isArray(val)) {
+          const ctwa = (val as any).contextInfo?.ctwaClid;
+          if (ctwa) return ctwa;
+        }
+      }
+    }
+  }
+  if (msg?.contextInfo?.ctwaClid) return msg.contextInfo.ctwaClid;
+  return null;
+}
 
 async function verificarTermoChave(agenciaId: string, conversaId: string, conteudo: string, numero: string, fbclid?: string, utmCampaign?: string, utmContent?: string, isCTWA?: boolean) {
   const { data: etapas } = await supabase.from("jornada_etapas")
@@ -59,7 +116,7 @@ async function verificarTermoChave(agenciaId: string, conversaId: string, conteu
           etapa_nome: etapaEncontrada.nome,
           phone: numero,
           fbclid, utm_campaign: utmCampaign, utm_content: utmContent,
-          is_ctwa: isCTWA || !!fbclid,
+          is_ctwa: !!isCTWA,
         }),
       });
       const pixelData = await pixelRes.json();
@@ -99,10 +156,79 @@ export async function POST(req: NextRequest) {
 
         if (ag) {
           const conectado = state === "open" || state === "connected";
-          await supabase.from("agencias").update({ whatsapp_conectado: conectado }).eq("id", ag.id);
-
-          // Quando conectar, puxar histórico de mensagens em background
+          const updateWa: Record<string, unknown> = { whatsapp_conectado: conectado };
+          if (!conectado && (state === "close" || state === "logout")) {
+            updateWa.reconexao_pendente = true;
+            // Limpar trava de reconexão para o próximo QR scan começar limpo
+            updateWa.reconexao_em_andamento = null;
+          }
           if (conectado) {
+            updateWa.reconexao_pendente = false;
+            updateWa.reconexao_em_andamento = null;
+          }
+          await supabase.from("agencias").update(updateWa).eq("id", ag.id);
+
+          // Auto-limpeza: quando desconecta via logout (usuário saiu do celular),
+          // deletar a instância do Evolution para que o próximo QR scan crie uma nova limpa.
+          // Para state=close (pode ser deleção intencional pelo sistema), apenas limpa a trava.
+          if (!conectado && state === "logout") {
+            waitUntil(
+              (async () => {
+                try {
+                  let evoUrl = ag.evolution_url || "";
+                  let evoKey = ag.evolution_key || "";
+                  if ((!evoUrl || !evoKey) && ag.parent_id) {
+                    const { data: parent } = await supabase.from("agencias")
+                      .select("evolution_url, evolution_key").eq("id", ag.parent_id).single();
+                    if (parent) { evoUrl = parent.evolution_url || ""; evoKey = parent.evolution_key || ""; }
+                  }
+                  if (!evoUrl || !evoKey) return;
+                  await fetch(`${evoUrl}/instance/logout/${instanciaName}`, {
+                    method: "DELETE", headers: { apikey: evoKey },
+                  }).catch(() => {});
+                  await fetch(`${evoUrl}/instance/delete/${instanciaName}`, {
+                    method: "DELETE", headers: { apikey: evoKey },
+                  }).catch(() => {});
+                  console.log(`[webhook] instância ${instanciaName} deletada após logout`);
+                } catch (e) {
+                  console.error("[webhook] erro ao deletar instância após logout:", e);
+                }
+              })()
+            );
+          }
+
+          // Alarme de desconexão: notificar grupo de leads do master
+          if (!conectado && (state === "close" || state === "logout")) {
+            try {
+              const { data: agFull } = await supabase.from("agencias")
+                .select("nome, grupo_notificacao_jid, parent_id").eq("id", ag.id).single();
+              // Buscar Evolution e grupo do master
+              const masterId = agFull?.parent_id || ag.id;
+              const { data: master } = await supabase.from("agencias")
+                .select("evolution_url, evolution_key, whatsapp_instancia, grupo_notificacao_jid")
+                .eq("id", masterId).single();
+              const grupoJid = master?.grupo_notificacao_jid || agFull?.grupo_notificacao_jid;
+              if (master?.evolution_url && master?.evolution_key && master?.whatsapp_instancia && grupoJid) {
+                const nomeCliente = agFull?.nome || instanciaName;
+                const msgAlerta = `⚠️ *Alerta: WhatsApp Desconectado*\n\nCliente: *${nomeCliente}*\nInstância: ${instanciaName}\nStatus: ${state}\n\nAcesse o painel para reconectar.`;
+                await fetch(`${master.evolution_url}/message/sendText/${master.whatsapp_instancia}`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", apikey: master.evolution_key },
+                  body: JSON.stringify({ number: grupoJid, text: msgAlerta }),
+                }).catch(() => {});
+              }
+            } catch {}
+          }
+
+          // Quando conectar, reconfigurar webhook + puxar histórico em background
+          if (conectado) {
+            waitUntil(
+              fetch(`${APP_URL}/api/evolution/fix-webhook`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ agencia_id: ag.id, instancia: instanciaName }),
+              }).catch(() => {})
+            );
             waitUntil(
               fetch(`${APP_URL}/api/evolution/sync-on-connect`, {
                 method: "POST",
@@ -153,11 +279,16 @@ export async function POST(req: NextRequest) {
       const fromMe = msg.key?.fromMe || false;
       const remoteJid = msg.key?.remoteJid || "";
 
-      if (!remoteJid || remoteJid.includes("@g.us") || remoteJid.includes("@broadcast")) {
+      const isGroup = remoteJid.includes("@g.us");
+      if (!remoteJid || remoteJid.includes("@broadcast")) {
+        return NextResponse.json({ ok: true });
+      }
+      // Grupos: só processar mensagens fromMe (comandos do master). Mensagens de leads em grupos são ignoradas.
+      if (isGroup && !fromMe) {
         return NextResponse.json({ ok: true });
       }
 
-      const isLid = remoteJid.includes("@lid");
+      const isLid = !isGroup && remoteJid.includes("@lid");
       const instanciaName = instance || body.instanceName || "";
 
       // Se @lid, tentar usar remoteJidAlt (número real) para encontrar a conversa
@@ -170,16 +301,42 @@ export async function POST(req: NextRequest) {
         ? new Date(Number(msg.messageTimestamp) * 1000).toISOString()
         : new Date().toISOString();
 
-      // Detectar mensagem histórica (sync inicial ao conectar conta nova)
-      // Se a mensagem tem mais de 2 minutos, é histórica — salvar mas não tratar como nova
+      // Detectar mensagem histórica via tipo de evento da Evolution API
+      // data.type === "append" = sincronização de histórico; "notify" = mensagem nova
       const msgAgeMs = msg.messageTimestamp
         ? Date.now() - Number(msg.messageTimestamp) * 1000
         : 0;
-      const isHistorica = msgAgeMs > 2 * 60 * 1000; // mais de 2 min = histórica
+      const isHistorica = data?.type === "append"; // "append" = histórico, "notify" = nova
+      const isHistoricaParaPixel = msgAgeMs > 30 * 60 * 1000; // pixel/follow-up: 30 min
+      // Se a mensagem chegou com atraso > 5 min (ex: Evolution estava down), usar now() como
+      // ultima_mensagem_at para que a conversa apareça no topo do inbox, não enterrada
+      const ultimaMsgAt = (!isHistorica && msgAgeMs > 5 * 60 * 1000) ? new Date().toISOString() : timestamp;
 
       // Extrair conteúdo
       let tipo = "text"; let conteudo = "";
       const m = msg.message;
+
+      // Ignorar protocolMessages (deleção/revogação de mensagem)
+      // Esses eventos chegam como fromMe=false mas não são mensagens reais do lead
+      if (m?.protocolMessage) {
+        return NextResponse.json({ ok: true, ignorado: "protocolMessage" });
+      }
+
+      // Detectar mensagem editada (editedMessage) — atualizar original, não criar nova
+      if (m?.editedMessage) {
+        const editedMsg = m.editedMessage.message;
+        const editedConteudo = editedMsg?.conversation || editedMsg?.extendedTextMessage?.text || "";
+        const originalMsgId = m.editedMessage.key?.id || msgId;
+        if (editedConteudo && originalMsgId) {
+          // Atualizar o conteúdo da mensagem original no banco
+          await supabase.from("mensagens")
+            .update({ conteudo: editedConteudo })
+            .eq("mensagem_id", originalMsgId);
+          console.log(`[webhook] Mensagem editada ${originalMsgId}: "${editedConteudo.slice(0, 50)}"`);
+        }
+        return NextResponse.json({ ok: true, ignorado: "editedMessage" });
+      }
+
       if (m?.conversation) conteudo = m.conversation;
       else if (m?.extendedTextMessage?.text) conteudo = m.extendedTextMessage.text;
       else if (m?.imageMessage) { tipo = "image"; conteudo = m.imageMessage.caption || "📷 Imagem"; }
@@ -189,20 +346,25 @@ export async function POST(req: NextRequest) {
       else if (m?.stickerMessage) { tipo = "sticker"; conteudo = "😄 Sticker"; }
       else conteudo = "Mensagem";
 
+
       // Mensagens fromMe — salvar no banco e verificar termo-chave
       if (fromMe) {
         const { data: ag } = await supabase.from("agencias")
           .select("id, whatsapp_numero, parent_id, evolution_url, evolution_key").eq("whatsapp_instancia", instanciaName).single();
         if (ag) {
           // ── COMANDOS MASTER: aprovar cadastro / enviar contrato (fluxo conversacional) ──
-          if (conteudo && !ag.parent_id) {
+          // Ignorar mensagens enviadas pelo próprio bot (respostas automáticas) para evitar loop
+          const ehRespostaBot = /^[❌✅⏳📅💰📋🔍👤📄🎉⚠️🔗]/.test(conteudo || "");
+          if (conteudo && !ag.parent_id && !ehRespostaBot) {
             const cmdLower = conteudo.toLowerCase().trim();
             let evoUrl = ag.evolution_url || "";
             let evoKey = ag.evolution_key || "";
+            // Responder no mesmo chat de onde veio o comando (grupo ou self-chat)
+            const sendTarget = isGroup ? remoteJid : ag.whatsapp_numero;
             const sendMsg = async (txt: string) => {
               if (evoUrl && evoKey) await fetch(`${evoUrl}/message/sendText/${instanciaName}`, {
                 method: "POST", headers: { "Content-Type": "application/json", apikey: evoKey },
-                body: JSON.stringify({ number: ag.whatsapp_numero, text: txt }),
+                body: JSON.stringify({ number: sendTarget, text: txt }),
               });
             };
 
@@ -289,8 +451,48 @@ export async function POST(req: NextRequest) {
             // 2. Resposta rápida (1=aprovar, 2=contrato) ou comandos com ID/nome
             const aprovarMatch = cmdLower.match(/^aprovar\s+([a-f0-9]{8})/);
             const aprovarNomeMatch = !aprovarMatch && cmdLower.match(/^aprovar\s+(.+)/);
-            const contratoIdMatch = cmdLower.match(/^contrato\s+([a-f0-9]{8})/);
-            const contratoNomeMatch = !contratoIdMatch && cmdLower.match(/^contrato\s+(.+)/);
+            const contratoIdMatch = cmdLower.match(/^(?:enviar\s+|gerar\s+|mandar\s+)?contrato\s+([a-f0-9]{8})/);
+            // Contrato em uma linha: "contrato rubiliane mensal 997 15/06/2026"
+            const contratoUmaLinhaMatch = cmdLower.match(/^(?:enviar\s+|gerar\s+|mandar\s+)?contrato\s+(\S+(?:\s+\S+)?)\s+(mensal|trimestral|quinzenal)\s+(\d+(?:[.,]\d+)?)\s+(.+)$/i);
+            const contratoNomeMatch = !contratoIdMatch && !contratoUmaLinhaMatch && cmdLower.match(/^(?:enviar\s+|gerar\s+|mandar\s+)?contrato\s+(.+)/);
+
+            // Contrato em uma linha — gera sem fluxo multi-step
+            if (contratoUmaLinhaMatch) {
+              const nomeBusca = contratoUmaLinhaMatch[1].trim();
+              const modalidade = contratoUmaLinhaMatch[2].toLowerCase();
+              const valor = contratoUmaLinhaMatch[3].replace(",", ".");
+              const dataVencimento = contratoUmaLinhaMatch[4].trim();
+              const { data: cadArr } = await supabase.from("cadastros_clientes")
+                .select("*").ilike("nome", `%${nomeBusca}%`).order("criado_em", { ascending: false }).limit(1);
+              const cad = cadArr?.[0];
+              if (!cad) {
+                await sendMsg(`❌ Nenhum cadastro encontrado: *${nomeBusca}*`);
+              } else {
+                await supabase.from("cadastros_clientes").update({ status: "contrato_gerando" }).eq("id", cad.id);
+                await sendMsg(`⏳ Gerando contrato de *${cad.nome}*...\n\n📋 ${modalidade} | R$${valor} | vencimento ${dataVencimento}`);
+                try {
+                  const res = await fetch(`${APP_URL}/api/contrato`, {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      nome: cad.nome, email: cad.email,
+                      cnpj: cad.cnpj, cpf: cad.cpf, rg: cad.rg,
+                      endereco_empresa: cad.endereco_empresa,
+                      endereco_pessoal: cad.endereco_pessoal,
+                      modalidade, valor, data_vencimento: dataVencimento,
+                    }),
+                  });
+                  const result = await res.json();
+                  await supabase.from("cadastros_clientes").update({ status: result.success ? "contrato_enviado" : "pendente" }).eq("id", cad.id);
+                  await sendMsg(result.success
+                    ? `✅ Contrato de *${cad.nome}* gerado e enviado para assinatura!`
+                    : `❌ Erro: ${result.error || "erro desconhecido"}`);
+                } catch (e: any) {
+                  await supabase.from("cadastros_clientes").update({ status: "pendente" }).eq("id", cad.id);
+                  await sendMsg(`❌ Erro ao gerar contrato: ${e.message}`);
+                }
+              }
+              return NextResponse.json({ ok: true });
+            }
 
             // Buscar cadastro recente pra resposta por número (notificado ou aprovado)
             let cadastro: any = null;
@@ -299,14 +501,12 @@ export async function POST(req: NextRequest) {
                 .select("*").in("status", ["notificado", "aprovado"]).order("criado_em", { ascending: false }).limit(1).single();
               cadastro = notificado;
             } else if (aprovarNomeMatch) {
-              // Buscar por nome (ex: "aprovar maria")
               const nomeBusca = aprovarNomeMatch[1].trim();
               const { data: cadastros } = await supabase.from("cadastros_clientes")
                 .select("*").ilike("nome", `%${nomeBusca}%`).order("criado_em", { ascending: false }).limit(1);
               cadastro = cadastros?.[0];
               if (!cadastro) { await sendMsg(`❌ Nenhum cadastro encontrado com o nome *${nomeBusca}*`); return NextResponse.json({ ok: true }); }
             } else if (contratoNomeMatch) {
-              // Buscar por nome (ex: "contrato aline")
               const nomeBusca = contratoNomeMatch[1].trim();
               const { data: cadastros } = await supabase.from("cadastros_clientes")
                 .select("*").ilike("nome", `%${nomeBusca}%`).order("criado_em", { ascending: false }).limit(1);
@@ -397,9 +597,10 @@ export async function POST(req: NextRequest) {
               // 2. Criar recorrência
               const hoje = new Date();
               const diaVencimento = hoje.getDate();
-              const periodicidade = frequencia === "trimestral" ? "trimestral" : "mensal";
-              const valorRec = frequencia === "quinzenal" ? Math.round((valor / 2) * 100) / 100
-                             : frequencia === "trimestral" ? Math.round(valor * 3 * 100) / 100 : valor;
+              const periodicidade = frequencia === "trimestral" ? "trimestral"
+                                 : frequencia === "quinzenal" ? "quinzenal" : "mensal";
+              // Recorrência guarda o valor TOTAL; lançamentos quinzenais dividem por 2
+              const valorRec = frequencia === "trimestral" ? Math.round(valor * 3 * 100) / 100 : valor;
 
               await supabase.from("recorrencias").insert({
                 agencia_id: agenciaId,
@@ -471,9 +672,13 @@ export async function POST(req: NextRequest) {
             }
           }
 
+          // Mensagens fromMe de grupos não são conversas de inbox — sair após comandos
+          if (isGroup) return NextResponse.json({ ok: true });
+
           let { data: conv } = await supabase.from("conversas")
             .select("id, fbclid, utm_campaign, utm_content, contato_jid, origem")
-            .eq("agencia_id", ag.id).eq("contato_numero", numero).single();
+            .eq("agencia_id", ag.id).eq("contato_numero", numero)
+            .order("ultima_mensagem_at", { ascending: false }).limit(1).maybeSingle();
           // Criar conversa se não existe (mensagem enviada por mim pra contato novo)
           if (!conv) {
             // Para fromMe, pushName é o nome do REMETENTE (eu), não do destinatário
@@ -504,11 +709,59 @@ export async function POST(req: NextRequest) {
               agencia_id: ag.id, instancia: instanciaName,
               contato_numero: numero, contato_nome: nome,
               contato_jid: remoteJid || null,
-              ultima_mensagem: conteudo || "", ultima_mensagem_at: timestamp,
+              ultima_mensagem: conteudo || "", ultima_mensagem_at: ultimaMsgAt,
               nao_lidas: 0, etapa_jornada: etapaPrimeira?.nome || "Fez Contato",
             }).select("id, fbclid, utm_campaign, utm_content, contato_jid, origem").single();
             if (nova) conv = nova;
           }
+          // Aplicar rastreamento pendente em outbound (conversa sem origem)
+          // Cobre caso onde master envia 1ª msg pra lead de formulário antes do webhook meta-leads chegar
+          if (conv && (!conv.origem || conv.origem === "Não Rastreada")) {
+            try {
+              const { data: rpOutbound } = await supabase.from("rastreamentos_pendentes")
+                .select("*").eq("wa_numero", numero).order("created_at", { ascending: false }).limit(1).single();
+              if (rpOutbound) {
+                let outboundLeadId: string | null = null;
+                if (rpOutbound.leadgen_id) {
+                  const { data: lr } = await supabase.from("leads")
+                    .select("id").eq("leadgen_id", rpOutbound.leadgen_id).maybeSingle();
+                  outboundLeadId = lr?.id || null;
+                }
+                await supabase.from("conversas").update({
+                  origem: rpOutbound.origem || "Meta Ads",
+                  utm_source: rpOutbound.utm_source,
+                  utm_medium: rpOutbound.utm_medium,
+                  utm_campaign: rpOutbound.utm_campaign,
+                  utm_content: rpOutbound.utm_content,
+                  utm_term: rpOutbound.utm_term || null,
+                  fbclid: rpOutbound.fbclid || null,
+                  leadgen_id: rpOutbound.leadgen_id || null,
+                  ...(outboundLeadId ? { lead_id: outboundLeadId } : {}),
+                }).eq("id", conv.id);
+                await supabase.from("rastreamentos_pendentes").delete().eq("id", rpOutbound.id);
+                console.log(`[webhook] Rastreamento outbound aplicado: ${numero} → ${rpOutbound.origem}`);
+
+                // Disparar pixel Fez Contato (e Lead se for formulário) em background
+                const pixelPayload: Record<string, any> = {
+                  agencia_id: ag.id,
+                  conversa_id: conv.id,
+                  etapa_nome: "Fez Contato",
+                  phone: numero,
+                  utm_campaign: rpOutbound.utm_campaign,
+                  utm_content: rpOutbound.utm_content,
+                };
+                if (rpOutbound.leadgen_id) pixelPayload.lead_id = rpOutbound.leadgen_id;
+                if (rpOutbound.fbclid) pixelPayload.fbclid = rpOutbound.fbclid;
+                if (rpOutbound.utm_medium === "leadform") pixelPayload.is_ctwa = false;
+                fetch(`${APP_URL}/api/pixel`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(pixelPayload),
+                }).catch(() => {});
+              }
+            } catch {}
+          }
+
           // Detectar Social Selling quando Gustavo envia "Gustavo aqui!" para um contato
           if (conv && conteudo && conteudo.includes("Gustavo aqui!")) {
             const semRastreio = !conv.origem || conv.origem === "Não Rastreada";
@@ -520,6 +773,20 @@ export async function POST(req: NextRequest) {
                 utm_campaign: "Social Selling",
               }).eq("id", conv.id);
               console.log(`[webhook] Social Selling detectado (fromMe): ${numero}`);
+            }
+          }
+
+          // Detectar Formulário Meta quando envia "recebi seu formulário" (fallback: webhook Meta atrasou)
+          if (conv && conteudo) {
+            const semRastreio = !conv.origem || conv.origem === "Não Rastreada";
+            const fraseFormulario = conteudo.toLowerCase().includes("recebi seu formulário") || conteudo.toLowerCase().includes("recebi seu formulario");
+            if (semRastreio && fraseFormulario) {
+              await supabase.from("conversas").update({
+                origem: "Formulário Meta",
+                utm_source: "meta",
+                utm_medium: "leadform",
+              }).eq("id", conv.id);
+              console.log(`[webhook] Formulário Meta detectado via frase (fromMe): ${numero}`);
             }
           }
 
@@ -549,7 +816,7 @@ export async function POST(req: NextRequest) {
                 mensagem_id: msgId, de_mim: true, tipo, conteudo, created_at: timestamp,
               }, { onConflict: "mensagem_id" });
               await supabase.from("conversas").update({
-                ultima_mensagem: conteudo, ultima_mensagem_at: timestamp,
+                ultima_mensagem: conteudo, ultima_mensagem_at: ultimaMsgAt,
               }).eq("id", conv.id);
             }
             if (conteudo && !isHistorica) {
@@ -569,6 +836,39 @@ export async function POST(req: NextRequest) {
         console.error("Webhook: agência não encontrada para instância:", instanciaName);
         return NextResponse.json({ ok: true });
       }
+
+      const isFilha = !!agencia.parent_id;
+      // adsTokenMeta calculado ANTES do bloco de herança, usando valores originais da agência filha
+      // Filha: tenta token próprio → Lavínia (relatorios_conexoes); Master: token próprio
+      const adsTokenMeta: string | null = isFilha
+        ? await getTokenMetaDaAgencia(agencia, supabase)
+        : getMetaToken(agencia);
+
+      // Token Meta: usar o da própria agência filha; só herdar do pai se filha não tiver NENHUM token
+      if (agencia.parent_id && !(agencia.meta_business_token || agencia.meta_token)) {
+        try {
+          const { data: parentMeta } = await supabase.from("agencias")
+            .select("meta_token, meta_business_token")
+            .eq("id", agencia.parent_id).single();
+          if (parentMeta) {
+            (agencia as any).meta_business_token = parentMeta.meta_business_token || parentMeta.meta_token;
+            (agencia as any).meta_token = parentMeta.meta_token;
+          }
+        } catch {}
+      }
+
+      // Para filha @lid: senderPn pode trazer número real que remoteJidAlt não tinha
+      const senderPnFilha = isFilha ? (msg.key?.senderPn || "") : "";
+      const numeroRealFilha = isFilha
+        ? (senderPnFilha.replace("@s.whatsapp.net", "").replace(/\D/g, "") || numeroReal)
+        : numeroReal;
+      // contato_num: null para filha @lid sem número real (preserva @lid como único identificador)
+      // Para master: sempre = numero (sem alteração de comportamento)
+      const contato_num: string | null = isFilha
+        ? (isLid && !numeroRealFilha ? null : (numeroRealFilha || numero))
+        : numero;
+      // numeroEfetivo: usar em todos os pontos que precisam do número da conversa após este bloco
+      const numeroEfetivo: string | null = isFilha ? contato_num : numero;
 
       // Auto-salvar whatsapp_numero se ainda não tem (pega do participant da msg)
       if (!agencia.whatsapp_numero) {
@@ -601,6 +901,8 @@ export async function POST(req: NextRequest) {
       }
 
       let nome = msg.pushName || numero;
+      // Filha @lid sem número real: exibir nome amigável em vez do ID numérico do @lid
+      if (isFilha && isLid && contato_num === null) nome = msg.pushName || "Contato via anúncio";
 
       // Buscar foto e nome do perfil (com fallback para agência pai se sub-agência sem evolution_url)
       let foto = null;
@@ -616,7 +918,7 @@ export async function POST(req: NextRequest) {
           const resPerfil = await fetch(`${evoUrl}/chat/fetchProfile/${instanciaName}`, {
             method: "POST",
             headers: { "apikey": evoKey, "Content-Type": "application/json" },
-            body: JSON.stringify({ number: numero }),
+            body: JSON.stringify({ number: numeroEfetivo ?? numero }),
           });
           const perfil = await resPerfil.json();
           if (perfil?.picture) foto = perfil.picture;
@@ -627,8 +929,34 @@ export async function POST(req: NextRequest) {
 
       // Buscar ou criar conversa
       let eraNovaConversa = false;
-      let { data: conversa } = await supabase.from("conversas")
-        .select("*").eq("agencia_id", agencia.id).eq("contato_numero", numero).single();
+      // Para filha @lid sem número real (numeroEfetivo = null): pular busca por número → JID abaixo
+      const lookupNumero = isFilha ? numeroEfetivo : numero;
+      let { data: conversa } = lookupNumero !== null
+        ? await supabase.from("conversas")
+            .select("*").eq("agencia_id", agencia.id).eq("contato_numero", lookupNumero)
+            .order("ultima_mensagem_at", { ascending: false }).limit(1).maybeSingle()
+        : { data: null };
+
+      // Fallback: se não achou pelo número e é @lid, buscar pela jid
+      // Cobre o caso onde a conversa foi criada com o lid-number antes de resolver o número real
+      if (!conversa && isLid) {
+        const { data: porJid } = await supabase.from("conversas")
+          .select("*").eq("agencia_id", agencia.id).eq("contato_jid", remoteJid)
+          .order("ultima_mensagem_at", { ascending: false }).limit(1).maybeSingle();
+        if (porJid) {
+          conversa = porJid;
+          // Atualizar contato_numero: filha usa numeroEfetivo (pode ser null), master usa numeroReal/numero
+          if (isFilha) {
+            if (numeroEfetivo && porJid.contato_numero !== numeroEfetivo) {
+              try { await supabase.from("conversas").update({ contato_numero: numeroEfetivo }).eq("id", porJid.id); } catch {}
+            }
+          } else {
+            if (numeroReal && porJid.contato_numero !== numero) {
+              try { await supabase.from("conversas").update({ contato_numero: numero }).eq("id", porJid.id); } catch {}
+            }
+          }
+        }
+      }
 
       if (!conversa) {
         eraNovaConversa = true;
@@ -636,24 +964,33 @@ export async function POST(req: NextRequest) {
         const { data: etapaPrimeira } = await supabase.from("jornada_etapas")
           .select("nome").eq("agencia_id", agencia.id).eq("eh_primeiro_contato", true).single();
         const etapaInicial = etapaPrimeira?.nome || "Fez Contato";
-        // Tentar inserir — se já existe (race condition), buscar a existente
+        // Tentar inserir nova conversa
         const { data: nova, error: insertErr } = await supabase.from("conversas").insert({
           agencia_id: agencia.id, instancia: instanciaName,
-          contato_numero: numero, contato_nome: nome, contato_foto: foto,
+          contato_numero: isFilha ? contato_num : numero, contato_nome: nome, contato_foto: foto,
           contato_jid: remoteJid,
-          ultima_mensagem: conteudo, ultima_mensagem_at: timestamp,
+          ultima_mensagem: conteudo, ultima_mensagem_at: ultimaMsgAt,
           primeira_mensagem_at: timestamp, nao_lidas: isHistorica ? 0 : 1,
-          origem: isLid ? "Meta Ads" : "Não Rastreada",
+          origem: "Não Rastreada", // tracking block definirá se há evidência real
           etapa_jornada: etapaInicial,
         }).select().single();
         if (insertErr) {
-          // Race condition — conversa foi criada por outro request simultâneo
-          const { data: existente } = await supabase.from("conversas")
-            .select("*").eq("agencia_id", agencia.id).eq("contato_numero", numero).single();
+          // Race condition — buscar a mais recente por número ou por jid
+          const { data: existente } = lookupNumero !== null
+            ? await supabase.from("conversas")
+                .select("*").eq("agencia_id", agencia.id).eq("contato_numero", lookupNumero)
+                .order("ultima_mensagem_at", { ascending: false }).limit(1).maybeSingle()
+            : { data: null };
           if (existente) {
             conversa = existente;
             eraNovaConversa = false;
-          } else {
+          } else if (isLid) {
+            const { data: existenteJid } = await supabase.from("conversas")
+              .select("*").eq("agencia_id", agencia.id).eq("contato_jid", remoteJid)
+              .order("ultima_mensagem_at", { ascending: false }).limit(1).maybeSingle();
+            if (existenteJid) { conversa = existenteJid; eraNovaConversa = false; }
+          }
+          if (!conversa) {
             console.error("Webhook: erro ao criar conversa:", insertErr.message, { numero, nome });
             return NextResponse.json({ ok: false, error: insertErr.message }, { status: 500 });
           }
@@ -662,8 +999,16 @@ export async function POST(req: NextRequest) {
         }
       } else {
         const updateConv: any = {
-          ultima_mensagem: conteudo, ultima_mensagem_at: timestamp,
+          ultima_mensagem: conteudo, ultima_mensagem_at: ultimaMsgAt,
         };
+        // Regra dos 30 dias: se última mensagem foi há mais de 30 dias, resetar primeira_mensagem_at
+        // (mantém a mesma conversa, mas conta como nova entrada para fins de relatório/filtro)
+        const trintaDiasAtras = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        if (!isHistorica && conversa.ultima_mensagem_at && conversa.ultima_mensagem_at < trintaDiasAtras) {
+          updateConv.primeira_mensagem_at = timestamp;
+          eraNovaConversa = true; // tratar como novo para rastreamento e pixel
+          console.log(`[webhook] Conversa reativada após 30 dias: ${numero}`);
+        }
         // Só atualizar nome se o novo nome é real (não é número) e o atual é número ou vazio
         const nomeAtualENumero = !conversa.contato_nome || /^\d+$/.test(conversa.contato_nome);
         const nomeNovoEReal = nome && !/^\d+$/.test(nome);
@@ -673,6 +1018,18 @@ export async function POST(req: NextRequest) {
         // Atualizar contato_jid se mudou para @lid (nunca sobrescrever @lid com @s.whatsapp.net)
         if (isLid && conversa.contato_jid !== remoteJid) {
           updateConv.contato_jid = remoteJid;
+        }
+        // Atualizar contato_numero para o número real quando disponível
+        // Filha: usa numeroEfetivo (pode ser null — não atualiza nesse caso)
+        // Master: usa numeroReal/numero (produção)
+        if (isFilha) {
+          if (isLid && numeroEfetivo && conversa.contato_numero !== numeroEfetivo) {
+            updateConv.contato_numero = numeroEfetivo;
+          }
+        } else {
+          if (isLid && numeroReal && conversa.contato_numero !== numero) {
+            updateConv.contato_numero = numero;
+          }
         }
         if (!isHistorica) {
           updateConv.nao_lidas = (conversa.nao_lidas || 0) + 1;
@@ -699,25 +1056,109 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Se mensagem histórica (sync inicial), pular rastreamento e pixel
-      if (!isHistorica && !msgDuplicada) {
+      // Detectar externalAdReply antes do gate histórico — CTWA deve sempre passar
+      const _externalAdReply = extrairExternalAdReply(msg, data);
+      // Filha: extrairCtwaClid percorre todos os tipos de mensagem para captura completa
+      // Master: produção — só extendedTextMessage e externalAdReply direto
+      const _ctwaClid = isFilha
+        ? (extrairCtwaClid(msg) || null)
+        : (_externalAdReply?.ctwaClid || msg.message?.extendedTextMessage?.contextInfo?.ctwaClid || null);
+      const _ctwaSourceType = _externalAdReply?.sourceType || null;
+      const _isCTWA = !!_externalAdReply || !!_ctwaClid;
+
+      // Log de payload em background, isolado — nunca interrompe o fluxo
+      waitUntil((async () => {
+        try {
+          await supabase.from("webhook_payload_logs").insert({
+            agencia_id: agencia.id,
+            instancia: instanciaName,
+            remote_jid: remoteJid,
+            mensagem_id: msgId || null,
+            tem_external_ad_reply: !!_externalAdReply,
+            payload: {
+              ...body,
+              // debug de rastreio CTWA — apenas para agências filhas (evita poluir logs do master)
+              ...(isFilha && (_isCTWA || _externalAdReply) ? {
+                _ctwa_debug: {
+                  ctwa_clid: _ctwaClid || null,
+                  source_id: _externalAdReply?.sourceId || null,
+                  source_url: _externalAdReply?.sourceUrl || null,
+                  source_type: _ctwaSourceType || null,
+                  is_lid: isLid,
+                  ads_token_disponivel: !!adsTokenMeta,
+                },
+              } : {}),
+            },
+          });
+          if (Math.random() < 0.01) {
+            const trintaDiasAtras = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+            await supabase.from("webhook_payload_logs").delete().lt("created_at", trintaDiasAtras);
+          }
+        } catch {}
+      })());
+
+      // Mensagens históricas (append) pularão rastreamento e pixel — exceto CTWA (externalAdReply)
+      if ((!isHistorica || _externalAdReply) && !msgDuplicada) {
 
       // ============================================
       // RASTREAMENTO — cruzar com dados pendentes
       // ============================================
       let tracking = null;
+      let _rastreioStatus: string | null = null;
+      let _rastreioErro: string | null = null;
 
-      // Detectar externalAdReply antecipadamente pra saber se é CTWA
-      const _externalAdReply = msg.message?.extendedTextMessage?.contextInfo?.externalAdReply
-        || msg.message?.imageMessage?.contextInfo?.externalAdReply
-        || msg.message?.videoMessage?.contextInfo?.externalAdReply
-        || msg.message?.documentMessage?.contextInfo?.externalAdReply
-        || msg.message?.contactMessage?.contextInfo?.externalAdReply
-        || msg.message?.locationMessage?.contextInfo?.externalAdReply
-        || msg.message?.conversation?.contextInfo?.externalAdReply
-        || msg.contextInfo?.externalAdReply
-        || data?.contextInfo?.externalAdReply;
-      const _isCTWA = !!_externalAdReply || !!(msg.message?.extendedTextMessage?.contextInfo?.ctwaClid);
+      // 0a. Rastreamento por ref_code na mensagem (cód. XXXXX)
+      // Nível: resolvido (5) — match exato de clique, inclui link_id e nomes reais
+      if (!tracking && conteudo) {
+        const refMatch = conteudo.match(/c[oó]d\.?\s*([A-HJ-NP-Z2-9]{5})/i);
+        if (refMatch) {
+          const refCode = refMatch[1].toUpperCase();
+          try {
+            const { data: rpRef } = await supabase.from("rastreamentos_pendentes")
+              .select("*")
+              .eq("ref_code", refCode)
+              .is("usado_em", null)
+              .limit(1)
+              .maybeSingle();
+            if (rpRef) {
+              tracking = { ...rpRef };
+              _rastreioStatus = "resolvido";
+
+              // Resolver nomes reais se utm_content ou utm_term forem IDs numéricos
+              const adsToken = adsTokenMeta;
+              const idParaResolver = AD_ID_REGEX.test(rpRef.utm_content || "")
+                ? rpRef.utm_content
+                : AD_ID_REGEX.test(rpRef.utm_term || "") ? rpRef.utm_term : null;
+              if (idParaResolver && adsToken) {
+                try {
+                  const resultado = await resolverAnuncioMeta(idParaResolver, adsToken);
+                  if (resultado.campanha && !rpRef.link_id) tracking.utm_campaign = resultado.campanha;
+                  if (resultado.conjunto) tracking.utm_content = resultado.conjunto;
+                  if (resultado.criativo) tracking._nome_anuncio = resultado.criativo;
+                } catch {}
+              }
+
+              // Buscar nome do link
+              if (rpRef.link_id) {
+                try {
+                  const { data: lnk } = await supabase.from("links_campanha")
+                    .select("nome").eq("id", rpRef.link_id).single();
+                  if (lnk?.nome) tracking._link_nome = lnk.nome;
+                } catch {}
+              }
+
+              // Marcar como usado (impede duplo uso do mesmo código)
+              try {
+                await supabase.from("rastreamentos_pendentes")
+                  .update({ usado_em: new Date().toISOString(), conversa_id: conversa.id })
+                  .eq("ref_code", refCode)
+                  .is("usado_em", null);
+              } catch {}
+              console.log(`[webhook] ref_code ${refCode} → ${rpRef.origem || "Meta Ads"} link=${rpRef.link_id}`);
+            }
+          } catch {}
+        }
+      }
 
       // 0. Se @lid (Click-to-WhatsApp) e NÃO é CTWA, buscar rastreamento pendente
       //    Se passou pela página de 5s, tem rastreamento pendente → associar
@@ -803,20 +1244,15 @@ export async function POST(req: NextRequest) {
       // 2. Detectar externalAdReply (CTWA) — prioridade máxima
       {
         const externalAdReply = _externalAdReply;
-        const ctwaClid = externalAdReply?.ctwaClid || msg.message?.extendedTextMessage?.contextInfo?.ctwaClid || null;
+        const ctwaClid = externalAdReply?.ctwaClid || _ctwaClid || null;
         const sourceId = externalAdReply?.sourceId || null;
         const sourceUrl = externalAdReply?.sourceUrl || null;
 
         // Tentar por fbclid exato
         if (ctwaClid) {
           const { data: t2 } = await supabase.from("rastreamentos_pendentes")
-            .select("*").eq("fbclid", ctwaClid).single();
-          if (t2) { tracking = t2; }
-          else {
-            const { data: t2b } = await supabase.from("rastreamentos_pendentes")
-              .select("*").eq("wa_numero", ctwaClid).single();
-            if (t2b) tracking = t2b;
-          }
+            .select("*").eq("fbclid", ctwaClid).limit(1).single();
+          if (t2) tracking = t2;
         }
 
         // 4. Tentar por utm_campaign via sourceUrl
@@ -853,60 +1289,56 @@ export async function POST(req: NextRequest) {
         }
 
         // 5. Se tem externalAdReply — extrair campanha, conjunto e criativo
+        // Filha: usa adsTokenMeta (token próprio → Lavínia). Sem token: pendente_nomes para auto-detect.
+        // Master: usa getMetaToken(agencia). Falha: erro_graph.
         if (!tracking && externalAdReply) {
-          // Tentar buscar nomes reais da campanha/conjunto/criativo via Meta Ads API
           let campanha = "";
           let conjunto = "";
           let criativo = "";
 
-          // Se tem sourceId, tentar buscar dados do anúncio/conjunto/campanha via Meta API
-          // meta_token tem permissão de leitura de ads; meta_business_token é só CAPI
-          const adsToken = agencia.meta_token || agencia.meta_business_token;
+          const adsToken = adsTokenMeta;
           if (sourceId && adsToken) {
             try {
-              // sourceId é o ID do anúncio — buscar nome, adset_id e campaign_id
-              const adRes = await fetch(`https://graph.facebook.com/v21.0/${sourceId}?fields=name,adset_id,campaign_id&access_token=${adsToken}`);
-              const adData = await adRes.json();
-              if (adData && !adData.error) {
-                criativo = adData.name || ""; // nome do anúncio
-                // Buscar nome do conjunto (adset)
-                if (adData.adset_id) {
-                  const adsetRes = await fetch(`https://graph.facebook.com/v21.0/${adData.adset_id}?fields=name&access_token=${adsToken}`);
-                  const adsetData = await adsetRes.json();
-                  if (!adsetData.error) conjunto = adsetData.name || "";
-                }
-                // Buscar nome da campanha
-                if (adData.campaign_id) {
-                  const campRes = await fetch(`https://graph.facebook.com/v21.0/${adData.campaign_id}?fields=name&access_token=${adsToken}`);
-                  const campData = await campRes.json();
-                  if (!campData.error) campanha = campData.name || "";
-                }
-              }
-            } catch {}
+              const resultado = await resolverAnuncioMeta(sourceId, adsToken);
+              campanha = resultado.campanha;
+              conjunto = resultado.conjunto;
+              criativo = resultado.criativo;
+              _rastreioStatus = "resolvido";
+            } catch (e: any) {
+              _rastreioStatus = isFilha ? "pendente_nomes" : "erro_graph";
+              _rastreioErro = isFilha
+                ? `step5:${e.code ?? "??"}: ${e.message}`
+                : `${e.code ?? "??"}: ${e.message}`;
+              console.error("[rastreio] Meta API erro step5", { agencia_id: agencia.id, sourceId, code: e.code });
+            }
+          } else if (sourceId) {
+            // Sem token: filha marca pendente_nomes para auto-detect resolver depois
+            if (isFilha) _rastreioStatus = "pendente_nomes";
           }
 
-          // sourceId via Meta API é a fonte mais confiável — confiar nos dados retornados
-          // A pessoa pode ter mudado a mensagem mas veio pelo anúncio/link
           tracking = {
             utm_source: "facebook",
-            utm_campaign: campanha || externalAdReply.title || externalAdReply.body || "",
+            utm_campaign: campanha || "",
             utm_content: conjunto ? `${conjunto}_${criativo}` : sourceId || "",
             utm_medium: "cpc",
             fbclid: ctwaClid || "",
             origem: "Meta Ads",
             link_id: null,
-            _nome_anuncio: criativo || externalAdReply.title || "",
+            _nome_anuncio: criativo || "",
+            ...(isFilha ? { _meta_ad_id: sourceId || null } : {}),  // ad_id só para filha
           };
         }
 
-        // 6. Se veio via @lid mas não achou nenhum tracking
-        if (!tracking && isLid) {
+        // 6. @lid com evidência CTWA (sourceId OU ctwaClid) mas sem match em pendentes
+        // @lid sozinho, sem externalAdReply e sem ctwaClid, NÃO é evidência de anúncio
+        if (!tracking && _isCTWA) {
+          const _sourceId = _externalAdReply?.sourceId || null;
           tracking = {
             utm_source: "meta",
             utm_campaign: "",
-            utm_content: sourceId || "",
-            utm_medium: "",
-            fbclid: ctwaClid || "",
+            utm_content: _sourceId || "",
+            utm_medium: "ctwa",
+            fbclid: _ctwaClid || null,
             origem: "Meta Ads",
             link_id: null,
           };
@@ -921,7 +1353,7 @@ export async function POST(req: NextRequest) {
           let campForm = "Formulário Instantâneo";
           let conjuntoForm = "";
           let criativoForm = "";
-          const adsToken = agencia.meta_business_token || agencia.meta_token;
+          const adsToken = adsTokenMeta;
           const adAccount = agencia.meta_ad_account_id;
           if (adsToken && adAccount) {
             try {
@@ -1026,48 +1458,82 @@ export async function POST(req: NextRequest) {
       //    Causava falsos positivos — associava ao link pessoas que nunca passaram pela página de 5s.
       //    Agora só associa ao link quem tem rastreamento pendente (prova que passou pela página).
 
+      // 6c. Texto padrão de anúncio CTWA (ex: botão "Enviar mensagem" do Meta)
+      // Só aplica na PRIMEIRA mensagem da conversa (eraNovaConversa) e não é fromMe
+      if (!tracking && eraNovaConversa && !fromMe && isTextoPadraoCTWA(conteudo)) {
+        tracking = {
+          utm_source: "meta",
+          utm_medium: "ctwa",
+          utm_campaign: "",
+          utm_content: "",
+          origem: "Meta Ads",
+          link_id: null,
+        };
+        _rastreioStatus = "sem_dados_anuncio";
+      }
+
       // ============================================
       // APLICAR RASTREAMENTO
       // ============================================
 
       // 8. ENRIQUECER: resolver nomes reais de anúncio/conjunto/campanha via Meta API
-      //    Roda para CTWA (sourceId) e para leads do /c link (utm_content numérico = ad ID)
       if (tracking) {
-        const _ctwaClid = _externalAdReply?.ctwaClid || msg.message?.extendedTextMessage?.contextInfo?.ctwaClid || "";
-        // meta_token tem ads_read; meta_business_token é só CAPI
-        const adsToken = agencia.meta_token || agencia.meta_business_token;
-        // ID a resolver: sourceId do CTWA ou utm_content se for numérico (ad ID do Meta)
+        const adsToken = adsTokenMeta;
+
+        // 8a. sourceId de CTWA (externalAdReply) → resolver via fields=name,adset{name},campaign{name}
         const adIdToResolve = _externalAdReply?.sourceId
-          || (/^\d{15,20}$/.test(tracking.utm_content || "") ? tracking.utm_content : null);
+          || (AD_ID_REGEX.test(tracking.utm_content || "") && !NUMERIC_ID_REGEX.test(tracking.utm_campaign || "") ? tracking.utm_content : null);
 
         if (adIdToResolve && adsToken) {
           try {
-            const adRes = await fetch(`https://graph.facebook.com/v21.0/${adIdToResolve}?fields=name,adset_id,campaign_id&access_token=${adsToken}`);
-            const adData = await adRes.json();
-            if (adData && !adData.error && adData.adset_id) {
-              const nomeAnuncio = adData.name || "";
-              // Buscar nome do conjunto
-              const adsetRes = await fetch(`https://graph.facebook.com/v21.0/${adData.adset_id}?fields=name&access_token=${adsToken}`);
-              const adsetData = await adsetRes.json();
-              const nomeConjunto = adsetData.error ? "" : (adsetData.name || "");
-              // Buscar nome da campanha (só sobrescreve se utm_campaign não veio da URL /c)
-              if (adData.campaign_id && !tracking.link_id) {
-                const campRes = await fetch(`https://graph.facebook.com/v21.0/${adData.campaign_id}?fields=name&access_token=${adsToken}`);
-                const campData = await campRes.json();
-                if (!campData.error && campData.name) tracking.utm_campaign = campData.name;
-              }
-              if (nomeConjunto) tracking.utm_content = nomeConjunto;
-              if (nomeAnuncio) tracking._nome_anuncio = nomeAnuncio;
-            }
-          } catch {}
+            const resultado = await resolverAnuncioMeta(adIdToResolve, adsToken);
+            if (resultado.campanha && !tracking.link_id) tracking.utm_campaign = resultado.campanha;
+            if (resultado.conjunto) tracking.utm_content = resultado.conjunto;
+            if (resultado.criativo) tracking._nome_anuncio = resultado.criativo;
+            _rastreioStatus = "resolvido";
+          } catch (e: any) {
+            _rastreioStatus = isFilha ? "pendente_nomes" : "erro_graph";
+            _rastreioErro = isFilha
+              ? `step8a:${e.code ?? "??"}: ${e.message}`
+              : `${e.code ?? "??"}: ${e.message}`;
+            console.error("[rastreio] Meta API erro step8a", { agencia_id: agencia.id, adId: adIdToResolve, code: e.code });
+          }
         }
-        // Garantir fbclid do CTWA
-        if (_ctwaClid && !tracking.fbclid) tracking.fbclid = _ctwaClid;
+
+        // 8b. Resolver utm_campaign/utm_content/utm_term numéricos (IDs Meta) via batch API
+        //     e limpar macros inválidas ({{}}) em qualquer campo
+        const temNumerico = NUMERIC_ID_REGEX.test(tracking.utm_campaign || "")
+          || NUMERIC_ID_REGEX.test(tracking.utm_content || "")
+          || NUMERIC_ID_REGEX.test(tracking.utm_term || "");
+        const temMacro = temMacroInvalida(tracking.utm_campaign) || temMacroInvalida(tracking.utm_term)
+          || temMacroInvalida(tracking.utm_content);
+        if ((temNumerico || temMacro) && (adsToken || temMacro)) {
+          const ids = await resolverIdsMeta(
+            { utm_campaign: tracking.utm_campaign, utm_content: tracking.utm_content,
+              utm_term: tracking.utm_term, nome_anuncio: tracking._nome_anuncio },
+            adsToken
+          );
+          if (!tracking.link_id && ids.utm_campaign !== undefined) tracking.utm_campaign = ids.utm_campaign;
+          if (ids.utm_content  !== undefined) tracking.utm_content  = ids.utm_content;
+          if (ids.utm_term     !== undefined) tracking.utm_term     = ids.utm_term;
+          if (ids.nome_anuncio) tracking._nome_anuncio = ids.nome_anuncio;
+          tracking._meta_campaign_id = ids.meta_campaign_id;
+          tracking._meta_adset_id    = ids.meta_adset_id;
+          // Filha: preservar meta_ad_id do sourceId da mensagem se resolverIdsMeta não retornou
+          tracking._meta_ad_id = isFilha
+            ? (ids.meta_ad_id || tracking._meta_ad_id || null)
+            : ids.meta_ad_id;
+          if (ids.rastreio_erro) _rastreioErro = ids.rastreio_erro;
+          if (ids.meta_campaign_id || ids.meta_adset_id) _rastreioStatus = "resolvido";
+        }
+
+        // Filha: sempre atualiza com o ctwaClid mais completo (extrairCtwaClid)
+        if (_ctwaClid && (!tracking.fbclid || isFilha)) tracking.fbclid = _ctwaClid;
       }
 
       // 8b. AUTO-CLASSIFICAR: se tem tracking com campanha mas sem tipo, tentar detectar pelo objetivo
       if (tracking && tracking.utm_campaign && !tracking.utm_medium) {
-        const adsToken = agencia.meta_business_token || agencia.meta_token;
+        const adsToken = adsTokenMeta;
         const adAccount = (agencia as any).meta_ad_account_id;
         if (adsToken && adAccount) {
           try {
@@ -1076,7 +1542,9 @@ export async function POST(req: NextRequest) {
             const campData = await campRes.json();
             if (campData.data?.[0]) {
               const obj = campData.data[0].objective;
-              if (obj === "OUTCOME_LEADS") { tracking.origem = "Formulário Meta"; tracking.utm_medium = "leadform"; }
+              // OUTCOME_LEADS pode ser formulário nativo OU site — só muda para Formulário Meta
+              // se o utm_medium já era "leadform" (veio do webhook meta-leads ou rastreamento_pendente)
+              if (obj === "OUTCOME_LEADS" && tracking.utm_medium === "leadform") { tracking.origem = "Formulário Meta"; }
               else if (obj === "OUTCOME_ENGAGEMENT") { tracking.utm_medium = "ctwa"; }
               else if (obj === "OUTCOME_TRAFFIC" || obj === "OUTCOME_SALES") { tracking.utm_medium = "link"; }
             }
@@ -1090,9 +1558,28 @@ export async function POST(req: NextRequest) {
 
         const isPrimeiro = eraNovaConversa || !conversa.primeira_mensagem_at;
         const semRastreio = !conversa.origem || conversa.origem === "Não Rastreada";
+        // Permite atualizar origem se nova origem é real (não é "Não Rastreada")
+        // Ex: conversa "Não Rastreada" + nova origem "Formulário" → atualiza
+        // Ex: conversa "Formulário" + nova origem "Meta Ads" → atualiza
+        // Ex: conversa "Formulário" + sem rastreamento ("Não Rastreada") → mantém "Formulário"
+        const novaOrigemReal = tracking.origem && tracking.origem !== "Não Rastreada";
 
-        // Atualizar conversa se: é primeira mensagem OU conversa ainda não tem rastreamento
-        if (isPrimeiro || semRastreio) {
+        // Atualizar conversa se: é primeira mensagem OU sem rastreamento OU tem nova origem real
+        // E respeitando a hierarquia: nunca rebaixar rastreio já existente
+        if ((isPrimeiro || semRastreio || novaOrigemReal) && podeAplicarRastreio(conversa, _rastreioStatus)) {
+          // Se veio de formulário (leadgen_id ou utm_medium=leadform/formulario), buscar lead_id no CRM
+          let leadIdFromForm: string | null = null;
+          if (tracking.leadgen_id) {
+            const { data: leadRow } = await supabase.from("leads")
+              .select("id").eq("leadgen_id", tracking.leadgen_id).maybeSingle();
+            leadIdFromForm = leadRow?.id || null;
+          } else if (tracking.utm_medium === "leadform" || tracking.utm_medium === "formulario") {
+            // Formulário SALX — buscar lead pelo número
+            const { data: leadRow } = await supabase.from("leads")
+              .select("id").eq("telefone", numero).order("created_at", { ascending: false }).limit(1).maybeSingle();
+            leadIdFromForm = leadRow?.id || null;
+          }
+
           const updateData: any = {
             origem: tracking.origem || "Meta Ads",
             utm_source: tracking.utm_source,
@@ -1103,9 +1590,19 @@ export async function POST(req: NextRequest) {
             fbclid: tracking.fbclid,
             link_id: linkIdFromTerm,
             leadgen_id: tracking.leadgen_id || null,
+            ...(leadIdFromForm ? { lead_id: leadIdFromForm } : {}),
+            ...(_ctwaClid ? { ctwa_clid: _ctwaClid } : {}),
+            ...(_ctwaSourceType ? { ctwa_source_type: _ctwaSourceType } : {}),
+            ...(_rastreioStatus ? { rastreio_status: _rastreioStatus } : {}),
+            ...(_rastreioErro ? { rastreio_erro: _rastreioErro } : {}),
+            ...(tracking._meta_campaign_id ? { meta_campaign_id: tracking._meta_campaign_id } : {}),
+            ...(tracking._meta_adset_id    ? { meta_adset_id:    tracking._meta_adset_id    } : {}),
+            ...(tracking._meta_ad_id       ? { meta_ad_id:       tracking._meta_ad_id       } : {}),
           };
 
-          if (isPrimeiro) {
+          // Só setar primeira_mensagem_at se for conversa NOVA — não sobrescrever com data de hoje
+          // para conversas antigas que nunca tiveram esse campo preenchido
+          if (eraNovaConversa) {
             updateData.primeira_mensagem_at = timestamp;
           }
 
@@ -1145,16 +1642,19 @@ export async function POST(req: NextRequest) {
         }
 
         // Limpar rastreamentos pendentes
-        await supabase.from("rastreamentos_pendentes").delete().eq("wa_numero", numero);
+        await supabase.from("rastreamentos_pendentes").delete().eq("wa_numero", (isFilha ? (numeroEfetivo ?? numero) : numero));
         if (tracking.fbclid) {
           await supabase.from("rastreamentos_pendentes").delete().eq("fbclid", tracking.fbclid);
         }
       } else {
-        // Sem tracking — marcar primeira mensagem e agendar retry
-        await supabase.from("conversas").update({
-          primeira_mensagem_at: timestamp,
-          origem: conversa.origem || "Não Rastreada",
-        }).eq("id", conversa.id).is("primeira_mensagem_at", null);
+        // Sem tracking novo — preservar origem existente (nunca rebaixar para "Não Rastreada")
+        const origemPreservada = conversa?.origem && conversa.origem !== "Não Rastreada"
+          ? conversa.origem : "Não Rastreada";
+        const updateSemTracking: any = { origem: origemPreservada };
+        // Só setar primeira_mensagem_at em conversa NOVA — não corrigir datas de conversas antigas
+        if (eraNovaConversa) updateSemTracking.primeira_mensagem_at = timestamp;
+        await supabase.from("conversas").update(updateSemTracking)
+          .eq("id", conversa.id).is("primeira_mensagem_at", null);
 
         if (eraNovaConversa) {
           waitUntil(
@@ -1169,13 +1669,13 @@ export async function POST(req: NextRequest) {
 
       // Verificar termo-chave na mensagem do lead
       await verificarTermoChave(
-        agencia.id, conversa.id, conteudo, numero,
+        agencia.id, conversa.id, conteudo, isFilha ? (numeroEfetivo ?? numero) : numero,
         conversa.fbclid || tracking?.fbclid, conversa.utm_campaign || tracking?.utm_campaign, conversa.utm_content || tracking?.utm_content,
         _isCTWA || isLid
       );
 
       // Disparar pixel em toda conversa nova (orgânico + anúncio) pra enriquecer o pixel
-      if (eraNovaConversa) {
+      if (eraNovaConversa && !isHistoricaParaPixel) {
         const { data: etapaPrimeiro } = await supabase.from("jornada_etapas")
           .select("nome").eq("agencia_id", agencia.id).eq("eh_primeiro_contato", true).single();
         const nomeEtapa = etapaPrimeiro?.nome || "Entrou em contato";
@@ -1187,12 +1687,12 @@ export async function POST(req: NextRequest) {
               agencia_id: agencia.id,
               conversa_id: conversa.id,
               etapa_nome: nomeEtapa,
-              phone: numero,
+              phone: isFilha ? numeroEfetivo : numero,
               contato_nome: conversa.contato_nome || nome,
               fbclid: tracking?.fbclid,
               utm_campaign: tracking?.utm_campaign,
               utm_content: tracking?.utm_content,
-              is_ctwa: _isCTWA || isLid || tracking?.origem === "Meta Ads" || !!tracking?.fbclid,
+              is_ctwa: _isCTWA || isLid,
             }),
           });
           const pixelData = await pixelRes.json();
@@ -1202,12 +1702,19 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // FUNIS: cancelar pendentes quando lead responde
+      // Cancelar filas pendentes quando lead responde
       if (conversa?.id) {
+        // Funis
         supabase.from("funil_fila")
           .update({ status: "cancelado" })
           .eq("conversa_id", conversa.id)
           .eq("status", "pendente")
+          .then(() => {});
+        // Follow-ups (BLOCO 2.4)
+        supabase.from("followup_fila")
+          .update({ status: "cancelado" })
+          .eq("conversa_id", conversa.id)
+          .in("status", ["pendente", "processando"])
           .then(() => {});
       }
 
@@ -1234,8 +1741,11 @@ export async function POST(req: NextRequest) {
       } // fecha !isHistorica
 
       // IA AUTO-RESPONDER (não-bloqueante)
-      console.log(`[webhook-ia] conteudo="${(conteudo||'').slice(0,30)}" tipo=${tipo} conversa=${conversa?.id} ia_ativada=${conversa?.ia_ativada} isHistorica=${isHistorica} msgDuplicada=${msgDuplicada}`);
-      if (conteudo && conversa?.id) {
+      // Não acionar IA para tipos sem texto significativo (sticker, documento, tipo desconhecido)
+      // Não acionar se mensagem duplicada (mesmo key.id já processado — BLOCO 1.1/1.2)
+      const tiposSemTexto = conteudo === "Mensagem" || conteudo === "😄 Sticker" || tipo === "sticker" || tipo === "document";
+      console.log(`[webhook-ia] conteudo="${(conteudo||'').slice(0,30)}" tipo=${tipo} tipoSemTexto=${tiposSemTexto} conversa=${conversa?.id} ia_ativada=${conversa?.ia_ativada} isHistorica=${isHistorica} msgDuplicada=${msgDuplicada}`);
+      if (conteudo && conversa?.id && !tiposSemTexto && !msgDuplicada) {
         let deveResponder = false;
 
         if (conversa.ia_ativada) {
@@ -1244,13 +1754,14 @@ export async function POST(req: NextRequest) {
         } else {
           // Conversa nunca ativada — verificar se mensagem bate com gatilho
           const { data: agConfig } = await supabase.from("agencias")
-            .select("ia_mensagens_gatilho").eq("id", agencia.id).single();
+            .select("ia_mensagens_gatilho, openai_ativo").eq("id", agencia.id).single();
           let gatilhos: string[] = [];
           try { gatilhos = agConfig?.ia_mensagens_gatilho ? JSON.parse(agConfig.ia_mensagens_gatilho) : []; } catch {}
 
           if (gatilhos.length === 0) {
-            // Sem gatilhos configurados — ativar pra todas as conversas novas
-            if (eraNovaConversa) {
+            // Sem gatilhos — ativar se IA está ativa na agência (qualquer msg do lead)
+            // ou na primeira mensagem real (novo lead)
+            if (agConfig?.openai_ativo) {
               deveResponder = true;
               await supabase.from("conversas").update({ ia_ativada: true }).eq("id", conversa.id);
             }

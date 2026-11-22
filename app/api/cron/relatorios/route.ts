@@ -6,7 +6,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://salxconvert-blond.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.salxconvert.com.br";
 
 export async function GET(req: NextRequest) {
   // Proteger com secret do Vercel Cron
@@ -76,6 +76,13 @@ export async function GET(req: NextRequest) {
       if (rel.frequencia === "semanal") {
         if (rel.dia_semana !== null && rel.dia_semana !== diaAtual) continue;
       }
+      if (rel.frequencia === "mensal") {
+        // Mensal: só enviar no dia 1
+        const brDia = parseInt(new Intl.DateTimeFormat("en-CA", {
+          timeZone: "America/Sao_Paulo", day: "2-digit",
+        }).format(agora));
+        if (brDia !== 1) continue;
+      }
 
       // Checar se já enviou hoje (evitar duplicatas) — comparar em horário de Brasília
       if (rel.ultimo_envio) {
@@ -93,7 +100,7 @@ export async function GET(req: NextRequest) {
         const res = await fetch(`${APP_URL}/api/relatorios/enviar`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ relatorio_id: rel.id }),
+          body: JSON.stringify({ relatorio_id: rel.id, via_cron: true }),
         });
         const data = await res.json();
 

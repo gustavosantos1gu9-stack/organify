@@ -83,7 +83,7 @@ function getPeriodDates(periodo: string): { since: string; until: string } {
 
 export async function POST(req: NextRequest) {
   try {
-    const { relatorio_id, preview } = await req.json();
+    const { relatorio_id, preview, via_cron } = await req.json();
 
     // Buscar relatório
     const { data: rel, error: relErr } = await supabase
@@ -115,8 +115,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Token Meta não configurado" }, { status: 400 });
     }
 
-    // Calcular período
-    const { since, until } = getPeriodDates(rel.periodo);
+    // Mensal sempre usa mês anterior (cron e manual)
+    const periodoEfetivo = rel.frequencia === "mensal" ? "mes_anterior" : rel.periodo;
+    const { since, until } = getPeriodDates(periodoEfetivo);
     const periodoFormatado = `${since.split("-").reverse().join("/")} a ${until.split("-").reverse().join("/")}`;
 
     // Buscar insights da conta de anúncio
@@ -149,6 +150,7 @@ export async function POST(req: NextRequest) {
       "onsite_conversion.messaging_conversation_started_7d",
       "onsite_conversion.total_messaging_connection",
       "onsite_conversion.messaging_first_reply",
+      "offsite_conversion.fb_pixel_schedule",
       "offsite_conversion.fb_pixel_lead",
       "lead",
     ];
@@ -231,7 +233,7 @@ export async function POST(req: NextRequest) {
       "{{top_3_creatives_ranking}}": top3Text,
       "<INV>": formatMoney(spend),
       "<SALDO>": formatMoney(balance),
-      "<LINK_DASH>": `${process.env.NEXT_PUBLIC_APP_URL || "https://salxconvert-blond.vercel.app"}/relatorio?id=${relatorio_id}`,
+      "<LINK_DASH>": `${process.env.NEXT_PUBLIC_APP_URL || "https://www.salxconvert.com.br"}/relatorio?id=${relatorio_id}&since=${since}&until=${until}`,
     };
 
     for (const [key, value] of Object.entries(replacements)) {

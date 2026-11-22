@@ -25,24 +25,25 @@ export async function POST(req: NextRequest) {
       }
       const data = await res.json();
 
-      // O saldo disponível real vem em funding_source_details.display_string
-      // Ex: "Saldo disponível (R$93,39 BRL)" — extrair o valor de lá
       const funding = data.funding_source_details;
       const displayStr = funding?.display_string || "";
-      const matchSaldo = displayStr.match(/[\d.,]+/);
+      const isCartao = funding?.type === 1;
+
+      // Saldo só faz sentido para PIX/Boleto (pré-pago), não para cartão de crédito
       let balance = 0;
-      if (matchSaldo) {
-        // Formato BR: "93,39" ou "1.234,56" → converter para float
-        balance = parseFloat(matchSaldo[0].replace(/\./g, "").replace(",", "."));
-      }
-      // Fallback: spend_cap - amount_spent se não encontrou no display_string
-      if (!balance || isNaN(balance)) {
-        const spendCap = data.spend_cap ? parseFloat(data.spend_cap) / 100 : 0;
-        const amountSpent = data.amount_spent ? parseFloat(data.amount_spent) / 100 : 0;
-        balance = spendCap > 0 ? spendCap - amountSpent : 0;
+      if (!isCartao) {
+        const matchSaldo = displayStr.match(/[\d.,]+/);
+        if (matchSaldo) {
+          balance = parseFloat(matchSaldo[0].replace(/\./g, "").replace(",", "."));
+        }
+        if (!balance || isNaN(balance)) {
+          const spendCap = data.spend_cap ? parseFloat(data.spend_cap) / 100 : 0;
+          const amountSpent = data.amount_spent ? parseFloat(data.amount_spent) / 100 : 0;
+          balance = spendCap > 0 ? spendCap - amountSpent : 0;
+        }
       }
       const statusMap: Record<number, string> = {
-        1: "Ativa", 2: "Desativada", 3: "Não liquidada", 7: "Em revisão",
+        1: "Ativa", 2: "Desativada", 3: "Desativada com erro no pagamento", 7: "Em revisão",
         8: "Liquidação pendente", 9: "Em período de carência", 100: "Fechamento pendente", 101: "Fechada",
       };
 

@@ -10,10 +10,11 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const agenciaId = url.searchParams.get("agencia_id");
   const returnTo = url.searchParams.get("return_to") || "/relatorios-meta/conexoes";
+  const tokenType = url.searchParams.get("token_type") || "business"; // "pixel" | "business"
   const redirectUri = `${url.origin}/api/auth/meta/callback`;
 
-  // State: agencia_id pra saber onde salvar + return_to
-  const state = JSON.stringify({ agencia_id: agenciaId, return_to: returnTo });
+  // State: agencia_id pra saber onde salvar + return_to + token_type
+  const state = JSON.stringify({ agencia_id: agenciaId, return_to: returnTo, token_type: tokenType });
   const stateEncoded = Buffer.from(state).toString("base64url");
 
   // Permissões necessárias

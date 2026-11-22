@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
 // Verificar se o usuário é dono da agência master
@@ -84,6 +84,62 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    // Dar acesso automático ao criador (usuario da equipe)
+    if (data) {
+      try {
+        const authHeader2 = req.headers.get("authorization");
+        if (authHeader2) {
+          const token2 = authHeader2.replace("Bearer ", "");
+          const { data: { user: creator } } = await supabaseAdmin.auth.getUser(token2);
+          if (creator) {
+            // Buscar por auth_user_id OU email
+            let creatorUser: any = null;
+            const { data: byAuth } = await supabaseAdmin.from("usuarios")
+              .select("id").eq("auth_user_id", creator.id).limit(1).single();
+            if (byAuth) {
+              creatorUser = byAuth;
+            } else if (creator.email) {
+              const { data: byEmail } = await supabaseAdmin.from("usuarios")
+                .select("id").eq("email", creator.email).limit(1).single();
+              creatorUser = byEmail;
+            }
+            if (creatorUser) {
+              await supabaseAdmin.from("usuarios_agencias").upsert(
+                { usuario_id: creatorUser.id, agencia_id: data.id },
+                { onConflict: "usuario_id,agencia_id", ignoreDuplicates: true }
+              );
+              console.log(`[agencias-filhas] Acesso automático: ${creator.email} → ${data.nome}`);
+            }
+          }
+        }
+      } catch (e) {
+        console.error("[agencias-filhas] Erro ao dar acesso automático:", e);
+      }
+    }
+
+    // Criar usuário automaticamente se tem email
+    if (data && email?.trim()) {
+      try {
+        const origin = req.headers.get("origin") || "";
+        const { data: authData, error: authError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+          data: { nome, agencia_id: data.id },
+          redirectTo: `${origin}/nova-senha`,
+        });
+        if (!authError && authData?.user) {
+          await supabaseAdmin.from("usuarios").insert({
+            agencia_id: data.id,
+            auth_user_id: authData.user.id,
+            nome: nome || email.split("@")[0],
+            email,
+            ativo: true,
+          });
+        }
+      } catch (e) {
+        console.error("[agencias-filhas] Erro ao criar usuário:", e);
+      }
+    }
+
     return NextResponse.json(data);
   }
 

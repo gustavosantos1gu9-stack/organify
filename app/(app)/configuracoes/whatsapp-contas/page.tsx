@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Plus, PowerOff, RefreshCw, Smartphone, Wifi, WifiOff, Building2, X, Eye } from "lucide-react";
+import { Search, Plus, PowerOff, RefreshCw, Smartphone, Wifi, WifiOff, Building2, X, Eye, Trash2, AlertTriangle, Heart } from "lucide-react";
 import Link from "next/link";
 import { supabase, getAgenciaId } from "@/lib/hooks";
 
@@ -11,6 +11,7 @@ interface ClienteConta {
   whatsapp_instancia: string | null;
   whatsapp_numero: string | null;
   whatsapp_conectado: boolean;
+  reconexao_token: string | null;
   created_at: string;
   state?: string;
   profileName?: string;
@@ -26,6 +27,8 @@ export default function WhatsAppContasPage() {
   const [showNova, setShowNova] = useState(false);
   const [novoNome, setNovoNome] = useState("");
   const [criando, setCriando] = useState(false);
+  const [linkCopiado, setLinkCopiado] = useState<string | null>(null); // id da agência com link copiado
+  const [alertasAbertos, setAlertasAbertos] = useState(0);
 
   const criarConta = async () => {
     if (!novoNome.trim()) { alert("Preencha o nome"); return; }
@@ -36,6 +39,17 @@ export default function WhatsAppContasPage() {
         parent_id: agId,
       }).select().single();
       if (error) { alert("Erro: " + error.message); setCriando(false); return; }
+
+      // Criar etapa padrão "Fez Contato" na jornada da nova agência filha
+      await supabase.from("jornada_etapas").insert({
+        agencia_id: nova.id,
+        nome: "Fez Contato",
+        evento_conversao: "Contact",
+        eh_primeiro_contato: true,
+        eh_venda: false,
+        ordem: 1,
+      });
+
       setNovoNome("");
       setShowNova(false);
       await carregar();
@@ -57,7 +71,7 @@ export default function WhatsAppContasPage() {
 
     // Buscar agências filhas (clientes SaaS)
     const { data: filhas } = await supabase.from("agencias")
-      .select("id, nome, whatsapp_instancia, whatsapp_numero, whatsapp_conectado, created_at")
+      .select("id, nome, whatsapp_instancia, whatsapp_numero, whatsapp_conectado, reconexao_token, created_at")
       .eq("parent_id", id)
       .order("nome");
 
@@ -84,7 +98,10 @@ export default function WhatsAppContasPage() {
     setLoading(false);
   };
 
-  useEffect(() => { carregar(); }, []);
+  useEffect(() => {
+    carregar();
+    fetch("/api/heartbeat/status").then(r => r.json()).then(d => setAlertasAbertos(d.alertas_abertos || 0)).catch(() => {});
+  }, []);
 
   const formatNumber = (n: string | null) => {
     if (!n || n.length < 10) return n || "—";
@@ -109,6 +126,84 @@ export default function WhatsAppContasPage() {
     } catch (e) { console.error(e); alert("Erro ao desativar"); }
   };
 
+  const excluir = async (c: ClienteConta) => {
+    const confirmado = prompt(`Para excluir "${c.nome}", digite o nome da conta:`);
+    if (confirmado?.trim() !== c.nome.trim()) { alert("Nome não confere. Exclusão cancelada."); return; }
+    try {
+      if (c.whatsapp_instancia && evolutionUrl && evolutionKey) {
+        await fetch(`/api/evolution/proxy?url=${encodeURIComponent(`${evolutionUrl}/instance/delete/${c.whatsapp_instancia}`)}&key=${encodeURIComponent(evolutionKey)}&method=DELETE`);
+      }
+      const { error } = await supabase.from("agencias").delete().eq("id", c.id);
+      if (error) { alert("Erro ao excluir: " + error.message); return; }
+      await carregar();
+    } catch (e) { console.error(e); alert("Erro ao excluir"); }
+  };
+
+  const fixarWebhook = async (c: ClienteConta) => {
+    if (!confirm(`Reconfigurar webhook da "${c.nome}"?\n\nIsso resolve quando mensagens param de chegar mesmo com WhatsApp conectado.`)) return;
+    try {
+      const res = await fetch("/api/evolution/fix-webhook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agencia_id: c.id, instancia: c.whatsapp_instancia }),
+      });
+      const data = await res.json();
+      if (data.ok) alert(`Webhook reconfigurado com sucesso para "${c.nome}"!`);
+      else alert("Erro: " + (data.error || "falha"));
+    } catch (e) { alert("Erro ao reconfigurar webhook"); }
+  };
+
+  const fixarTodosWebhooks = async () => {
+    const comInstancia = clientes.filter(c => c.whatsapp_instancia);
+    if (!comInstancia.length) { alert("Nenhuma conta com instância configurada."); return; }
+    if (!confirm(`Reconfigurar webhook de ${comInstancia.length} conta(s)?\n\nIsso garante que todas recebam mensagens corretamente.`)) return;
+    const erros: string[] = [];
+    for (const c of comInstancia) {
+      try {
+        const res = await fetch("/api/evolution/fix-webhook", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agencia_id: c.id, instancia: c.whatsapp_instancia }),
+        });
+        const data = await res.json();
+        if (!data.ok) erros.push(`${c.nome}: ${data.error || "falha"}`);
+      } catch { erros.push(`${c.nome}: erro de conexão`); }
+    }
+    if (erros.length) alert(`Concluído com erros:\n${erros.join("\n")}`);
+    else alert(`Webhook reconfigurado em ${comInstancia.length} conta(s) com sucesso!`);
+  };
+
+  const copiarLink = (c: ClienteConta) => {
+    if (!c.reconexao_token) return;
+    const link = `${window.location.origin}/reconectar/${c.reconexao_token}`;
+    navigator.clipboard.writeText(link).then(() => {
+      setLinkCopiado(c.id);
+      setTimeout(() => setLinkCopiado(null), 2500);
+    }).catch(() => alert(link));
+  };
+
+  const gerarToken = async (c: ClienteConta) => {
+    if (!confirm(`Gerar novo link de reconexão para "${c.nome}"?\n\nO link anterior será invalidado.`)) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) { alert("Sessão expirada. Recarregue a página."); return; }
+      const res = await fetch("/api/reconexao/gerar-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ agencia_id: c.id }),
+      });
+      const data = await res.json();
+      if (data.link) {
+        await carregar();
+        navigator.clipboard.writeText(data.link).then(() => {
+          alert(`Link gerado e copiado!\n\n${data.link}`);
+        }).catch(() => alert(`Link gerado:\n\n${data.link}`));
+      } else {
+        alert("Erro ao gerar link: " + (data.error || "falha"));
+      }
+    } catch (e) { console.error(e); alert("Erro ao gerar token"); }
+  };
+
   const filtrados = clientes.filter(c =>
     c.nome.toLowerCase().includes(busca.toLowerCase()) ||
     (c.whatsapp_numero || "").includes(busca)
@@ -126,7 +221,7 @@ export default function WhatsAppContasPage() {
       </div>
       <h1 style={{ fontSize: "22px", fontWeight: "600", marginBottom: "24px" }}>Gerenciar Contas</h1>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "16px", marginBottom: "28px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "16px", marginBottom: "28px" }}>
         <div className="card" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: "12px" }}>
           <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(41,171,226,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Building2 size={18} color="#29ABE2" />
@@ -154,6 +249,24 @@ export default function WhatsAppContasPage() {
             <p style={{ fontSize: 22, fontWeight: 700, color: "#ef4444", margin: 0 }}>{total - conectadas}</p>
           </div>
         </div>
+        <Link href="/configuracoes/whatsapp-status" style={{ textDecoration: "none" }}>
+          <div className="card" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: "12px", cursor: "pointer", border: alertasAbertos > 0 ? "1px solid rgba(239,68,68,0.5)" : "1px solid #2e2e2e", transition: "border-color 0.2s" }}>
+            <div style={{ position: "relative", width: 36, height: 36, borderRadius: 8, background: alertasAbertos > 0 ? "rgba(239,68,68,0.15)" : "rgba(100,100,100,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Heart size={18} color={alertasAbertos > 0 ? "#ef4444" : "#606060"} />
+              {alertasAbertos > 0 && (
+                <span style={{ position: "absolute", top: -4, right: -4, width: 16, height: 16, borderRadius: "50%", background: "#ef4444", color: "#fff", fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {alertasAbertos}
+                </span>
+              )}
+            </div>
+            <div>
+              <p style={{ fontSize: 11, color: "#606060", margin: 0 }}>Monitor de Saúde</p>
+              <p style={{ fontSize: alertasAbertos > 0 ? 13 : 22, fontWeight: 700, color: alertasAbertos > 0 ? "#ef4444" : "#f0f0f0", margin: 0 }}>
+                {alertasAbertos > 0 ? `${alertasAbertos} alerta${alertasAbertos > 1 ? "s" : ""}` : "OK"}
+              </p>
+            </div>
+          </div>
+        </Link>
       </div>
 
       <div className="table-wrapper">
@@ -163,6 +276,9 @@ export default function WhatsAppContasPage() {
             <input className="search-input" placeholder="Buscar cliente ou WhatsApp..." value={busca} onChange={e => setBusca(e.target.value)} />
           </div>
           <button className="btn-ghost" onClick={carregar} style={{ padding: "8px" }}><RefreshCw size={14} /></button>
+          <button className="btn-ghost" onClick={fixarTodosWebhooks} style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px" }} title="Reconfigurar webhook de todas as contas">
+            <Wifi size={14} /> Reconf. Webhooks
+          </button>
           <button className="btn-primary" onClick={() => setShowNova(true)}>
             <Plus size={14} /> Nova Conta
           </button>
@@ -216,20 +332,65 @@ export default function WhatsAppContasPage() {
                 </td>
                 <td>
                   <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                    <Link href={`/clientes-saas`} onClick={() => {
+                    <button onClick={() => {
                       sessionStorage.setItem("agencia_selecionada", c.id);
-                    }} className="btn-ghost" style={{ padding: "5px 8px", textDecoration: "none", display: "flex", alignItems: "center" }} title="Ver painel">
+                      window.location.href = "/clientes-saas";
+                    }} className="btn-ghost" style={{ padding: "5px 8px", display: "flex", alignItems: "center", cursor: "pointer" }} title="Ver painel">
                       <Eye size={13} />
-                    </Link>
+                    </button>
                     {c.whatsapp_instancia && (
-                      <button onClick={() => desativar(c)} style={{
-                        display: "flex", alignItems: "center", gap: 6,
-                        padding: "5px 12px", borderRadius: 6, fontSize: 12, cursor: "pointer",
-                        background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#ef4444",
-                      }}>
-                        <PowerOff size={12} /> Desativar
+                      <>
+                        <button onClick={() => fixarWebhook(c)} title="Reconfigurar webhook (usar quando mensagens pararem de chegar)" style={{
+                          display: "flex", alignItems: "center", gap: 6,
+                          padding: "5px 8px", borderRadius: 6, fontSize: 12, cursor: "pointer",
+                          background: "rgba(41,171,226,0.08)", border: "1px solid rgba(41,171,226,0.2)", color: "#29ABE2",
+                        }}>
+                          <Wifi size={12} />
+                        </button>
+                        <button onClick={() => desativar(c)} style={{
+                          display: "flex", alignItems: "center", gap: 6,
+                          padding: "5px 12px", borderRadius: 6, fontSize: 12, cursor: "pointer",
+                          background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#ef4444",
+                        }}>
+                          <PowerOff size={12} /> Desativar
+                        </button>
+                      </>
+                    )}
+                    {/* Link de reconexão */}
+                    {c.reconexao_token ? (
+                      <button
+                        onClick={() => copiarLink(c)}
+                        title="Copiar link de reconexão para enviar à cliente"
+                        style={{
+                          display: "flex", alignItems: "center", gap: 4,
+                          padding: "5px 8px", borderRadius: 6, fontSize: 11, cursor: "pointer",
+                          background: linkCopiado === c.id ? "rgba(37,211,102,0.08)" : "rgba(100,100,100,0.08)",
+                          border: `1px solid ${linkCopiado === c.id ? "rgba(37,211,102,0.3)" : "rgba(100,100,100,0.2)"}`,
+                          color: linkCopiado === c.id ? "#22c55e" : "#a0a0a0",
+                        }}
+                      >
+                        {linkCopiado === c.id ? "✓" : "🔗"}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => gerarToken(c)}
+                        title="Gerar link de reconexão"
+                        style={{
+                          display: "flex", alignItems: "center", gap: 4,
+                          padding: "5px 8px", borderRadius: 6, fontSize: 11, cursor: "pointer",
+                          background: "rgba(100,100,100,0.08)", border: "1px solid rgba(100,100,100,0.2)", color: "#606060",
+                        }}
+                      >
+                        🔗
                       </button>
                     )}
+                    <button onClick={() => excluir(c)} style={{
+                      display: "flex", alignItems: "center", gap: 6,
+                      padding: "5px 12px", borderRadius: 6, fontSize: 12, cursor: "pointer",
+                      background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.4)", color: "#ef4444",
+                    }} title="Excluir conta permanentemente">
+                      <Trash2 size={12} /> Excluir
+                    </button>
                   </div>
                 </td>
               </tr>

@@ -10,7 +10,7 @@ interface Conversa {
   primeira_mensagem_at?: string; etapa_alterada_at?: string; nao_lidas: number;
   origem?: string; etapa_jornada?: string; leadgen_id?: string; utm_source?: string; utm_medium?: string;
   utm_campaign?: string; utm_content?: string; utm_term?: string; link_nome?: string; fbclid?: string;
-  nome_anuncio?: string; created_at: string; finalizado_at?: string | null;
+  nome_anuncio?: string; created_at: string; finalizado_at?: string | null; agendou_at?: string | null;
 }
 interface Mensagem {
   id: string; de_mim: boolean; tipo: string; conteudo: string;
@@ -128,6 +128,32 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, eta
     fbclid: conversa.fbclid || "",
   });
   const [salvandoRastreio, setSalvandoRastreio] = useState(false);
+  const [respostasForm, setRespostasForm] = useState<{formulario: string; respostas: Record<string,string>; perguntas: any[]; created_at: string; desqualificado?: boolean} | null>(null);
+
+  // Carregar respostas de formulário pelo número do contato
+  useEffect(() => {
+    const numLimpo = conversa.contato_numero.replace(/\D/g, "");
+    const variantes = [numLimpo, numLimpo.replace(/^55/, "")];
+    supabase.from("formularios_respostas")
+      .select("respostas, created_at, formulario_id, formularios(nome, perguntas)")
+      .order("created_at", { ascending: false })
+      .limit(20)
+      .then(({ data }) => {
+        if (!data) return;
+        const match = data.find((r: any) => {
+          const vals = Object.values(r.respostas || {}) as string[];
+          return vals.some(v => variantes.some(n => (v || "").replace(/\D/g,"").endsWith(n.slice(-8))));
+        });
+        if (match) {
+          setRespostasForm({
+            formulario: (match as any).formularios?.nome || "Formulário",
+            respostas: match.respostas,
+            perguntas: (match as any).formularios?.perguntas || [],
+            created_at: match.created_at,
+          });
+        }
+      });
+  }, [conversa.id]);
 
   // Carregar histórico de transições
   useEffect(() => {
@@ -142,27 +168,31 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, eta
     setSalvando(true);
     const etapaAnterior = etapa;
     setEtapa(novaEtapa);
-    await supabase.from("conversas").update({ etapa_jornada: novaEtapa, etapa_alterada_at: new Date().toISOString() }).eq("id", conversa.id);
+    const updatePayload: Record<string, any> = { etapa_jornada: novaEtapa, etapa_alterada_at: new Date().toISOString() };
+    // Se movendo para "Agendou" manualmente e agendou_at ainda não foi setado, registrar agora
+    if (novaEtapa.toLowerCase().includes("agendou") && !conversa.agendou_at) {
+      updatePayload.agendou_at = new Date().toISOString();
+    }
+    await supabase.from("conversas").update(updatePayload).eq("id", conversa.id);
     onEtapaChange(novaEtapa);
     const agId = await getAgenciaId();
     // Registrar histórico de transição
-    await supabase.from("etapas_historico").insert({
+    const { data: histInsert } = await supabase.from("etapas_historico").insert({
       conversa_id: conversa.id, agencia_id: agId,
       etapa_anterior: etapaAnterior || null, etapa_nova: novaEtapa, alterado_por: "manual",
-    });
+    }).select("id").single();
+    const histId = histInsert?.id;
     console.log(`[salvarEtapa] ${conversa.contato_nome}: ${etapaAnterior} → ${novaEtapa}`);
-    // Disparar Pixel + Conversion Leads em paralelo (sem bloquear um ao outro)
-    const pixelPromise = fetch("/api/pixel", {
+    // Disparar Pixel (já inclui action_source crm + lead_id para Lead Ads)
+    fetch("/api/pixel", {
       method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ agencia_id:agId, conversa_id:conversa.id, etapa_nome:novaEtapa, phone:conversa.contato_numero, contato_nome:conversa.contato_nome, fbclid:editDados.fbclid||conversa.fbclid, utm_campaign:editDados.utm_campaign||conversa.utm_campaign, utm_content:editDados.utm_content||conversa.utm_content, is_ctwa: conversa.contato_jid?.includes("@lid") || conversa.origem === "Meta Ads" || !!(editDados.fbclid || conversa.fbclid) }),
-    }).then(r=>r.json()).then(d=>{ if(!d.ok) console.warn("Pixel:",d.motivo||d.error); }).catch(e=>console.error("Pixel erro:",e));
+      body: JSON.stringify({ agencia_id:agId, conversa_id:conversa.id, etapa_nome:novaEtapa, phone:conversa.contato_numero, contato_nome:conversa.contato_nome, fbclid:editDados.fbclid||conversa.fbclid, utm_campaign:editDados.utm_campaign||conversa.utm_campaign, utm_content:editDados.utm_content||conversa.utm_content, is_ctwa: !!(conversa.contato_jid?.includes("@lid")) }),
+    }).then(r=>r.json()).then(d=>{
+      if(!d.ok) console.warn("Pixel:",d.motivo||d.error);
+      // Marcar enviado_meta=true se ok, deixar null se falhou (cron retenta)
+      if (histId && d.ok) supabase.from("etapas_historico").update({ enviado_meta: true }).eq("id", histId).then(()=>{});
+    }).catch(e=>console.error("Pixel erro:",e));
 
-    const convPromise = fetch("/api/meta/conversion-lead", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ conversa_id: conversa.id, etapa_nova: novaEtapa, agencia_id: agId }),
-    }).then(r=>r.json()).then(d=>console.log("[Conversion Lead]",d)).catch(e=>console.error("Conversion Lead erro:",e));
-
-    await Promise.allSettled([pixelPromise, convPromise]);
     setSalvando(false);
   };
 
@@ -255,7 +285,8 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, eta
                 <select value={editDados.origem} onChange={e=>setEditDados(d=>({...d,origem:e.target.value}))}
                   style={{ ...inputStyle, cursor:"pointer" }}>
                   <option value="Meta Ads">Meta Ads</option>
-                  <option value="Google Ads">Google Ads</option>
+                  <option value="Formulário Meta">Formulário Meta</option>
+                  <option value="Social Selling">Social Selling</option>
                   <option value="Outras Origens">Outras Origens</option>
                   <option value="Não Rastreada">Não Rastreada</option>
                 </select>
@@ -296,6 +327,30 @@ function DetalhesModal({ conversa, onClose, onEtapaChange, onConversaUpdate, eta
             </div>
           )}
         </div>
+
+        {/* Respostas do formulário */}
+        {respostasForm && (
+          <div style={{ background:"#1a1a1a", borderRadius:"8px", padding:"14px", marginBottom:"16px" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"10px" }}>
+              <p style={{ fontSize:"12px", fontWeight:"600", color:"#606060", margin:0 }}>FORMULÁRIO PREENCHIDO</p>
+              <span style={{ fontSize:"10px", color:"#505050" }}>
+                {new Date(respostasForm.created_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}
+              </span>
+            </div>
+            <p style={{ fontSize:"11px", color:"#29ABE2", fontWeight:"600", margin:"0 0 10px" }}>{respostasForm.formulario}</p>
+            <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
+              {respostasForm.perguntas
+                .filter((p:any) => !["welcome","video","obrigado","galeria"].includes(p.tipo) && respostasForm.respostas[p.id])
+                .map((p:any) => (
+                  <div key={p.id}>
+                    <p style={{ fontSize:"10px", color:"#505050", margin:"0 0 2px" }}>{p.label}</p>
+                    <p style={{ fontSize:"12px", color:"#f0f0f0", margin:0 }}>{respostasForm.respostas[p.id]}</p>
+                  </div>
+                ))
+              }
+            </div>
+          </div>
+        )}
 
         {/* Etapas da jornada */}
         <div>
@@ -473,9 +528,10 @@ function ChatLateral({ conversa, onClose }: { conversa: Conversa; onClose:()=>vo
 
   const carregar = async (scrollToEnd = true) => {
     const { data, count } = await supabase.from("mensagens").select("*", { count: "exact" })
-      .eq("conversa_id", conversa.id).order("created_at",{ascending:true});
-    setMensagens(data||[]);
-    setTodasCarregadas((count || 0) > 0);
+      .eq("conversa_id", conversa.id).order("created_at",{ascending:false}).limit(LIMIT);
+    const ordenadas = (data||[]).reverse();
+    setMensagens(ordenadas);
+    setTodasCarregadas((count || 0) <= LIMIT);
     if (scrollToEnd) setTimeout(()=>endRef.current?.scrollIntoView({behavior:"smooth"}),50);
   };
 
@@ -569,6 +625,20 @@ function ChatLateral({ conversa, onClose }: { conversa: Conversa; onClose:()=>vo
       setFunisDisponiveis(data||[]);
     })();
   },[conversa.id]);
+
+  // Realtime + polling: atualizar mensagens quando novas chegarem
+  useEffect(()=>{
+    const channel = supabase
+      .channel(`chat-mensagens-${conversa.id}`)
+      .on("postgres_changes",
+        { event: "INSERT", schema: "public", table: "mensagens", filter: `conversa_id=eq.${conversa.id}` },
+        () => { carregar(false); }
+      )
+      .subscribe();
+    // Fallback polling a cada 5s caso realtime falhe silenciosamente
+    const intervalo = setInterval(()=>carregar(false), 5000);
+    return () => { supabase.removeChannel(channel); clearInterval(intervalo); };
+  }, [conversa.id]);
 
   // Agrupar mensagens por dia
   const groupByDay = (msgs: Mensagem[]) => {
@@ -697,6 +767,43 @@ function ChatLateral({ conversa, onClose }: { conversa: Conversa; onClose:()=>vo
   );
 }
 
+// Select com busca
+function SearchSelect({ value, onChange, options, placeholder }: { value: string; onChange: (v: string) => void; options: string[]; placeholder?: string }) {
+  const [busca, setBusca] = useState("");
+  const [aberto, setAberto] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const filtrados = options.filter(o => o.toLowerCase().includes(busca.toLowerCase()));
+  useEffect(() => {
+    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setAberto(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+  return (
+    <div ref={ref} style={{ position:"relative" }}>
+      <div onClick={() => setAberto(a => !a)} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", background:"#1a1a1a", border:"1px solid #333", borderRadius:"6px", padding:"7px 10px", cursor:"pointer", color: value ? "#f0f0f0" : "#666", fontSize:"13px" }}>
+        <span style={{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{value || placeholder || "Todos"}</span>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ flexShrink:0, marginLeft:"6px" }}><path d="M2 3.5L5 6.5L8 3.5" stroke="#888" strokeWidth="1.5" strokeLinecap="round"/></svg>
+      </div>
+      {aberto && (
+        <div style={{ position:"absolute", top:"100%", left:0, right:0, zIndex:999, background:"#1a1a1a", border:"1px solid #333", borderRadius:"6px", marginTop:"4px", overflow:"hidden", boxShadow:"0 8px 24px rgba(0,0,0,0.5)" }}>
+          <input autoFocus value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar..." style={{ width:"100%", background:"#111", border:"none", borderBottom:"1px solid #333", padding:"8px 10px", color:"#f0f0f0", fontSize:"12px", boxSizing:"border-box", outline:"none" }}/>
+          <div style={{ maxHeight:"180px", overflowY:"auto" }}>
+            <div onClick={() => { onChange(""); setBusca(""); setAberto(false); }} style={{ padding:"7px 10px", cursor:"pointer", color:"#888", fontSize:"13px" }} onMouseOver={e=>(e.currentTarget.style.background="#2a2a2a")} onMouseOut={e=>(e.currentTarget.style.background="")}>
+              {placeholder || "Todos"}
+            </div>
+            {filtrados.map(o => (
+              <div key={o} onClick={() => { onChange(o); setBusca(""); setAberto(false); }} style={{ padding:"7px 10px", cursor:"pointer", color:"#f0f0f0", fontSize:"13px", background: value === o ? "#2a2a2a" : "" }} onMouseOver={e=>(e.currentTarget.style.background="#2a2a2a")} onMouseOut={e=>(e.currentTarget.style.background=value===o?"#2a2a2a":"")}>
+                {o}
+              </div>
+            ))}
+            {filtrados.length === 0 && <div style={{ padding:"7px 10px", color:"#555", fontSize:"12px" }}>Nenhum resultado</div>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Painel de filtros avançados
 function FiltrosAvancados({ conversas, filtros, onChange, onClose, etapas }: { conversas: Conversa[]; filtros: any; onChange:(f:any)=>void; onClose:()=>void; etapas: EtapaJornada[] }) {
   const [local, setLocal] = useState(filtros);
@@ -707,6 +814,7 @@ function FiltrosAvancados({ conversas, filtros, onChange, onClose, etapas }: { c
   const links = uniq(conversas.map(c=>c.link_nome));
   const sources = uniq(conversas.map(c=>c.utm_source));
   const mediums = uniq(conversas.map(c=>c.utm_medium));
+  const origens = uniq(conversas.map(c=>c.origem));
 
   // Campanhas/Conjuntos/Criativos — mesclar Meta Ads API + leads + conversas
   const convCampanhas = uniq(conversas.map(c => c.utm_campaign));
@@ -779,11 +887,7 @@ function FiltrosAvancados({ conversas, filtros, onChange, onClose, etapas }: { c
               <label className="form-label">Origem</label>
               <select className="form-input" value={local.origem||""} onChange={e=>set("origem",e.target.value)}>
                 <option value="">Todas</option>
-                <option value="Meta Ads">Meta Ads</option>
-                <option value="Formulário Meta">Formulário Meta</option>
-                <option value="Google Ads">Google Ads</option>
-                <option value="Outras Origens">Outras Origens</option>
-                <option value="Não Rastreada">Não Rastreada</option>
+                {origens.map(o => <option key={o} value={o}>{o}</option>)}
               </select>
             </div>
             <div className="form-group">
@@ -799,21 +903,21 @@ function FiltrosAvancados({ conversas, filtros, onChange, onClose, etapas }: { c
           <div className="form-group">
             <label className="form-label">Data da Última Mensagem</label>
             <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px" }}>
-              <input className="form-input" type="date" placeholder="De" value={local.dataUltimaDe||""} onChange={e=>set("dataUltimaDe",e.target.value)} title="De"/>
+              <input className="form-input" type="date" placeholder="De" value={local.dataUltimaDe||""} onChange={e=>{set("dataUltimaDe",e.target.value); if(!local.dataUltimaAte) set("dataUltimaAte",e.target.value);}} title="De"/>
               <input className="form-input" type="date" placeholder="Até" value={local.dataUltimaAte||""} onChange={e=>set("dataUltimaAte",e.target.value)} title="Até"/>
             </div>
           </div>
           <div className="form-group">
             <label className="form-label">Data da Primeira Mensagem</label>
             <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px" }}>
-              <input className="form-input" type="date" placeholder="De" value={local.dataPrimeiraDe||""} onChange={e=>set("dataPrimeiraDe",e.target.value)} title="De"/>
+              <input className="form-input" type="date" placeholder="De" value={local.dataPrimeiraDe||""} onChange={e=>{set("dataPrimeiraDe",e.target.value); if(!local.dataPrimeiraAte) set("dataPrimeiraAte",e.target.value);}} title="De"/>
               <input className="form-input" type="date" placeholder="Até" value={local.dataPrimeiraAte||""} onChange={e=>set("dataPrimeiraAte",e.target.value)} title="Até"/>
             </div>
           </div>
           <div className="form-group">
             <label className="form-label">Data da Última Alteração de Etapa</label>
             <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px" }}>
-              <input className="form-input" type="date" placeholder="De" value={local.dataEtapaDe||""} onChange={e=>set("dataEtapaDe",e.target.value)} title="De"/>
+              <input className="form-input" type="date" placeholder="De" value={local.dataEtapaDe||""} onChange={e=>{set("dataEtapaDe",e.target.value); if(!local.dataEtapaAte) set("dataEtapaAte",e.target.value);}} title="De"/>
               <input className="form-input" type="date" placeholder="Até" value={local.dataEtapaAte||""} onChange={e=>set("dataEtapaAte",e.target.value)} title="Até"/>
             </div>
           </div>
@@ -855,25 +959,16 @@ function FiltrosAvancados({ conversas, filtros, onChange, onClose, etapas }: { c
           <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px" }}>
             <div className="form-group">
               <label className="form-label">Campanha de Anúncio</label>
-              <select className="form-input" value={local.campanha||""} onChange={e=>set("campanha",e.target.value)}>
-                <option value="">Todas</option>
-                {campanhas.map(c=><option key={c} value={c}>{c}</option>)}
-              </select>
+              <SearchSelect value={local.campanha||""} onChange={v=>set("campanha",v)} options={campanhas} placeholder="Todas"/>
             </div>
             <div className="form-group">
               <label className="form-label">Conjunto de Anúncio</label>
-              <select className="form-input" value={local.conjunto||""} onChange={e=>set("conjunto",e.target.value)}>
-                <option value="">Todos</option>
-                {conjuntos.map(c=><option key={c} value={c}>{c}</option>)}
-              </select>
+              <SearchSelect value={local.conjunto||""} onChange={v=>set("conjunto",v)} options={conjuntos} placeholder="Todos"/>
             </div>
           </div>
           <div className="form-group">
             <label className="form-label">Criativo</label>
-            <select className="form-input" value={local.anuncio||""} onChange={e=>set("anuncio",e.target.value)}>
-              <option value="">Todos</option>
-              {anuncios.map(c=><option key={c} value={c}>{c}</option>)}
-            </select>
+            <SearchSelect value={local.anuncio||""} onChange={v=>set("anuncio",v)} options={anuncios} placeholder="Todos"/>
           </div>
         </div>
 
@@ -885,6 +980,9 @@ function FiltrosAvancados({ conversas, filtros, onChange, onClose, etapas }: { c
     </div>
   );
 }
+
+const PAGE_SIZE = 100;
+const CONVERSAS_SELECT = "id,contato_numero,contato_nome,contato_foto,contato_jid,ultima_mensagem,ultima_mensagem_at,primeira_mensagem_at,etapa_alterada_at,nao_lidas,origem,etapa_jornada,leadgen_id,utm_source,utm_medium,utm_campaign,utm_content,utm_term,link_nome,fbclid,nome_anuncio,created_at,finalizado_at,agendou_at";
 
 export default function InboxPage() {
   const [conversas, setConversas] = useState<Conversa[]>([]);
@@ -899,10 +997,15 @@ export default function InboxPage() {
   const [syncLeadsMeta, setSyncLeadsMeta] = useState(false);
   const [syncProgresso, setSyncProgresso] = useState("");
   const [autoRastreando, setAutoRastreando] = useState(false);
+  const [reclassificando, setReclassificando] = useState(false);
   const [importandoTintim, setImportandoTintim] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [enviandoCrm, setEnviandoCrm] = useState<Set<string>>(new Set());
   const [enviadosCrm, setEnviadosCrm] = useState<Set<string>>(new Set());
+  const [pagina, setPagina] = useState(0);
+  const [temMais, setTemMais] = useState(false);
+  const [carregandoMais, setCarregandoMais] = useState(false);
+  const [kpisDb, setKpisDb] = useState({ total: 0, meta: 0, formulario: 0, google: 0, outras: 0, naoRastreada: 0 });
 
   const mapEtapaCrm = (etapaInbox?: string): string => {
     const mapa: Record<string, string> = {
@@ -938,14 +1041,35 @@ export default function InboxPage() {
     finally { setEnviandoCrm(prev => { const s = new Set(prev); s.delete(c.id); return s; }); }
   };
 
+  const carregarKpis = useCallback(async (agId: string) => {
+    const [t, m, f, g, o] = await Promise.all([
+      supabase.from("conversas").select("*",{count:'exact',head:true}).eq("agencia_id",agId),
+      supabase.from("conversas").select("*",{count:'exact',head:true}).eq("agencia_id",agId).eq("origem","Meta Ads"),
+      supabase.from("conversas").select("*",{count:'exact',head:true}).eq("agencia_id",agId).eq("origem","Formulário Meta"),
+      supabase.from("conversas").select("*",{count:'exact',head:true}).eq("agencia_id",agId).eq("origem","Google Ads"),
+      supabase.from("conversas").select("*",{count:'exact',head:true}).eq("agencia_id",agId)
+        .not("origem","is",null).neq("origem","Meta Ads").neq("origem","Formulário Meta").neq("origem","Google Ads").neq("origem","Não Rastreada"),
+    ]);
+    const total = t.count ?? 0;
+    const meta = m.count ?? 0;
+    const formulario = f.count ?? 0;
+    const google = g.count ?? 0;
+    const outras = o.count ?? 0;
+    setKpisDb({ total, meta, formulario, google, outras, naoRastreada: total - meta - formulario - google - outras });
+  }, []);
+
   const carregar = useCallback(async () => {
     const agId = await getAgenciaId();
     const [{ data: convs }, { data: etps }, { data: leadsExistentes }] = await Promise.all([
-      supabase.from("conversas").select("*").eq("agencia_id",agId!).order("ultima_mensagem_at",{ascending:false}),
+      supabase.from("conversas").select(CONVERSAS_SELECT).eq("agencia_id",agId!)
+        .order("ultima_mensagem_at",{ascending:false,nullsFirst:false})
+        .range(0, PAGE_SIZE - 1),
       supabase.from("jornada_etapas").select("*").eq("agencia_id",agId!).order("ordem"),
       supabase.from("leads").select("telefone").eq("agencia_id",agId!),
     ]);
     setConversas(convs||[]);
+    setPagina(1);
+    setTemMais((convs||[]).length === PAGE_SIZE);
     setEtapas(etps||[]);
     // Marcar conversas que já têm lead no CRM (pelo telefone)
     if (convs && leadsExistentes) {
@@ -959,7 +1083,23 @@ export default function InboxPage() {
       setEnviadosCrm(jaNoCrm);
     }
     setLoading(false);
-  }, []);
+    carregarKpis(agId!);
+  }, [carregarKpis]);
+
+  const carregarMais = async () => {
+    if (carregandoMais) return;
+    setCarregandoMais(true);
+    const agId = await getAgenciaId();
+    const inicio = pagina * PAGE_SIZE;
+    const { data: convs } = await supabase.from("conversas").select(CONVERSAS_SELECT)
+      .eq("agencia_id",agId!)
+      .order("ultima_mensagem_at",{ascending:false,nullsFirst:false})
+      .range(inicio, inicio + PAGE_SIZE - 1);
+    setConversas(prev => [...prev, ...(convs||[])]);
+    setPagina(p => p + 1);
+    setTemMais((convs||[]).length === PAGE_SIZE);
+    setCarregandoMais(false);
+  };
 
   const autoRastrear = async () => {
     setAutoRastreando(true);
@@ -1086,8 +1226,8 @@ export default function InboxPage() {
     if (f.anuncio && (c as any).nome_anuncio !== f.anuncio) return false;
     if (f.utmSource && c.utm_source !== f.utmSource) return false;
     if (f.utmMedium && c.utm_medium !== f.utmMedium) return false;
-    if (f.dataPrimeiraDe) { if (!c.primeira_mensagem_at) return false; if (toLocalDate(c.primeira_mensagem_at) < f.dataPrimeiraDe) return false; }
-    if (f.dataPrimeiraAte) { if (!c.primeira_mensagem_at) return false; if (toLocalDate(c.primeira_mensagem_at) > f.dataPrimeiraAte) return false; }
+    if (f.dataPrimeiraDe) { const dp = c.primeira_mensagem_at || c.created_at; if (!dp) return false; if (toLocalDate(dp) < f.dataPrimeiraDe) return false; }
+    if (f.dataPrimeiraAte) { const dp = c.primeira_mensagem_at || c.created_at; if (!dp) return false; if (toLocalDate(dp) > f.dataPrimeiraAte) return false; }
     if (f.dataEtapaDe) { if (!c.etapa_alterada_at) return false; if (toLocalDate(c.etapa_alterada_at) < f.dataEtapaDe) return false; }
     if (f.dataEtapaAte) { if (!c.etapa_alterada_at) return false; if (toLocalDate(c.etapa_alterada_at) > f.dataEtapaAte) return false; }
     if (f.dataUltimaDe && toLocalDate(c.ultima_mensagem_at) < f.dataUltimaDe) return false;
@@ -1095,18 +1235,19 @@ export default function InboxPage() {
     return matchBusca;
   });
 
-  // KPIs baseados nas conversas filtradas
-  const base = Object.keys(filtros).some(k => filtros[k]) ? filtradas : conversas;
-  const kpis = {
-    total: base.length,
-    meta: base.filter(c=>c.origem==="Meta Ads").length,
-    formulario: base.filter(c=>c.origem==="Formulário Meta").length,
-    google: base.filter(c=>c.origem==="Google Ads").length,
-    outras: base.filter(c=>c.origem&&c.origem!=="Meta Ads"&&c.origem!=="Google Ads"&&c.origem!=="Formulário Meta"&&c.origem!=="Não Rastreada").length,
-    naoRastreada: base.filter(c=>!c.origem||c.origem==="Não Rastreada").length,
-  };
+  // KPIs via count no banco (independente do slice carregado)
+  const kpis = kpisDb;
 
   const filtrosAtivos = Object.values(filtros).filter(Boolean).length;
+
+  // Auto-carregar tudo quando filtros estão ativos (evita resultado parcial)
+  const carregarMaisRef = useRef(carregarMais);
+  carregarMaisRef.current = carregarMais;
+  useEffect(() => {
+    if (filtrosAtivos > 0 && temMais && !carregandoMais) {
+      carregarMaisRef.current();
+    }
+  }, [filtrosAtivos, temMais, carregandoMais]);
 
   // ─── Importar CSV do Tintim ────────────────────────────────
   const importarTintim = async (file: File) => {
@@ -1297,6 +1438,8 @@ export default function InboxPage() {
             <RefreshCw size={12} style={{ animation:syncLeadsMeta?"spin 1s linear infinite":"none" }}/>
             {syncLeadsMeta?"Sincronizando...":"Sync Leads Meta"}
           </button>
+          {/* BOTÃO DESABILITADO TEMPORARIAMENTE — aguardando revisão da função reclassificar_funil */}
+          {/* <button onClick={async()=>{...}} ...>Reclassificar Funil</button> */}
           <input ref={fileInputRef} type="file" accept=".csv" style={{ display: "none" }}
             onChange={e => { if (e.target.files?.[0]) importarTintim(e.target.files[0]); e.target.value = ""; }} />
           <button onClick={() => fileInputRef.current?.click()} disabled={importandoTintim} className="btn-primary" style={{ cursor:"pointer",fontSize:"12px",padding:"7px 12px" }}>
@@ -1359,10 +1502,26 @@ export default function InboxPage() {
           </tbody>
         </table>
 
-        {filtradas.length>0&&(
+        {temMais && (
+          <div style={{ padding:"12px 16px",borderTop:"1px solid #2e2e2e",textAlign:"center" }}>
+            {filtrosAtivos > 0 ? (
+              <span style={{ fontSize:"12px",color:"#606060",display:"inline-flex",alignItems:"center",gap:"6px" }}>
+                <RefreshCw size={12} style={{ animation:"spin 1s linear infinite" }}/>
+                Carregando resultados completos...
+              </span>
+            ) : (
+              <button onClick={carregarMais} disabled={carregandoMais} className="btn-secondary"
+                style={{ cursor:"pointer",fontSize:"12px",padding:"7px 20px",display:"inline-flex",alignItems:"center",gap:"6px" }}>
+                <RefreshCw size={12} style={{ animation:carregandoMais?"spin 1s linear infinite":"none" }}/>
+                {carregandoMais ? "Carregando..." : `Carregar mais (${kpisDb.total - conversas.length} restantes)`}
+              </button>
+            )}
+          </div>
+        )}
+
+        {kpisDb.total > 0 && (
           <div style={{ padding:"10px 16px",borderTop:"1px solid #2e2e2e",fontSize:"12px",color:"#606060" }}>
-            {filtradas.length} conversa{filtradas.length!==1?"s":""}
-            {filtrosAtivos>0&&` (${conversas.length} total)`}
+            {filtradas.length} exibida{filtradas.length!==1?"s":""} · {conversas.length} carregada{conversas.length!==1?"s":""} · {kpisDb.total} total
           </div>
         )}
       </div>

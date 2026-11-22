@@ -184,6 +184,29 @@ function useQuery<T>(
   return { data, loading, error, refresh: load };
 }
 
+// ─── CONTROLE CLIENTES (para Escalas) ────────────────────────────────────────
+export function useControleClientes(status = "ativo") {
+  return useQuery<{ id: string; nome: string }[]>(async (agenciaId) => {
+    // Buscar filhas para incluir clientes de todas quando no master
+    const { data: filhas } = await supabase
+      .from("agencias")
+      .select("id")
+      .eq("parent_id", agenciaId);
+
+    const ids = [agenciaId, ...(filhas?.map((f: { id: string }) => f.id) ?? [])];
+
+    let q = supabase
+      .from("controle_clientes")
+      .select("id, nome")
+      .in("agencia_id", ids)
+      .order("nome", { ascending: true });
+    if (status) q = q.eq("status", status);
+    const { data, error } = await q;
+    if (error) throw error;
+    return data ?? [];
+  }, [status]);
+}
+
 // ─── CLIENTES ────────────────────────────────────────────────────────────────
 export function useClientes(busca = "", status = "") {
   return useQuery<Cliente[]>(async (agenciaId) => {
@@ -928,7 +951,7 @@ export function useEscalas(tipo: string, mes: number, ano: number) {
   return useQuery<Escala[]>(async (agenciaId) => {
     const { data, error } = await supabase
       .from("escalas")
-      .select("*, clientes(id, nome)")
+      .select("*")
       .eq("agencia_id", agenciaId)
       .eq("tipo", tipo)
       .eq("mes", mes)
@@ -1016,7 +1039,7 @@ export function useEscalasHistorico(tipo: string) {
   return useQuery<Escala[]>(async (agenciaId) => {
     const { data, error } = await supabase
       .from("escalas")
-      .select("*, clientes(id, nome)")
+      .select("*")
       .eq("agencia_id", agenciaId)
       .eq("tipo", tipo)
       .order("ano", { ascending: true })

@@ -1,3 +1,6 @@
+// URL canônica do app — usada em links públicos (copiar link, etc.)
+export const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || "https://www.salxconvert.com.br").replace(/\/$/, "");
+
 // Configurações centralizadas — lidas do banco, não hardcoded
 import { createClient } from "@supabase/supabase-js";
 
