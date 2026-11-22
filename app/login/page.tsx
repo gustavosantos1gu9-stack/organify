@@ -34,23 +34,23 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(160deg, transparent 0 58%, rgba(28,108,166,.28) 58% 58.3%, transparent 58.3%), radial-gradient(900px 520px at 70% 20%, rgba(28,108,166,.32) 0%, rgba(10,24,38,0) 70%), #0A1826", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
+    <div style={{ minHeight: "100vh", background: "radial-gradient(ellipse at 60% 30%, rgba(28,108,166,0.18) 0%, var(--navy) 60%)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
       <div style={{ width: "100%", maxWidth: "380px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px", justifyContent: "center", marginBottom: "40px" }}>
           <img src="/logo-salx.png" alt="SALX Convert" style={{ width: "80px", height: "72px", objectFit: "contain" }}/>
           <div style={{ display: "flex", flexDirection: "column", lineHeight: 1 }}>
-            <span className="font-title" style={{ fontSize: "24px", fontWeight: 700, color: "#F3F5F7", letterSpacing: "-0.02em" }}>
-              SALX <span style={{ color: "var(--brand-light)" }}>Convert</span>
+            <span style={{ fontSize: "22px", fontWeight: "800", color: "#0A1826", letterSpacing: "-0.5px" }}>
+              SALX <span style={{ color: "var(--brand)" }}>Convert</span>
             </span>
-            <span style={{ fontSize: "12px", color: "#9FB3C6", marginTop: "4px" }}>
+            <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.5)", textAlign: "center", letterSpacing: "0.05em", marginTop: "3px" }}>
               acelerador de vendas
             </span>
           </div>
         </div>
-        <div style={{ background: "var(--card-bg)", borderRadius: "20px", padding: "32px", boxShadow: "0 24px 64px rgba(0,0,0,.35)" }}>
+        <div style={{ background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: "16px", padding: "32px", boxShadow: "var(--shadow-modal)" }}>
           <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             {erro && (
-              <div style={{ background: "var(--alert-bg)", border: "1px solid rgba(180,35,24,0.25)", borderRadius: "8px", padding: "10px 14px", display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "var(--alert-text)" }}>
+              <div style={{ background: "var(--alert-bg)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "8px", padding: "10px 14px", display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "var(--alert-text)" }}>
                 <AlertCircle size={14} />{erro}
               </div>
             )}
