@@ -250,10 +250,12 @@ function ModalRecorrencia({ cliente, onClose, onSucesso }: { cliente: Cliente; o
               <option value={24}>24 meses</option>
             </select>
           </div>
-          <button onClick={criar} disabled={salvando || !valor || !diasPreenchidos}
-            style={{ background:(!valor||!diasPreenchidos)?"#2e2e2e":"#29ABE2", border:"none", borderRadius:"8px", padding:"10px", cursor:(!valor||!diasPreenchidos)?"default":"pointer", color:(!valor||!diasPreenchidos)?"#606060":"#000", fontWeight:"600", fontSize:"13px", marginTop:"4px" }}>
-            {salvando ? "Criando..." : "Criar Recorrência e Lançamentos"}
-          </button>
+          {recorrencias.length === 0 && (
+            <button onClick={criar} disabled={salvando || !valor || !diasPreenchidos}
+              style={{ background:(!valor||!diasPreenchidos)?"#2e2e2e":"#29ABE2", border:"none", borderRadius:"8px", padding:"10px", cursor:(!valor||!diasPreenchidos)?"default":"pointer", color:(!valor||!diasPreenchidos)?"#606060":"#000", fontWeight:"600", fontSize:"13px", marginTop:"4px" }}>
+              {salvando ? "Criando..." : "Criar Recorrência e Lançamentos"}
+            </button>
+          )}
           {sucesso && <p style={{ color:"#22c55e", fontSize:"12px", margin:0, textAlign:"center" }}>{sucesso}</p>}
 
           {recorrencias.length > 0 && (
@@ -288,16 +290,39 @@ export default function ClientesPage() {
   const { data: clientes, loading, refresh } = useClientes(busca, filtros.status || "");
   const { data: movs } = useMovimentacoes();
   const [clientesComRec, setClientesComRec] = useState<Set<string>>(new Set());
+  const [nomesControle, setNomesControle] = useState<Set<string>>(new Set());
+  const [idsControle, setIdsControle] = useState<Set<string>>(new Set());
+  const [filtraSemControle, setFiltraSemControle] = useState(false);
 
   useEffect(() => {
     async function loadRecs() {
       const agId = await getAgenciaId();
       if (!agId) return;
-      const { data } = await supabase.from("recorrencias").select("cliente_id").eq("agencia_id", agId).eq("ativo", true).not("cliente_id", "is", null);
-      setClientesComRec(new Set((data || []).map(r => r.cliente_id)));
+      const [recsRes, controleRes] = await Promise.all([
+        supabase.from("recorrencias").select("cliente_id").eq("agencia_id", agId).eq("ativo", true).not("cliente_id", "is", null),
+        supabase.from("controle_clientes").select("cadastro_id, nome").eq("agencia_id", agId).neq("status", "saiu"),
+      ]);
+      setClientesComRec(new Set((recsRes.data || []).map((r: any) => r.cliente_id)));
+      const nomes = new Set<string>();
+      const ids = new Set<string>();
+      (controleRes.data || []).forEach((c: any) => {
+        if (c.nome) nomes.add(c.nome.toLowerCase().trim());
+        if (c.cadastro_id) ids.add(c.cadastro_id);
+      });
+      setNomesControle(nomes);
+      setIdsControle(ids);
     }
     loadRecs();
-  }, []);
+  }, [clientes]);
+
+  const semControle = (c: Cliente) => {
+    if (c.id && idsControle.has(c.id)) return false;
+    if (c.nome) {
+      const nomeNorm = c.nome.toLowerCase().trim();
+      if (nomesControle.has(nomeNorm)) return false;
+    }
+    return true;
+  };
 
   // Busca cliente fresco do banco antes de abrir modal
   const handleEditar = async (c: Cliente) => {
@@ -340,6 +365,7 @@ export default function ClientesPage() {
       if (filtros.recorrencia === "recorrente" && sr !== "ativo") return false;
       if (filtros.recorrencia === "pendencia" && sr !== "pendencia") return false;
       if (filtros.recorrencia === "saiu" && sr !== "saiu") return false;
+      if (filtraSemControle && !semControle(c)) return false;
       return true;
     });
 
@@ -362,7 +388,7 @@ export default function ClientesPage() {
     });
 
     return list;
-  }, [clientes, filtros, sortKey, sortDir]);
+  }, [clientes, filtros, sortKey, sortDir, filtraSemControle, nomesControle, idsControle]);
 
   const thStyle = (key: SortKey): React.CSSProperties => ({
     cursor: "pointer",
@@ -456,6 +482,20 @@ export default function ClientesPage() {
           <Filtros grupos={FILTROS_GRUPOS} valores={filtros}
             onChange={(key, value) => setFiltros((f) => ({ ...f, [key]: value }))}
             onLimpar={() => setFiltros({})}/>
+          {(() => {
+            const qtd = (clientes ?? []).filter(c => {
+              const sr = c.status_recorrencia || (c.status === "cancelado" ? "saiu" : "ativo");
+              if (sr === "saiu") return false;
+              return semControle(c);
+            }).length;
+            return qtd > 0 ? (
+              <button onClick={() => setFiltraSemControle(v => !v)}
+                style={{ background: filtraSemControle ? "#ef444420" : "#1a1a1a", border: `1px solid ${filtraSemControle ? "#ef4444" : "#3a3a3a"}`, borderRadius:"8px", padding:"7px 12px", cursor:"pointer", color: filtraSemControle ? "#ef4444" : "#f59e0b", fontWeight:"600", fontSize:"12px", display:"flex", alignItems:"center", gap:"6px" }}
+                title="Clientes no financeiro mas sem cadastro no controle de clientes">
+                ⚠ {qtd} sem controle
+              </button>
+            ) : null;
+          })()}
           <button className="btn-primary" onClick={() => setShowModal(true)}><Plus size={14}/> Novo cliente</button>
         </div>
 

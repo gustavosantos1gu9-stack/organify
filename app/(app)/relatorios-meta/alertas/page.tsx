@@ -4,11 +4,20 @@ import { useState, useEffect } from "react";
 import { Plus, Trash2, RefreshCw, X, Edit2, AlertTriangle } from "lucide-react";
 import { supabase, getAgenciaId } from "@/lib/hooks";
 
-const TEMPLATE_PADRAO = `Olá, tudo bem? Passando para informar que estamos com saldo baixo na conta e os anúncios podem pausar!
+const TEMPLATE_PADRAO_PIX = `Olá, tudo bem? Passando para informar que estamos com saldo baixo na conta e os anúncios podem pausar!
 
 O saldo da conta de anúncios *<CA>* está em *<SALDO>*
 
 Podemos abastecer?`;
+
+const TEMPLATE_PADRAO_CARTAO = `🚨 *ALERTA — CARTÃO DE CRÉDITO*
+
+A conta de anúncios *<CA>* está com problema no pagamento.
+
+Status: *<STATUS>*
+Método: Cartão de Crédito
+
+_O cartão pode estar expirado, sem limite ou foi recusado. Verifique o método de pagamento no Gerenciador de Anúncios para não parar os anúncios._`;
 
 interface Alerta {
   id?: string;
@@ -21,6 +30,7 @@ interface Alerta {
   template_saldo: string;
   template_status: string;
   forma_pagamento: string;
+  monitorar_como: string; // 'auto' | 'saldo' | 'cartao'
   ativo: boolean;
   ultimo_alerta?: string;
   created_at?: string;
@@ -53,7 +63,7 @@ export default function AlertasPage() {
   const [grupos, setGrupos] = useState<{ id: string; subject: string }[]>([]);
   const [form, setForm] = useState<Alerta>({
     ad_account_id: "", nome_cliente: "", saldo_alerta: 50, grupo_id: "", grupo_nome: "",
-    template_saldo: TEMPLATE_PADRAO, template_status: "", forma_pagamento: "", ativo: true,
+    template_saldo: TEMPLATE_PADRAO_PIX, template_status: "", forma_pagamento: "", monitorar_como: "auto", ativo: true,
   });
   const [salvando, setSalvando] = useState(false);
   const [verificando, setVerificando] = useState<string | null>(null);
@@ -64,6 +74,7 @@ export default function AlertasPage() {
   const [buscaGrupo, setBuscaGrupo] = useState("");
   const [loadingContas, setLoadingContas] = useState(false);
   const [erroContas, setErroContas] = useState("");
+  const [clientesControle, setClientesControle] = useState<{id:string;nome:string}[]>([]);
   const [waInstancias, setWaInstancias] = useState<{id:string;nome:string;conectado:boolean;instancia:string}[]>([]);
   const [waInstanciaId, setWaInstanciaId] = useState("");
 
@@ -84,6 +95,12 @@ export default function AlertasPage() {
     const { data: instancias } = await supabase.from("whatsapp_instancias")
       .select("id, nome, instancia, conectado").eq("agencia_id", agId!).order("created_at");
     setWaInstancias(instancias || []);
+
+    // Carregar clientes do controle para vincular
+    const { data: cc } = await supabase.from("controle_clientes")
+      .select("id, nome").eq("agencia_id", agId!).neq("status", "saiu").order("nome");
+    setClientesControle(cc || []);
+
     setLoading(false);
   };
 
@@ -116,19 +133,62 @@ export default function AlertasPage() {
     setLoadingContas(false);
   };
 
-  const carregarGrupos = async () => {
-    if (!conConfig?.evolution_url || !conConfig?.evolution_key || !conConfig?.whatsapp_instancia) return;
+  const carregarGrupos = async (instanciaId?: string) => {
+    const instSelecionada = instanciaId ? waInstancias.find(i => i.id === instanciaId) : null;
+    let evoUrl = conConfig?.evolution_url;
+    let evoKey = conConfig?.evolution_key;
+    let evoInst = conConfig?.whatsapp_instancia;
+    if (instSelecionada) {
+      evoInst = instSelecionada.instancia;
+      const { data: waData } = await supabase.from("whatsapp_instancias")
+        .select("evolution_url, evolution_key").eq("id", instanciaId!).single();
+      if (waData?.evolution_url) evoUrl = waData.evolution_url;
+      if (waData?.evolution_key) evoKey = waData.evolution_key;
+    }
+    if (!evoUrl || !evoKey || !evoInst) return;
     try {
-      const res = await fetch(`${conConfig.evolution_url}/chat/findChats/${conConfig.whatsapp_instancia}`, {
+      const res = await fetch(`${evoUrl}/chat/findChats/${evoInst}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", apikey: conConfig.evolution_key },
+        headers: { "Content-Type": "application/json", apikey: evoKey },
         body: JSON.stringify({}),
       });
       const json = await res.json();
       const allChats = Array.isArray(json) ? json : [];
-      setGrupos(allChats
+      const gruposList = allChats
         .filter((c: any) => (c.remoteJid || c.id || "").includes("@g.us"))
-        .map((c: any) => ({ id: c.remoteJid || c.id, subject: c.pushName || c.name || c.subject || c.remoteJid || c.id }))
+        .map((c: any) => ({ id: c.remoteJid || c.id, subject: c.pushName || c.name || c.subject || "" }));
+
+      // Buscar nomes reais dos grupos via fetchAllGroups
+      try {
+        const gRes = await fetch(`${evoUrl}/group/fetchAllGroups/${evoInst}?getParticipants=false`, {
+          headers: { apikey: evoKey },
+        });
+        if (gRes.ok) {
+          const allGroups = await gRes.json();
+          if (Array.isArray(allGroups)) {
+            const nomeMap: Record<string, string> = {};
+            for (const g of allGroups) {
+              if (g.id && g.subject) nomeMap[g.id] = g.subject;
+            }
+            // Atualizar nomes dos grupos que vieram sem nome ou com JID
+            for (const g of gruposList) {
+              if ((!g.subject || g.subject.includes("@g.us")) && nomeMap[g.id]) {
+                g.subject = nomeMap[g.id];
+              }
+            }
+            // Adicionar grupos que existem no fetchAllGroups mas não no findChats
+            for (const g of allGroups) {
+              if (g.id && !gruposList.find((gl: any) => gl.id === g.id)) {
+                gruposList.push({ id: g.id, subject: g.subject || g.id });
+              }
+            }
+          }
+        }
+      } catch {}
+
+      // Remover grupos ainda sem nome legível
+      setGrupos(gruposList
+        .filter((g: any) => g.subject && !g.subject.includes("@g.us"))
         .sort((a: any, b: any) => a.subject.localeCompare(b.subject))
       );
     } catch {}
@@ -159,7 +219,7 @@ export default function AlertasPage() {
       setWaInstanciaId("");
       setForm({
         ad_account_id: "", nome_cliente: "", saldo_alerta: 50, grupo_id: "", grupo_nome: "",
-        template_saldo: TEMPLATE_PADRAO, template_status: "", forma_pagamento: "", ativo: true,
+        template_saldo: TEMPLATE_PADRAO_PIX, template_status: "", forma_pagamento: "", monitorar_como: "auto", ativo: true,
       });
     }
     setBuscaConta("");
@@ -203,15 +263,25 @@ export default function AlertasPage() {
 
   useEffect(() => { carregar(); }, []);
   useEffect(() => { if (token) carregarContas(); }, [token]);
-  useEffect(() => { if (conConfig) carregarGrupos(); }, [conConfig]);
+  useEffect(() => { if (conConfig) carregarGrupos(waInstanciaId || undefined); }, [conConfig, waInstanciaId, waInstancias]);
+
+  const isCartao = (adAccountId?: string, monitorarComo?: string) => {
+    const mc = monitorarComo ?? (adAccountId ? undefined : form.monitorar_como);
+    if (mc === "saldo") return false;
+    if (mc === "cartao") return true;
+    const info = adAccountId ? contaInfo[adAccountId] : contaInfo[form.ad_account_id];
+    return info?.forma_pagamento?.toLowerCase().includes("cartão") || info?.forma_pagamento?.toLowerCase().includes("crédito") || false;
+  };
 
   // Preview da mensagem com variáveis substituídas
   const previewMsg = () => {
     const info = contaInfo[form.ad_account_id];
-    let msg = form.template_saldo || TEMPLATE_PADRAO;
+    const cartao = isCartao();
+    const templatePadrao = cartao ? TEMPLATE_PADRAO_CARTAO : TEMPLATE_PADRAO_PIX;
+    let msg = cartao ? (form.template_status || templatePadrao) : (form.template_saldo || templatePadrao);
     const vars: Record<string, string> = {
       "<CA>": form.nome_cliente || "Cliente",
-      "<SALDO>": info ? formatMoney(info.balance) : "R$ 0,00",
+      "<SALDO>": cartao ? "N/A (Cartão)" : (info ? formatMoney(info.balance) : "R$ 0,00"),
       "<LIMITE>": formatMoney(form.saldo_alerta),
       "<STATUS>": info?.status || "Ativa",
       "<PAGAMENTO>": info?.forma_pagamento || "PIX/Boleto",
@@ -225,8 +295,8 @@ export default function AlertasPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px" }}>
         <div>
           <div className="breadcrumb"><a href="/">Início</a><span>›</span><a href="/relatorios-meta">Relatórios Meta</a><span>›</span><span className="current">Alertas</span></div>
-          <h1 style={{ fontSize: "22px", fontWeight: "600" }}>Alertas de Saldo</h1>
-          <p style={{ fontSize: "13px", color: "#606060", marginTop: "4px" }}>Monitora saldo das contas PIX e envia alerta no grupo da cliente.</p>
+          <h1 style={{ fontSize: "22px", fontWeight: "600" }}>Alertas de Contas</h1>
+          <p style={{ fontSize: "13px", color: "#606060", marginTop: "4px" }}>Monitora saldo (PIX/Boleto) e erros de pagamento (Cartão de Crédito) e envia alerta no grupo da cliente.</p>
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
           {alertas.length > 0 && (
@@ -261,8 +331,8 @@ export default function AlertasPage() {
                     <p style={{ fontSize: "13px", fontWeight: "600", color: "#f0f0f0", margin: 0 }}>{a.nome_cliente}</p>
                     <p style={{ fontSize: "11px", color: "#606060", margin: 0 }}>act_{a.ad_account_id}</p>
                   </td>
-                  <td>{verificando === a.ad_account_id ? <span style={{ fontSize: "12px", color: "#606060" }}>...</span> : info ? <span style={{ fontSize: "13px", fontWeight: "600", color: saldoBaixo ? "#ef4444" : "#22c55e" }}>{formatMoney(info.balance)}</span> : <button onClick={() => verificarConta(a.ad_account_id)} style={{ fontSize: "11px", color: "#29ABE2", background: "none", border: "1px solid rgba(41,171,226,0.3)", borderRadius: "6px", padding: "2px 8px", cursor: "pointer" }}>Ver</button>}</td>
-                  <td style={{ fontSize: "13px", color: "#f59e0b" }}>{formatMoney(a.saldo_alerta)}</td>
+                  <td>{verificando === a.ad_account_id ? <span style={{ fontSize: "12px", color: "#606060" }}>...</span> : info ? (isCartao(a.ad_account_id, a.monitorar_como) ? <span style={{ fontSize: "12px", color: "#a0a0a0" }}>—</span> : <span style={{ fontSize: "13px", fontWeight: "600", color: saldoBaixo ? "#ef4444" : "#22c55e" }}>{formatMoney(info.balance)}</span>) : <button onClick={() => verificarConta(a.ad_account_id)} style={{ fontSize: "11px", color: "#29ABE2", background: "none", border: "1px solid rgba(41,171,226,0.3)", borderRadius: "6px", padding: "2px 8px", cursor: "pointer" }}>Ver</button>}</td>
+                  <td style={{ fontSize: "13px", color: "#f59e0b" }}>{isCartao(a.ad_account_id, a.monitorar_como) ? "—" : formatMoney(a.saldo_alerta)}</td>
                   <td style={{ fontSize: "12px", color: "#a0a0a0" }}>{info?.forma_pagamento || a.forma_pagamento || "—"}</td>
                   <td>{info ? <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "20px", background: contaProblema ? "rgba(239,68,68,0.1)" : "rgba(34,197,94,0.1)", color: contaProblema ? "#ef4444" : "#22c55e", border: `1px solid ${contaProblema ? "rgba(239,68,68,0.3)" : "rgba(34,197,94,0.3)"}` }}>{info.status}</span> : "—"}</td>
                   <td style={{ fontSize: "12px", color: "#a0a0a0" }}>{a.grupo_nome || "—"}</td>
@@ -294,7 +364,7 @@ export default function AlertasPage() {
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               {/* Conta de Anúncio (pesquisável) */}
               <div>
-                <label className="form-label">Conta de Anúncio (Pré-pago)</label>
+                <label className="form-label">Conta de Anúncio</label>
                 {loadingContas ? (
                   <p style={{ fontSize: "12px", color: "#606060" }}>Carregando contas...</p>
                 ) : erroContas ? (
@@ -334,24 +404,54 @@ export default function AlertasPage() {
               {/* Info da conta */}
               {contaInfo[form.ad_account_id] && (
                 <div style={{ background: "#1a1a1a", borderRadius: "8px", padding: "12px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                  <div><span style={{ fontSize: "10px", color: "#606060" }}>SALDO</span><p style={{ fontSize: "14px", fontWeight: "600", color: "#f0f0f0", margin: "2px 0 0" }}>{formatMoney(contaInfo[form.ad_account_id].balance)}</p></div>
-                  <div><span style={{ fontSize: "10px", color: "#606060" }}>PAGAMENTO</span><p style={{ fontSize: "12px", color: "#a0a0a0", margin: "2px 0 0" }}>{contaInfo[form.ad_account_id].forma_pagamento}</p></div>
-                  <div><span style={{ fontSize: "10px", color: "#606060" }}>STATUS</span><p style={{ fontSize: "12px", color: contaInfo[form.ad_account_id].account_status === 1 ? "#22c55e" : "#ef4444", margin: "2px 0 0" }}>{contaInfo[form.ad_account_id].status}</p></div>
-                  <div><span style={{ fontSize: "10px", color: "#606060" }}>MOEDA</span><p style={{ fontSize: "12px", color: "#a0a0a0", margin: "2px 0 0" }}>{contaInfo[form.ad_account_id].currency}</p></div>
+                  {isCartao() ? (
+                    <>
+                      <div><span style={{ fontSize: "10px", color: "#606060" }}>PAGAMENTO</span><p style={{ fontSize: "14px", fontWeight: "600", color: "#f59e0b", margin: "2px 0 0" }}>Cartão de Crédito</p></div>
+                      <div><span style={{ fontSize: "10px", color: "#606060" }}>STATUS</span><p style={{ fontSize: "12px", color: contaInfo[form.ad_account_id].account_status === 1 ? "#22c55e" : "#ef4444", margin: "2px 0 0" }}>{contaInfo[form.ad_account_id].status}</p></div>
+                    </>
+                  ) : (
+                    <>
+                      <div><span style={{ fontSize: "10px", color: "#606060" }}>SALDO</span><p style={{ fontSize: "14px", fontWeight: "600", color: "#f0f0f0", margin: "2px 0 0" }}>{formatMoney(contaInfo[form.ad_account_id].balance)}</p></div>
+                      <div><span style={{ fontSize: "10px", color: "#606060" }}>PAGAMENTO</span><p style={{ fontSize: "12px", color: "#a0a0a0", margin: "2px 0 0" }}>{contaInfo[form.ad_account_id].forma_pagamento}</p></div>
+                      <div><span style={{ fontSize: "10px", color: "#606060" }}>STATUS</span><p style={{ fontSize: "12px", color: contaInfo[form.ad_account_id].account_status === 1 ? "#22c55e" : "#ef4444", margin: "2px 0 0" }}>{contaInfo[form.ad_account_id].status}</p></div>
+                      <div><span style={{ fontSize: "10px", color: "#606060" }}>MOEDA</span><p style={{ fontSize: "12px", color: "#a0a0a0", margin: "2px 0 0" }}>{contaInfo[form.ad_account_id].currency}</p></div>
+                    </>
+                  )}
                 </div>
               )}
+
+              {/* Monitorar como — override do tipo detectado */}
+              <div>
+                <label className="form-label">Monitorar como</label>
+                <select className="form-input" value={form.monitorar_como || "auto"} onChange={e => setForm(f => ({ ...f, monitorar_como: e.target.value }))}>
+                  <option value="auto">Automático (detectar pelo Meta)</option>
+                  <option value="saldo">Saldo (PIX/Boleto) — alerta quando saldo baixo</option>
+                  <option value="cartao">Cartão de Crédito — alerta quando erro no pagamento</option>
+                </select>
+                {form.monitorar_como === "saldo" && (
+                  <p style={{ fontSize: "11px", color: "#f59e0b", marginTop: "4px" }}>⚠️ Use quando o cartão está cadastrado no Meta mas a cliente abastece via PIX.</p>
+                )}
+              </div>
 
               {/* Nome */}
               <div>
                 <label className="form-label">Nome da Cliente</label>
-                <input className="form-input" value={form.nome_cliente} onChange={e => setForm(f => ({ ...f, nome_cliente: e.target.value }))} placeholder="Ex: Roseli Cabral" />
+                <div style={{ display:"flex", gap:"6px" }}>
+                  <input className="form-input" style={{ flex:1 }} value={form.nome_cliente} onChange={e => setForm(f => ({ ...f, nome_cliente: e.target.value }))} placeholder="Ex: Roseli Cabral" />
+                  <select className="form-input" style={{ width:"auto", minWidth:"140px" }} value="" onChange={e => { if (e.target.value) setForm(f => ({ ...f, nome_cliente: e.target.value })); }}>
+                    <option value="">Vincular cliente...</option>
+                    {clientesControle.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
+                  </select>
+                </div>
               </div>
 
-              {/* Saldo mínimo */}
-              <div>
-                <label className="form-label">Saldo mínimo para alerta (R$)</label>
-                <input className="form-input" type="number" step="10" min="0" value={form.saldo_alerta} onChange={e => setForm(f => ({ ...f, saldo_alerta: parseFloat(e.target.value) || 0 }))} />
-              </div>
+              {/* Saldo mínimo — só pra PIX/Boleto */}
+              {!isCartao() && (
+                <div>
+                  <label className="form-label">Saldo mínimo para alerta (R$)</label>
+                  <input className="form-input" type="number" step="10" min="0" value={form.saldo_alerta} onChange={e => setForm(f => ({ ...f, saldo_alerta: parseFloat(e.target.value) || 0 }))} />
+                </div>
+              )}
 
               {/* Instância WhatsApp */}
               {waInstancias.length > 0 && (
@@ -394,22 +494,33 @@ export default function AlertasPage() {
 
               {/* Template da mensagem */}
               <div>
-                <label className="form-label">Personalize sua mensagem</label>
-                <textarea className="form-input" rows={8} value={form.template_saldo} onChange={e => setForm(f => ({ ...f, template_saldo: e.target.value }))} style={{ resize: "vertical", fontSize: "13px", lineHeight: "1.5" }} />
+                <label className="form-label">{isCartao() ? "Mensagem de erro de pagamento (Cartão)" : "Mensagem de saldo baixo (PIX/Boleto)"}</label>
+                {isCartao() ? (
+                  <textarea className="form-input" rows={8} value={form.template_status || TEMPLATE_PADRAO_CARTAO} onChange={e => setForm(f => ({ ...f, template_status: e.target.value }))} style={{ resize: "vertical", fontSize: "13px", lineHeight: "1.5" }} />
+                ) : (
+                  <textarea className="form-input" rows={8} value={form.template_saldo} onChange={e => setForm(f => ({ ...f, template_saldo: e.target.value }))} style={{ resize: "vertical", fontSize: "13px", lineHeight: "1.5" }} />
+                )}
               </div>
 
               {/* Variáveis disponíveis */}
               <div style={{ background: "#1a1a1a", borderRadius: "8px", padding: "12px" }}>
                 <p style={{ fontSize: "11px", fontWeight: "600", color: "#606060", margin: "0 0 8px" }}>VARIÁVEIS</p>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
-                  {[
+                  {(isCartao() ? [
+                    { var: "<CA>", desc: "Nome da cliente" },
+                    { var: "<STATUS>", desc: "Status da conta" },
+                    { var: "<PAGAMENTO>", desc: "Forma de pagamento" },
+                  ] : [
                     { var: "<CA>", desc: "Nome da cliente" },
                     { var: "<SALDO>", desc: "Saldo atual" },
                     { var: "<LIMITE>", desc: "Saldo mínimo" },
                     { var: "<STATUS>", desc: "Status da conta" },
                     { var: "<PAGAMENTO>", desc: "Forma de pagamento" },
-                  ].map(v => (
-                    <div key={v.var} onClick={() => setForm(f => ({ ...f, template_saldo: f.template_saldo + v.var }))} style={{ display: "flex", justifyContent: "space-between", padding: "4px 8px", borderRadius: "4px", cursor: "pointer", background: "#222", border: "1px solid #2e2e2e" }}>
+                  ]).map(v => (
+                    <div key={v.var} onClick={() => {
+                      if (isCartao()) setForm(f => ({ ...f, template_status: (f.template_status || TEMPLATE_PADRAO_CARTAO) + v.var }));
+                      else setForm(f => ({ ...f, template_saldo: f.template_saldo + v.var }));
+                    }} style={{ display: "flex", justifyContent: "space-between", padding: "4px 8px", borderRadius: "4px", cursor: "pointer", background: "#222", border: "1px solid #2e2e2e" }}>
                       <code style={{ fontSize: "11px", color: "#29ABE2" }}>{v.var}</code>
                       <span style={{ fontSize: "11px", color: "#606060" }}>{v.desc}</span>
                     </div>

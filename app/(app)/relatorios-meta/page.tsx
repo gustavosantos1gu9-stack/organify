@@ -87,6 +87,7 @@ const FREQUENCIAS = [
   { value: "manual", label: "Manual" },
   { value: "diario", label: "Diário" },
   { value: "semanal", label: "Semanal" },
+  { value: "mensal", label: "Mensal (dia 1, mês anterior)" },
 ];
 
 const DIAS_SEMANA = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
@@ -118,6 +119,9 @@ export default function RelatoriosMetaPage() {
   const [filtroStatus, setFiltroStatus] = useState<"todos" | "ativo" | "pausado">("todos");
   const [filtroFreq, setFiltroFreq] = useState("");
 
+  // Clientes do controle (para vincular)
+  const [clientesControle, setClientesControle] = useState<{id:string;nome:string}[]>([]);
+
   // Conexão
   const [conexao, setConexao] = useState<Conexao | null>(null);
   const [contas, setContas] = useState<ContaAnuncio[]>([]);
@@ -148,6 +152,7 @@ export default function RelatoriosMetaPage() {
   const [buscaGrupo, setBuscaGrupo] = useState("");
   const [salvando, setSalvando] = useState(false);
 
+
   // Preview
   const [previewMsg, setPreviewMsg] = useState("");
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -163,40 +168,28 @@ export default function RelatoriosMetaPage() {
   async function carregarTudo() {
     const agId = await getAgenciaId();
 
-    // Carregar conexão do módulo de relatórios (só usa as conexões próprias)
-    const { data: con } = await supabase
-      .from("relatorios_conexoes")
-      .select("*")
-      .eq("agencia_id", agId!)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .single();
+    const [conResult, instanciasResult, relResult, ccResult] = await Promise.all([
+      supabase.from("relatorios_conexoes").select("*")
+        .eq("agencia_id", agId!).order("created_at", { ascending: false }).limit(1).single(),
+      supabase.from("whatsapp_instancias").select("id, nome, instancia, conectado")
+        .eq("agencia_id", agId!).order("created_at"),
+      supabase.from("relatorios").select("*")
+        .eq("agencia_id", agId!).order("created_at", { ascending: false }),
+      supabase.from("controle_clientes").select("id, nome")
+        .eq("agencia_id", agId!).neq("status", "saiu").order("nome"),
+    ]);
 
+    const con = conResult.data;
     if (con) {
       setConexao(con);
       if (con.meta_token) carregarContas(con.meta_token);
-
-      // Grupos: só do WhatsApp conectado neste módulo
       if (con.evolution_url && con.evolution_key && con.whatsapp_instancia) {
         carregarGrupos(con.evolution_url, con.evolution_key, con.whatsapp_instancia);
       }
     }
-
-    // Carregar instâncias WhatsApp
-    const { data: instancias } = await supabase
-      .from("whatsapp_instancias")
-      .select("id, nome, instancia, conectado")
-      .eq("agencia_id", agId!)
-      .order("created_at");
-    setWaInstancias(instancias || []);
-
-    // Carregar relatórios
-    const { data } = await supabase
-      .from("relatorios")
-      .select("*")
-      .eq("agencia_id", agId!)
-      .order("created_at", { ascending: false });
-    setRelatorios(data || []);
+    setWaInstancias(instanciasResult.data || []);
+    setRelatorios(relResult.data || []);
+    setClientesControle(ccResult.data || []);
     setLoading(false);
   }
 
@@ -226,64 +219,51 @@ export default function RelatoriosMetaPage() {
   async function carregarGrupos(url: string, key: string, instancia: string) {
     setLoadingGrupos(true);
     try {
-      // Buscar grupos do cache (findChats)
-      const res = await fetch(`${url}/chat/findChats/${instancia}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", apikey: key },
-        body: JSON.stringify({}),
-      });
-      const json = await res.json();
-      const allChats = Array.isArray(json) ? json : [];
-      let gruposFiltrados = allChats
+      const mapaGrupos: Record<string, { id: string; subject: string; size: number }> = {};
+
+      // Buscar cache e fetchAllGroups em paralelo
+      const [cacheRes, allGroupsRes] = await Promise.allSettled([
+        fetch(`${url}/chat/findChats/${instancia}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: key },
+          body: JSON.stringify({}),
+        }).then(r => r.json()).catch(() => []),
+
+        fetch(`${url}/group/fetchAllGroups/${instancia}?getParticipants=false`, {
+          headers: { apikey: key },
+        }).then(r => r.json()).catch(() => []),
+      ]);
+
+      // Processar cache (findChats)
+      const allChats = cacheRes.status === "fulfilled" && Array.isArray(cacheRes.value) ? cacheRes.value : [];
+      allChats
         .filter((c: any) => (c.remoteJid || c.id || "").includes("@g.us"))
-        .map((c: any) => ({
-          id: c.remoteJid || c.id,
-          subject: c.pushName || c.name || c.subject || "",
-          size: c.size || 0,
-        }));
+        .forEach((c: any) => {
+          const id = c.remoteJid || c.id;
+          if (id) mapaGrupos[id] = { id, subject: c.pushName || c.name || c.subject || id, size: c.size || 0 };
+        });
 
-      // Resolver nomes dos grupos sem subject via API de grupo
-      for (const g of gruposFiltrados) {
-        if (!g.subject && g.id) {
-          try {
-            const gRes = await fetch(`${url}/group/findGroupInfos/${instancia}?groupJid=${g.id}`, {
-              headers: { apikey: key },
-            });
-            const gData = await gRes.json();
-            if (gData?.subject) g.subject = gData.subject;
-          } catch {}
+      // Processar fetchAllGroups (fonte primária — dados diretos do WhatsApp)
+      const allGroups = allGroupsRes.status === "fulfilled" && Array.isArray(allGroupsRes.value) ? allGroupsRes.value : [];
+      allGroups.forEach((g: any) => {
+        const id = g.id || g.jid || "";
+        if (id) {
+          // fetchAllGroups tem dados mais completos — sobrescreve o cache se existir
+          mapaGrupos[id] = { id, subject: g.subject || g.name || id, size: g.size || 0 };
         }
-        if (!g.subject) g.subject = g.id;
-      }
-      gruposFiltrados.sort((a: any, b: any) => a.subject.localeCompare(b.subject));
+      });
 
-      // Se não encontrou grupos, tentar fetchAllGroups com timeout curto
-      if (gruposFiltrados.length === 0) {
-        try {
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 8000);
-          const res2 = await fetch(`${url}/group/fetchAllGroups/${instancia}?getParticipants=false`, {
-            headers: { apikey: key },
-            signal: controller.signal,
-          });
-          clearTimeout(timeout);
-          const groups = await res2.json();
-          if (Array.isArray(groups) && groups.length > 0) {
-            gruposFiltrados = groups.map((g: any) => ({
-              id: g.id || g.jid || "",
-              subject: g.subject || g.name || g.id || "",
-              size: g.size || 0,
-            })).sort((a: any, b: any) => a.subject.localeCompare(b.subject));
-          }
-        } catch {}
-      }
+      const lista = Object.values(mapaGrupos)
+        .filter(g => g.id)
+        .sort((a, b) => a.subject.localeCompare(b.subject));
 
-      setGrupos(gruposFiltrados);
+      setGrupos(lista);
     } catch (e) {
       console.error("Erro ao carregar grupos:", e);
     }
     setLoadingGrupos(false);
   }
+
 
   function abrirModal(rel?: Relatorio) {
     if (rel) {
@@ -336,12 +316,12 @@ export default function RelatoriosMetaPage() {
       nome,
       nome_cliente: nomeCliente,
       ad_account_id: adAccountId,
-      meta_token: conexao?.meta_token || null,
+      meta_token: null,
       grupo_id: destinoTipo === "grupo" ? grupoId : null,
       grupo_nome: destinoTipo === "grupo" ? grupoNome : null,
       contato_numero: destinoTipo === "contato" ? contatoNumero : null,
       template,
-      periodo,
+      periodo: frequencia === "mensal" ? "mes_anterior" : periodo,
       frequencia,
       horario_envio: horarioEnvio,
       dia_semana: frequencia === "semanal" ? diaSemana : null,
@@ -397,13 +377,13 @@ export default function RelatoriosMetaPage() {
     if (!relId) {
       const { data } = await supabase.from("relatorios").insert({
         agencia_id: agId, nome: nome || "Preview", nome_cliente: nomeCliente || "Cliente",
-        ad_account_id: adAccountId, meta_token: conexao?.meta_token || null, template, periodo, frequencia: "manual", ativo: false,
+        ad_account_id: adAccountId, meta_token: null, template, periodo, frequencia: "manual", ativo: false,
       }).select("id").single();
       relId = data?.id;
     } else {
       await supabase.from("relatorios").update({
         nome_cliente: nomeCliente, ad_account_id: adAccountId,
-        meta_token: conexao?.meta_token || null, template, periodo,
+        meta_token: null, template, periodo,
       }).eq("id", relId);
     }
 
@@ -599,11 +579,18 @@ export default function RelatoriosMetaPage() {
               </div>
               <div className="form-group">
                 <label className="form-label">Nome do cliente</label>
-                <input className="form-input" placeholder="Ex: Adriana - Tráfego Pago" value={nomeCliente} onChange={e => setNomeCliente(e.target.value)} />
+                <div style={{ display:"flex", gap:"6px" }}>
+                  <input className="form-input" style={{ flex:1 }} placeholder="Ex: Adriana" value={nomeCliente} onChange={e => setNomeCliente(e.target.value)} />
+                  <select className="form-input" style={{ width:"auto", minWidth:"140px" }} value="" onChange={e => { if (e.target.value) setNomeCliente(e.target.value); }}>
+                    <option value="">Vincular cliente...</option>
+                    {clientesControle.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
+                  </select>
+                </div>
               </div>
             </div>
 
-            {/* Conta de anúncio — já puxa do Facebook conectado */}
+
+            {/* Conta de anúncio — puxa do Facebook conectado em Conexões */}
             <div className="form-group" style={{ marginBottom: "20px" }}>
               <label className="form-label">Conta de Anúncio</label>
               {loadingContas ? (
@@ -619,7 +606,9 @@ export default function RelatoriosMetaPage() {
               ) : contas.length === 0 ? (
                 <div>
                   <input className="form-input" placeholder="act_1234567890" value={adAccountId} onChange={e => setAdAccountId(e.target.value)} />
-                  <p style={{ fontSize: "11px", color: "#606060", marginTop: "4px" }}>Nenhuma conta encontrada. Verifique a conexão em <a href="/relatorios-meta/conexoes" style={{ color: "#29ABE2" }}>Conexões</a>.</p>
+                  <p style={{ fontSize: "11px", color: "#606060", marginTop: "4px" }}>
+                    Nenhuma conta encontrada. Verifique a conexão em <a href="/relatorios-meta/conexoes" style={{ color: "#29ABE2" }}>Conexões</a>.
+                  </p>
                 </div>
               ) : (
                 <div>
@@ -639,6 +628,7 @@ export default function RelatoriosMetaPage() {
                       </button>
                     ))}
                   </div>
+
                 </div>
               )}
             </div>
@@ -727,13 +717,19 @@ export default function RelatoriosMetaPage() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px", marginBottom: "20px" }}>
               <div className="form-group">
                 <label className="form-label">Período dos dados</label>
-                <select className="form-input" value={periodo} onChange={e => setPeriodo(e.target.value)}>
-                  {PERIODOS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-                </select>
+                {frequencia === "mensal" ? (
+                  <div className="form-input" style={{ background:"#0d0d0d", color:"#606060", cursor:"not-allowed" }}>
+                    Mês anterior (automático)
+                  </div>
+                ) : (
+                  <select className="form-input" value={periodo} onChange={e => setPeriodo(e.target.value)}>
+                    {PERIODOS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                  </select>
+                )}
               </div>
               <div className="form-group">
                 <label className="form-label">Frequência de envio</label>
-                <select className="form-input" value={frequencia} onChange={e => setFrequencia(e.target.value)}>
+                <select className="form-input" value={frequencia} onChange={e => { setFrequencia(e.target.value); if (e.target.value === "mensal") setPeriodo("mes_anterior"); }}>
                   {FREQUENCIAS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                 </select>
               </div>

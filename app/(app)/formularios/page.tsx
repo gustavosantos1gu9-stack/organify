@@ -1,21 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Plus, Trash2, Save, Eye, Copy, GripVertical, ChevronDown, ChevronRight, X, FileText, ExternalLink } from "lucide-react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { Plus, Trash2, Save, Eye, Copy, CopyPlus, GripVertical, ChevronDown, ChevronRight, X, FileText, ExternalLink, List } from "lucide-react";
 import { supabase, getAgenciaId } from "@/lib/hooks";
 
 interface Pergunta {
   id: string;
-  tipo: "text" | "select" | "phone" | "email" | "textarea" | "radio" | "welcome" | "video";
+  tipo: "text" | "select" | "phone" | "email" | "textarea" | "radio" | "welcome" | "video" | "obrigado" | "galeria";
   label: string;
   descricao?: string;
   placeholder?: string;
   obrigatorio: boolean;
   opcoes?: string[];
-  opcoesIrPara?: Record<string, string>; // opcao -> pergunta_id
+  opcoesIrPara?: Record<string, string>; // opcao -> pergunta_id | "__fim__"
+  irPara?: string;                        // pulo incondicional -> pergunta_id | "__fim__"
   videoUrl?: string;
   imagemUrl?: string;
+  imagemFundoUrl?: string;
+  imagensGaleria?: string[];
   botaoTexto?: string;
+  redirectUrl?: string;
+  whatsappNumero?: string;
+  whatsappMensagem?: string;
+  semDisparo?: boolean;
 }
 
 interface Formulario {
@@ -28,6 +36,10 @@ interface Formulario {
   perguntas: Pergunta[];
   cor_primaria: string;
   cor_fundo: string;
+  cor_texto: string;
+  cor_titulo: string;
+  cor_subtitulo: string;
+  cor_botao: string;
   msg_sucesso: string;
   redirecionar_url: string;
   redirecionar_whatsapp: boolean;
@@ -35,10 +47,12 @@ interface Formulario {
   whatsapp_mensagem: string;
   ativo: boolean;
   created_at: string;
+  cliente_externo_id?: string | null;
 }
 
 const TIPOS_PERGUNTA = [
   { value: "welcome", label: "Tela de boas-vindas" },
+  { value: "obrigado", label: "Tela de obrigado" },
   { value: "text", label: "Texto curto" },
   { value: "phone", label: "Telefone/WhatsApp" },
   { value: "email", label: "Email" },
@@ -46,42 +60,159 @@ const TIPOS_PERGUNTA = [
   { value: "select", label: "Seleção (opções)" },
   { value: "radio", label: "Múltipla escolha" },
   { value: "video", label: "Vídeo / Depoimento" },
+  { value: "galeria", label: "Galeria de imagens" },
 ];
 
 function gerarId() { return Math.random().toString(36).slice(2, 10); }
 function gerarSlug(nome: string) { return nome.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "formulario"; }
 
-export default function FormulariosPage() {
+function FormulariosPageInner() {
+  const searchParams = useSearchParams();
+  const clienteIdParam = searchParams.get("cliente_id");
   const [formularios, setFormularios] = useState<Formulario[]>([]);
   const [loading, setLoading] = useState(true);
   const [editando, setEditando] = useState<Formulario | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [agId, setAgId] = useState("");
+  const [clienteNome, setClienteNome] = useState("");
+  const [clientesExternos, setClientesExternos] = useState<{ id: string; nome: string }[]>([]);
+  const [verRespostas, setVerRespostas] = useState<Formulario | null>(null);
+  const [respostas, setRespostas] = useState<any[]>([]);
+  const [loadingRespostas, setLoadingRespostas] = useState(false);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+  const [modalModelo, setModalModelo] = useState(false);
+  const [todosFormularios, setTodosFormularios] = useState<(Formulario & { cliente_nome?: string })[]>([]);
+  const [loadingModelos, setLoadingModelos] = useState(false);
 
   const carregar = async () => {
     setLoading(true);
     const id = await getAgenciaId();
     if (!id) return;
     setAgId(id);
-    const { data } = await supabase.from("formularios").select("*").eq("agencia_id", id).order("created_at", { ascending: false });
+    let q = supabase.from("formularios").select("*").eq("agencia_id", id).order("created_at", { ascending: false });
+    if (clienteIdParam) {
+      q = q.eq("cliente_externo_id", clienteIdParam);
+    } else {
+      q = q.is("cliente_externo_id", null);
+    }
+    const { data } = await q;
     setFormularios(data || []);
+    if (clienteIdParam) {
+      const { data: c } = await supabase.from("clientes_externos").select("nome").eq("id", clienteIdParam).single();
+      if (c) setClienteNome(c.nome);
+    }
+    const { data: clist } = await supabase.from("clientes_externos").select("id, nome").eq("agencia_id", id).eq("ativo", true).order("nome");
+    setClientesExternos(clist || []);
     setLoading(false);
   };
 
   useEffect(() => { carregar(); }, []);
 
-  const novoFormulario = () => {
+  const duplicar = async (f: Formulario) => {
+    const novoNome = `${f.nome} (cópia)`;
+    const novoSlug = `${f.slug}-copia`;
+    const { data, error } = await supabase.from("formularios").insert({
+      agencia_id: f.agencia_id,
+      nome: novoNome,
+      slug: novoSlug,
+      titulo: f.titulo,
+      subtitulo: f.subtitulo,
+      perguntas: f.perguntas,
+      cor_primaria: f.cor_primaria,
+      cor_fundo: f.cor_fundo,
+      cor_texto: f.cor_texto || "",
+      cor_titulo: f.cor_titulo || "",
+      cor_subtitulo: f.cor_subtitulo || "",
+      cor_botao: f.cor_botao || "",
+      msg_sucesso: f.msg_sucesso,
+      redirecionar_url: f.redirecionar_url,
+      redirecionar_whatsapp: f.redirecionar_whatsapp,
+      whatsapp_numero: f.whatsapp_numero,
+      whatsapp_mensagem: f.whatsapp_mensagem,
+      ativo: f.ativo,
+      cliente_externo_id: f.cliente_externo_id || null,
+    }).select().single();
+    if (error) { alert("Erro ao duplicar"); return; }
+    await carregar();
+    setEditando(data);
+  };
+
+  const novoFormulario = async (modelo?: Formulario) => {
+    let waNumero = "";
+    let logoUrl = "";
+    if (clienteIdParam) {
+      const { data: c } = await supabase.from("clientes_externos").select("whatsapp_notificacao, logo_url").eq("id", clienteIdParam).single();
+      waNumero = c?.whatsapp_notificacao || "";
+      logoUrl = c?.logo_url || "";
+    }
+
+    if (modelo) {
+      // Copia estrutura do modelo, reaplica IDs novos nas perguntas e ajusta logo/whatsapp da nova cliente
+      const pergsCopiadas = modelo.perguntas.map((p, i) => {
+        const novosId = { ...p, id: gerarId(), opcoesIrPara: undefined, irPara: undefined };
+        // Atualiza logo na tela de welcome se houver logo da nova cliente
+        if (i === 0 && p.tipo === "welcome" && logoUrl) novosId.imagemUrl = logoUrl;
+        return novosId;
+      });
+      setEditando({
+        ...modelo,
+        id: "", slug: "", nome: `Cópia de ${modelo.nome}`, created_at: "",
+        agencia_id: agId,
+        cliente_externo_id: clienteIdParam || null,
+        perguntas: pergsCopiadas,
+        whatsapp_numero: waNumero || modelo.whatsapp_numero,
+        redirecionar_whatsapp: waNumero ? true : modelo.redirecionar_whatsapp,
+        whatsapp_mensagem: modelo.whatsapp_mensagem,
+      });
+      setModalModelo(false);
+      return;
+    }
+
     setEditando({
-      id: "", agencia_id: agId, nome: "", slug: "", titulo: "Preencha seus dados", subtitulo: "Entraremos em contato em breve",
+      id: "", agencia_id: agId, nome: "", slug: "", titulo: "Preencha seus dados", subtitulo: "Falar no WhatsApp",
       perguntas: [
         { id: gerarId(), tipo: "welcome", label: "Bem-vindo!", descricao: "Responda algumas perguntas rápidas", obrigatorio: false, botaoTexto: "Começar" },
         { id: gerarId(), tipo: "text", label: "Qual seu nome?", placeholder: "Seu nome completo", obrigatorio: true },
         { id: gerarId(), tipo: "phone", label: "Qual seu WhatsApp?", placeholder: "(00) 00000-0000", obrigatorio: true },
       ],
-      cor_primaria: "#29ABE2", cor_fundo: "#0f0f0f", msg_sucesso: "Obrigado! Entraremos em contato em breve.",
-      redirecionar_url: "", redirecionar_whatsapp: false, whatsapp_numero: "", whatsapp_mensagem: "Olá! Preenchi o formulário e gostaria de mais informações.",
-      ativo: true, created_at: "",
+      cor_primaria: "#29ABE2", cor_fundo: "#0f0f0f", cor_texto: "", cor_titulo: "", cor_subtitulo: "", cor_botao: "", msg_sucesso: "Obrigado! Entraremos em contato em breve.",
+      redirecionar_url: "", redirecionar_whatsapp: true, whatsapp_numero: waNumero, whatsapp_mensagem: "Olá! Preenchi o formulário e gostaria de mais informações.",
+      ativo: true, created_at: "", cliente_externo_id: clienteIdParam || null,
     });
+  };
+
+  const abrirModalModelo = async () => {
+    setModalModelo(true);
+    setLoadingModelos(true);
+    const { data } = await supabase
+      .from("formularios")
+      .select("*, clientes_externos(nome)")
+      .eq("agencia_id", agId)
+      .order("created_at", { ascending: false });
+    const lista = (data || []).map((f: any) => ({
+      ...f,
+      cliente_nome: f.clientes_externos?.nome || "Master",
+    }));
+    setTodosFormularios(lista);
+    setLoadingModelos(false);
+  };
+
+  const onClienteExternoChange = async (clienteId: string) => {
+    if (!editando) return;
+    let update: Partial<Formulario> = { cliente_externo_id: clienteId || null };
+    if (clienteId) {
+      const { data: c } = await supabase.from("clientes_externos").select("whatsapp_notificacao, logo_url").eq("id", clienteId).single();
+      if (c?.whatsapp_notificacao && !editando.whatsapp_numero) {
+        update.whatsapp_numero = c.whatsapp_notificacao;
+        update.redirecionar_whatsapp = true;
+      }
+      if (c?.logo_url) {
+        const pergs = editando.perguntas.map((p, i) => i === 0 && p.tipo === "welcome" ? { ...p, imagemUrl: c.logo_url } : p);
+        update = { ...update, perguntas: pergs };
+      }
+    }
+    setEditando({ ...editando, ...update });
   };
 
   const salvar = async () => {
@@ -94,22 +225,30 @@ export default function FormulariosPage() {
         agencia_id: agId, nome: editando.nome, slug,
         titulo: editando.titulo, subtitulo: editando.subtitulo,
         perguntas: editando.perguntas, cor_primaria: editando.cor_primaria,
-        cor_fundo: editando.cor_fundo, msg_sucesso: editando.msg_sucesso,
+        cor_fundo: editando.cor_fundo,
+        ...(editando.cor_texto ? { cor_texto: editando.cor_texto } : {}),
+        cor_titulo: editando.cor_titulo || "",
+        cor_subtitulo: editando.cor_subtitulo || "",
+        cor_botao: editando.cor_botao || "",
+        msg_sucesso: editando.msg_sucesso,
         redirecionar_url: editando.redirecionar_url,
         redirecionar_whatsapp: editando.redirecionar_whatsapp,
         whatsapp_numero: editando.whatsapp_numero,
         whatsapp_mensagem: editando.whatsapp_mensagem,
         ativo: editando.ativo,
+        cliente_externo_id: editando.cliente_externo_id || null,
       };
       if (editando.id) {
-        await supabase.from("formularios").update(dados).eq("id", editando.id);
+        const { error } = await supabase.from("formularios").update(dados).eq("id", editando.id);
+        if (error) throw new Error(error.message);
       } else {
-        await supabase.from("formularios").insert(dados);
+        const { error } = await supabase.from("formularios").insert(dados);
+        if (error) throw new Error(error.message);
       }
       setEditando(null);
       await carregar();
       alert("Formulário salvo!");
-    } catch (e) { console.error(e); alert("Erro ao salvar"); }
+    } catch (e: any) { console.error(e); alert("Erro ao salvar: " + e.message); }
     setSalvando(false);
   };
 
@@ -139,6 +278,14 @@ export default function FormulariosPage() {
     setEditando({ ...editando, perguntas: editando.perguntas.filter((_, i) => i !== idx) });
   };
 
+  const reorderPerguntas = (from: number, to: number) => {
+    if (!editando || from === to) return;
+    const pergs = [...editando.perguntas];
+    const [moved] = pergs.splice(from, 1);
+    pergs.splice(to, 0, moved);
+    setEditando({ ...editando, perguntas: pergs });
+  };
+
   const addOpcao = (idx: number) => {
     if (!editando) return;
     const pergs = [...editando.perguntas];
@@ -162,9 +309,22 @@ export default function FormulariosPage() {
     setEditando({ ...editando, perguntas: pergs });
   };
 
+  const abrirRespostas = async (f: Formulario) => {
+    setVerRespostas(f);
+    setLoadingRespostas(true);
+    const { data } = await supabase
+      .from("formularios_respostas")
+      .select("id, respostas, created_at")
+      .eq("formulario_id", f.id)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    setRespostas(data || []);
+    setLoadingRespostas(false);
+  };
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== "undefined" ? window.location.origin : "");
   const copyLink = (slug: string) => {
-    const url = `${window.location.origin}/f/${slug}`;
-    navigator.clipboard.writeText(url);
+    navigator.clipboard.writeText(`${baseUrl}/f/${slug}`);
     alert("Link copiado!");
   };
 
@@ -173,15 +333,22 @@ export default function FormulariosPage() {
 
   return (
     <div className="animate-in">
-      <div className="breadcrumb"><a href="/">Início</a><span>›</span><span className="current">Formulários</span></div>
+      <div className="breadcrumb"><a href="/">Início</a><span>›</span><span className="current">{clienteIdParam ? `Formulários — ${clienteNome}` : "Formulários Master"}</span></div>
+
+      {clienteIdParam && clienteNome && (
+        <div style={{ background: "#0f1a2a", border: "1px solid #1a3a5a", borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 13, color: "#4a9aba" }}>
+          Criando formulário para cliente: <strong style={{ color: "#29ABE2" }}>{clienteNome}</strong>
+          <a href="/formularios" style={{ marginLeft: 12, fontSize: 12, color: "#606060", textDecoration: "underline" }}>Ver todos</a>
+        </div>
+      )}
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 600 }}>Formulários</h1>
-        <button className="btn-primary" onClick={novoFormulario}><Plus size={14} /> Novo Formulário</button>
+        <h1 style={{ fontSize: 22, fontWeight: 600 }}>{clienteIdParam ? `Formulários — ${clienteNome}` : "Formulários Master"}</h1>
+        <button className="btn-primary" onClick={abrirModalModelo}><Plus size={14} /> Novo Formulário</button>
       </div>
 
       {/* Lista */}
-      {!editando && (
+      {!editando && !verRespostas && (
         <div className="table-wrapper">
           <table>
             <thead><tr><th>NOME</th><th>SLUG</th><th>PERGUNTAS</th><th>STATUS</th><th></th></tr></thead>
@@ -203,7 +370,9 @@ export default function FormulariosPage() {
                   <td>
                     <div style={{ display: "flex", gap: 6 }}>
                       <button className="btn-ghost" style={{ padding: "5px 8px" }} onClick={() => copyLink(f.slug)} title="Copiar link"><Copy size={13} /></button>
-                      <a href={`/f/${f.slug}`} target="_blank" className="btn-ghost" style={{ padding: "5px 8px", textDecoration: "none", display: "flex", alignItems: "center" }} title="Visualizar"><Eye size={13} /></a>
+                      <a href={`${baseUrl}/f/${f.slug}`} target="_blank" className="btn-ghost" style={{ padding: "5px 8px", textDecoration: "none", display: "flex", alignItems: "center" }} title="Visualizar"><Eye size={13} /></a>
+                      <button className="btn-ghost" style={{ padding: "5px 8px" }} onClick={() => duplicar(f)} title="Duplicar"><CopyPlus size={13} /></button>
+                      <button className="btn-ghost" style={{ padding: "5px 8px", color: "#29ABE2" }} onClick={() => abrirRespostas(f)} title="Ver respostas"><List size={13} /></button>
                       <button className="btn-secondary" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => setEditando(f)}>Editar</button>
                       <button className="btn-danger" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => remover(f.id)}>Remover</button>
                     </div>
@@ -215,6 +384,61 @@ export default function FormulariosPage() {
         </div>
       )}
 
+      {/* Respostas */}
+      {!editando && verRespostas && (() => {
+        const perguntas = verRespostas.perguntas.filter(p => !["welcome", "video", "obrigado"].includes(p.tipo));
+        const idToLabel: Record<string, string> = {};
+        for (const p of perguntas) idToLabel[p.id] = p.label;
+        return (
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <div>
+                <button className="btn-ghost" style={{ padding: "6px 12px", fontSize: 13 }} onClick={() => { setVerRespostas(null); setRespostas([]); }}>
+                  <X size={14} /> Voltar
+                </button>
+              </div>
+              <h2 style={{ fontSize: 16, fontWeight: 600, color: "#f0f0f0" }}>Respostas — {verRespostas.nome}</h2>
+              <span style={{ fontSize: 13, color: "#606060" }}>{loadingRespostas ? "Carregando..." : `${respostas.length} respostas`}</span>
+            </div>
+
+            {loadingRespostas ? (
+              <div style={{ textAlign: "center", color: "#606060", padding: 60 }}>Carregando respostas...</div>
+            ) : !respostas.length ? (
+              <div style={{ textAlign: "center", color: "#606060", padding: 60 }}>Nenhuma resposta ainda.</div>
+            ) : (
+              <div className="table-wrapper" style={{ overflowX: "auto" }}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th style={{ whiteSpace: "nowrap" }}>DATA</th>
+                      {perguntas.map(p => (
+                        <th key={p.id} style={{ whiteSpace: "nowrap", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {p.label.length > 30 ? p.label.slice(0, 30) + "…" : p.label}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {respostas.map(r => (
+                      <tr key={r.id}>
+                        <td style={{ whiteSpace: "nowrap", fontSize: 12, color: "#a0a0a0" }}>
+                          {new Date(r.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        </td>
+                        {perguntas.map(p => (
+                          <td key={p.id} style={{ maxWidth: 200, fontSize: 13 }}>
+                            {r.respostas?.[p.id] || <span style={{ color: "#404040" }}>—</span>}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Editor */}
       {editando && (
         <div>
@@ -224,7 +448,7 @@ export default function FormulariosPage() {
             </button>
             <div style={{ display: "flex", gap: 8 }}>
               {editando.slug && (
-                <a href={`/f/${editando.slug}`} target="_blank" className="btn-secondary" style={{ textDecoration: "none", fontSize: 12, padding: "6px 12px", display: "flex", alignItems: "center", gap: 4 }}>
+                <a href={`${baseUrl}/f/${editando.slug}`} target="_blank" className="btn-secondary" style={{ textDecoration: "none", fontSize: 12, padding: "6px 12px", display: "flex", alignItems: "center", gap: 4 }}>
                   <ExternalLink size={12} /> Preview
                 </a>
               )}
@@ -244,6 +468,15 @@ export default function FormulariosPage() {
                     <label style={lbl}>Nome do formulário (interno)</label>
                     <input style={inp} value={editando.nome} onChange={e => { setEditando({ ...editando, nome: e.target.value, slug: editando.id ? editando.slug : gerarSlug(e.target.value) }); }} placeholder="Ex: Captação Micropigmentação" />
                   </div>
+                  {clienteIdParam && clientesExternos.length > 0 && (
+                    <div>
+                      <label style={lbl}>Cliente Externo</label>
+                      <select style={{ ...inp }} value={editando.cliente_externo_id || ""} onChange={e => onClienteExternoChange(e.target.value)}>
+                        <option value="">— Nenhum —</option>
+                        {clientesExternos.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                      </select>
+                    </div>
+                  )}
                   <div>
                     <label style={lbl}>Slug (URL)</label>
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -251,15 +484,9 @@ export default function FormulariosPage() {
                       <input style={{ ...inp, flex: 1 }} value={editando.slug} onChange={e => setEditando({ ...editando, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })} />
                     </div>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                    <div>
-                      <label style={lbl}>Título</label>
-                      <input style={inp} value={editando.titulo} onChange={e => setEditando({ ...editando, titulo: e.target.value })} />
-                    </div>
-                    <div>
-                      <label style={lbl}>Subtítulo</label>
-                      <input style={inp} value={editando.subtitulo} onChange={e => setEditando({ ...editando, subtitulo: e.target.value })} />
-                    </div>
+                  <div>
+                    <label style={lbl}>Título (interno)</label>
+                    <input style={inp} value={editando.titulo} onChange={e => setEditando({ ...editando, titulo: e.target.value })} />
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                     <div>
@@ -277,6 +504,32 @@ export default function FormulariosPage() {
                       </div>
                     </div>
                   </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                    <div>
+                      <label style={lbl}>Cor do título</label>
+                      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                        <input type="color" value={editando.cor_titulo || "#f0f0f0"} onChange={e => setEditando({ ...editando, cor_titulo: e.target.value })} style={{ width: 36, height: 36, border: "none", borderRadius: 6, cursor: "pointer", flexShrink: 0 }} />
+                        <input style={{ ...inp, flex: 1 }} placeholder="Auto" value={editando.cor_titulo || ""} onChange={e => setEditando({ ...editando, cor_titulo: e.target.value })} />
+                        {editando.cor_titulo && <button onClick={() => setEditando({ ...editando, cor_titulo: "" })} style={{ background: "none", border: "none", color: "#606060", cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "0 2px" }}>×</button>}
+                      </div>
+                    </div>
+                    <div>
+                      <label style={lbl}>Cor do subtítulo</label>
+                      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                        <input type="color" value={editando.cor_subtitulo || "#888888"} onChange={e => setEditando({ ...editando, cor_subtitulo: e.target.value })} style={{ width: 36, height: 36, border: "none", borderRadius: 6, cursor: "pointer", flexShrink: 0 }} />
+                        <input style={{ ...inp, flex: 1 }} placeholder="Auto" value={editando.cor_subtitulo || ""} onChange={e => setEditando({ ...editando, cor_subtitulo: e.target.value })} />
+                        {editando.cor_subtitulo && <button onClick={() => setEditando({ ...editando, cor_subtitulo: "" })} style={{ background: "none", border: "none", color: "#606060", cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "0 2px" }}>×</button>}
+                      </div>
+                    </div>
+                    <div>
+                      <label style={lbl}>Cor do botão</label>
+                      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                        <input type="color" value={editando.cor_botao || editando.cor_primaria || "#29ABE2"} onChange={e => setEditando({ ...editando, cor_botao: e.target.value })} style={{ width: 36, height: 36, border: "none", borderRadius: 6, cursor: "pointer", flexShrink: 0 }} />
+                        <input style={{ ...inp, flex: 1 }} placeholder="= Cor primária" value={editando.cor_botao || ""} onChange={e => setEditando({ ...editando, cor_botao: e.target.value })} />
+                        {editando.cor_botao && <button onClick={() => setEditando({ ...editando, cor_botao: "" })} style={{ background: "none", border: "none", color: "#606060", cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "0 2px" }}>×</button>}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -288,28 +541,49 @@ export default function FormulariosPage() {
                     <label style={lbl}>Mensagem de sucesso</label>
                     <input style={inp} value={editando.msg_sucesso} onChange={e => setEditando({ ...editando, msg_sucesso: e.target.value })} />
                   </div>
-                  <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, color: "#a0a0a0" }}>
-                    <input type="checkbox" checked={editando.redirecionar_whatsapp} onChange={e => setEditando({ ...editando, redirecionar_whatsapp: e.target.checked })} style={{ width: 14, height: 14 }} />
-                    Redirecionar para WhatsApp após envio
-                  </label>
-                  {editando.redirecionar_whatsapp && (
-                    <>
-                      <div>
-                        <label style={lbl}>Número WhatsApp</label>
-                        <input style={inp} placeholder="5551999999999" value={editando.whatsapp_numero} onChange={e => setEditando({ ...editando, whatsapp_numero: e.target.value })} />
+
+                  {/* Botão final */}
+                  <div style={{ background: "#0d0d0d", border: "1px solid #1e1e1e", borderRadius: 10, padding: 12 }}>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: "#a0a0a0", margin: "0 0 10px" }}>Botão na tela final</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      {/* Tipo do botão */}
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button
+                          onClick={() => setEditando({ ...editando, redirecionar_whatsapp: true, redirecionar_url: "" })}
+                          style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: `1px solid ${editando.redirecionar_whatsapp ? "#29ABE2" : "#2e2e2e"}`, background: editando.redirecionar_whatsapp ? "#29ABE215" : "transparent", color: editando.redirecionar_whatsapp ? "#29ABE2" : "#606060", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                        >💬 WhatsApp</button>
+                        <button
+                          onClick={() => setEditando({ ...editando, redirecionar_whatsapp: false })}
+                          style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: `1px solid ${!editando.redirecionar_whatsapp && editando.redirecionar_url !== undefined ? "#29ABE2" : "#2e2e2e"}`, background: !editando.redirecionar_whatsapp ? "#29ABE215" : "transparent", color: !editando.redirecionar_whatsapp ? "#29ABE2" : "#606060", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                        >🔗 Link personalizado</button>
                       </div>
+                      {/* Texto do botão */}
                       <div>
-                        <label style={lbl}>Mensagem pré-preenchida</label>
-                        <input style={inp} value={editando.whatsapp_mensagem} onChange={e => setEditando({ ...editando, whatsapp_mensagem: e.target.value })} />
+                        <label style={lbl}>Texto do botão</label>
+                        <input style={inp} placeholder={editando.redirecionar_whatsapp ? "Falar no WhatsApp" : "Continuar"} value={editando.subtitulo || ""} onChange={e => setEditando({ ...editando, subtitulo: e.target.value })} />
                       </div>
-                    </>
-                  )}
-                  {!editando.redirecionar_whatsapp && (
-                    <div>
-                      <label style={lbl}>URL de redirecionamento (opcional)</label>
-                      <input style={inp} placeholder="https://..." value={editando.redirecionar_url} onChange={e => setEditando({ ...editando, redirecionar_url: e.target.value })} />
+                      {/* WhatsApp fields */}
+                      {editando.redirecionar_whatsapp && (
+                        <>
+                          <div>
+                            <label style={lbl}>Número WhatsApp</label>
+                            <input style={inp} placeholder="5551999999999" value={editando.whatsapp_numero} onChange={e => setEditando({ ...editando, whatsapp_numero: e.target.value })} />
+                          </div>
+                          <div>
+                            <label style={lbl}>Mensagem pré-preenchida</label>
+                            <input style={inp} value={editando.whatsapp_mensagem} onChange={e => setEditando({ ...editando, whatsapp_mensagem: e.target.value })} />
+                          </div>
+                        </>
+                      )}
+                      {/* URL personalizada */}
+                      {!editando.redirecionar_whatsapp && (
+                        <div>
+                          <label style={lbl}>URL de destino</label>
+                          <input style={inp} placeholder="https://..." value={editando.redirecionar_url} onChange={e => setEditando({ ...editando, redirecionar_url: e.target.value })} />
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -325,27 +599,81 @@ export default function FormulariosPage() {
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {editando.perguntas.map((p, idx) => (
-                    <div key={p.id} style={{ background: "#0d0d0d", border: "1px solid #1e1e1e", borderRadius: 10, padding: 14 }}>
+                  {editando.perguntas.map((p, idx) => {
+                    const temLogica = !!p.irPara || Object.keys(p.opcoesIrPara || {}).some(k => !!p.opcoesIrPara![k]);
+                    const isDragging = dragIdx === idx;
+                    const isDragOver = dragOverIdx === idx && dragIdx !== idx;
+                    return (
+                    <div
+                      key={p.id}
+                      draggable
+                      onDragStart={() => setDragIdx(idx)}
+                      onDragOver={e => { e.preventDefault(); setDragOverIdx(idx); }}
+                      onDrop={() => { reorderPerguntas(dragIdx!, idx); setDragIdx(null); setDragOverIdx(null); }}
+                      onDragEnd={() => { setDragIdx(null); setDragOverIdx(null); }}
+                      style={{
+                        background: "#0d0d0d",
+                        border: `1px solid ${isDragOver ? "#29ABE2" : temLogica ? "#29ABE230" : "#1e1e1e"}`,
+                        borderRadius: 10,
+                        padding: 14,
+                        opacity: isDragging ? 0.4 : 1,
+                        transition: "border-color 0.15s, opacity 0.15s",
+                        cursor: "grab",
+                      }}
+                    >
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                        <span style={{ fontSize: 11, color: "#606060", fontWeight: 600 }}>CAMPO {idx + 1}</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <GripVertical size={14} style={{ color: "#404040", flexShrink: 0 }} />
+                          <span style={{ fontSize: 11, color: "#606060", fontWeight: 600 }}>CAMPO {idx + 1}</span>
+                          {temLogica && <span style={{ fontSize: 10, background: "#29ABE215", color: "#29ABE2", padding: "2px 6px", borderRadius: 6, fontWeight: 600 }}>LÓGICA</span>}
+                        </div>
                         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                          <label style={{ fontSize: 11, color: "#a0a0a0", display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
-                            <input type="checkbox" checked={p.obrigatorio} onChange={e => updatePergunta(idx, "obrigatorio", e.target.checked)} style={{ width: 12, height: 12 }} />
-                            Obrigatório
-                          </label>
+                          {p.tipo !== "welcome" && p.tipo !== "obrigado" && p.tipo !== "video" && (
+                            <label style={{ fontSize: 11, color: "#a0a0a0", display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
+                              <input type="checkbox" checked={p.obrigatorio} onChange={e => updatePergunta(idx, "obrigatorio", e.target.checked)} style={{ width: 12, height: 12 }} />
+                              Obrigatório
+                            </label>
+                          )}
                           <button onClick={() => removePergunta(idx)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: 2 }}><Trash2 size={13} /></button>
                         </div>
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 8, marginBottom: 8 }}>
-                        <input style={{ ...inp, fontSize: 12 }} placeholder="Pergunta/Label" value={p.label} onChange={e => updatePergunta(idx, "label", e.target.value)} />
-                        <select style={{ ...inp, fontSize: 12 }} value={p.tipo} onChange={e => updatePergunta(idx, "tipo", e.target.value)}>
+                        <textarea
+                          style={{ ...inp, fontSize: 12, resize: "vertical", minHeight: 38, lineHeight: "1.4" }}
+                          placeholder="Pergunta/Label (Enter = nova linha)"
+                          value={p.label}
+                          rows={2}
+                          onChange={e => updatePergunta(idx, "label", e.target.value)}
+                        />
+                        <select style={{ ...inp, fontSize: 12 }} value={p.tipo} onChange={e => {
+                          const tipo = e.target.value;
+                          const placeholders: Record<string, string> = {
+                            text: "Sua resposta...",
+                            phone: "(55) 99999-9999",
+                            email: "seu@email.com",
+                            textarea: "Descreva com detalhes...",
+                            select: "",
+                            radio: "",
+                            welcome: "",
+                            video: "",
+                            obrigado: "",
+                          };
+                          const pergs = [...editando!.perguntas];
+                          pergs[idx] = { ...pergs[idx], tipo: tipo as any, placeholder: placeholders[tipo] ?? "" };
+                          setEditando({ ...editando!, perguntas: pergs });
+                        }}>
                           {TIPOS_PERGUNTA.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                         </select>
                       </div>
-                      <input style={{ ...inp, fontSize: 12, marginTop: 6 }} placeholder="Descrição (opcional)" value={p.descricao || ""} onChange={e => updatePergunta(idx, "descricao", e.target.value)} />
+                      <textarea
+                        style={{ ...inp, fontSize: 12, marginTop: 6, resize: "vertical", minHeight: 38, lineHeight: "1.4" }}
+                        placeholder="Descrição/Subtítulo (Enter = nova linha)"
+                        value={p.descricao || ""}
+                        rows={2}
+                        onChange={e => updatePergunta(idx, "descricao", e.target.value)}
+                      />
 
-                      {!["welcome", "video"].includes(p.tipo) && (
+                      {!["welcome", "video", "obrigado"].includes(p.tipo) && (
                         <input style={{ ...inp, fontSize: 12, marginTop: 6 }} placeholder="Placeholder (opcional)" value={p.placeholder || ""} onChange={e => updatePergunta(idx, "placeholder", e.target.value)} />
                       )}
 
@@ -353,7 +681,39 @@ export default function FormulariosPage() {
                         <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 6 }}>
                           <input style={{ ...inp, fontSize: 12 }} placeholder="Texto do botão (ex: Começar)" value={p.botaoTexto || ""} onChange={e => updatePergunta(idx, "botaoTexto", e.target.value)} />
                           {p.tipo === "welcome" && (
-                            <input style={{ ...inp, fontSize: 12 }} placeholder="URL da imagem (opcional)" value={p.imagemUrl || ""} onChange={e => updatePergunta(idx, "imagemUrl", e.target.value)} />
+                            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                              <input
+                                style={{ ...inp, fontSize: 12, flex: 1 }}
+                                placeholder="URL da imagem de fundo (hero com degradê)"
+                                value={p.imagemFundoUrl || ""}
+                                onChange={e => updatePergunta(idx, "imagemFundoUrl", e.target.value)}
+                              />
+                              <label style={{
+                                display: "inline-flex", alignItems: "center", gap: 4,
+                                padding: "7px 10px", borderRadius: 7, border: "1px dashed #3a3a3a",
+                                color: "#a0a0a0", fontSize: 11, fontWeight: 600, cursor: "pointer",
+                                whiteSpace: "nowrap", flexShrink: 0,
+                              }}>
+                                📎 Anexar
+                                <input type="file" accept="image/*" style={{ display: "none" }}
+                                  onChange={async e => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    updatePergunta(idx, "imagemFundoUrl", "⏳ enviando...");
+                                    const fd = new FormData();
+                                    fd.append("file", file);
+                                    fd.append("pasta", `formularios/${agId}`);
+                                    const res = await fetch("/api/upload-imagem", { method: "POST", body: fd });
+                                    const json = await res.json();
+                                    updatePergunta(idx, "imagemFundoUrl", json.url || "");
+                                    e.target.value = "";
+                                  }}
+                                />
+                              </label>
+                              {p.imagemFundoUrl && !p.imagemFundoUrl.startsWith("⏳") && (
+                                <img src={p.imagemFundoUrl} alt="" style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
+                              )}
+                            </div>
                           )}
                           {p.tipo === "video" && (
                             <input style={{ ...inp, fontSize: 12 }} placeholder="URL do vídeo (YouTube, Vimeo...)" value={p.videoUrl || ""} onChange={e => updatePergunta(idx, "videoUrl", e.target.value)} />
@@ -361,43 +721,254 @@ export default function FormulariosPage() {
                         </div>
                       )}
 
+                      {p.tipo === "obrigado" && (
+                        <div style={{ marginTop: 8, background: "#0d0d0d", border: "1px solid #1e1e1e", borderRadius: 10, padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+                          <p style={{ fontSize: 12, fontWeight: 600, color: "#a0a0a0", margin: 0 }}>Botão na tela de obrigado</p>
+                          {/* Toggle WhatsApp / Link */}
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <button
+                              onClick={() => { updatePergunta(idx, "whatsappNumero", p.whatsappNumero || ""); updatePergunta(idx, "redirectUrl", ""); }}
+                              style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: `1px solid ${p.whatsappNumero !== undefined && p.whatsappNumero !== null && !p.redirectUrl ? "#29ABE2" : "#2e2e2e"}`, background: (p.whatsappNumero !== undefined && !p.redirectUrl) ? "#29ABE215" : "transparent", color: (p.whatsappNumero !== undefined && !p.redirectUrl) ? "#29ABE2" : "#606060", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                            >💬 WhatsApp</button>
+                            <button
+                              onClick={() => { updatePergunta(idx, "redirectUrl", p.redirectUrl || ""); updatePergunta(idx, "whatsappNumero", undefined as any); updatePergunta(idx, "whatsappMensagem", undefined as any); }}
+                              style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: `1px solid ${p.redirectUrl ? "#29ABE2" : "#2e2e2e"}`, background: p.redirectUrl ? "#29ABE215" : "transparent", color: p.redirectUrl ? "#29ABE2" : "#606060", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                            >🔗 Link personalizado</button>
+                          </div>
+                          {/* Texto do botão */}
+                          <div>
+                            <label style={lbl}>Texto do botão</label>
+                            <input style={{ ...inp, fontSize: 12 }} placeholder={p.redirectUrl ? "Continuar" : "Falar no WhatsApp"} value={p.botaoTexto || ""} onChange={e => updatePergunta(idx, "botaoTexto", e.target.value)} />
+                          </div>
+                          {/* WhatsApp fields */}
+                          {!p.redirectUrl && (
+                            <>
+                              <div>
+                                <label style={lbl}>Número WhatsApp</label>
+                                <input style={{ ...inp, fontSize: 12 }} placeholder="5551999999999" value={p.whatsappNumero || ""} onChange={e => updatePergunta(idx, "whatsappNumero", e.target.value)} />
+                              </div>
+                              <div>
+                                <label style={lbl}>Mensagem pré-preenchida</label>
+                                <textarea style={{ ...inp, fontSize: 12, resize: "vertical", minHeight: 52 }} value={p.whatsappMensagem || ""} onChange={e => updatePergunta(idx, "whatsappMensagem", e.target.value)} />
+                              </div>
+                            </>
+                          )}
+                          {/* URL personalizada */}
+                          {p.redirectUrl !== undefined && p.redirectUrl !== null && (
+                            <div>
+                              <label style={lbl}>URL de destino</label>
+                              <input style={{ ...inp, fontSize: 12 }} placeholder="https://..." value={p.redirectUrl || ""} onChange={e => updatePergunta(idx, "redirectUrl", e.target.value)} />
+                            </div>
+                          )}
+                          {/* Toggle: não disparar Lead (leads desqualificados) */}
+                          <button
+                            onClick={() => updatePergunta(idx, "semDisparo", !p.semDisparo)}
+                            style={{
+                              display: "flex", alignItems: "center", gap: 8, padding: "8px 12px",
+                              borderRadius: 8, border: `1px solid ${p.semDisparo ? "#ef4444" : "#2e2e2e"}`,
+                              background: p.semDisparo ? "#ef444415" : "transparent",
+                              color: p.semDisparo ? "#ef4444" : "#606060",
+                              fontSize: 12, fontWeight: 600, cursor: "pointer", textAlign: "left", width: "100%",
+                            }}
+                          >
+                            <span style={{ fontSize: 14 }}>{p.semDisparo ? "🚫" : "⚡"}</span>
+                            {p.semDisparo ? "Não dispara Lead nem salva no banco" : "Disparar Lead ao chegar aqui"}
+                          </button>
+                          <p style={{ fontSize: 10, color: "#404040", margin: 0 }}>
+                            {p.semDisparo
+                              ? "⚠ Lead desqualificado — não será salvo nem contabilizado."
+                              : "💡 O pixel Lead dispara automaticamente ao chegar nesta tela."}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Galeria de imagens */}
+                      {p.tipo === "galeria" && (
+                        <div style={{ marginTop: 8 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                            <label style={{ ...lbl, marginBottom: 0 }}>Imagens da galeria</label>
+                            <label style={{
+                              display: "inline-flex", alignItems: "center", gap: 4,
+                              padding: "5px 10px", borderRadius: 7, border: "1px dashed #29ABE2",
+                              color: "#29ABE2", fontSize: 11, fontWeight: 600, cursor: "pointer",
+                            }}>
+                              📎 Anexar imagem
+                              <input type="file" accept="image/*" multiple style={{ display: "none" }}
+                                onChange={async e => {
+                                  const files = Array.from(e.target.files || []);
+                                  if (!files.length) return;
+                                  const atual = p.imagensGaleria || [];
+                                  const placeholders = files.map((_, i) => `⏳${i}`);
+                                  updatePergunta(idx, "imagensGaleria", [...atual, ...placeholders]);
+                                  const urls: string[] = [];
+                                  for (const file of files) {
+                                    const fd = new FormData();
+                                    fd.append("file", file);
+                                    fd.append("pasta", `formularios/${agId}/galeria`);
+                                    const res = await fetch("/api/upload-imagem", { method: "POST", body: fd });
+                                    const json = await res.json();
+                                    urls.push(json.url || "");
+                                  }
+                                  updatePergunta(idx, "imagensGaleria", [...atual, ...urls.filter(Boolean)]);
+                                  e.target.value = "";
+                                }}
+                              />
+                            </label>
+                          </div>
+                          <input style={{ ...inp, fontSize: 12, marginBottom: 6 }} placeholder="Texto do botão (ex: É isso que eu quero!)" value={p.botaoTexto || ""} onChange={e => updatePergunta(idx, "botaoTexto", e.target.value)} />
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                            {(p.imagensGaleria || []).map((url, gi) => (
+                              <div key={gi} style={{ position: "relative", width: 56, height: 56 }}>
+                                {url.startsWith("⏳") ? (
+                                  <div style={{ width: 56, height: 56, borderRadius: 6, background: "#1a1a1a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>⏳</div>
+                                ) : (
+                                  <img src={url} alt="" style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 6 }} />
+                                )}
+                                <button
+                                  onClick={() => {
+                                    const novas = (p.imagensGaleria || []).filter((_, i) => i !== gi);
+                                    updatePergunta(idx, "imagensGaleria", novas);
+                                  }}
+                                  style={{ position: "absolute", top: -5, right: -5, width: 18, height: 18, borderRadius: "50%", background: "#ef4444", border: "none", color: "#fff", fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
+                                >×</button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Opções para select/radio com lógica condicional por opção */}
                       {(p.tipo === "select" || p.tipo === "radio") && (
                         <div style={{ marginTop: 8 }}>
-                          <label style={{ ...lbl, fontSize: 11 }}>Opções e rotas</label>
-                          {(p.opcoes || []).map((o, oi) => (
-                            <div key={oi} style={{ display: "flex", gap: 4, marginBottom: 6, alignItems: "center" }}>
-                              <input style={{ ...inp, flex: 1, fontSize: 12 }} placeholder={`Opção ${oi + 1}`} value={o} onChange={e => updateOpcao(idx, oi, e.target.value)} />
-                              <select style={{ ...inp, width: 120, fontSize: 11, color: (p.opcoesIrPara?.[o]) ? "#29ABE2" : "#606060" }}
-                                value={p.opcoesIrPara?.[o] || ""}
-                                onChange={e => {
-                                  const pergs = [...editando!.perguntas];
-                                  if (!pergs[idx].opcoesIrPara) pergs[idx].opcoesIrPara = {};
-                                  if (e.target.value) pergs[idx].opcoesIrPara![o] = e.target.value;
-                                  else delete pergs[idx].opcoesIrPara![o];
-                                  setEditando({ ...editando!, perguntas: pergs });
-                                }}>
-                                <option value="">Próxima →</option>
-                                {editando!.perguntas.filter((_, pi) => pi !== idx).map((pDest) => (
-                                  <option key={pDest.id} value={pDest.id}>
-                                    Ir p/ {pDest.label?.slice(0, 20) || `Campo ${editando!.perguntas.indexOf(pDest) + 1}`}
-                                  </option>
-                                ))}
-                                <option value="__fim__">Enviar formulário</option>
-                              </select>
-                              <button onClick={() => removeOpcao(idx, oi)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: 2 }}><Trash2 size={12} /></button>
+                          <label style={{ ...lbl, fontSize: 11 }}>Opções</label>
+                          {(p.opcoes || []).map((o, oi) => {
+                            const rotaOpcao = p.opcoesIrPara?.[o] || "";
+                            return (
+                            <div key={oi} style={{ marginBottom: 6 }}>
+                              <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                                <input style={{ ...inp, flex: 1, fontSize: 12 }} placeholder={`Opção ${oi + 1}`} value={o} onChange={e => updateOpcao(idx, oi, e.target.value)} />
+                                <button onClick={() => removeOpcao(idx, oi)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: 2 }}><Trash2 size={12} /></button>
+                              </div>
+                              {/* Lógica condicional por opção */}
+                              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, marginLeft: 4 }}>
+                                <span style={{ fontSize: 10, color: "#404040" }}>Se escolher esta opção →</span>
+                                <select
+                                  style={{ ...inp, flex: 1, fontSize: 11, color: rotaOpcao ? "#29ABE2" : "#505050", padding: "5px 8px" }}
+                                  value={rotaOpcao}
+                                  onChange={e => {
+                                    const pergs = [...editando!.perguntas];
+                                    if (!pergs[idx].opcoesIrPara) pergs[idx].opcoesIrPara = {};
+                                    if (e.target.value) pergs[idx].opcoesIrPara![o] = e.target.value;
+                                    else delete pergs[idx].opcoesIrPara![o];
+                                    setEditando({ ...editando!, perguntas: pergs });
+                                  }}>
+                                  <option value="">Próxima pergunta</option>
+                                  {editando!.perguntas.filter((_, pi) => pi !== idx).map((pDest, pdi) => (
+                                    <option key={pDest.id} value={pDest.id}>
+                                      {pDest.tipo === "obrigado" ? "✓ Obrigado: " : "Ir para: "}{pDest.label?.slice(0, 25) || `Campo ${pdi + 1}`}
+                                    </option>
+                                  ))}
+                                  <option value="__fim__">⚡ Enviar formulário agora</option>
+                                </select>
+                              </div>
                             </div>
-                          ))}
+                            );
+                          })}
                           <button onClick={() => addOpcao(idx)} style={{ background: "none", border: "1px dashed #2e2e2e", borderRadius: 4, padding: "3px 8px", color: "#606060", fontSize: 11, cursor: "pointer", width: "100%" }}>+ Opção</button>
                         </div>
                       )}
+
+                      {/* Lógica incondicional: pular para (qualquer tipo exceto welcome/obrigado) */}
+                      {p.tipo !== "welcome" && p.tipo !== "obrigado" && (
+                        <div style={{ marginTop: 10, padding: "8px 10px", background: "#111", borderRadius: 6, border: "1px solid #1a1a1a" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ fontSize: 11, color: "#505050", whiteSpace: "nowrap" }}>Após responder →</span>
+                            <select
+                              style={{ ...inp, flex: 1, fontSize: 11, color: p.irPara ? "#29ABE2" : "#505050", padding: "5px 8px" }}
+                              value={p.irPara || ""}
+                              onChange={e => updatePergunta(idx, "irPara", e.target.value || undefined)}>
+                              <option value="">Próxima pergunta</option>
+                              {editando!.perguntas.filter((_, pi) => pi !== idx).map((pDest, pdi) => (
+                                <option key={pDest.id} value={pDest.id}>
+                                  {pDest.tipo === "obrigado" ? "✓ Obrigado: " : "Pular para: "}{pDest.label?.slice(0, 25) || `Campo ${pdi + 1}`}
+                                </option>
+                              ))}
+                              <option value="__fim__">⚡ Enviar formulário agora</option>
+                            </select>
+                          </div>
+                          {p.tipo === "select" || p.tipo === "radio" ? (
+                            <p style={{ fontSize: 10, color: "#303030", margin: "4px 0 0" }}>Esta lógica só aplica se a opção escolhida não tiver rota específica.</p>
+                          ) : null}
+                        </div>
+                      )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Modal: escolher modelo */}
+      {modalModelo && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={() => setModalModelo(false)}>
+          <div style={{ background: "#141414", border: "1px solid #2a2a2a", borderRadius: 16, width: "100%", maxWidth: 560, maxHeight: "80vh", display: "flex", flexDirection: "column", overflow: "hidden" }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid #1e1e1e", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <p style={{ margin: 0, fontSize: 16, fontWeight: 600, color: "#f0f0f0" }}>Novo Formulário</p>
+                <p style={{ margin: "4px 0 0", fontSize: 12, color: "#606060" }}>Comece do zero ou use um formulário existente como base</p>
+              </div>
+              <button onClick={() => setModalModelo(false)} style={{ background: "none", border: "none", color: "#606060", cursor: "pointer", padding: 4 }}><X size={18} /></button>
+            </div>
+
+            {/* Começar em branco */}
+            <div style={{ padding: "16px 24px 12px" }}>
+              <button
+                onClick={() => { setModalModelo(false); novoFormulario(); }}
+                style={{ width: "100%", background: "#1a1a1a", border: "1px dashed #29ABE2", borderRadius: 10, padding: "14px 16px", color: "#29ABE2", fontSize: 13, fontWeight: 500, cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}
+              >
+                <Plus size={16} />
+                Começar em branco
+              </button>
+            </div>
+
+            <p style={{ margin: "0 24px 8px", fontSize: 11, fontWeight: 600, color: "#404040", textTransform: "uppercase", letterSpacing: 1 }}>Usar como modelo</p>
+
+            {/* Lista de formulários */}
+            <div style={{ overflowY: "auto", padding: "0 24px 20px", display: "flex", flexDirection: "column", gap: 8 }}>
+              {loadingModelos ? (
+                <p style={{ color: "#404040", fontSize: 13, textAlign: "center", padding: "20px 0" }}>Carregando...</p>
+              ) : todosFormularios.length === 0 ? (
+                <p style={{ color: "#404040", fontSize: 13, textAlign: "center", padding: "20px 0" }}>Nenhum formulário encontrado.</p>
+              ) : todosFormularios.map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => novoFormulario(f)}
+                  style={{ background: "#0d0d0d", border: "1px solid #1e1e1e", borderRadius: 10, padding: "12px 16px", cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", transition: "border-color 0.15s" }}
+                  onMouseEnter={e => (e.currentTarget.style.borderColor = "#29ABE2")}
+                  onMouseLeave={e => (e.currentTarget.style.borderColor = "#1e1e1e")}
+                >
+                  <div>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: "#f0f0f0" }}>{f.nome}</p>
+                    <p style={{ margin: "3px 0 0", fontSize: 11, color: "#606060" }}>{f.cliente_nome} · {f.perguntas?.length || 0} campos</p>
+                  </div>
+                  <span style={{ fontSize: 11, color: "#29ABE2", background: "#29ABE215", padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>Usar modelo</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+export default function FormulariosPage() {
+  return (
+    <Suspense>
+      <FormulariosPageInner />
+    </Suspense>
   );
 }

@@ -808,6 +808,7 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
   const [prevTotals, setPrevTotals] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [temWhatsApp, setTemWhatsApp] = useState(false);
   const [nomeCliente, setNomeCliente] = useState("");
   const [editando, setEditando] = useState<Record<string, {
@@ -829,13 +830,24 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
   const carregar = async () => {
     setLoading(true);
     try {
-      // Período atual
-      const res = await fetch("/api/relatorios/performance", {
+      const fmt = (d: Date) => d.toISOString().split("T")[0];
+      const from = new Date(dateFrom + "T12:00:00");
+      const to = new Date(dateTo + "T12:00:00");
+      const prevFrom = fmt(new Date(from.getFullYear(), from.getMonth() - 1, from.getDate()));
+      const prevTo = fmt(new Date(to.getFullYear(), to.getMonth() - 1, to.getDate()));
+
+      const fetchPerf = (df: string, dt: string) => fetch("/api/relatorios/performance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "carregar", relatorio_id: relatorioId, date_from: dateFrom, date_to: dateTo }),
-      });
-      const data = await res.json();
+        body: JSON.stringify({ action: "carregar", relatorio_id: relatorioId, date_from: df, date_to: dt }),
+      }).then(r => r.json()).catch(() => ({}));
+
+      // Período atual e mês anterior em paralelo
+      const [data, prevData] = await Promise.all([
+        fetchPerf(dateFrom, dateTo),
+        fetchPerf(prevFrom, prevTo),
+      ]);
+
       if (data.semanas) {
         setSemanas(data.semanas);
         setTemWhatsApp(data.temWhatsApp);
@@ -854,33 +866,19 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
         });
         setEditando(edit);
       }
-      // Buscar mês anterior para comparação dos totais
-      try {
-        const from = new Date(dateFrom + "T12:00:00");
-        const to = new Date(dateTo + "T12:00:00");
-        const prevFrom = new Date(from.getFullYear(), from.getMonth() - 1, from.getDate());
-        const prevTo = new Date(to.getFullYear(), to.getMonth() - 1, to.getDate());
-        const fmt = (d: Date) => d.toISOString().split("T")[0];
-        const prevRes = await fetch("/api/relatorios/performance", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "carregar", relatorio_id: relatorioId, date_from: fmt(prevFrom), date_to: fmt(prevTo) }),
+      if (prevData.semanas) {
+        const totals: any = { investimento: 0, mensagens: 0, agendamentos: 0, realizados: 0, vendas: 0, valorVendas: 0, faturamento: 0 };
+        prevData.semanas.forEach((s: any) => {
+          totals.investimento += s.investimento ?? 0;
+          totals.mensagens += s.mensagens ?? 0;
+          totals.agendamentos += s.agendamentos ?? 0;
+          totals.realizados += s.comparecimentos ?? 0;
+          totals.vendas += s.vendas ?? 0;
+          totals.valorVendas += s.valor_vendas ?? 0;
+          totals.faturamento += s.faturamento ?? 0;
         });
-        const prevData = await prevRes.json();
-        if (prevData.semanas) {
-          const totals: any = { investimento: 0, mensagens: 0, agendamentos: 0, realizados: 0, vendas: 0, valorVendas: 0, faturamento: 0 };
-          prevData.semanas.forEach((s: any) => {
-            totals.investimento += s.investimento ?? 0;
-            totals.mensagens += s.mensagens ?? 0;
-            totals.agendamentos += s.agendamentos ?? 0;
-            totals.realizados += s.comparecimentos ?? 0;
-            totals.vendas += s.vendas ?? 0;
-            totals.valorVendas += s.valor_vendas ?? 0;
-            totals.faturamento += s.faturamento ?? 0;
-          });
-          setPrevTotals(totals);
-        }
-      } catch {}
+        setPrevTotals(totals);
+      }
     } catch {}
     setLoading(false);
   };
@@ -914,6 +912,26 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
       alert("Dados salvos!");
     } catch { alert("Erro ao salvar"); }
     setSaving(false);
+  };
+
+  /* --- sync planilha ---------------------------------------------- */
+  const sincronizarPlanilha = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch("/api/relatorios/performance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "sync_planilha", relatorio_id: relatorioId }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        alert("Erro: " + (data.error || "Falha na sincronização"));
+      } else {
+        await carregar();
+        alert(data.msg || `✅ ${data.sincronizadas} semanas sincronizadas da planilha!`);
+      }
+    } catch { alert("Erro ao sincronizar planilha"); }
+    setSyncing(false);
   };
 
   /* --- edit handler ----------------------------------------------- */
@@ -1044,11 +1062,18 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
       <div className="card" style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 12, padding: 0, overflow: "hidden", marginBottom: 32 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", borderBottom: "1px solid #2e2e2e" }}>
           <h3 style={{ fontSize: 15, fontWeight: 600, color: "#f0f0f0", margin: 0 }}>Desempenho Semanal</h3>
-          <button onClick={salvar} disabled={saving} className="no-print" style={{
-            background: "#29ABE2", color: "#fff", border: "none", borderRadius: 6,
-            padding: "6px 16px", fontSize: 12, fontWeight: 600, cursor: "pointer",
-            opacity: saving ? 0.6 : 1,
-          }}>{saving ? "Salvando..." : "Salvar"}</button>
+          <div style={{ display: "flex", gap: 8 }} className="no-print">
+            <button onClick={sincronizarPlanilha} disabled={syncing || saving} style={{
+              background: "#16a34a", color: "#fff", border: "none", borderRadius: 6,
+              padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer",
+              opacity: syncing ? 0.6 : 1,
+            }}>{syncing ? "Sincronizando..." : "↺ Sincronizar Planilha"}</button>
+            <button onClick={salvar} disabled={saving} style={{
+              background: "#29ABE2", color: "#fff", border: "none", borderRadius: 6,
+              padding: "6px 16px", fontSize: 12, fontWeight: 600, cursor: "pointer",
+              opacity: saving ? 0.6 : 1,
+            }}>{saving ? "Salvando..." : "Salvar"}</button>
+          </div>
         </div>
 
         <div style={{ overflowX: "auto" }}>

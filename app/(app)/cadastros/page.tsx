@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { supabase, getAgenciaId } from "@/lib/hooks";
-import { CheckCircle, XCircle, Eye, X, Copy, Check, Settings, GripVertical, Trash2, Plus } from "lucide-react";
+import { CheckCircle, XCircle, Eye, X, Copy, Check, Settings, GripVertical, Trash2, Plus, FileText } from "lucide-react";
+import ModalContrato from "@/components/controle/ModalContrato";
 
 interface Cadastro {
   id: string;
@@ -63,8 +64,10 @@ export default function CadastrosPage() {
   const [aprovando, setAprovando] = useState<string | null>(null);
   const [rejeitando, setRejeitando] = useState<string | null>(null);
   const [detalhe, setDetalhe] = useState<Cadastro | null>(null);
-  const [filtro, setFiltro] = useState<"pendente" | "aprovado" | "rejeitado">("pendente");
+  const [filtro, setFiltro] = useState<string>("pendente");
   const [copiado, setCopiado] = useState(false);
+  const [senhaDescriptografada, setSenhaDescriptografada] = useState<string>("");
+  const [senhaVisivel, setSenhaVisivel] = useState(false);
   const [modalCampos, setModalCampos] = useState(false);
   const [campos, setCampos] = useState<Campo[]>(CAMPOS_PADRAO);
   const [editandoLabel, setEditandoLabel] = useState<string | null>(null);
@@ -72,13 +75,18 @@ export default function CadastrosPage() {
   const [novoTipo, setNovoTipo] = useState("text");
   const [adicionando, setAdicionando] = useState(false);
   const [excluindo, setExcluindo] = useState<string | null>(null);
+  const [modalContrato, setModalContrato] = useState<Cadastro | null>(null);
 
   const carregar = async () => {
     setLoading(true);
+    // "pendente" e "notificado" são ambos aguardando aprovação — mostrar juntos
+    const statusFiltro = filtro === "pendente"
+      ? ["pendente", "notificado"]
+      : [filtro];
     const { data } = await supabase
       .from("cadastros_clientes")
       .select("*")
-      .eq("status", filtro)
+      .in("status", statusFiltro)
       .order("criado_em", { ascending: true });
     setCadastros(data || []);
     setLoading(false);
@@ -158,9 +166,10 @@ export default function CadastrosPage() {
     setAdicionando(false);
   };
 
-  const TABS = [
+  const TABS: { key: string; label: string }[] = [
     { key: "pendente", label: "Pendentes" },
     { key: "aprovado", label: "Aprovados" },
+    { key: "ativado", label: "Ativados" },
     { key: "rejeitado", label: "Rejeitados" },
   ] as const;
 
@@ -176,6 +185,7 @@ export default function CadastrosPage() {
     { label: "Região para Anunciar", key: "regiao_anunciar" },
     { label: "Faturamento Médio", key: "faturamento_medio" },
     { label: "Login Facebook", key: "login_facebook" },
+    { label: "Senha Facebook", key: "_senha_facebook" },
   ];
 
   return (
@@ -240,11 +250,24 @@ export default function CadastrosPage() {
                 <td style={{ padding: "12px 16px", color: "#a0a0a0" }}>{c.investimento_anuncios}</td>
                 <td style={{ padding: "12px 16px" }}>
                   <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
-                    <button onClick={() => setDetalhe(c)}
+                    <button onClick={async () => {
+                      setDetalhe(c);
+                      setSenhaDescriptografada(""); setSenhaVisivel(false);
+                      if ((c as any).senha_facebook_enc) {
+                        try {
+                          const res = await fetch("/api/cadastros/senha", {
+                            method: "POST", headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ id: c.id }),
+                          });
+                          const data = await res.json();
+                          setSenhaDescriptografada(data.senha || "—");
+                        } catch { setSenhaDescriptografada("Erro"); }
+                      }
+                    }}
                       style={{ background: "#2a2a2a", border: "none", borderRadius: "6px", padding: "6px 10px", cursor: "pointer", color: "#a0a0a0", display: "flex", alignItems: "center", gap: "4px", fontSize: "12px" }}>
                       <Eye size={13} /> Ver
                     </button>
-                    {filtro === "pendente" && (
+                    {(filtro === "pendente" || filtro === "notificado") && (
                       <>
                         <button onClick={() => aprovar(c)} disabled={aprovando === c.id}
                           style={{ background: "#052e16", border: "1px solid #22c55e40", borderRadius: "6px", padding: "6px 10px", cursor: "pointer", color: "#22c55e", display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", opacity: aprovando === c.id ? 0.6 : 1 }}>
@@ -284,12 +307,30 @@ export default function CadastrosPage() {
               {camposDetalhe.map(campo => (
                 <div key={campo.key}>
                   <p style={{ fontSize: "11px", color: "#606060", margin: "0 0 3px" }}>{campo.label.toUpperCase()}</p>
-                  <p style={{ fontSize: "13px", color: "#f0f0f0", margin: 0, wordBreak: "break-word" }}>{(detalhe as any)[campo.key] || "—"}</p>
+                  {campo.key === "_senha_facebook" ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <p style={{ fontSize: "13px", color: "#f0f0f0", margin: 0, wordBreak: "break-word" }}>
+                        {senhaVisivel ? senhaDescriptografada || "—" : "••••••••"}
+                      </p>
+                      <button onClick={() => setSenhaVisivel(!senhaVisivel)}
+                        style={{ background: "none", border: "1px solid #2e2e2e", borderRadius: "4px", padding: "2px 8px", cursor: "pointer", color: "#606060", fontSize: "11px" }}>
+                        {senhaVisivel ? "Ocultar" : "Ver"}
+                      </button>
+                      {senhaVisivel && senhaDescriptografada && (
+                        <button onClick={() => { navigator.clipboard.writeText(senhaDescriptografada); }}
+                          style={{ background: "none", border: "1px solid #2e2e2e", borderRadius: "4px", padding: "2px 8px", cursor: "pointer", color: "#606060", fontSize: "11px" }}>
+                          Copiar
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: "13px", color: "#f0f0f0", margin: 0, wordBreak: "break-word" }}>{(detalhe as any)[campo.key] || "—"}</p>
+                  )}
                 </div>
               ))}
             </div>
             <div style={{ padding: "16px 20px", borderTop: "1px solid #2e2e2e", display: "flex", gap: "10px", position: "sticky", bottom: 0, background: "#141414", flexWrap: "wrap" }}>
-              {detalhe.status === "pendente" && (
+              {(detalhe.status === "pendente" || detalhe.status === "notificado") && (
                 <>
                   <button onClick={() => aprovar(detalhe)} disabled={aprovando === detalhe.id}
                     style={{ flex: 1, padding: "12px", background: "#22c55e", border: "none", borderRadius: "8px", cursor: "pointer", color: "#000", fontWeight: "700", fontSize: "14px" }}>
@@ -301,6 +342,12 @@ export default function CadastrosPage() {
                   </button>
                 </>
               )}
+              {(detalhe.status === "pendente" || detalhe.status === "notificado" || detalhe.status === "aprovado") && (
+                <button onClick={() => setModalContrato(detalhe)}
+                  style={{ width: "100%", padding: "12px", background: "#29ABE215", border: "1px solid #29ABE240", borderRadius: "8px", cursor: "pointer", color: "#29ABE2", fontWeight: "600", fontSize: "13px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+                  <FileText size={14} /> Enviar Contrato via Autentique
+                </button>
+              )}
               <button onClick={() => excluir(detalhe)} disabled={excluindo === detalhe.id}
                 style={{ width: "100%", padding: "12px", background: "transparent", border: "1px solid #ef444460", borderRadius: "8px", cursor: "pointer", color: "#ef4444", fontWeight: "600", fontSize: "13px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
                 <Trash2 size={14} /> {excluindo === detalhe.id ? "Excluindo..." : "Excluir cadastro"}
@@ -308,6 +355,21 @@ export default function CadastrosPage() {
             </div>
           </div>
         </>
+      )}
+
+      {/* Modal enviar contrato */}
+      {modalContrato && (
+        <ModalContrato
+          clienteId={modalContrato.id}
+          nome={modalContrato.nome}
+          email={modalContrato.email}
+          cnpj={modalContrato.cnpj || ""}
+          cpf={modalContrato.cpf || ""}
+          rg={modalContrato.rg || ""}
+          endereco_empresa={modalContrato.endereco_empresa || ""}
+          endereco_pessoal={modalContrato.endereco_pessoal || ""}
+          onClose={() => setModalContrato(null)}
+        />
       )}
 
       {/* Modal editar perguntas */}

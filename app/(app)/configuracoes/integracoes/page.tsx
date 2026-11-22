@@ -6,7 +6,7 @@ import { supabase, getAgenciaId } from "@/lib/hooks";
 import EmbeddedSignup from "@/components/EmbeddedSignup";
 
 interface Instancia {
-  id: string;
+  id?: string;
   name: string;
   connectionStatus: string;
   profileName?: string;
@@ -14,6 +14,7 @@ interface Instancia {
   // compatibilidade com formato antigo
   instance?: { instanceName: string; status?: string; state?: string; };
   state?: string;
+  _placeholder?: boolean;
 }
 
 // ─── Versão CLIENTE: só QR Code WhatsApp + Meta Pixel ────────
@@ -26,6 +27,9 @@ function IntegracoesCliente() {
   const [profileName, setProfileName] = useState("");
   const [profilePic, setProfilePic] = useState("");
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [pairingCode, setPairingCode] = useState<string | null>(null);
+  const [pairingPhone, setPairingPhone] = useState("");
+  const [pairingMode, setPairingMode] = useState(false);
   const [novaInstancia, setNovaInstancia] = useState("");
   const [criando, setCriando] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -51,6 +55,12 @@ function IntegracoesCliente() {
   const [openaiContextoC, setOpenaiContextoC] = useState(10);
   const [openaiHorarioInicioC, setOpenaiHorarioInicioC] = useState("");
   const [openaiHorarioFimC, setOpenaiHorarioFimC] = useState("");
+  const [grupoNotificacaoJid, setGrupoNotificacaoJid] = useState("");
+
+  // Link de reconexão
+  const [reconexaoToken, setReconexaoToken] = useState<string | null>(null);
+  const [linkCopiado, setLinkCopiado] = useState(false);
+  const [gerandoToken, setGerandoToken] = useState(false);
 
   // Modal de seleção pós-OAuth
   const [showSelector, setShowSelector] = useState(false);
@@ -137,7 +147,36 @@ function IntegracoesCliente() {
     return () => clearInterval(interval);
   }, [qrCode, instancia, waConectado, agenciaId, evoCall]);
 
-  // Auto-refresh QR Code a cada 30s (QR expira rápido)
+  // Polling: checa status quando pairing code está visível
+  useEffect(() => {
+    if (!pairingCode || !instancia || waConectado) return;
+    const interval = setInterval(async () => {
+      try {
+        const data = await evoCall("status", instancia);
+        const status = (data?.state || data?.instance?.state || "").toLowerCase();
+        if (status === "open" || status === "connected") {
+          setWaConectado(true);
+          setPairingCode(null);
+          const instances = await evoCall("fetchInstances");
+          let waNumero = "";
+          if (Array.isArray(instances)) {
+            const inst = instances.find((i: any) => (i.name || i.instance?.instanceName) === instancia);
+            if (inst) {
+              setProfileName(inst.profileName || instancia);
+              setProfilePic(inst.profilePicUrl || "");
+              if (inst.owner) waNumero = inst.owner.replace("@s.whatsapp.net", "").replace(/\D/g, "");
+            }
+          }
+          const updateData: any = { whatsapp_conectado: true };
+          if (waNumero) updateData.whatsapp_numero = waNumero;
+          await supabase.from("agencias").update(updateData).eq("id", agenciaId!);
+        }
+      } catch {}
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [pairingCode, instancia, waConectado, agenciaId, evoCall]);
+
+  // Auto-refresh QR Code a cada 18s (QR expira em ~20s)
   useEffect(() => {
     if (!qrCode || !instancia || waConectado) return;
     const interval = setInterval(async () => {
@@ -146,7 +185,7 @@ function IntegracoesCliente() {
         const newQr = extractQr(data);
         if (newQr) setQrCode(newQr);
       } catch {}
-    }, 30000);
+    }, 18000);
     return () => clearInterval(interval);
   }, [qrCode, instancia, waConectado, evoCall]);
 
@@ -183,6 +222,8 @@ function IntegracoesCliente() {
         setOpenaiContextoC(data.openai_contexto_mensagens || 10);
         setOpenaiHorarioInicioC(data.openai_horario_inicio || "");
         setOpenaiHorarioFimC(data.openai_horario_fim || "");
+        setGrupoNotificacaoJid(data.grupo_notificacao_jid || "");
+        setReconexaoToken(data.reconexao_token || null);
 
         // Validar token contra a API do Meta (1 chamada leve no carregamento)
         if (data.meta_business_token) {
@@ -190,7 +231,12 @@ function IntegracoesCliente() {
             const meRes = await fetch(`https://graph.facebook.com/v21.0/me?fields=name&access_token=${data.meta_business_token}`);
             const meData = await meRes.json();
             if (meData.error) {
-              setTokenStatus({ valid: false });
+              // Rate limit (code 4) é transitório — não marcar como inválido
+              if (meData.error.code === 4 || meData.error.is_transient) {
+                setTokenStatus({ valid: true, expires: "—", name: "verificando..." });
+              } else {
+                setTokenStatus({ valid: false });
+              }
             } else {
               setTokenStatus({ valid: true, expires: "—", name: meData.name || "" });
             }
@@ -282,65 +328,112 @@ function IntegracoesCliente() {
     return data.base64 || data.qrcode?.base64 || data.qrcode?.code || data.code || data.qr || null;
   };
 
+  const copiarLinkReconexao = () => {
+    if (!reconexaoToken) return;
+    const link = `${window.location.origin}/reconectar/${reconexaoToken}`;
+    navigator.clipboard.writeText(link).then(() => {
+      setLinkCopiado(true);
+      setTimeout(() => setLinkCopiado(false), 2500);
+    }).catch(() => alert(link));
+  };
+
+  const gerarTokenReconexao = async () => {
+    setGerandoToken(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) { alert("Sessão expirada. Recarregue a página."); setGerandoToken(false); return; }
+      const agId = agenciaId || await getAgenciaId();
+      const res = await fetch("/api/reconexao/gerar-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ agencia_id: agId }),
+      });
+      const data = await res.json();
+      if (data.token) {
+        setReconexaoToken(data.token);
+        const link = `${window.location.origin}/reconectar/${data.token}`;
+        navigator.clipboard.writeText(link).then(() => {
+          setLinkCopiado(true);
+          setTimeout(() => setLinkCopiado(false), 2500);
+        }).catch(() => alert(link));
+      } else {
+        alert(data.error || "Erro ao gerar link");
+      }
+    } catch (e) { console.error(e); alert("Erro ao gerar link"); }
+    setGerandoToken(false);
+  };
+
   const conectarWA = async () => {
     if (!evoUrl || !evoKey) { alert("Evolution API não configurada. Peça para seu gestor configurar."); return; }
     setCriando(true);
     try {
       const agId = agenciaId || await getAgenciaId();
-      // Usar nome da agência como nome da instância (sanitizado)
-      const { data: agData } = await supabase.from("agencias").select("nome").eq("id", agId!).single();
-      const nomeAgencia = (agData?.nome || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 30);
-      const nome = novaInstancia.trim() || nomeAgencia || `wa-${(agId || "").replace(/-/g, "").slice(0, 12)}`;
 
-      // Primeiro tenta deletar instância antiga com problema (se existir com status "close")
-      try {
-        const statusRes = await evoCall("status", nome);
-        const state = (statusRes?.state || statusRes?.instance?.state || "").toLowerCase();
-        if (state === "close" || state === "connecting") {
-          // Instância existe mas desconectada — tentar reconectar
-          const data = await evoCall("connect", nome);
-          const qr = extractQr(data);
-          if (qr) {
-            setQrCode(qr); setInstancia(nome);
-            await supabase.from("agencias").update({ whatsapp_instancia: nome }).eq("id", agId!);
-            setCriando(false);
-            return;
-          }
-        }
-      } catch {}
+      const res = await fetch("/api/evolution/reconectar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agencia_id: agId }),
+      });
+      const data = await res.json();
 
-      // Tentar connect direto
-      const data = await evoCall("connect", nome);
-      const qr = extractQr(data);
-      if (qr) {
-        setQrCode(qr); setInstancia(nome);
-        await supabase.from("agencias").update({ whatsapp_instancia: nome }).eq("id", agId!);
-      } else {
-        // Instância não existe — deletar caso corrompida e criar nova
-        try { await evoCall("delete", nome); } catch {}
-        // Criar instância e depois pegar QR via connect
-        let data2 = await evoCall("create", nome, { instanceName: nome, token: nome, qrcode: true, integration: "WHATSAPP-BAILEYS", syncFullHistory: true });
-        let qr2 = extractQr(data2);
-        if (!qr2 && (data2.error || data2.message)) {
-          // Fallback: criar sem syncFullHistory
-          try { await evoCall("delete", nome); } catch {}
-          data2 = await evoCall("create", nome, { instanceName: nome, token: nome, qrcode: true, integration: "WHATSAPP-BAILEYS" });
-          qr2 = extractQr(data2);
-        }
-        // Se o create não retornou QR, tentar connect separado
-        if (!qr2) {
-          const data3 = await evoCall("connect", nome);
-          qr2 = extractQr(data3);
-        }
-        if (qr2) {
-          setQrCode(qr2); setInstancia(nome);
-          await supabase.from("agencias").update({ whatsapp_instancia: nome }).eq("id", agId!);
-        } else {
-          alert("Não foi possível gerar o QR Code. Tente novamente.");
-          console.error("[QR] Respostas:", JSON.stringify(data), JSON.stringify(data2));
-        }
+      if (data.ja_conectado) {
+        setInstancia(instancia || "");
+        setWaConectado(true);
+        await supabase.from("agencias").update({ whatsapp_conectado: true }).eq("id", agId!);
+        setCriando(false);
+        return;
       }
+      if (data.em_andamento) {
+        alert(data.mensagem || "Reconexão já em andamento. Aguarde alguns segundos e tente novamente.");
+        setCriando(false);
+        return;
+      }
+      if (data.qr) {
+        setQrCode(data.qr);
+        if (data.instancia) {
+          setInstancia(data.instancia);
+          await supabase.from("agencias").update({ whatsapp_instancia: data.instancia }).eq("id", agId!);
+        }
+        setCriando(false);
+        return;
+      }
+      alert(data.error || "Não foi possível gerar o QR Code. Tente novamente.");
+      console.error("[QR] resposta:", JSON.stringify(data));
     } catch (e) { console.error("[QR] Erro:", e); alert("Erro ao conectar. Verifique sua conexão e tente novamente."); }
+    setCriando(false);
+  };
+
+  const conectarViaCodigo = async () => {
+    if (!evoUrl || !evoKey) { alert("Evolution API não configurada. Peça para seu gestor configurar."); return; }
+    const telefone = pairingPhone.replace(/\D/g, "");
+    if (!telefone || telefone.length < 10) { alert("Digite um número de WhatsApp válido com DDD (ex: 11999999999)"); return; }
+    setCriando(true);
+    try {
+      const agId = agenciaId || await getAgenciaId();
+
+      const res = await fetch("/api/evolution/reconectar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agencia_id: agId, numero: telefone }),
+      });
+      const result = await res.json();
+      console.log("[PairingCode] resposta:", JSON.stringify(result).slice(0, 300));
+
+      if (result.instancia) {
+        setInstancia(result.instancia);
+        await supabase.from("agencias").update({ whatsapp_instancia: result.instancia }).eq("id", agId!);
+      }
+
+      if (result.pairing_code) {
+        setPairingCode(String(result.pairing_code));
+      } else if (result.qr) {
+        setQrCode(result.qr);
+        setPairingMode(false);
+      } else {
+        alert(result.error || "Não foi possível gerar o código. Tente via QR Code.");
+        console.error("[PairingCode] resposta completa:", JSON.stringify(result));
+      }
+    } catch (e) { console.error("[PairingCode] Erro:", e); alert("Erro ao gerar código. Tente novamente."); }
     setCriando(false);
   };
 
@@ -518,6 +611,20 @@ function IntegracoesCliente() {
               </button>
             </div>
           </div>
+        ) : pairingCode ? (
+          <div style={{ textAlign: "center", padding: "24px", background: "#1a1a1a", border: "1px solid rgba(37,211,102,0.3)", borderRadius: "10px" }}>
+            <p style={{ fontSize: "14px", fontWeight: "600", color: "#f0f0f0", marginBottom: "4px" }}>Código de pareamento</p>
+            <p style={{ fontSize: "12px", color: "#606060", marginBottom: "20px" }}>Abra o WhatsApp → Aparelhos conectados → Conectar aparelho → Vincular com número de telefone</p>
+            <div style={{ display: "inline-block", background: "#0f0f0f", border: "2px solid rgba(37,211,102,0.4)", borderRadius: "12px", padding: "16px 32px" }}>
+              <p style={{ fontSize: "36px", fontWeight: "700", letterSpacing: "8px", color: "#25d366", margin: 0, fontFamily: "monospace" }}>{pairingCode}</p>
+            </div>
+            <p style={{ fontSize: "11px", color: "#606060", marginTop: "12px" }}>Digite esse código no WhatsApp quando solicitado</p>
+            <div style={{ marginTop: "16px" }}>
+              <button className="btn-secondary" style={{ cursor: "pointer" }} onClick={() => { setPairingCode(null); window.location.reload(); }}>
+                <RefreshCw size={13} /> Já conectei
+              </button>
+            </div>
+          </div>
         ) : (
           <div style={{ padding: "20px" }}>
             <p style={{ fontSize: "13px", color: "#606060", marginBottom: "16px", textAlign: "center" }}>Conecte um WhatsApp para rastrear conversas e disparar eventos.</p>
@@ -535,21 +642,115 @@ function IntegracoesCliente() {
               <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: "1px", background: "#2e2e2e" }} />
             </div>
 
-            {/* QR Code (Evolution) */}
-            <div style={{ textAlign: "center" }}>
-              <button className="btn-secondary" onClick={conectarWA} disabled={criando} style={{ cursor: "pointer", padding: "10px 24px" }}>
-                <MessageCircle size={16} style={{ marginRight: "6px" }} />
-                {criando ? "Gerando QR Code..." : "Conectar via QR Code"}
-              </button>
-              <p style={{ fontSize: "11px", color: "#606060", marginTop: "6px" }}>
-                Use se já tiver outro CRM ou bot conectado
-              </p>
-              {!evoUrl && (
-                <p style={{ fontSize: "11px", color: "#f59e0b", marginTop: "8px" }}>Evolution API não configurada para esta conta.</p>
+            {/* Modo alternativo: QR ou Código */}
+            <div style={{ display: "flex", justifyContent: "center", gap: "8px", marginBottom: "16px" }}>
+              <button onClick={() => setPairingMode(false)} style={{
+                padding: "7px 16px", borderRadius: 20, fontSize: 12, cursor: "pointer",
+                background: !pairingMode ? "rgba(37,211,102,0.15)" : "transparent",
+                border: !pairingMode ? "1px solid rgba(37,211,102,0.4)" : "1px solid #2e2e2e",
+                color: !pairingMode ? "#25d366" : "#606060",
+              }}>QR Code</button>
+              <button onClick={() => setPairingMode(true)} style={{
+                padding: "7px 16px", borderRadius: 20, fontSize: 12, cursor: "pointer",
+                background: pairingMode ? "rgba(37,211,102,0.15)" : "transparent",
+                border: pairingMode ? "1px solid rgba(37,211,102,0.4)" : "1px solid #2e2e2e",
+                color: pairingMode ? "#25d366" : "#606060",
+              }}>Código</button>
+            </div>
+
+            {pairingMode ? (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
+                <input
+                  className="form-input"
+                  placeholder="Número com DDD (ex: 11999999999)"
+                  value={pairingPhone}
+                  onChange={e => setPairingPhone(e.target.value)}
+                  style={{ maxWidth: "280px", textAlign: "center" }}
+                />
+                <button className="btn-secondary" onClick={conectarViaCodigo} disabled={criando || !pairingPhone.replace(/\D/g,"").length} style={{ cursor: "pointer", padding: "10px 24px" }}>
+                  <MessageCircle size={16} style={{ marginRight: "6px" }} />
+                  {criando ? "Gerando código..." : "Gerar código de pareamento"}
+                </button>
+                <p style={{ fontSize: "11px", color: "#606060", textAlign: "center" }}>
+                  Digite o número do WhatsApp que quer conectar
+                </p>
+              </div>
+            ) : (
+              <div style={{ textAlign: "center" }}>
+                <button className="btn-secondary" onClick={conectarWA} disabled={criando} style={{ cursor: "pointer", padding: "10px 24px" }}>
+                  <MessageCircle size={16} style={{ marginRight: "6px" }} />
+                  {criando ? "Gerando QR Code..." : "Conectar via QR Code"}
+                </button>
+              </div>
+            )}
+            {/* Link de reconexão para enviar à cliente */}
+            <div style={{ marginTop: "16px", textAlign: "center" }}>
+              {reconexaoToken ? (
+                <button
+                  onClick={copiarLinkReconexao}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: "6px",
+                    padding: "8px 16px", borderRadius: 20, fontSize: 12, cursor: "pointer",
+                    background: linkCopiado ? "rgba(37,211,102,0.08)" : "rgba(100,100,100,0.08)",
+                    border: `1px solid ${linkCopiado ? "rgba(37,211,102,0.3)" : "rgba(100,100,100,0.2)"}`,
+                    color: linkCopiado ? "#25d366" : "#a0a0a0",
+                  }}
+                >
+                  {linkCopiado ? "✓ Link copiado!" : "🔗 Copiar link de reconexão para a cliente"}
+                </button>
+              ) : (
+                <button
+                  onClick={gerarTokenReconexao}
+                  disabled={gerandoToken}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: "6px",
+                    padding: "8px 16px", borderRadius: 20, fontSize: 12, cursor: "pointer",
+                    background: "rgba(100,100,100,0.08)", border: "1px solid rgba(100,100,100,0.2)", color: "#606060",
+                    opacity: gerandoToken ? 0.6 : 1,
+                  }}
+                >
+                  🔗 {gerandoToken ? "Gerando link..." : "Gerar link de reconexão para a cliente"}
+                </button>
               )}
             </div>
+            {!evoUrl && (
+              <p style={{ fontSize: "11px", color: "#f59e0b", marginTop: "8px", textAlign: "center" }}>Evolution API não configurada para esta conta.</p>
+            )}
           </div>
         )}
+      </div>
+
+      {/* Grupo de notificação */}
+      <div className="card" style={{ marginBottom: "20px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
+          <MessageCircle size={20} color="#25d366" />
+          <h2 style={{ fontSize: "16px", fontWeight: "600" }}>Notificação de Leads</h2>
+        </div>
+        <p style={{ fontSize: "13px", color: "#606060", marginBottom: "16px" }}>
+          Quando um lead chegar (Meta Lead Ads ou formulário), enviar notificação num grupo do WhatsApp com os dados e link para chamar.
+        </p>
+        <div className="form-group" style={{ marginBottom: "12px" }}>
+          <label className="form-label">JID do Grupo WhatsApp</label>
+          <input
+            className="form-input"
+            placeholder="120363xxxxxxx@g.us"
+            value={grupoNotificacaoJid}
+            onChange={e => setGrupoNotificacaoJid(e.target.value)}
+          />
+          <p style={{ fontSize: "11px", color: "#606060", marginTop: "4px" }}>
+            Para encontrar o JID: no WhatsApp, abra o grupo → copie o link de convite → o número antes de "@g.us" é o JID.
+          </p>
+        </div>
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <button className="btn-primary" style={{ cursor: "pointer" }} onClick={async () => {
+            try {
+              await supabase.from("agencias").update({ grupo_notificacao_jid: grupoNotificacaoJid || null }).eq("id", agenciaId!);
+              alert("Grupo salvo!");
+            } catch { alert("Erro ao salvar"); }
+          }}>
+            Salvar grupo
+          </button>
+        </div>
       </div>
 
       {/* Meta Ads - Pixel */}
@@ -563,7 +764,7 @@ function IntegracoesCliente() {
 
         {/* Botão OAuth — conectar/reconectar com 1 clique */}
         <button onClick={() => {
-          window.location.href = `/api/auth/meta?agencia_id=${agenciaId}&return_to=/configuracoes/integracoes`;
+          window.location.href = `/api/auth/meta?agencia_id=${agenciaId}&return_to=/configuracoes/integracoes&token_type=master`;
         }} style={{
           width: "100%", padding: "14px", borderRadius: "10px", cursor: "pointer",
           background: metaAtivo ? "#1a1a2e" : "#1877f2", color: metaAtivo ? "#29ABE2" : "#fff",
@@ -773,6 +974,8 @@ function IntegracoesMaster() {
   const [showBusinessToken, setShowBusinessToken] = useState(false);
   const [metaAdsAtivo, setMetaAdsAtivo] = useState(false);
   const [tokenStatus, setTokenStatus] = useState<{valid:boolean;expires?:string;name?:string}|null>(null);
+  const [metaTokenNome, setMetaTokenNome] = useState<string|null>(null);
+  const [metaBusinessTokenNome, setMetaBusinessTokenNome] = useState<string|null>(null);
 
   // OpenAI / IA
   const [openaiKey, setOpenaiKey] = useState("");
@@ -791,6 +994,49 @@ function IntegracoesMaster() {
   // Tabs WhatsApp
   const [waTab, setWaTab] = useState<"conexao"|"cobrancas"|"api">("conexao");
   const [cobrancaMsg, setCobrancaMsg] = useState(`Olá, NOME_CLIENTE!\nSegue lembrete da sua cobrança.\nValor: VALOR\nVencimento: DATA_VENCIMENTO`);
+
+  // Polling: detectar conexão após scan do QR (a cada 5s)
+  useEffect(() => {
+    if (!qrCode || !qrInstancia) return;
+    const interval = setInterval(async () => {
+      try {
+        const data = await evoCall("status", qrInstancia);
+        const st = (data?.state || data?.instance?.state || "").toLowerCase();
+        if (st === "open" || st === "connected") {
+          setQrCode(null);
+          await carregarInstancias();
+          const agId = await getAgenciaId();
+          await supabase.from("agencias").update({ whatsapp_conectado: true }).eq("id", agId!);
+          // Configurar webhook (via rota interna que usa o formato correto)
+          fetch("/api/evolution/fix-webhook", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ agencia_id: agId, instancia: qrInstancia }),
+          }).catch(() => {});
+          // Disparar sync de histórico em background
+          fetch("/api/evolution/sync-on-connect", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ agencia_id: agId, paginas_por_conversa: 2 }),
+          }).catch(() => {});
+        }
+      } catch {}
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [qrCode, qrInstancia]);
+
+  // Auto-refresh QR a cada 18s (QR expira em ~20s)
+  useEffect(() => {
+    if (!qrCode || !qrInstancia) return;
+    const interval = setInterval(async () => {
+      try {
+        const data = await evoCall("connect", qrInstancia);
+        const newQr = data?.base64 || data?.qrcode?.base64;
+        if (newQr) setQrCode(newQr);
+      } catch {}
+    }, 18000);
+    return () => clearInterval(interval);
+  }, [qrCode, qrInstancia]);
 
   useEffect(() => {
     async function load() {
@@ -816,19 +1062,25 @@ function IntegracoesMaster() {
         setOpenaiHorarioInicio(data.openai_horario_inicio || "");
         setOpenaiHorarioFim(data.openai_horario_fim || "");
         setAsaasToken(data.asaas_token || "");
-        // Validar token contra a API do Meta (1 chamada leve no carregamento)
-        if (data.meta_business_token) {
-          try {
-            const meRes = await fetch(`https://graph.facebook.com/v21.0/me?fields=name&access_token=${data.meta_business_token}`);
-            const meData = await meRes.json();
-            if (meData.error) {
-              setTokenStatus({ valid: false });
+        // Ler nomes dos tokens da URL (retorno OAuth) ou localStorage
+        if (typeof window !== "undefined") {
+          const params = new URLSearchParams(window.location.search);
+          const metaNome = params.get("meta_nome") ? decodeURIComponent(params.get("meta_nome")!) : null;
+          const tokenType = params.get("token_type") || (params.get("meta_success") === "true" ? "pixel" : null);
+          if (metaNome) {
+            if (tokenType === "gerenciador") {
+              setMetaBusinessTokenNome(metaNome);
+              localStorage.setItem("meta_gerenciador_nome", metaNome);
             } else {
-              setTokenStatus({ valid: true, expires: "—", name: meData.name || "" });
+              setMetaTokenNome(metaNome);
+              localStorage.setItem("meta_inbox_nome", metaNome);
             }
-          } catch {
-            setTokenStatus({ valid: false });
           }
+          // Fallback localStorage
+          const cachedInbox = localStorage.getItem("meta_inbox_nome");
+          if (cachedInbox && !metaNome) setMetaTokenNome(cachedInbox);
+          const cachedGer = localStorage.getItem("meta_gerenciador_nome");
+          if (cachedGer && !metaNome) setMetaBusinessTokenNome(cachedGer);
         }
       }
     }
@@ -849,10 +1101,23 @@ function IntegracoesMaster() {
       };
       const ep = endpoints[action];
       if (ep) {
+        // setWebhook: Evolution espera { webhook: { enabled, url, ... } }
+        let bodyPayload = payload;
+        if (action === "setWebhook" && payload) {
+          bodyPayload = {
+            webhook: {
+              enabled: true,
+              url: payload.url,
+              webhookByEvents: payload.webhook_by_events ?? false,
+              webhookBase64: payload.webhook_base64 ?? false,
+              events: payload.events ?? ["MESSAGES_UPSERT", "CONNECTION_UPDATE"],
+            },
+          };
+        }
         const res = await fetch(`${evoUrl}${ep.path}`, {
           method: ep.method,
           headers: { "Content-Type": "application/json", apikey: evoKey },
-          ...(payload && ep.method === "POST" ? { body: JSON.stringify(payload) } : {}),
+          ...(bodyPayload && ep.method === "POST" ? { body: JSON.stringify(bodyPayload) } : {}),
         });
         return res.json();
       }
@@ -884,7 +1149,12 @@ function IntegracoesMaster() {
           const nome = i.name || i.instance?.instanceName || "";
           return nome === minha;
         });
-        setInstancias(filtradas);
+        // Se não existe no Evolution mas está salva no banco, mostrar placeholder desconectado
+        if (filtradas.length === 0) {
+          setInstancias([{ name: minha, connectionStatus: "close", _placeholder: true }]);
+        } else {
+          setInstancias(filtradas);
+        }
       } else {
         setInstancias(todas);
       }
@@ -940,6 +1210,32 @@ function IntegracoesMaster() {
     try {
       setQrInstancia(nome);
       setQrCode(null);
+
+      // Verificar se instância existe no Evolution; se não, criar primeiro
+      const statusData = await evoCall("status", nome);
+      const st = (statusData?.state || statusData?.instance?.state || "").toLowerCase();
+      const naoExiste = !st || st === "not found" || st === "error";
+
+      if (naoExiste) {
+        // Criar instância
+        const created = await evoCall("create", nome, {
+          instanceName: nome, token: nome, qrcode: true,
+          integration: "WHATSAPP-BAILEYS",
+        });
+        const agId = await getAgenciaId();
+        await supabase.from("agencias").update({ whatsapp_instancia: nome }).eq("id", agId!);
+        // Configurar webhook
+        const webhookUrl = `${window.location.origin}/api/webhook/whatsapp?secret=60efd4060d088e27af797cb1b2e8cdc198d34ee3a7260ebbe1d2160e9ab2453c`;
+        await evoCall("setWebhook", nome, {
+          url: webhookUrl, webhook_by_events: false, webhook_base64: false,
+          events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE"],
+        }).catch(() => {});
+        // QR pode já ter vindo no create
+        const qrFromCreate = created?.qrcode?.base64 || created?.base64;
+        if (qrFromCreate) { setQrCode(qrFromCreate); return; }
+        await new Promise(r => setTimeout(r, 1000));
+      }
+
       const data = await evoCall("connect", nome);
       if (data.base64) setQrCode(data.base64);
       else if (data.code) setQrCode(`qr:${data.code}`);
@@ -1205,16 +1501,6 @@ function IntegracoesMaster() {
           </label>
         </div>
         <p style={{fontSize:"13px",color:"#606060",marginBottom:"16px"}}>Pixel e Conversions API para rastrear eventos do inbox do master</p>
-        <button onClick={async () => {
-          const agId = await getAgenciaId();
-          window.location.href = `/api/auth/meta?agencia_id=${agId}&return_to=/configuracoes/integracoes&token_type=pixel`;
-        }} style={{
-          width:"100%", padding:"12px", borderRadius:"10px", cursor:"pointer", marginBottom:"16px",
-          background:"#1a1a2e", color:"#29ABE2", border:"1px solid #1877f2",
-          fontSize:"14px", fontWeight:"600", display:"flex", alignItems:"center", justifyContent:"center", gap:"8px",
-        }}>
-          <Target size={16}/> Conectar Facebook para rastreamento do Inbox
-        </button>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"16px",marginBottom:"16px"}}>
           <div className="form-group">
             <label className="form-label">Pixel ID</label>
@@ -1231,6 +1517,28 @@ function IntegracoesMaster() {
             </div>
           </div>
         </div>
+        {/* Conexão Inbox Master / Formulários */}
+        <div style={{borderTop:"1px solid #2e2e2e",paddingTop:"16px",marginBottom:"16px"}}>
+          <p style={{fontSize:"14px",fontWeight:"600",color:"#f0f0f0",margin:"0 0 4px 0"}}>Inbox Master / Formulários</p>
+          <p style={{fontSize:"12px",color:"#606060",marginBottom:"12px"}}>Conta Facebook com acesso ao pixel acima — usada para disparar eventos CAPI e receber leads do formulário</p>
+          <button onClick={async () => {
+            const agId = await getAgenciaId();
+            window.location.href = `/api/auth/meta?agencia_id=${agId}&return_to=/configuracoes/integracoes&token_type=pixel`;
+          }} style={{
+            width:"100%", padding:"12px", borderRadius:"10px", cursor:"pointer", marginBottom:"8px",
+            background:"#1a1a2e", color:"#29ABE2", border:"1px solid #1877f2",
+            fontSize:"14px", fontWeight:"600", display:"flex", alignItems:"center", justifyContent:"center", gap:"8px",
+          }}>
+            <Target size={16}/> Conectar Facebook (Inbox / Formulários)
+          </button>
+          {metaTokenNome ? (
+            <div style={{fontSize:"12px",color:"#22c55e",padding:"6px 10px",borderRadius:"6px",background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.3)"}}>
+              Conectado: {metaTokenNome}
+            </div>
+          ) : (
+            <div style={{fontSize:"12px",color:"#606060"}}>Nenhuma conta conectada</div>
+          )}
+        </div>
         {/* Seção Gerenciador de Anúncios */}
         <div style={{borderTop:"1px solid #2e2e2e",paddingTop:"16px",marginTop:"4px",marginBottom:"16px"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
@@ -1243,6 +1551,23 @@ function IntegracoesMaster() {
               <span style={{fontSize:"12px",color:metaAdsAtivo?"#29ABE2":"#ef4444"}}>{metaAdsAtivo?"Ativo":"Inativo"}</span>
             </div>
           </div>
+          <button onClick={async () => {
+            const agId = await getAgenciaId();
+            window.location.href = `/api/auth/meta?agencia_id=${agId}&return_to=/configuracoes/integracoes&token_type=gerenciador`;
+          }} style={{
+            width:"100%", padding:"12px", borderRadius:"10px", cursor:"pointer", marginBottom:"8px",
+            background:"#1a1a2e", color:"#29ABE2", border:"1px solid #1877f2",
+            fontSize:"14px", fontWeight:"600", display:"flex", alignItems:"center", justifyContent:"center", gap:"8px",
+          }}>
+            <Target size={16}/> Conectar Facebook (Gerenciador de Anúncios)
+          </button>
+          {metaBusinessTokenNome ? (
+            <div style={{fontSize:"12px",color:"#22c55e",padding:"6px 10px",borderRadius:"6px",background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.3)",marginBottom:"12px"}}>
+              Conectado: {metaBusinessTokenNome}
+            </div>
+          ) : (
+            <div style={{fontSize:"12px",color:"#606060",marginBottom:"12px"}}>Nenhuma conta conectada</div>
+          )}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"16px"}}>
             <div className="form-group">
               <label className="form-label">Ad Account ID</label>
@@ -1250,7 +1575,7 @@ function IntegracoesMaster() {
               <p style={{fontSize:"11px",color:"#606060",marginTop:"4px"}}>Encontre em Gerenciador de Anúncios → URL da conta</p>
             </div>
             <div className="form-group">
-              <label className="form-label">Token do Gerenciador de Negócios</label>
+              <label className="form-label">Token do Gerenciador (manual)</label>
               <div style={{position:"relative"}}>
                 <input className="form-input" placeholder="EAAxxxxxxx..." type={showBusinessToken?"text":"password"}
                   value={metaBusinessToken} onChange={e=>setMetaBusinessToken(e.target.value)} style={{paddingRight:"40px"}}/>
@@ -1258,19 +1583,7 @@ function IntegracoesMaster() {
                   {showBusinessToken?<EyeOff size={14}/>:<Eye size={14}/>}
                 </button>
               </div>
-              <p style={{fontSize:"11px",color:"#606060",marginTop:"4px"}}>Token com permissões ads_management, ads_read e business_management</p>
-              {tokenStatus && (
-                <div style={{marginTop:"6px",padding:"6px 10px",borderRadius:"6px",fontSize:"11px",
-                  background: tokenStatus.valid ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.15)",
-                  border: `1px solid ${tokenStatus.valid ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"}`,
-                  color: tokenStatus.valid ? "#22c55e" : "#ef4444",
-                }}>
-                  {tokenStatus.valid
-                    ? `Token válido${tokenStatus.expires && tokenStatus.expires !== "—" ? ` — expira ${tokenStatus.expires}` : ""}${tokenStatus.name ? ` (${tokenStatus.name})` : ""}`
-                    : `Token expirado ou inválido — gere um novo token seguindo o passo a passo abaixo`
-                  }
-                </div>
-              )}
+              <p style={{fontSize:"11px",color:"#606060",marginTop:"4px"}}>Opcional — use o botão acima para conectar via OAuth</p>
             </div>
           </div>
           {/* Passo a passo */}
