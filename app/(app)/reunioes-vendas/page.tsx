@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { ChevronLeft, ChevronRight, Edit2, X, Users, Calendar, Video, TrendingUp, Target, LayoutDashboard, List } from "lucide-react";
+import { ChevronLeft, ChevronRight, Edit2, X, Users, Calendar, Video, TrendingUp, Target, LayoutDashboard, List, AlertTriangle, Info } from "lucide-react";
 import { supabase, getAgenciaId } from "@/lib/hooks";
 
 const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
@@ -86,6 +86,60 @@ function Delta({ curr, prev }: { curr: number; prev: number }) {
       {isUp ? "▲" : "▼"} {p}%
     </span>
   );
+}
+
+// ── Visual: números que sobem, anel de taxa, variação vs mês anterior ──
+function useCountUp(valor: number, dur = 900) {
+  const [v, setV] = useState(0);
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) { setV(valor); return; }
+    let raf = 0;
+    const t0 = performance.now();
+    const passo = (t: number) => {
+      const p = Math.min((t - t0) / dur, 1);
+      setV(valor * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) raf = requestAnimationFrame(passo);
+    };
+    raf = requestAnimationFrame(passo);
+    return () => cancelAnimationFrame(raf);
+  }, [valor, dur]);
+  return v;
+}
+function fmtR(n: number) { return `R$ ${Math.round(n).toLocaleString("pt-BR")}`; }
+function Num({ valor, f }: { valor: number; f?: (n: number) => string }) {
+  const v = useCountUp(valor);
+  return <>{f ? f(v) : Math.round(v).toLocaleString("pt-BR")}</>;
+}
+function DeltaPill({ curr, prev, escuro }: { curr: number; prev: number; escuro?: boolean }) {
+  if (!prev || curr === prev) return null;
+  const diff = curr - prev;
+  const p = Math.round(Math.abs(diff / prev) * 100);
+  const sobe = diff > 0;
+  return (
+    <span className={`rv-delta ${sobe ? "sobe" : "desce"}${escuro ? " escuro" : ""}`} title="em relação ao mês anterior">
+      {sobe ? "↑" : "↓"} {p}%
+    </span>
+  );
+}
+function Anel({ pct, cor, tam = 128 }: { pct: number; cor: string; tam?: number }) {
+  const r = (tam - 14) / 2;
+  const c = 2 * Math.PI * r;
+  const off = c * (1 - Math.min(Math.max(pct, 0), 100) / 100);
+  return (
+    <svg width={tam} height={tam} viewBox={`0 0 ${tam} ${tam}`} className="rv-anel" aria-hidden>
+      <circle cx={tam / 2} cy={tam / 2} r={r} className="rv-anel-trilho" />
+      <circle cx={tam / 2} cy={tam / 2} r={r} className="rv-anel-valor" stroke={cor}
+        style={{ strokeDasharray: c, strokeDashoffset: off, ["--c" as any]: c }} />
+    </svg>
+  );
+}
+function iniciais(nome: string) {
+  return (nome || "?").trim().split(/\s+/).slice(0, 2).map(p => p[0] || "").join("").toUpperCase();
+}
+function matiz(nome: string) {
+  let h = 0;
+  for (const ch of nome || "") h = (h * 31 + ch.charCodeAt(0)) % 360;
+  return h;
 }
 
 export default function ReunioesVendasPage() {
@@ -492,401 +546,349 @@ export default function ReunioesVendasPage() {
     { label: "VENDAS", val: dados.vendas, cor: "#103e1d", pctConv: dados.reunioes ? Math.round((dados.vendas / dados.reunioes) * 100) : 0 },
   ];
 
+  const [filtro, setFiltro] = useState<"todas" | "compareceu" | "fechou">("todas");
+  const fechouEtapa = (e: string) => e === "Fechou" || e === "Comprou";
+  const leadsFiltrados = leads.filter(l =>
+    filtro === "todas" ? true : filtro === "fechou" ? fechouEtapa(l.etapa) : !fechouEtapa(l.etapa)
+  );
+  const mesNome = MESES[mes - 1].toLowerCase();
+  const prevTaxaLista = listaPrevCounts.total > 0 ? Math.round((listaPrevCounts.fechou / listaPrevCounts.total) * 100) : 0;
+  const maxOrigem = kpisLista.origensOrdenadas[0]?.total || 1;
+  const temMetas = [config.meta_leads, config.meta_mql, config.meta_agendamentos, config.meta_reunioes, config.meta_vendas].some(m => m > 0);
+  const etapasFunil = [
+    { l: "Leads", v: dados.leads, prev: dadosPrev.leads, custo: { n: "CPL", v: kpis.cpl }, taxa: null as null | { n: string; v: number } },
+    { l: "MQL", v: dados.mql, prev: dadosPrev.mql, custo: { n: "Custo por MQL", v: kpis.cpmql }, taxa: { n: "dos leads", v: kpis.taxaMql } },
+    { l: "Agendamentos", v: dados.agendamentos, prev: dadosPrev.agendamentos, custo: { n: "Custo por agendamento", v: kpis.custoAgend }, taxa: { n: "dos MQL", v: kpis.taxaAgendMql } },
+    { l: "Reuniões realizadas", v: dados.reunioes, prev: dadosPrev.reunioes, custo: { n: "Custo por reunião", v: kpis.custoRR }, taxa: { n: "dos agendamentos", v: kpis.taxaRR } },
+    { l: "Vendas", v: dados.vendas, prev: dadosPrev.vendas, custo: { n: "CAC", v: kpis.cac }, taxa: { n: "das reuniões", v: kpis.convRR } },
+  ];
+  const plural = (n: number, um: string, varios: string) => (n === 1 ? um : varios);
+  const dataCurta = (d: string) => d ? new Date(d + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }).replace(".", "") : "—";
+
   return (
-    <div className="animate-in" style={{ width: "100%" }}>
-      <div className="breadcrumb">
-        <a href="/">Início</a><span>›</span>
-        <span style={{ color: "#4A5B6C" }}>SDR</span><span>›</span>
-        <span className="current">Reuniões de Vendas</span>
-      </div>
-
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "10px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <h1 style={{ fontSize: "22px", fontWeight: "600", margin: 0 }}>
-            {view === "lista" ? "Reuniões de Vendas" : "Dashboard de Vendas"}
-          </h1>
-          {/* Toggle */}
-          <div style={{ display: "flex", background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: "8px", padding: "3px", gap: "2px" }}>
-            <button onClick={() => setView("lista")} style={{
-              display: "flex", alignItems: "center", gap: "5px", padding: "5px 12px", borderRadius: "6px", border: "none", cursor: "pointer", fontSize: "12px", fontWeight: "600",
-              background: view === "lista" ? "#E6EBF0" : "transparent", color: view === "lista" ? "#0A1826" : "#4A5B6C", transition: "all 0.15s",
-            }}>
-              <List size={13} /> Lista
-            </button>
-            <button onClick={() => setView("dash")} style={{
-              display: "flex", alignItems: "center", gap: "5px", padding: "5px 12px", borderRadius: "6px", border: "none", cursor: "pointer", fontSize: "12px", fontWeight: "600",
-              background: view === "dash" ? "#E6EBF0" : "transparent", color: view === "dash" ? "#0A1826" : "#4A5B6C", transition: "all 0.15s",
-            }}>
-              <LayoutDashboard size={13} /> Dashboard
-            </button>
-          </div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <button onClick={prevMonth} className="btn-ghost" style={{ padding: "6px", cursor: "pointer" }}><ChevronLeft size={16} /></button>
-          <span style={{ fontSize: "14px", fontWeight: "600", color: "#0A1826", minWidth: "140px", textAlign: "center" }}>{MESES[mes - 1]} {ano}</span>
-          <button onClick={nextMonth} className="btn-ghost" style={{ padding: "6px", cursor: "pointer" }}><ChevronRight size={16} /></button>
-        </div>
-      </div>
-
-      {/* ══════════════════════ LISTA VIEW ══════════════════════ */}
-      {view === "lista" && (<>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "12px", marginBottom: "24px" }}>
-          <div className="card" style={{ padding: "16px 20px" }}>
-            <p style={{ fontSize: "12px", color: "#4A5B6C", margin: "0 0 8px" }}>Total reuniões</p>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginBottom: "0" }}>
-              <p style={{ fontSize: "28px", fontWeight: "700", color: "#1C6CA6", margin: 0 }}>{kpisLista.total}</p>
-              <Delta curr={kpisLista.total} prev={listaPrevCounts.total} />
-            </div>
-          </div>
-          <div className="card" style={{ padding: "16px 20px" }}>
-            <p style={{ fontSize: "12px", color: "#4A5B6C", margin: "0 0 8px" }}>Compareceu</p>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-              <p style={{ fontSize: "28px", fontWeight: "700", color: "#C2620E", margin: 0 }}>{kpisLista.compareceu}</p>
-              <Delta curr={kpisLista.compareceu} prev={listaPrevCounts.compareceu} />
-            </div>
-            <p style={{ fontSize: "11px", color: "#4A5B6C", margin: "4px 0 0" }}>Não fechou ainda</p>
-          </div>
-          <div className="card" style={{ padding: "16px 20px" }}>
-            <p style={{ fontSize: "12px", color: "#4A5B6C", margin: "0 0 8px" }}>Fechou</p>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-              <p style={{ fontSize: "28px", fontWeight: "700", color: "#1E6B52", margin: 0 }}>{kpisLista.fechou}</p>
-              <Delta curr={kpisLista.fechou} prev={listaPrevCounts.fechou} />
-            </div>
-          </div>
-          <div className="card" style={{ padding: "16px 20px" }}>
-            <p style={{ fontSize: "12px", color: "#4A5B6C", margin: "0 0 8px" }}>Taxa de fechamento</p>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-              <p style={{ fontSize: "28px", fontWeight: "700", color: kpisLista.taxa >= 50 ? "#1E6B52" : "#C2620E", margin: 0 }}>{kpisLista.taxa}%</p>
-              {listaPrevCounts.total > 0 && (() => {
-                const prevTaxa = listaPrevCounts.total > 0 ? Math.round((listaPrevCounts.fechou / listaPrevCounts.total) * 100) : 0;
-                return <Delta curr={kpisLista.taxa} prev={prevTaxa} />;
-              })()}
-            </div>
-            <p style={{ fontSize: "11px", color: "#4A5B6C", margin: "4px 0 0" }}>{kpisLista.fechou} de {kpisLista.total}</p>
-          </div>
-        </div>
-
-        {/* Cards por origem */}
-        {kpisLista.origensOrdenadas.length > 0 && (
-          <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(kpisLista.origensOrdenadas.length, 4)}, 1fr)`, gap: "12px", marginBottom: "24px" }}>
-            {kpisLista.origensOrdenadas.map(({ origem, total, fechou: f, taxa }) => (
-              <div key={origem} className="card" style={{ padding: "16px 20px" }}>
-                <div style={{ marginBottom: "10px" }}><OrigemIcon origem={origem} /></div>
-                <p style={{ fontSize: "26px", fontWeight: "700", color: "#0A1826", margin: 0 }}>{total}</p>
-                <p style={{ fontSize: "11px", color: "#4A5B6C", margin: "2px 0 10px" }}>reuniões</p>
-                <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "10px", display: "flex", justifyContent: "space-between" }}>
-                  <div>
-                    <p style={{ fontSize: "16px", fontWeight: "700", color: "#1E6B52", margin: 0 }}>{f}</p>
-                    <p style={{ fontSize: "10px", color: "#4A5B6C", margin: "2px 0 0" }}>fecharam</p>
-                  </div>
-                  <div style={{ textAlign: "right" }}>
-                    <p style={{ fontSize: "16px", fontWeight: "700", color: taxa >= 50 ? "#1E6B52" : "#C2620E", margin: 0 }}>{taxa}%</p>
-                    <p style={{ fontSize: "10px", color: "#4A5B6C", margin: "2px 0 0" }}>conversão</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="table-wrapper">
-          <table>
-            <thead>
-              <tr><th>Nome</th><th>Origem</th><th>Status</th><th>Data</th></tr>
-            </thead>
-            <tbody>
-              {loadingLista ? (
-                <tr><td colSpan={4} style={{ textAlign:"center", color:"#4A5B6C", padding:"40px" }}>Carregando...</td></tr>
-              ) : leads.length === 0 ? (
-                <tr><td colSpan={4} style={{ textAlign:"center", color:"#4A5B6C", padding:"48px" }}>Nenhuma reunião neste mês.</td></tr>
-              ) : leads.map(l => (
-                <tr key={l.id}>
-                  <td style={{ fontWeight:"500" }}>{l.nome}</td>
-                  <td><OrigemIcon origem={l.origem} /></td>
-                  <td>
-                    <span style={{
-                      fontSize:"11px", padding:"3px 10px", borderRadius:"12px", fontWeight:"600",
-                      background: l.etapa==="Fechou"||l.etapa==="Comprou" ? "rgba(30,107,82,0.12)" : "rgba(194,98,14,0.12)",
-                      color: l.etapa==="Fechou"||l.etapa==="Comprou" ? "#1E6B52" : "#C2620E",
-                    }}>
-                      {l.etapa==="Fechou"||l.etapa==="Comprou" ? "Fechou" : "Compareceu"}
-                    </span>
-                  </td>
-                  <td style={{ color:"#4A5B6C", fontSize:"12px" }}>
-                    {l.data ? new Date(l.data + "T12:00:00").toLocaleDateString("pt-BR") : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </>)}
-
-      {/* ══════════════════════ DASH VIEW ══════════════════════ */}
-      {view === "dash" && (loadingDash ? (
-        <div style={{ textAlign:"center", padding:"80px", color:"#4A5B6C" }}>Carregando...</div>
-      ) : (<>
-        <p style={{ fontSize: "12px", color: "#6B7A89", margin: "0 0 20px", fontStyle: "italic" }}>
-          Cada etapa conta no dia em que aconteceu — um lead de mês anterior que agendou agora soma no agendamento deste período.
-        </p>
-
-        {/* ── 6 KPI Cards ── */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: "10px", marginBottom: "20px" }}>
-
-          {/* INVESTIMENTO */}
-          <div className="card" style={{ padding: "14px 16px" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"4px" }}>
-              <span style={{ fontSize:"9px", fontWeight:"700", color:"#4A5B6C", letterSpacing:"0.07em" }}>Investimento</span>
-              <button onClick={() => { setEditConfig(config); setEditando(true); }} style={{ background:"none", border:"none", color:"#6B7A89", cursor:"pointer", padding:"0" }}><Edit2 size={11}/></button>
-            </div>
-            <p style={{ fontSize:"18px", fontWeight:"700", color:"#0A1826", margin:"4px 0 8px", wordBreak:"break-all" }}>{fmt(config.investimento)}</p>
-            <div style={{ borderTop:"1px solid #E6EBF0", paddingTop:"7px" }}>
-              <div style={{ display:"flex", justifyContent:"space-between" }}>
-                <span style={{ fontSize:"10px", color:"#4A5B6C" }}>CPL</span>
-                <span style={{ fontSize:"10px", fontWeight:"600", color:"#4A5B6C" }}>{kpis.cpl > 0 ? fmt(kpis.cpl) : "—"}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* LEADS */}
-          <div className="card" style={{ padding:"14px 16px" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"4px" }}>
-              <span style={{ fontSize:"9px", fontWeight:"700", color:"#4A5B6C", letterSpacing:"0.07em" }}>Leads</span>
-              <Users size={12} style={{ color:"#6B7A89" }}/>
-            </div>
-            <div style={{ display:"flex", alignItems:"baseline", gap:"8px", margin:"4px 0 8px" }}>
-              <p style={{ fontSize:"30px", fontWeight:"700", color:"#0A1826", margin:0 }}>{dados.leads}</p>
-              <Delta curr={dados.leads} prev={dadosPrev.leads} />
-            </div>
-            <div style={{ borderTop:"1px solid #E6EBF0", paddingTop:"7px" }}>
-              <div style={{ display:"flex", justifyContent:"space-between", marginBottom: origensLeads.length > 0 ? "8px" : "0" }}>
-                <span style={{ fontSize:"10px", color:"#4A5B6C" }}>CPL</span>
-                <span style={{ fontSize:"10px", fontWeight:"600", color:"#4A5B6C" }}>{kpis.cpl > 0 ? fmt(kpis.cpl) : "—"}</span>
-              </div>
-              {origensLeads.map(({ origem, count, pct, agendamentos, taxaAgend }) => (
-                <div key={origem} style={{ marginBottom:"6px" }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                    <span style={{ fontSize:"10px", color:"#808080", maxWidth:"65%", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{origem}</span>
-                    <span style={{ fontSize:"10px", fontWeight:"600", color:"#4A5B6C" }}>{count} <span style={{ color:"#6B7A89", fontWeight:"400" }}>({pct}%)</span></span>
-                  </div>
-                  <div style={{ display:"flex", justifyContent:"flex-end", alignItems:"center", gap:"4px" }}>
-                    <span style={{ fontSize:"9px", color:"#6B7A89" }}>{agendamentos} agend.</span>
-                    <span style={{ fontSize:"9px", fontWeight:"700", color: taxaAgend >= 30 ? "#1E6B52" : taxaAgend >= 15 ? "#C2620E" : "#B42318" }}>
-                      {taxaAgend}%
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* MQL */}
-          <div className="card" style={{ padding:"14px 16px" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"4px" }}>
-              <span style={{ fontSize:"9px", fontWeight:"700", color:"#4A5B6C", letterSpacing:"0.07em" }}>MQL</span>
-              <Target size={12} style={{ color:"#6B7A89" }}/>
-            </div>
-            <div style={{ display:"flex", alignItems:"baseline", gap:"8px", margin:"4px 0 8px" }}>
-              <p style={{ fontSize:"30px", fontWeight:"700", color:"#0A1826", margin:0 }}>{dados.mql}</p>
-              <Delta curr={dados.mql} prev={dadosPrev.mql} />
-            </div>
-            <div style={{ borderTop:"1px solid #E6EBF0", paddingTop:"7px" }}>
-              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"2px" }}>
-                <span style={{ fontSize:"10px", color:"#4A5B6C" }}>Cpmql</span>
-                <span style={{ fontSize:"10px", fontWeight:"600", color:"#4A5B6C" }}>{kpis.cpmql > 0 ? fmt(kpis.cpmql) : "—"}</span>
-              </div>
-              <div style={{ display:"flex", justifyContent:"space-between" }}>
-                <span style={{ fontSize:"10px", color:"#4A5B6C" }}>Taxa de MQL</span>
-                <span style={{ fontSize:"10px", fontWeight:"600", color:"#4A5B6C" }}>{pct(kpis.taxaMql)}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* AGENDAMENTOS */}
-          <div className="card" style={{ padding:"14px 16px" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"4px" }}>
-              <span style={{ fontSize:"9px", fontWeight:"700", color:"#4A5B6C", letterSpacing:"0.07em" }}>Agendamentos</span>
-              <Calendar size={12} style={{ color:"#6B7A89" }}/>
-            </div>
-            <div style={{ display:"flex", alignItems:"baseline", gap:"8px", margin:"4px 0 8px" }}>
-              <p style={{ fontSize:"30px", fontWeight:"700", color:"#0A1826", margin:0 }}>{dados.agendamentos}</p>
-              <Delta curr={dados.agendamentos} prev={dadosPrev.agendamentos} />
-            </div>
-            <div style={{ borderTop:"1px solid #E6EBF0", paddingTop:"7px" }}>
-              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"2px" }}>
-                <span style={{ fontSize:"10px", color:"#4A5B6C" }}>Custo/agend.</span>
-                <span style={{ fontSize:"10px", fontWeight:"600", color:"#4A5B6C" }}>{kpis.custoAgend > 0 ? fmt(kpis.custoAgend) : "—"}</span>
-              </div>
-              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"2px" }}>
-                <span style={{ fontSize:"10px", color:"#4A5B6C" }}>Taxa × leads</span>
-                <span style={{ fontSize:"10px", fontWeight:"600", color:"#4A5B6C" }}>{pct(kpis.taxaAgendLeads)}</span>
-              </div>
-              <div style={{ display:"flex", justifyContent:"space-between" }}>
-                <span style={{ fontSize:"10px", color:"#4A5B6C" }}>Taxa × MQL</span>
-                <span style={{ fontSize:"10px", fontWeight:"600", color:"#4A5B6C" }}>{pct(kpis.taxaAgendMql)}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* REUNIÕES */}
-          <div className="card" style={{ padding:"14px 16px" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"4px" }}>
-              <span style={{ fontSize:"9px", fontWeight:"700", color:"#4A5B6C", letterSpacing:"0.07em" }}>Reuniões realizadas</span>
-              <Video size={12} style={{ color:"#6B7A89" }}/>
-            </div>
-            <div style={{ display:"flex", alignItems:"baseline", gap:"8px", margin:"4px 0 8px" }}>
-              <p style={{ fontSize:"30px", fontWeight:"700", color:"#0A1826", margin:0 }}>{dados.reunioes}</p>
-              <Delta curr={dados.reunioes} prev={dadosPrev.reunioes} />
-            </div>
-            <div style={{ borderTop:"1px solid #E6EBF0", paddingTop:"7px" }}>
-              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"2px" }}>
-                <span style={{ fontSize:"10px", color:"#4A5B6C" }}>Custo/RR</span>
-                <span style={{ fontSize:"10px", fontWeight:"600", color:"#4A5B6C" }}>{kpis.custoRR > 0 ? fmt(kpis.custoRR) : "—"}</span>
-              </div>
-              <div style={{ display:"flex", justifyContent:"space-between" }}>
-                <span style={{ fontSize:"10px", color:"#4A5B6C" }}>Taxa de RR</span>
-                <span style={{ fontSize:"10px", fontWeight:"600", color:"#4A5B6C" }}>{pct(kpis.taxaRR)}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* VENDAS */}
-          <div className="card" style={{ padding:"14px 16px" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"4px" }}>
-              <span style={{ fontSize:"9px", fontWeight:"700", color:"#4A5B6C", letterSpacing:"0.07em" }}>Vendas</span>
-              <TrendingUp size={12} style={{ color:"#1E6B52" }}/>
-            </div>
-            <div style={{ display:"flex", alignItems:"baseline", gap:"8px", margin:"4px 0 8px" }}>
-              <p style={{ fontSize:"30px", fontWeight:"700", color:"#1E6B52", margin:0 }}>{dados.vendas}</p>
-              <Delta curr={dados.vendas} prev={dadosPrev.vendas} />
-            </div>
-            <div style={{ borderTop:"1px solid #E6EBF0", paddingTop:"7px" }}>
-              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"2px" }}>
-                <span style={{ fontSize:"10px", color:"#4A5B6C" }}>CAC</span>
-                <span style={{ fontSize:"10px", fontWeight:"600", color:"#4A5B6C" }}>{kpis.cac > 0 ? fmt(kpis.cac) : "—"}</span>
-              </div>
-              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"2px" }}>
-                <span style={{ fontSize:"10px", color:"#4A5B6C" }}>Conv. sobre RR</span>
-                <span style={{ fontSize:"10px", fontWeight:"600", color:"#4A5B6C" }}>{pct(kpis.convRR)}</span>
-              </div>
-              <div style={{ display:"flex", justifyContent:"space-between" }}>
-                <span style={{ fontSize:"10px", color:"#4A5B6C" }}>Conv. sobre leads</span>
-                <span style={{ fontSize:"10px", fontWeight:"600", color:"#4A5B6C" }}>{pct(kpis.convLeads)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Aviso: vendas sem cliente cadastrado ── */}
-        {dados.vendas > 0 && dados.clientesMes < dados.vendas && (
-          <div style={{ background:"rgba(194,98,14,0.1)", border:"1px solid rgba(194,98,14,0.3)", borderRadius:"8px", padding:"10px 14px", marginBottom:"12px", display:"flex", alignItems:"center", gap:"8px" }}>
-            <span style={{ fontSize:"16px" }}>⚠️</span>
-            <span style={{ fontSize:"12px", color:"#C2620E" }}>
-              <strong>{dados.vendas - dados.clientesMes} venda{dados.vendas - dados.clientesMes > 1 ? "s" : ""}</strong> sem cliente cadastrado com data de entrada em {MESES[mes-1]} — receita gerada pode estar incompleta. Corrija a data de entrada dos clientes.
-            </span>
-          </div>
-        )}
-
-        {/* ── Resultado Financeiro ── */}
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"8px" }}>
-          <span style={{ fontSize:"12px", fontWeight:"700", color:"#6B7A89", letterSpacing:"0.07em" }}>Resultado financeiro</span>
-          <button onClick={() => { setEditConfig(config); setEditando(true); }} style={{ display:"flex", alignItems:"center", gap:"4px", background:"none", border:"1px solid #E6EBF0", borderRadius:"6px", padding:"4px 10px", color:"#4A5B6C", cursor:"pointer", fontSize:"12px" }}>
-            <Edit2 size={11}/> Editar valores
+    <div className="rv" style={{ width: "100%" }}>
+      {/* Barra de controle: visão + mês */}
+      <div className="rv-barra">
+        <div className="rv-seg" data-v={view} role="tablist">
+          <button role="tab" aria-selected={view === "lista"} className={view === "lista" ? "on" : ""} onClick={() => setView("lista")}>
+            <List size={14} /> Lista
+          </button>
+          <button role="tab" aria-selected={view === "dash"} className={view === "dash" ? "on" : ""} onClick={() => setView("dash")}>
+            <LayoutDashboard size={14} /> Dashboard
           </button>
         </div>
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:"10px", marginBottom:"20px" }}>
-          <div className="card" style={{ padding:"16px 18px" }}>
-            <span style={{ fontSize:"9px", fontWeight:"700", color:"#4A5B6C", letterSpacing:"0.07em" }}>Receita gerada</span>
-            <div style={{ display:"flex", alignItems:"baseline", gap:"8px", margin:"6px 0 4px" }}>
-              <p style={{ fontSize:"20px", fontWeight:"700", color:"#6B4FC8", margin:0, wordBreak:"break-all" }}>{dados.receitaGerada > 0 ? fmt(dados.receitaGerada) : "—"}</p>
-              {dados.receitaGerada > 0 && <Delta curr={dados.receitaGerada} prev={dadosPrev.receitaGerada} />}
-            </div>
-            <div style={{ display:"flex", justifyContent:"space-between" }}>
-              <span style={{ fontSize:"11px", color:"#4A5B6C" }}>contratos novos</span>
-              <span style={{ fontSize:"11px", color:"#4A5B6C" }}>{dados.clientesMes}</span>
-            </div>
-          </div>
-          <div className="card" style={{ padding:"16px 18px" }}>
-            <span style={{ fontSize:"9px", fontWeight:"700", color:"#4A5B6C", letterSpacing:"0.07em" }}>Caixa coletado</span>
-            <div style={{ display:"flex", alignItems:"baseline", gap:"8px", margin:"6px 0 4px" }}>
-              <p style={{ fontSize:"20px", fontWeight:"700", color:"#1C6CA6", margin:0, wordBreak:"break-all" }}>{dados.caixaColetado > 0 ? fmt(dados.caixaColetado) : dados.receitaGerada > 0 ? "R$ 0,00" : "—"}</p>
-              {dados.caixaColetado > 0 && <Delta curr={dados.caixaColetado} prev={dadosPrev.caixaColetado} />}
-            </div>
-            <div style={{ display:"flex", justifyContent:"space-between" }}>
-              <span style={{ fontSize:"11px", color:"#4A5B6C" }}>% da receita</span>
-              <span style={{ fontSize:"11px", color:"#4A5B6C" }}>{dados.receitaGerada > 0 ? pct(kpis.pctCaixa) : "—"}</span>
-            </div>
-          </div>
-          {[
-            { label:"ROAS", val: kpis.roas > 0 ? fmtX(kpis.roas) : "—", cor:"#1C6CA6", sub:"investimento", sub2:fmt(config.investimento) },
-            { label:"TICKET MÉDIO", val: dados.ticketMedio > 0 ? fmt(dados.ticketMedio) : "—", cor:"#0A1826", sub: dados.clientesMes > 0 ? `${dados.clientesMes} contratos` : null, sub2: null },
-            { label:"MRR (×3)", val: dados.mrrCalculado > 0 ? fmt(dados.mrrCalculado) : "—", cor:"#C2620E", sub: dados.mrrCalculado > 0 ? `base mensal` : null, sub2: dados.mrrCalculado > 0 ? fmt(dados.mrrCalculado / 3) : null },
-          ].map(k => (
-            <div key={k.label} className="card" style={{ padding:"16px 18px" }}>
-              <span style={{ fontSize:"9px", fontWeight:"700", color:"#4A5B6C", letterSpacing:"0.07em" }}>{k.label}</span>
-              <p style={{ fontSize:"20px", fontWeight:"700", color:k.cor, margin:"6px 0 4px", wordBreak:"break-all" }}>{k.val}</p>
-              {k.sub && <div style={{ display:"flex", justifyContent:"space-between" }}>
-                <span style={{ fontSize:"11px", color:"#4A5B6C" }}>{k.sub}</span>
-                <span style={{ fontSize:"11px", color:"#4A5B6C" }}>{k.sub2}</span>
-              </div>}
-            </div>
-          ))}
+        <div className="rv-mes">
+          <button onClick={prevMonth} aria-label="Mês anterior"><ChevronLeft size={16} /></button>
+          <span key={mesStr} className="rv-mes-tx">{MESES[mes - 1]} {ano}</span>
+          <button onClick={nextMonth} aria-label="Próximo mês"><ChevronRight size={16} /></button>
         </div>
+      </div>
 
-        {/* ── Funil + Metas ── */}
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"16px" }}>
-          {/* Funil */}
-          <div className="card" style={{ padding:"20px 28px" }}>
-            <h3 style={{ fontSize:"14px", fontWeight:"600", color:"#0A1826", margin:"0 0 20px" }}>Funil de vendas</h3>
-            <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"0" }}>
-              {funnelItems.map((item, i) => {
-                const w = maxFunil > 0 ? Math.max((item.val / maxFunil) * 100, item.val > 0 ? 18 : 8) : 18;
-                return (
-                  <div key={item.label} style={{ width:"100%", display:"flex", flexDirection:"column", alignItems:"center" }}>
-                    {i > 0 && item.pctConv !== null && (
-                      <div style={{ fontSize:"11px", color:"#6B7A89", margin:"5px 0" }}>↓ {item.pctConv}%</div>
-                    )}
-                    <div style={{ width:`${w}%`, background:item.cor, borderRadius:"6px", padding:"10px 0", textAlign:"center", transition:"width 0.5s" }}>
-                      <div style={{ fontSize:"9px", fontWeight:"700", color:"#a0c0a0", letterSpacing:"0.06em" }}>{item.label}</div>
-                      <div style={{ fontSize:"22px", fontWeight:"700", color:"#0A1826", marginTop:"2px" }}>{item.val}</div>
+      {/* ══════════════════════ LISTA ══════════════════════ */}
+      {view === "lista" && (
+        <div className="rv-view" key={"lista" + mesStr}>
+          <section className="rv-hero">
+            <div className="rv-hero-main">
+              <span className="rv-hero-ctx">Reuniões realizadas em {mesNome}</span>
+              <h2 className="rv-hero-tit">
+                <Num valor={kpisLista.total} /> {plural(kpisLista.total, "reunião", "reuniões")},{" "}
+                <span className="font-serif-accent">{kpisLista.fechou} {plural(kpisLista.fechou, "fechada", "fechadas")}</span>
+              </h2>
+              <div className="rv-hero-nums">
+                {[
+                  { l: "Total", v: kpisLista.total, p: listaPrevCounts.total, d: "no mês" },
+                  { l: "Compareceram", v: kpisLista.compareceu, p: listaPrevCounts.compareceu, d: "ainda não fecharam" },
+                  { l: "Fecharam", v: kpisLista.fechou, p: listaPrevCounts.fechou, d: `${kpisLista.fechou} de ${kpisLista.total}` },
+                ].map((n, i) => (
+                  <div key={n.l} className="rv-hero-num" style={{ ["--i" as any]: i }}>
+                    <span className="rv-hero-l">{n.l}</span>
+                    <span className="rv-hero-v"><Num valor={n.v} /><DeltaPill curr={n.v} prev={n.p} escuro /></span>
+                    <span className="rv-hero-d">{n.d}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="rv-hero-anel">
+              <Anel pct={kpisLista.taxa} cor={kpisLista.taxa >= 50 ? "#4ADE80" : "#F5A524"} />
+              <div className="rv-anel-centro">
+                <b><Num valor={kpisLista.taxa} />%</b>
+                <span>fechamento</span>
+              </div>
+              {listaPrevCounts.total > 0 && <DeltaPill curr={kpisLista.taxa} prev={prevTaxaLista} escuro />}
+            </div>
+          </section>
+
+          {kpisLista.origensOrdenadas.length > 0 && (
+            <section className="rv-card">
+              <header className="rv-card-h">
+                <h3>De onde vieram</h3>
+                <span className="rv-legenda"><i className="f" />fecharam <i className="c" />compareceram</span>
+              </header>
+              <div className="rv-origens">
+                {kpisLista.origensOrdenadas.map((o, i) => (
+                  <div key={o.origem} className="rv-origem" style={{ ["--i" as any]: i }}>
+                    <div className="rv-origem-nome"><OrigemIcon origem={o.origem} /></div>
+                    <div className="rv-origem-trilho">
+                      <div className="rv-origem-fill" style={{ width: `${(o.total / maxOrigem) * 100}%` }}>
+                        <span className="f" style={{ width: `${o.total ? (o.fechou / o.total) * 100 : 0}%` }} />
+                        <span className="c" />
+                      </div>
+                    </div>
+                    <div className="rv-origem-num">
+                      <b>{o.total}</b>
+                      <span>{o.fechou} {plural(o.fechou, "fechou", "fecharam")}</span>
+                      <em className={o.taxa >= 50 ? "bom" : "medio"}>{o.taxa}%</em>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                ))}
+              </div>
+            </section>
+          )}
 
-          {/* Metas */}
-          <div className="card" style={{ padding:"20px 24px" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"20px" }}>
-              <h3 style={{ fontSize:"14px", fontWeight:"600", color:"#0A1826", margin:0 }}>Metas do período</h3>
-              <button onClick={() => { setEditConfig(config); setEditandoMetas(true); }} style={{ display:"flex", alignItems:"center", gap:"4px", background:"none", border:"1px solid #E6EBF0", borderRadius:"6px", padding:"4px 10px", color:"#4A5B6C", cursor:"pointer", fontSize:"12px" }}>
-                Lançar metas →
-              </button>
-            </div>
-            <MetaBar label="Leads" realizado={dados.leads} meta={config.meta_leads} />
-            <MetaBar label="MQL" realizado={dados.mql} meta={config.meta_mql} />
-            <MetaBar label="Agendamentos" realizado={dados.agendamentos} meta={config.meta_agendamentos} />
-            <MetaBar label="Reuniões" realizado={dados.reunioes} meta={config.meta_reunioes} />
-            <MetaBar label="Vendas" realizado={dados.vendas} meta={config.meta_vendas} />
-          </div>
+          <section className="rv-card rv-card-tabela">
+            <header className="rv-card-h">
+              <h3>Reuniões do mês</h3>
+              <div className="rv-filtros">
+                {([
+                  ["todas", "Todas", kpisLista.total],
+                  ["compareceu", "Compareceram", kpisLista.compareceu],
+                  ["fechou", "Fecharam", kpisLista.fechou],
+                ] as const).map(([k, l, n]) => (
+                  <button key={k} className={filtro === k ? "on" : ""} onClick={() => setFiltro(k)}>
+                    {l} <span>{n}</span>
+                  </button>
+                ))}
+              </div>
+            </header>
+            <table className="rv-tabela">
+              <thead>
+                <tr><th>Cliente</th><th>Origem</th><th>Situação</th><th style={{ textAlign: "right" }}>Data</th></tr>
+              </thead>
+              <tbody>
+                {loadingLista ? (
+                  [0, 1, 2, 3, 4].map(i => (
+                    <tr key={i} className="rv-esqueleto"><td colSpan={4}><span /></td></tr>
+                  ))
+                ) : leadsFiltrados.length === 0 ? (
+                  <tr><td colSpan={4} className="rv-vazio">
+                    {leads.length === 0 ? `Nenhuma reunião registrada em ${mesNome}. Elas aparecem aqui quando a conversa chega em Compareceu ou Fechou no CRM.` : "Nenhuma reunião neste filtro."}
+                  </td></tr>
+                ) : leadsFiltrados.map((l, i) => {
+                  const fechou = fechouEtapa(l.etapa);
+                  return (
+                    <tr key={l.id} className="rv-linha" style={{ ["--i" as any]: Math.min(i, 14) }}>
+                      <td>
+                        <div className="rv-pessoa">
+                          <span className="rv-avatar" style={{ ["--h" as any]: matiz(l.nome) }}>{iniciais(l.nome)}</span>
+                          <span className="rv-pessoa-nome">{l.nome}</span>
+                        </div>
+                      </td>
+                      <td><OrigemIcon origem={l.origem} /></td>
+                      <td>
+                        <span className={`rv-status ${fechou ? "fechou" : "compareceu"}`}>
+                          <i />{fechou ? "Fechou" : "Compareceu"}
+                        </span>
+                      </td>
+                      <td className="rv-data">{dataCurta(l.data)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </section>
         </div>
-      </>))}
+      )}
 
-      {/* ── Modal: Valores Financeiros ── */}
+      {/* ══════════════════════ DASHBOARD ══════════════════════ */}
+      {view === "dash" && (loadingDash ? (
+        <div className="rv-view">
+          <div className="rv-hero rv-hero-esq"><span /><span /><span /></div>
+          <div className="rv-grade-2"><div className="rv-card rv-bloco-esq" /><div className="rv-card rv-bloco-esq" /></div>
+        </div>
+      ) : (
+        <div className="rv-view" key={"dash" + mesStr}>
+          <section className="rv-hero">
+            <div className="rv-hero-main">
+              <span className="rv-hero-ctx">Resultado comercial de {mesNome}</span>
+              <h2 className="rv-hero-tit">
+                <Num valor={dados.vendas} /> {plural(dados.vendas, "venda", "vendas")},{" "}
+                <span className="font-serif-accent">
+                  {kpis.roas > 0 ? `ROAS ${fmtX(kpis.roas)}` : `${dados.leads} ${plural(dados.leads, "lead", "leads")} no mês`}
+                </span>
+              </h2>
+              <div className="rv-hero-nums rv-hero-nums-6">
+                <div className="rv-hero-num" style={{ ["--i" as any]: 0 }}>
+                  <span className="rv-hero-l">
+                    Investimento
+                    <button className="rv-editar" onClick={() => { setEditConfig(config); setEditando(true); }} aria-label="Editar investimento"><Edit2 size={12} /></button>
+                  </span>
+                  <span className="rv-hero-v"><Num valor={config.investimento} f={fmtR} /></span>
+                  <span className="rv-hero-d">CPL {kpis.cpl > 0 ? fmt(kpis.cpl) : "—"}</span>
+                </div>
+                <div className="rv-hero-num" style={{ ["--i" as any]: 1 }}>
+                  <span className="rv-hero-l">Receita gerada</span>
+                  <span className="rv-hero-v">{dados.receitaGerada > 0 ? <Num valor={dados.receitaGerada} f={fmtR} /> : "—"}{dados.receitaGerada > 0 && <DeltaPill curr={dados.receitaGerada} prev={dadosPrev.receitaGerada} escuro />}</span>
+                  <span className="rv-hero-d">{dados.clientesMes} {plural(dados.clientesMes, "contrato novo", "contratos novos")}</span>
+                </div>
+                <div className="rv-hero-num" style={{ ["--i" as any]: 2 }}>
+                  <span className="rv-hero-l">Caixa coletado</span>
+                  <span className="rv-hero-v">{dados.caixaColetado > 0 ? <Num valor={dados.caixaColetado} f={fmtR} /> : dados.receitaGerada > 0 ? "R$ 0" : "—"}{dados.caixaColetado > 0 && <DeltaPill curr={dados.caixaColetado} prev={dadosPrev.caixaColetado} escuro />}</span>
+                  <span className="rv-hero-d">{dados.receitaGerada > 0 ? `${pct(kpis.pctCaixa)} da receita` : "sem receita no mês"}</span>
+                </div>
+                <div className="rv-hero-num" style={{ ["--i" as any]: 3 }}>
+                  <span className="rv-hero-l">ROAS</span>
+                  <span className="rv-hero-v">{kpis.roas > 0 ? fmtX(kpis.roas) : "—"}</span>
+                  <span className="rv-hero-d">receita ÷ investimento</span>
+                </div>
+                <div className="rv-hero-num" style={{ ["--i" as any]: 4 }}>
+                  <span className="rv-hero-l">Ticket médio</span>
+                  <span className="rv-hero-v">{dados.ticketMedio > 0 ? <Num valor={dados.ticketMedio} f={fmtR} /> : "—"}</span>
+                  <span className="rv-hero-d">{dados.clientesMes > 0 ? `${dados.clientesMes} ${plural(dados.clientesMes, "contrato", "contratos")}` : "—"}</span>
+                </div>
+                <div className="rv-hero-num" style={{ ["--i" as any]: 5 }}>
+                  <span className="rv-hero-l">MRR (×3)</span>
+                  <span className="rv-hero-v">{dados.mrrCalculado > 0 ? <Num valor={dados.mrrCalculado} f={fmtR} /> : "—"}</span>
+                  <span className="rv-hero-d">{dados.mrrCalculado > 0 ? `base mensal ${fmt(dados.mrrCalculado / 3)}` : "—"}</span>
+                </div>
+              </div>
+            </div>
+            <div className="rv-hero-anel">
+              <Anel pct={kpis.convRR} cor={kpis.convRR >= 50 ? "#4ADE80" : "#F5A524"} />
+              <div className="rv-anel-centro">
+                <b><Num valor={kpis.convRR} />%</b>
+                <span>das reuniões viraram venda</span>
+              </div>
+            </div>
+          </section>
+
+          {dados.vendas > 0 && dados.clientesMes < dados.vendas && (
+            <div className="rv-aviso">
+              <AlertTriangle size={16} />
+              <span>
+                <strong>{dados.vendas - dados.clientesMes} {plural(dados.vendas - dados.clientesMes, "venda", "vendas")}</strong> sem cliente cadastrado com data de entrada em {mesNome}, então a receita gerada pode estar incompleta. Corrija a data de entrada dos clientes no Financeiro.
+              </span>
+            </div>
+          )}
+
+          <div className="rv-grade-2">
+            {/* Funil */}
+            <section className="rv-card">
+              <header className="rv-card-h">
+                <h3>Funil de vendas</h3>
+                <span className="rv-card-sub">{pct(kpis.convLeads)} dos leads viraram venda</span>
+              </header>
+              <div className="rv-funil">
+                {etapasFunil.map((e, i) => {
+                  const w = Math.max((e.v / Math.max(dados.leads, 1)) * 100, e.v > 0 ? 6 : 2);
+                  return (
+                    <div key={e.l} className="rv-etapa" style={{ ["--i" as any]: i }}>
+                      {e.taxa && (
+                        <div className="rv-etapa-conv"><span>↓ {pct(e.taxa.v)} {e.taxa.n}</span></div>
+                      )}
+                      <div className="rv-etapa-topo">
+                        <span className="rv-etapa-nome">{e.l}</span>
+                        <span className="rv-etapa-custo">{e.custo.n} <b>{e.custo.v > 0 ? fmt(e.custo.v) : "—"}</b></span>
+                      </div>
+                      <div className="rv-etapa-linha">
+                        <div className="rv-etapa-trilho">
+                          <div className={`rv-etapa-fill e${i}`} style={{ width: `${w}%` }} />
+                        </div>
+                        <span className="rv-etapa-v"><Num valor={e.v} /></span>
+                        <span className="rv-etapa-delta"><DeltaPill curr={e.v} prev={e.prev} /></span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* Metas */}
+            <section className="rv-card">
+              <header className="rv-card-h">
+                <h3>Metas do período</h3>
+                <button className="rv-botao" onClick={() => { setEditConfig(config); setEditandoMetas(true); }}>
+                  <Target size={13} /> {temMetas ? "Editar metas" : "Lançar metas"}
+                </button>
+              </header>
+              {!temMetas ? (
+                <div className="rv-metas-vazio">
+                  <Target size={22} />
+                  <p>Nenhuma meta lançada para {mesNome}.</p>
+                  <span>Lance as metas para acompanhar o progresso de cada etapa do funil.</span>
+                </div>
+              ) : (
+                <div className="rv-metas">
+                  {[
+                    { l: "Leads", r: dados.leads, m: config.meta_leads },
+                    { l: "MQL", r: dados.mql, m: config.meta_mql },
+                    { l: "Agendamentos", r: dados.agendamentos, m: config.meta_agendamentos },
+                    { l: "Reuniões", r: dados.reunioes, m: config.meta_reunioes },
+                    { l: "Vendas", r: dados.vendas, m: config.meta_vendas },
+                  ].map((g, i) => {
+                    const p = g.m > 0 ? Math.round((g.r / g.m) * 100) : 0;
+                    const tom = g.m === 0 ? "sem" : p >= 100 ? "ok" : p >= 70 ? "quase" : "longe";
+                    return (
+                      <div key={g.l} className={`rv-meta ${tom}`} style={{ ["--i" as any]: i }}>
+                        <div className="rv-meta-topo">
+                          <span className="rv-meta-nome">{g.l}</span>
+                          <span className="rv-meta-num">{g.m > 0 ? <><b>{g.r}</b> de {g.m}</> : "sem meta"}</span>
+                          <span className="rv-meta-pct">{g.m > 0 ? `${p}%` : ""}</span>
+                        </div>
+                        <div className="rv-meta-trilho">
+                          <div className="rv-meta-fill" style={{ width: `${Math.min(p, 100)}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          </div>
+
+          {origensLeads.length > 0 && (
+            <section className="rv-card">
+              <header className="rv-card-h">
+                <h3>Leads por origem</h3>
+                <span className="rv-card-sub">quantos agendaram reunião</span>
+              </header>
+              <div className="rv-origens">
+                {origensLeads.map((o, i) => (
+                  <div key={o.origem} className="rv-origem" style={{ ["--i" as any]: i }}>
+                    <div className="rv-origem-nome"><span className="rv-origem-tx">{o.origem}</span></div>
+                    <div className="rv-origem-trilho">
+                      <div className="rv-origem-fill" style={{ width: `${Math.max(o.pct, 2)}%` }}>
+                        <span className="f azul" style={{ width: `${o.count ? (o.agendamentos / o.count) * 100 : 0}%` }} />
+                        <span className="c azul" />
+                      </div>
+                    </div>
+                    <div className="rv-origem-num">
+                      <b>{o.count}</b>
+                      <span>{o.pct}% · {o.agendamentos} agend.</span>
+                      <em className={o.taxaAgend >= 30 ? "bom" : o.taxaAgend >= 15 ? "medio" : "ruim"}>{o.taxaAgend}%</em>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <p className="rv-nota"><Info size={13} /> Cada etapa conta no dia em que aconteceu: um lead de mês anterior que agendou agora soma no agendamento deste período.</p>
+        </div>
+      ))}
+
+      {/* ── Janela: valores financeiros ── */}
       {editando && (
-        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center" }}>
-          <div className="card" style={{ width:"360px", padding:"24px" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"18px" }}>
-              <h3 style={{ margin:0, fontSize:"15px", fontWeight:"600" }}>Valores Financeiros — {MESES[mes-1]} {ano}</h3>
-              <button onClick={() => setEditando(false)} style={{ background:"none", border:"none", color:"#4A5B6C", cursor:"pointer" }}><X size={18}/></button>
+        <div className="rv-veu" onClick={() => setEditando(false)}>
+          <div className="rv-janela" onClick={e => e.stopPropagation()}>
+            <div className="rv-janela-h">
+              <h3>Investimento de {mesNome} {ano}</h3>
+              <button onClick={() => setEditando(false)} aria-label="Fechar"><X size={18} /></button>
             </div>
             <EditInput label="Investimento (R$)" value={editConfig.investimento} onChange={v => setEditConfig(p => ({ ...p, investimento: v }))} />
-            <p style={{ fontSize:"11px", color:"#6B7A89", margin:"4px 0 0", fontStyle:"italic" }}>Receita gerada, caixa coletado, ticket médio e MRR são calculados automaticamente com base nos lançamentos dos clientes do mês.</p>
-            <div style={{ display:"flex", gap:"8px", marginTop:"8px" }}>
-              <button onClick={() => setEditando(false)} className="btn-ghost" style={{ flex:1 }}>Cancelar</button>
-              <button onClick={() => salvar(editConfig)} disabled={salvando} style={{ flex:1, background:"#1C6CA6", color:"#F3F5F7", border:"none", borderRadius:"8px", padding:"9px", fontWeight:"700", cursor:"pointer", fontSize:"13px" }}>
+            <p className="rv-janela-nota">Receita gerada, caixa coletado, ticket médio e MRR são calculados automaticamente a partir dos lançamentos dos clientes do mês.</p>
+            <div className="rv-janela-acoes">
+              <button onClick={() => setEditando(false)} className="rv-botao">Cancelar</button>
+              <button onClick={() => salvar(editConfig)} disabled={salvando} className="rv-botao primario">
                 {salvando ? "Salvando..." : "Salvar"}
               </button>
             </div>
@@ -894,23 +896,23 @@ export default function ReunioesVendasPage() {
         </div>
       )}
 
-      {/* ── Modal: Metas ── */}
+      {/* ── Janela: metas ── */}
       {editandoMetas && (
-        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center" }}>
-          <div className="card" style={{ width:"360px", padding:"24px" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"18px" }}>
-              <h3 style={{ margin:0, fontSize:"15px", fontWeight:"600" }}>Metas — {MESES[mes-1]} {ano}</h3>
-              <button onClick={() => setEditandoMetas(false)} style={{ background:"none", border:"none", color:"#4A5B6C", cursor:"pointer" }}><X size={18}/></button>
+        <div className="rv-veu" onClick={() => setEditandoMetas(false)}>
+          <div className="rv-janela" onClick={e => e.stopPropagation()}>
+            <div className="rv-janela-h">
+              <h3>Metas de {mesNome} {ano}</h3>
+              <button onClick={() => setEditandoMetas(false)} aria-label="Fechar"><X size={18} /></button>
             </div>
-            <EditInput label="Meta de Leads" value={editConfig.meta_leads} onChange={v => setEditConfig(p => ({ ...p, meta_leads: Math.round(v) }))} />
+            <EditInput label="Meta de leads" value={editConfig.meta_leads} onChange={v => setEditConfig(p => ({ ...p, meta_leads: Math.round(v) }))} />
             <EditInput label="Meta de MQL" value={editConfig.meta_mql} onChange={v => setEditConfig(p => ({ ...p, meta_mql: Math.round(v) }))} />
-            <EditInput label="Meta de Agendamentos" value={editConfig.meta_agendamentos} onChange={v => setEditConfig(p => ({ ...p, meta_agendamentos: Math.round(v) }))} />
-            <EditInput label="Meta de Reuniões" value={editConfig.meta_reunioes} onChange={v => setEditConfig(p => ({ ...p, meta_reunioes: Math.round(v) }))} />
-            <EditInput label="Meta de Vendas" value={editConfig.meta_vendas} onChange={v => setEditConfig(p => ({ ...p, meta_vendas: Math.round(v) }))} />
-            <div style={{ display:"flex", gap:"8px", marginTop:"8px" }}>
-              <button onClick={() => setEditandoMetas(false)} className="btn-ghost" style={{ flex:1 }}>Cancelar</button>
-              <button onClick={() => salvar(editConfig)} disabled={salvando} style={{ flex:1, background:"#1C6CA6", color:"#F3F5F7", border:"none", borderRadius:"8px", padding:"9px", fontWeight:"700", cursor:"pointer", fontSize:"13px" }}>
-                {salvando ? "Salvando..." : "Salvar"}
+            <EditInput label="Meta de agendamentos" value={editConfig.meta_agendamentos} onChange={v => setEditConfig(p => ({ ...p, meta_agendamentos: Math.round(v) }))} />
+            <EditInput label="Meta de reuniões" value={editConfig.meta_reunioes} onChange={v => setEditConfig(p => ({ ...p, meta_reunioes: Math.round(v) }))} />
+            <EditInput label="Meta de vendas" value={editConfig.meta_vendas} onChange={v => setEditConfig(p => ({ ...p, meta_vendas: Math.round(v) }))} />
+            <div className="rv-janela-acoes">
+              <button onClick={() => setEditandoMetas(false)} className="rv-botao">Cancelar</button>
+              <button onClick={() => salvar(editConfig)} disabled={salvando} className="rv-botao primario">
+                {salvando ? "Salvando..." : "Salvar metas"}
               </button>
             </div>
           </div>
