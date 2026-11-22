@@ -363,11 +363,11 @@ export default function SecretariaIAPage() {
   const updateItem = (arr: string[], set: (v: string[]) => void, idx: number, val: string) => { const n = [...arr]; n[idx] = val; set(n); };
   const removeItem = (arr: string[], set: (v: string[]) => void, idx: number) => set(arr.filter((_, i) => i !== idx));
 
-  const inputStyle: React.CSSProperties = { background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 8, padding: "9px 12px", color: "#f0f0f0", fontSize: 13, width: "100%", boxSizing: "border-box" };
-  const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 500, color: "#a0a0a0", marginBottom: 4, display: "block" };
-  const cardStyle: React.CSSProperties = { background: "#141414", border: "1px solid #2e2e2e", borderRadius: 12, padding: 20, marginBottom: 16 };
+  const inputStyle: React.CSSProperties = { background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 8, padding: "9px 12px", color: "#0A1826", fontSize: 13, width: "100%", boxSizing: "border-box" };
+  const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 500, color: "#4A5B6C", marginBottom: 4, display: "block" };
+  const cardStyle: React.CSSProperties = { background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 12, padding: 20, marginBottom: 16 };
 
-  if (loading) return <div style={{ padding: 40, color: "#606060" }}>Carregando...</div>;
+  if (loading) return <div style={{ padding: 40, color: "#4A5B6C" }}>Carregando...</div>;
 
   return (
     <div className="animate-in" style={{ padding: "0 32px", maxWidth: 1400 }}>
@@ -378,7 +378,7 @@ export default function SecretariaIAPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 600, margin: 0 }}>Secretária IA</h1>
-          <p style={{ fontSize: 13, color: "#606060", margin: "4px 0 0" }}>{nomeAgencia}</p>
+          <p style={{ fontSize: 13, color: "#4A5B6C", margin: "4px 0 0" }}>{nomeAgencia}</p>
         </div>
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
           <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, padding: "8px 14px", borderRadius: 8, background: ativo ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", border: `1px solid ${ativo ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"}`, color: ativo ? "#22c55e" : "#ef4444" }}>
@@ -387,11 +387,11 @@ export default function SecretariaIAPage() {
             {ativo ? "Ativa" : "Desativada"}
           </label>
           {ativo && (
-            <button onClick={ativarSemResposta} disabled={ativandoSemResposta} title="Dispara a IA para conversas das últimas 48h que não receberam resposta" style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, border: "1px solid #2e2e2e", background: "transparent", color: "#a0a0a0", fontWeight: 500, fontSize: 12, cursor: "pointer" }}>
+            <button onClick={ativarSemResposta} disabled={ativandoSemResposta} title="Dispara a IA para conversas das últimas 48h que não receberam resposta" style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, border: "1px solid #E6EBF0", background: "transparent", color: "#4A5B6C", fontWeight: 500, fontSize: 12, cursor: "pointer" }}>
               <Zap size={13} /> {ativandoSemResposta ? "Disparando..." : "Responder sem resposta"}
             </button>
           )}
-          <button onClick={salvar} disabled={salvando} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 20px", borderRadius: 8, border: "none", background: "#29ABE2", color: "#000", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+          <button onClick={salvar} disabled={salvando} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 20px", borderRadius: 8, border: "none", background: "#1C6CA6", color: "#F3F5F7", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
             <Save size={14} /> {salvando ? "Salvando..." : "Salvar"}
           </button>
         </div>
@@ -404,8 +404,8 @@ export default function SecretariaIAPage() {
         <div>
           {/* Identidade */}
           <div style={cardStyle}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
-              <Bot size={16} color="#29ABE2" /> Identidade
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0A1826", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
+              <Bot size={16} color="#1C6CA6" /> Identidade
             </h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
@@ -445,7 +445,7 @@ export default function SecretariaIAPage() {
 
           {/* Configuração Técnica */}
           <div style={cardStyle}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 16px" }}>Configuração Técnica</h3>
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0A1826", margin: "0 0 16px" }}>Configuração Técnica</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
                 <label style={labelStyle}>API Key (OpenAI ou Anthropic)</label>
@@ -467,7 +467,7 @@ export default function SecretariaIAPage() {
                 </div>
                 <div>
                   <label style={labelStyle}>Temperatura ({temperatura})</label>
-                  <input type="range" min="0" max="1" step="0.1" value={temperatura} onChange={e => setTemperatura(Number(e.target.value))} style={{ width: "100%", accentColor: "#29ABE2", marginTop: 8 }} />
+                  <input type="range" min="0" max="1" step="0.1" value={temperatura} onChange={e => setTemperatura(Number(e.target.value))} style={{ width: "100%", accentColor: "#1C6CA6", marginTop: 8 }} />
                 </div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -482,25 +482,25 @@ export default function SecretariaIAPage() {
                 <div>
                   <label style={labelStyle}>Aguardar msgs (seg)</label>
                   <input style={inputStyle} type="number" min="2" max="60" value={debounce} onChange={e => setDebounce(Number(e.target.value))} />
-                  <span style={{ fontSize: 10, color: "#606060" }}>Tempo para processar</span>
+                  <span style={{ fontSize: 10, color: "#4A5B6C" }}>Tempo para processar</span>
                 </div>
                 <div>
                   <label style={labelStyle}>Delay entre msgs (seg)</label>
                   <input style={inputStyle} type="number" min="1" max="15" value={delayResposta} onChange={e => setDelayResposta(Number(e.target.value))} />
-                  <span style={{ fontSize: 10, color: "#606060" }}>Pausa entre respostas</span>
+                  <span style={{ fontSize: 10, color: "#4A5B6C" }}>Pausa entre respostas</span>
                 </div>
               </div>
               <div>
                 <label style={labelStyle}>Delay em conversa ativa (seg)</label>
                 <input style={inputStyle} type="number" min="0" max="300" value={delayConversaAtiva} onChange={e => setDelayConversaAtiva(Number(e.target.value))} />
-                <span style={{ fontSize: 10, color: "#606060" }}>Tempo extra de espera quando a IA já está em conversa (0 = desativado). Ex: 60 = aguarda 1 minuto antes de responder.</span>
+                <span style={{ fontSize: 10, color: "#4A5B6C" }}>Tempo extra de espera quando a IA já está em conversa (0 = desativado). Ex: 60 = aguarda 1 minuto antes de responder.</span>
               </div>
             </div>
           </div>
 
           {/* Horário da IA */}
           <div style={cardStyle}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0A1826", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
               <Clock size={16} color="#f59e0b" /> Horário da IA
             </h3>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -513,7 +513,7 @@ export default function SecretariaIAPage() {
                 <input style={inputStyle} type="time" value={horarioFim} onChange={e => setHorarioFim(e.target.value)} />
               </div>
             </div>
-            <p style={{ fontSize: 11, color: "#606060", marginTop: 8 }}>Se vazio, responde 24h. A IA pausa automaticamente quando um humano responde.</p>
+            <p style={{ fontSize: 11, color: "#4A5B6C", marginTop: 8 }}>Se vazio, responde 24h. A IA pausa automaticamente quando um humano responde.</p>
           </div>
         </div>
 
@@ -521,7 +521,7 @@ export default function SecretariaIAPage() {
         <div>
           {/* Serviços e Preços */}
           <div style={cardStyle}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0A1826", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
               <Zap size={16} color="#f59e0b" /> Serviços e Preços
             </h3>
             <label style={labelStyle}>Serviços oferecidos</label>
@@ -531,7 +531,7 @@ export default function SecretariaIAPage() {
                 {servicos.length > 1 && <button onClick={() => removeItem(servicos, setServicos, i)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: 4 }}><Trash2 size={14} /></button>}
               </div>
             ))}
-            <button onClick={() => addItem(servicos, setServicos)} style={{ background: "none", border: "1px dashed #2e2e2e", borderRadius: 6, padding: "6px 12px", color: "#606060", fontSize: 12, cursor: "pointer", width: "100%", marginBottom: 16 }}><Plus size={12} /> Adicionar serviço</button>
+            <button onClick={() => addItem(servicos, setServicos)} style={{ background: "none", border: "1px dashed #E6EBF0", borderRadius: 6, padding: "6px 12px", color: "#4A5B6C", fontSize: 12, cursor: "pointer", width: "100%", marginBottom: 16 }}><Plus size={12} /> Adicionar serviço</button>
 
             <label style={labelStyle}>Preços / Valores</label>
             {precos.map((s, i) => (
@@ -540,12 +540,12 @@ export default function SecretariaIAPage() {
                 {precos.length > 1 && <button onClick={() => removeItem(precos, setPrecos, i)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: 4 }}><Trash2 size={14} /></button>}
               </div>
             ))}
-            <button onClick={() => addItem(precos, setPrecos)} style={{ background: "none", border: "1px dashed #2e2e2e", borderRadius: 6, padding: "6px 12px", color: "#606060", fontSize: 12, cursor: "pointer", width: "100%" }}><Plus size={12} /> Adicionar preço</button>
+            <button onClick={() => addItem(precos, setPrecos)} style={{ background: "none", border: "1px dashed #E6EBF0", borderRadius: 6, padding: "6px 12px", color: "#4A5B6C", fontSize: 12, cursor: "pointer", width: "100%" }}><Plus size={12} /> Adicionar preço</button>
           </div>
 
           {/* Informações */}
           <div style={cardStyle}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0A1826", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
               <Clock size={16} color="#22c55e" /> Informações
             </h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -562,7 +562,7 @@ export default function SecretariaIAPage() {
 
           {/* Regras de Comportamento */}
           <div style={cardStyle}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0A1826", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
               <Brain size={16} color="#8b5cf6" /> Regras de Comportamento
             </h3>
             {regras.map((s, i) => (
@@ -571,12 +571,12 @@ export default function SecretariaIAPage() {
                 <button onClick={() => removeItem(regras, setRegras, i)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: 4 }}><Trash2 size={14} /></button>
               </div>
             ))}
-            <button onClick={() => addItem(regras, setRegras)} style={{ background: "none", border: "1px dashed #2e2e2e", borderRadius: 6, padding: "6px 12px", color: "#606060", fontSize: 12, cursor: "pointer", width: "100%" }}><Plus size={12} /> Adicionar regra</button>
+            <button onClick={() => addItem(regras, setRegras)} style={{ background: "none", border: "1px dashed #E6EBF0", borderRadius: 6, padding: "6px 12px", color: "#4A5B6C", fontSize: 12, cursor: "pointer", width: "100%" }}><Plus size={12} /> Adicionar regra</button>
           </div>
 
           {/* Instruções extras */}
           <div style={cardStyle}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 12px" }}>Instruções extras</h3>
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0A1826", margin: "0 0 12px" }}>Instruções extras</h3>
             <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 80 }} placeholder="Qualquer instrução adicional..." value={instrucaoExtra} onChange={e => setInstrucaoExtra(e.target.value)} />
           </div>
         </div>
@@ -585,29 +585,29 @@ export default function SecretariaIAPage() {
         <div>
           {/* Preview do Prompt */}
           <div style={cardStyle}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 8 }}>
-              <MessageSquare size={16} color="#29ABE2" /> Preview do Prompt
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0A1826", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 8 }}>
+              <MessageSquare size={16} color="#1C6CA6" /> Preview do Prompt
             </h3>
             <textarea
               style={{ ...inputStyle, resize: "vertical", minHeight: 280, fontSize: 12, lineHeight: "1.6", fontFamily: "monospace" }}
               value={promptFinal}
               onChange={e => { setPromptFinal(e.target.value); setPromptEditadoManualmente(true); }}
             />
-            <p style={{ fontSize: 11, color: "#606060", marginTop: 6 }}>Este é o prompt enviado para a IA. Edite diretamente se quiser ajustar.</p>
+            <p style={{ fontSize: 11, color: "#4A5B6C", marginTop: 6 }}>Este é o prompt enviado para a IA. Edite diretamente se quiser ajustar.</p>
           </div>
 
           {/* Testar Secretária */}
           <div style={cardStyle}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0A1826", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
                 <MessageSquare size={16} color="#22c55e" /> Testar Secretária
               </h3>
               {testMsgs.length > 0 && (
-                <button onClick={() => setTestMsgs([])} style={{ background: "none", border: "none", color: "#606060", fontSize: 11, cursor: "pointer" }}>Limpar</button>
+                <button onClick={() => setTestMsgs([])} style={{ background: "none", border: "none", color: "#4A5B6C", fontSize: 11, cursor: "pointer" }}>Limpar</button>
               )}
             </div>
 
-            <div style={{ background: "#0d0d0d", borderRadius: 8, border: "1px solid #1e1e1e", minHeight: 200, maxHeight: 300, overflowY: "auto", padding: 12, marginBottom: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ background: "#0d0d0d", borderRadius: 8, border: "1px solid #FFFFFF", minHeight: 200, maxHeight: 300, overflowY: "auto", padding: 12, marginBottom: 8, display: "flex", flexDirection: "column", gap: 8 }}>
               {testMsgs.length === 0 && (
                 <p style={{ color: "#404040", fontSize: 12, textAlign: "center", margin: "auto 0" }}>Envie uma mensagem para testar a secretária</p>
               )}
@@ -615,8 +615,8 @@ export default function SecretariaIAPage() {
                 <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
                   <div style={{
                     maxWidth: "80%", padding: "8px 12px", borderRadius: 12, fontSize: 13, lineHeight: "1.5",
-                    background: m.role === "user" ? "#29ABE2" : "#1e1e1e",
-                    color: m.role === "user" ? "#000" : "#f0f0f0",
+                    background: m.role === "user" ? "#1C6CA6" : "#FFFFFF",
+                    color: m.role === "user" ? "#000" : "#0A1826",
                     borderBottomRightRadius: m.role === "user" ? 4 : 12,
                     borderBottomLeftRadius: m.role === "assistant" ? 4 : 12,
                   }}>
@@ -625,7 +625,7 @@ export default function SecretariaIAPage() {
                 </div>
               ))}
               {testLoading && (
-                <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#606060", fontSize: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#4A5B6C", fontSize: 12 }}>
                   <Loader2 size={14} className="spin" /> Digitando...
                 </div>
               )}
@@ -637,7 +637,7 @@ export default function SecretariaIAPage() {
                 onKeyDown={e => e.key === "Enter" && !testLoading && testar()}
                 disabled={testLoading} />
               <button onClick={testar} disabled={testLoading || !testInput.trim()}
-                style={{ background: testInput.trim() ? "#29ABE2" : "#2e2e2e", border: "none", borderRadius: 8, padding: "0 14px", cursor: testInput.trim() ? "pointer" : "default", color: testInput.trim() ? "#000" : "#606060" }}>
+                style={{ background: testInput.trim() ? "#1C6CA6" : "#E6EBF0", border: "none", borderRadius: 8, padding: "0 14px", cursor: testInput.trim() ? "pointer" : "default", color: testInput.trim() ? "#000" : "#4A5B6C" }}>
                 <Send size={14} />
               </button>
             </div>
@@ -646,10 +646,10 @@ export default function SecretariaIAPage() {
 
           {/* Mensagens Gatilho */}
           <div style={cardStyle}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 8 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0A1826", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 8 }}>
               <Zap size={16} color="#22c55e" /> Mensagens Gatilho
             </h3>
-            <p style={{ fontSize: 12, color: "#606060", marginBottom: 14 }}>
+            <p style={{ fontSize: 12, color: "#4A5B6C", marginBottom: 14 }}>
               A IA só responde conversas novas que começam com uma dessas mensagens (ex: mensagem automática do anúncio). Se vazio, responde todas as conversas novas.
             </p>
             {mensagensGatilho.map((m, i) => (
@@ -663,7 +663,7 @@ export default function SecretariaIAPage() {
               </div>
             ))}
             <button onClick={() => setMensagensGatilho([...mensagensGatilho, ""])}
-              style={{ background: "none", border: "1px dashed #2e2e2e", borderRadius: 6, padding: "6px 12px", color: "#606060", fontSize: 12, cursor: "pointer", width: "100%" }}>
+              style={{ background: "none", border: "1px dashed #E6EBF0", borderRadius: 6, padding: "6px 12px", color: "#4A5B6C", fontSize: 12, cursor: "pointer", width: "100%" }}>
               <Plus size={12} /> Adicionar mensagem
             </button>
           </div>
@@ -675,10 +675,10 @@ export default function SecretariaIAPage() {
 
         {/* Confirmação de Agendamento */}
         <div style={cardStyle}>
-          <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0A1826", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
             <Clock size={16} color="#22c55e" /> Confirmação de Agendamento
           </h3>
-          <p style={{ fontSize: 11, color: "#606060", marginBottom: 12 }}>Envio automático de lembretes antes do evento. Variáveis: {"{nome}"}, {"{horario}"}, {"{data}"}, {"{tipo}"}</p>
+          <p style={{ fontSize: 11, color: "#4A5B6C", marginBottom: 12 }}>Envio automático de lembretes antes do evento. Variáveis: {"{nome}"}, {"{horario}"}, {"{data}"}, {"{tipo}"}</p>
           <div style={{ marginBottom: 12 }}>
             <label style={labelStyle}>Enviar confirmação quantos dias antes</label>
             <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
@@ -686,9 +686,9 @@ export default function SecretariaIAPage() {
                 <button key={d} onClick={() => setConfirmacaoDias(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d].sort((a,b) => b - a))}
                   style={{
                     padding: "6px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 500,
-                    border: confirmacaoDias.includes(d) ? "1px solid #22c55e" : "1px solid #2e2e2e",
-                    background: confirmacaoDias.includes(d) ? "rgba(34,197,94,0.1)" : "#1a1a1a",
-                    color: confirmacaoDias.includes(d) ? "#22c55e" : "#606060",
+                    border: confirmacaoDias.includes(d) ? "1px solid #22c55e" : "1px solid #E6EBF0",
+                    background: confirmacaoDias.includes(d) ? "rgba(34,197,94,0.1)" : "#FFFFFF",
+                    color: confirmacaoDias.includes(d) ? "#22c55e" : "#4A5B6C",
                   }}>
                   {d === 0 ? "No dia" : d === 1 ? "1 dia antes" : `${d} dias antes`}
                 </button>
@@ -708,13 +708,13 @@ export default function SecretariaIAPage() {
         {/* Agendamento Automático */}
         <div style={cardStyle}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-              <Calendar size={16} color="#29ABE2" /> Agendamento Automático
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0A1826", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+              <Calendar size={16} color="#1C6CA6" /> Agendamento Automático
             </h3>
             <button onClick={() => setAgendamentoAtivo(!agendamentoAtivo)}
               style={{
                 width: 44, height: 24, borderRadius: 12, border: "none", cursor: "pointer",
-                background: agendamentoAtivo ? "#22c55e" : "#333", position: "relative", transition: "background 0.2s",
+                background: agendamentoAtivo ? "#22c55e" : "#E6EBF0", position: "relative", transition: "background 0.2s",
               }}>
               <span style={{
                 position: "absolute", top: 3, left: agendamentoAtivo ? 23 : 3,
@@ -723,7 +723,7 @@ export default function SecretariaIAPage() {
             </button>
           </div>
 
-          <p style={{ fontSize: 12, color: "#606060", marginBottom: 16 }}>
+          <p style={{ fontSize: 12, color: "#4A5B6C", marginBottom: 16 }}>
             A IA consulta sua agenda e agenda reuniões automaticamente quando o lead quiser marcar.
           </p>
 
@@ -756,11 +756,11 @@ export default function SecretariaIAPage() {
           )}
 
           {/* Google Calendar */}
-          <div style={{ background: "#0d0d0d", borderRadius: 8, border: `1px solid ${!googleCalAtivo && googleCalEmail ? "rgba(239,68,68,0.3)" : "#1e1e1e"}`, padding: 14, marginBottom: 12 }}>
+          <div style={{ background: "#0d0d0d", borderRadius: 8, border: `1px solid ${!googleCalAtivo && googleCalEmail ? "rgba(239,68,68,0.3)" : "#FFFFFF"}`, padding: 14, marginBottom: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <Calendar size={14} color={googleCalAtivo ? "#22c55e" : (!googleCalEmail ? "#606060" : "#ef4444")} />
-                <span style={{ fontSize: 13, color: "#f0f0f0" }}>Google Calendar</span>
+                <Calendar size={14} color={googleCalAtivo ? "#22c55e" : (!googleCalEmail ? "#4A5B6C" : "#ef4444")} />
+                <span style={{ fontSize: 13, color: "#0A1826" }}>Google Calendar</span>
                 {googleCalEmail && (
                   <span style={{ fontSize: 11, color: googleCalAtivo ? "#22c55e" : "#ef4444" }}>({googleCalEmail})</span>
                 )}
@@ -771,7 +771,7 @@ export default function SecretariaIAPage() {
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                   {googleCalEmail && <span style={{ fontSize: 11, padding: "2px 10px", borderRadius: 12, background: "rgba(239,68,68,0.1)", color: "#ef4444" }}>Desconectado</span>}
                   <button onClick={() => window.location.href = `/api/auth/google?agencia_id=${agId}`}
-                    style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8, border: "1px solid #29ABE2", background: "rgba(41,171,226,0.1)", color: "#29ABE2", cursor: "pointer" }}>
+                    style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8, border: "1px solid #1C6CA6", background: "rgba(41,171,226,0.1)", color: "#1C6CA6", cursor: "pointer" }}>
                     {googleCalEmail ? "Reconectar" : "Conectar"}
                   </button>
                   <button onClick={() => {
@@ -780,7 +780,7 @@ export default function SecretariaIAPage() {
                     setLinkCopiado(true);
                     setTimeout(() => setLinkCopiado(false), 2000);
                   }}
-                    style={{ fontSize: 12, padding: "6px 10px", borderRadius: 8, border: "1px solid #2e2e2e", background: linkCopiado ? "rgba(34,197,94,0.1)" : "#1a1a1a", color: linkCopiado ? "#22c55e" : "#a0a0a0", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                    style={{ fontSize: 12, padding: "6px 10px", borderRadius: 8, border: "1px solid #E6EBF0", background: linkCopiado ? "rgba(34,197,94,0.1)" : "#FFFFFF", color: linkCopiado ? "#22c55e" : "#4A5B6C", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
                     {linkCopiado ? <><Check size={12} /> Copiado!</> : <><Copy size={12} /> Copiar link</>}
                   </button>
                 </div>
@@ -800,9 +800,9 @@ export default function SecretariaIAPage() {
               ] as const).map(t => (
                 <button key={t.key} onClick={() => setReuniaoTipo(t.key)} style={{
                   display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12,
-                  border: `1px solid ${reuniaoTipo === t.key ? "#29ABE2" : "#2e2e2e"}`,
-                  background: reuniaoTipo === t.key ? "rgba(41,171,226,0.1)" : "#1a1a1a",
-                  color: reuniaoTipo === t.key ? "#29ABE2" : "#a0a0a0",
+                  border: `1px solid ${reuniaoTipo === t.key ? "#1C6CA6" : "#E6EBF0"}`,
+                  background: reuniaoTipo === t.key ? "rgba(41,171,226,0.1)" : "#FFFFFF",
+                  color: reuniaoTipo === t.key ? "#1C6CA6" : "#4A5B6C",
                 }}>
                   {t.icon} {t.label}
                 </button>
@@ -842,7 +842,7 @@ export default function SecretariaIAPage() {
           {/* Tipos de atendimento com durações diferentes */}
           <div style={{ marginBottom: 12 }}>
             <label style={labelStyle}>Tipos de atendimento e durações</label>
-            <p style={{ fontSize: 11, color: "#606060", marginBottom: 8 }}>
+            <p style={{ fontSize: 11, color: "#4A5B6C", marginBottom: 8 }}>
               Se vazio, usa a duração padrão acima para todos. Com tipos configurados, a IA oferece horários certos para cada procedimento.
             </p>
             {servicosAgenda.map((s, i) => (
@@ -879,7 +879,7 @@ export default function SecretariaIAPage() {
             ))}
             <button
               onClick={() => setServicosAgenda([...servicosAgenda, { nome: "", duracao_minutos: 60 }])}
-              style={{ background: "none", border: "1px dashed #2e2e2e", borderRadius: 6, padding: "6px 12px", color: "#606060", fontSize: 12, cursor: "pointer", width: "100%" }}>
+              style={{ background: "none", border: "1px dashed #E6EBF0", borderRadius: 6, padding: "6px 12px", color: "#4A5B6C", fontSize: 12, cursor: "pointer", width: "100%" }}>
               <Plus size={12} /> Adicionar tipo de atendimento
             </button>
           </div>
@@ -891,9 +891,9 @@ export default function SecretariaIAPage() {
                 <button key={i} onClick={() => setReuniaDias(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i].sort())}
                   style={{
                     flex: 1, padding: "6px 0", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 500,
-                    border: `1px solid ${reuniaoDias.includes(i) ? "#29ABE2" : "#2e2e2e"}`,
-                    background: reuniaoDias.includes(i) ? "rgba(41,171,226,0.15)" : "#1a1a1a",
-                    color: reuniaoDias.includes(i) ? "#29ABE2" : "#606060",
+                    border: `1px solid ${reuniaoDias.includes(i) ? "#1C6CA6" : "#E6EBF0"}`,
+                    background: reuniaoDias.includes(i) ? "rgba(41,171,226,0.15)" : "#FFFFFF",
+                    color: reuniaoDias.includes(i) ? "#1C6CA6" : "#4A5B6C",
                   }}>
                   {d}
                 </button>
@@ -915,13 +915,13 @@ export default function SecretariaIAPage() {
       {/* Follow-up Automático — full width */}
       <div style={{ ...cardStyle, marginTop: 0 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0A1826", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
             <Zap size={16} color="#f59e0b" /> Follow-up Automático
           </h3>
           <button onClick={() => setFollowupAtivo(!followupAtivo)}
             style={{
               width: 44, height: 24, borderRadius: 12, border: "none", cursor: "pointer",
-              background: followupAtivo ? "#22c55e" : "#333", position: "relative", transition: "background 0.2s",
+              background: followupAtivo ? "#22c55e" : "#E6EBF0", position: "relative", transition: "background 0.2s",
             }}>
             <span style={{
               position: "absolute", top: 3, left: followupAtivo ? 23 : 3,
@@ -930,15 +930,15 @@ export default function SecretariaIAPage() {
           </button>
         </div>
 
-        <p style={{ fontSize: 12, color: "#606060", marginBottom: 16 }}>
+        <p style={{ fontSize: 12, color: "#4A5B6C", marginBottom: 16 }}>
           A IA analisa o contexto da conversa e envia a mensagem certa baseado no que foi discutido por último (preço, horários, qualificação, etc.)
         </p>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 12, marginBottom: 12 }}>
           {followupEtapas.map((etapa, idx) => (
-            <div key={idx} style={{ background: "#0d0d0d", borderRadius: 8, border: "1px solid #1e1e1e", padding: 14 }}>
+            <div key={idx} style={{ background: "#0d0d0d", borderRadius: 8, border: "1px solid #FFFFFF", padding: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: "#a0a0a0" }}>Tentativa {idx + 1}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "#4A5B6C" }}>Tentativa {idx + 1}</span>
                 <button onClick={() => removeEtapa(idx)} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", padding: 2 }}>
                   <Trash2 size={13} />
                 </button>
@@ -1004,8 +1004,8 @@ export default function SecretariaIAPage() {
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <label style={{
                     cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6,
-                    padding: "8px 14px", fontSize: 12, borderRadius: 8, border: "1px solid #2e2e2e",
-                    background: "#1a1a1a", color: "#a0a0a0",
+                    padding: "8px 14px", fontSize: 12, borderRadius: 8, border: "1px solid #E6EBF0",
+                    background: "#FFFFFF", color: "#4A5B6C",
                   }}>
                     <Plus size={13} /> Enviar arquivo
                     <input type="file" style={{ display: "none" }}
@@ -1046,7 +1046,7 @@ export default function SecretariaIAPage() {
         </div>
 
         <button onClick={addEtapa}
-          style={{ width: "100%", background: "transparent", border: "1px dashed #2e2e2e", borderRadius: 8, padding: "8px 0", color: "#606060", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 12 }}>
+          style={{ width: "100%", background: "transparent", border: "1px dashed #E6EBF0", borderRadius: 8, padding: "8px 0", color: "#4A5B6C", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 12 }}>
           <Plus size={13} /> Adicionar tentativa
         </button>
 

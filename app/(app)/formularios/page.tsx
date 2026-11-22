@@ -177,7 +177,7 @@ function FormulariosPageInner() {
         { id: gerarId(), tipo: "text", label: "Qual seu nome?", placeholder: "Seu nome completo", obrigatorio: true },
         { id: gerarId(), tipo: "phone", label: "Qual seu WhatsApp?", placeholder: "(00) 00000-0000", obrigatorio: true },
       ],
-      cor_primaria: "#29ABE2", cor_fundo: "#0f0f0f", cor_texto: "", cor_titulo: "", cor_subtitulo: "", cor_botao: "", msg_sucesso: "Obrigado! Entraremos em contato em breve.",
+      cor_primaria: "#1C6CA6", cor_fundo: "#FFFFFF", cor_texto: "", cor_titulo: "", cor_subtitulo: "", cor_botao: "", msg_sucesso: "Obrigado! Entraremos em contato em breve.",
       redirecionar_url: "", redirecionar_whatsapp: true, whatsapp_numero: waNumero, whatsapp_mensagem: "Olá! Preenchi o formulário e gostaria de mais informações.",
       ativo: true, created_at: "", cliente_externo_id: clienteIdParam || null,
     });
@@ -329,8 +329,8 @@ function FormulariosPageInner() {
     alert("Link copiado!");
   };
 
-  const inp: React.CSSProperties = { background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 8, padding: "9px 12px", color: "#f0f0f0", fontSize: 13, width: "100%", boxSizing: "border-box" };
-  const lbl: React.CSSProperties = { fontSize: 12, fontWeight: 500, color: "#a0a0a0", marginBottom: 4, display: "block" };
+  const inp: React.CSSProperties = { background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 8, padding: "9px 12px", color: "#0A1826", fontSize: 13, width: "100%", boxSizing: "border-box" };
+  const lbl: React.CSSProperties = { fontSize: 12, fontWeight: 500, color: "#4A5B6C", marginBottom: 4, display: "block" };
 
   return (
     <div className="animate-in">
@@ -338,8 +338,8 @@ function FormulariosPageInner() {
 
       {clienteIdParam && clienteNome && (
         <div style={{ background: "#0f1a2a", border: "1px solid #1a3a5a", borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 13, color: "#4a9aba" }}>
-          Criando formulário para cliente: <strong style={{ color: "#29ABE2" }}>{clienteNome}</strong>
-          <a href="/formularios" style={{ marginLeft: 12, fontSize: 12, color: "#606060", textDecoration: "underline" }}>Ver todos</a>
+          Criando formulário para cliente: <strong style={{ color: "#1C6CA6" }}>{clienteNome}</strong>
+          <a href="/formularios" style={{ marginLeft: 12, fontSize: 12, color: "#4A5B6C", textDecoration: "underline" }}>Ver todos</a>
         </div>
       )}
 
@@ -355,14 +355,14 @@ function FormulariosPageInner() {
             <thead><tr><th>NOME</th><th>SLUG</th><th>PERGUNTAS</th><th>STATUS</th><th></th></tr></thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={5} style={{ textAlign: "center", color: "#606060", padding: 40 }}>Carregando...</td></tr>
+                <tr><td colSpan={5} style={{ textAlign: "center", color: "#4A5B6C", padding: 40 }}>Carregando...</td></tr>
               ) : !formularios.length ? (
-                <tr><td colSpan={5} style={{ textAlign: "center", color: "#606060", padding: 40 }}>Nenhum formulário. Crie o primeiro!</td></tr>
+                <tr><td colSpan={5} style={{ textAlign: "center", color: "#4A5B6C", padding: 40 }}>Nenhum formulário. Crie o primeiro!</td></tr>
               ) : formularios.map(f => (
                 <tr key={f.id}>
                   <td style={{ fontWeight: 500 }}>{f.nome}</td>
-                  <td style={{ color: "#29ABE2", fontSize: 12 }}>/f/{f.slug}</td>
-                  <td style={{ color: "#a0a0a0" }}>{f.perguntas?.length || 0} campos</td>
+                  <td style={{ color: "#1C6CA6", fontSize: 12 }}>/f/{f.slug}</td>
+                  <td style={{ color: "#4A5B6C" }}>{f.perguntas?.length || 0} campos</td>
                   <td>
                     <span style={{ fontSize: 12, padding: "3px 10px", borderRadius: 20, background: f.ativo ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", color: f.ativo ? "#22c55e" : "#ef4444" }}>
                       {f.ativo ? "Ativo" : "Inativo"}
@@ -373,7 +373,7 @@ function FormulariosPageInner() {
                       <button className="btn-ghost" style={{ padding: "5px 8px" }} onClick={() => copyLink(f.slug)} title="Copiar link"><Copy size={13} /></button>
                       <a href={`${baseUrl}/f/${f.slug}`} target="_blank" className="btn-ghost" style={{ padding: "5px 8px", textDecoration: "none", display: "flex", alignItems: "center" }} title="Visualizar"><Eye size={13} /></a>
                       <button className="btn-ghost" style={{ padding: "5px 8px" }} onClick={() => duplicar(f)} title="Duplicar"><CopyPlus size={13} /></button>
-                      <button className="btn-ghost" style={{ padding: "5px 8px", color: "#29ABE2" }} onClick={() => abrirRespostas(f)} title="Ver respostas"><List size={13} /></button>
+                      <button className="btn-ghost" style={{ padding: "5px 8px", color: "#1C6CA6" }} onClick={() => abrirRespostas(f)} title="Ver respostas"><List size={13} /></button>
                       <button className="btn-secondary" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => setEditando(f)}>Editar</button>
                       <button className="btn-danger" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => remover(f.id)}>Remover</button>
                     </div>
@@ -398,14 +398,14 @@ function FormulariosPageInner() {
                   <X size={14} /> Voltar
                 </button>
               </div>
-              <h2 style={{ fontSize: 16, fontWeight: 600, color: "#f0f0f0" }}>Respostas — {verRespostas.nome}</h2>
-              <span style={{ fontSize: 13, color: "#606060" }}>{loadingRespostas ? "Carregando..." : `${respostas.length} respostas`}</span>
+              <h2 style={{ fontSize: 16, fontWeight: 600, color: "#0A1826" }}>Respostas — {verRespostas.nome}</h2>
+              <span style={{ fontSize: 13, color: "#4A5B6C" }}>{loadingRespostas ? "Carregando..." : `${respostas.length} respostas`}</span>
             </div>
 
             {loadingRespostas ? (
-              <div style={{ textAlign: "center", color: "#606060", padding: 60 }}>Carregando respostas...</div>
+              <div style={{ textAlign: "center", color: "#4A5B6C", padding: 60 }}>Carregando respostas...</div>
             ) : !respostas.length ? (
-              <div style={{ textAlign: "center", color: "#606060", padding: 60 }}>Nenhuma resposta ainda.</div>
+              <div style={{ textAlign: "center", color: "#4A5B6C", padding: 60 }}>Nenhuma resposta ainda.</div>
             ) : (
               <div className="table-wrapper" style={{ overflowX: "auto" }}>
                 <table>
@@ -422,7 +422,7 @@ function FormulariosPageInner() {
                   <tbody>
                     {respostas.map(r => (
                       <tr key={r.id}>
-                        <td style={{ whiteSpace: "nowrap", fontSize: 12, color: "#a0a0a0" }}>
+                        <td style={{ whiteSpace: "nowrap", fontSize: 12, color: "#4A5B6C" }}>
                           {new Date(r.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                         </td>
                         {perguntas.map(p => (
@@ -463,7 +463,7 @@ function FormulariosPageInner() {
             {/* Config geral */}
             <div>
               <div className="card" style={{ marginBottom: 16 }}>
-                <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", marginBottom: 16 }}>Configuração</h3>
+                <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0A1826", marginBottom: 16 }}>Configuração</h3>
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   <div>
                     <label style={lbl}>Nome do formulário (interno)</label>
@@ -481,7 +481,7 @@ function FormulariosPageInner() {
                   <div>
                     <label style={lbl}>Slug (URL)</label>
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <span style={{ color: "#606060", fontSize: 12 }}>/f/</span>
+                      <span style={{ color: "#4A5B6C", fontSize: 12 }}>/f/</span>
                       <input style={{ ...inp, flex: 1 }} value={editando.slug} onChange={e => setEditando({ ...editando, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })} />
                     </div>
                   </div>
@@ -509,25 +509,25 @@ function FormulariosPageInner() {
                     <div>
                       <label style={lbl}>Cor do título</label>
                       <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                        <input type="color" value={editando.cor_titulo || "#f0f0f0"} onChange={e => setEditando({ ...editando, cor_titulo: e.target.value })} style={{ width: 36, height: 36, border: "none", borderRadius: 6, cursor: "pointer", flexShrink: 0 }} />
+                        <input type="color" value={editando.cor_titulo || "#0A1826"} onChange={e => setEditando({ ...editando, cor_titulo: e.target.value })} style={{ width: 36, height: 36, border: "none", borderRadius: 6, cursor: "pointer", flexShrink: 0 }} />
                         <input style={{ ...inp, flex: 1 }} placeholder="Auto" value={editando.cor_titulo || ""} onChange={e => setEditando({ ...editando, cor_titulo: e.target.value })} />
-                        {editando.cor_titulo && <button onClick={() => setEditando({ ...editando, cor_titulo: "" })} style={{ background: "none", border: "none", color: "#606060", cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "0 2px" }}>×</button>}
+                        {editando.cor_titulo && <button onClick={() => setEditando({ ...editando, cor_titulo: "" })} style={{ background: "none", border: "none", color: "#4A5B6C", cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "0 2px" }}>×</button>}
                       </div>
                     </div>
                     <div>
                       <label style={lbl}>Cor do subtítulo</label>
                       <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                        <input type="color" value={editando.cor_subtitulo || "#888888"} onChange={e => setEditando({ ...editando, cor_subtitulo: e.target.value })} style={{ width: 36, height: 36, border: "none", borderRadius: 6, cursor: "pointer", flexShrink: 0 }} />
+                        <input type="color" value={editando.cor_subtitulo || "#6B7A89"} onChange={e => setEditando({ ...editando, cor_subtitulo: e.target.value })} style={{ width: 36, height: 36, border: "none", borderRadius: 6, cursor: "pointer", flexShrink: 0 }} />
                         <input style={{ ...inp, flex: 1 }} placeholder="Auto" value={editando.cor_subtitulo || ""} onChange={e => setEditando({ ...editando, cor_subtitulo: e.target.value })} />
-                        {editando.cor_subtitulo && <button onClick={() => setEditando({ ...editando, cor_subtitulo: "" })} style={{ background: "none", border: "none", color: "#606060", cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "0 2px" }}>×</button>}
+                        {editando.cor_subtitulo && <button onClick={() => setEditando({ ...editando, cor_subtitulo: "" })} style={{ background: "none", border: "none", color: "#4A5B6C", cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "0 2px" }}>×</button>}
                       </div>
                     </div>
                     <div>
                       <label style={lbl}>Cor do botão</label>
                       <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                        <input type="color" value={editando.cor_botao || editando.cor_primaria || "#29ABE2"} onChange={e => setEditando({ ...editando, cor_botao: e.target.value })} style={{ width: 36, height: 36, border: "none", borderRadius: 6, cursor: "pointer", flexShrink: 0 }} />
+                        <input type="color" value={editando.cor_botao || editando.cor_primaria || "#1C6CA6"} onChange={e => setEditando({ ...editando, cor_botao: e.target.value })} style={{ width: 36, height: 36, border: "none", borderRadius: 6, cursor: "pointer", flexShrink: 0 }} />
                         <input style={{ ...inp, flex: 1 }} placeholder="= Cor primária" value={editando.cor_botao || ""} onChange={e => setEditando({ ...editando, cor_botao: e.target.value })} />
-                        {editando.cor_botao && <button onClick={() => setEditando({ ...editando, cor_botao: "" })} style={{ background: "none", border: "none", color: "#606060", cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "0 2px" }}>×</button>}
+                        {editando.cor_botao && <button onClick={() => setEditando({ ...editando, cor_botao: "" })} style={{ background: "none", border: "none", color: "#4A5B6C", cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "0 2px" }}>×</button>}
                       </div>
                     </div>
                   </div>
@@ -536,7 +536,7 @@ function FormulariosPageInner() {
 
               {/* Após envio */}
               <div className="card" style={{ marginBottom: 16 }}>
-                <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", marginBottom: 16 }}>Após envio</h3>
+                <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0A1826", marginBottom: 16 }}>Após envio</h3>
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   <div>
                     <label style={lbl}>Mensagem de sucesso</label>
@@ -544,18 +544,18 @@ function FormulariosPageInner() {
                   </div>
 
                   {/* Botão final */}
-                  <div style={{ background: "#0d0d0d", border: "1px solid #1e1e1e", borderRadius: 10, padding: 12 }}>
-                    <p style={{ fontSize: 12, fontWeight: 600, color: "#a0a0a0", margin: "0 0 10px" }}>Botão na tela final</p>
+                  <div style={{ background: "#0d0d0d", border: "1px solid #FFFFFF", borderRadius: 10, padding: 12 }}>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: "#4A5B6C", margin: "0 0 10px" }}>Botão na tela final</p>
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                       {/* Tipo do botão */}
                       <div style={{ display: "flex", gap: 8 }}>
                         <button
                           onClick={() => setEditando({ ...editando, redirecionar_whatsapp: true, redirecionar_url: "" })}
-                          style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: `1px solid ${editando.redirecionar_whatsapp ? "#29ABE2" : "#2e2e2e"}`, background: editando.redirecionar_whatsapp ? "#29ABE215" : "transparent", color: editando.redirecionar_whatsapp ? "#29ABE2" : "#606060", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                          style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: `1px solid ${editando.redirecionar_whatsapp ? "#1C6CA6" : "#E6EBF0"}`, background: editando.redirecionar_whatsapp ? "#29ABE215" : "transparent", color: editando.redirecionar_whatsapp ? "#1C6CA6" : "#4A5B6C", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
                         >💬 WhatsApp</button>
                         <button
                           onClick={() => setEditando({ ...editando, redirecionar_whatsapp: false })}
-                          style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: `1px solid ${!editando.redirecionar_whatsapp && editando.redirecionar_url !== undefined ? "#29ABE2" : "#2e2e2e"}`, background: !editando.redirecionar_whatsapp ? "#29ABE215" : "transparent", color: !editando.redirecionar_whatsapp ? "#29ABE2" : "#606060", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                          style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: `1px solid ${!editando.redirecionar_whatsapp && editando.redirecionar_url !== undefined ? "#1C6CA6" : "#E6EBF0"}`, background: !editando.redirecionar_whatsapp ? "#29ABE215" : "transparent", color: !editando.redirecionar_whatsapp ? "#1C6CA6" : "#4A5B6C", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
                         >🔗 Link personalizado</button>
                       </div>
                       {/* Texto do botão */}
@@ -593,8 +593,8 @@ function FormulariosPageInner() {
             <div>
               <div className="card">
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", margin: 0 }}>Perguntas ({editando.perguntas.length})</h3>
-                  <button onClick={addPergunta} style={{ background: "none", border: "1px dashed #29ABE2", borderRadius: 6, padding: "4px 12px", color: "#29ABE2", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0A1826", margin: 0 }}>Perguntas ({editando.perguntas.length})</h3>
+                  <button onClick={addPergunta} style={{ background: "none", border: "1px dashed #1C6CA6", borderRadius: 6, padding: "4px 12px", color: "#1C6CA6", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
                     <Plus size={12} /> Adicionar
                   </button>
                 </div>
@@ -614,7 +614,7 @@ function FormulariosPageInner() {
                       onDragEnd={() => { setDragIdx(null); setDragOverIdx(null); }}
                       style={{
                         background: "#0d0d0d",
-                        border: `1px solid ${isDragOver ? "#29ABE2" : temLogica ? "#29ABE230" : "#1e1e1e"}`,
+                        border: `1px solid ${isDragOver ? "#1C6CA6" : temLogica ? "#29ABE230" : "#FFFFFF"}`,
                         borderRadius: 10,
                         padding: 14,
                         opacity: isDragging ? 0.4 : 1,
@@ -625,12 +625,12 @@ function FormulariosPageInner() {
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <GripVertical size={14} style={{ color: "#404040", flexShrink: 0 }} />
-                          <span style={{ fontSize: 11, color: "#606060", fontWeight: 600 }}>CAMPO {idx + 1}</span>
-                          {temLogica && <span style={{ fontSize: 10, background: "#29ABE215", color: "#29ABE2", padding: "2px 6px", borderRadius: 6, fontWeight: 600 }}>LÓGICA</span>}
+                          <span style={{ fontSize: 11, color: "#4A5B6C", fontWeight: 600 }}>CAMPO {idx + 1}</span>
+                          {temLogica && <span style={{ fontSize: 10, background: "#29ABE215", color: "#1C6CA6", padding: "2px 6px", borderRadius: 6, fontWeight: 600 }}>LÓGICA</span>}
                         </div>
                         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                           {p.tipo !== "welcome" && p.tipo !== "obrigado" && p.tipo !== "video" && (
-                            <label style={{ fontSize: 11, color: "#a0a0a0", display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
+                            <label style={{ fontSize: 11, color: "#4A5B6C", display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
                               <input type="checkbox" checked={p.obrigatorio} onChange={e => updatePergunta(idx, "obrigatorio", e.target.checked)} style={{ width: 12, height: 12 }} />
                               Obrigatório
                             </label>
@@ -691,8 +691,8 @@ function FormulariosPageInner() {
                               />
                               <label style={{
                                 display: "inline-flex", alignItems: "center", gap: 4,
-                                padding: "7px 10px", borderRadius: 7, border: "1px dashed #3a3a3a",
-                                color: "#a0a0a0", fontSize: 11, fontWeight: 600, cursor: "pointer",
+                                padding: "7px 10px", borderRadius: 7, border: "1px dashed #E6EBF0",
+                                color: "#4A5B6C", fontSize: 11, fontWeight: 600, cursor: "pointer",
                                 whiteSpace: "nowrap", flexShrink: 0,
                               }}>
                                 📎 Anexar
@@ -723,17 +723,17 @@ function FormulariosPageInner() {
                       )}
 
                       {p.tipo === "obrigado" && (
-                        <div style={{ marginTop: 8, background: "#0d0d0d", border: "1px solid #1e1e1e", borderRadius: 10, padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
-                          <p style={{ fontSize: 12, fontWeight: 600, color: "#a0a0a0", margin: 0 }}>Botão na tela de obrigado</p>
+                        <div style={{ marginTop: 8, background: "#0d0d0d", border: "1px solid #FFFFFF", borderRadius: 10, padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+                          <p style={{ fontSize: 12, fontWeight: 600, color: "#4A5B6C", margin: 0 }}>Botão na tela de obrigado</p>
                           {/* Toggle WhatsApp / Link */}
                           <div style={{ display: "flex", gap: 8 }}>
                             <button
                               onClick={() => { updatePergunta(idx, "whatsappNumero", p.whatsappNumero || ""); updatePergunta(idx, "redirectUrl", ""); }}
-                              style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: `1px solid ${p.whatsappNumero !== undefined && p.whatsappNumero !== null && !p.redirectUrl ? "#29ABE2" : "#2e2e2e"}`, background: (p.whatsappNumero !== undefined && !p.redirectUrl) ? "#29ABE215" : "transparent", color: (p.whatsappNumero !== undefined && !p.redirectUrl) ? "#29ABE2" : "#606060", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                              style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: `1px solid ${p.whatsappNumero !== undefined && p.whatsappNumero !== null && !p.redirectUrl ? "#1C6CA6" : "#E6EBF0"}`, background: (p.whatsappNumero !== undefined && !p.redirectUrl) ? "#29ABE215" : "transparent", color: (p.whatsappNumero !== undefined && !p.redirectUrl) ? "#1C6CA6" : "#4A5B6C", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
                             >💬 WhatsApp</button>
                             <button
                               onClick={() => { updatePergunta(idx, "redirectUrl", p.redirectUrl || ""); updatePergunta(idx, "whatsappNumero", undefined as any); updatePergunta(idx, "whatsappMensagem", undefined as any); }}
-                              style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: `1px solid ${p.redirectUrl ? "#29ABE2" : "#2e2e2e"}`, background: p.redirectUrl ? "#29ABE215" : "transparent", color: p.redirectUrl ? "#29ABE2" : "#606060", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                              style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: `1px solid ${p.redirectUrl ? "#1C6CA6" : "#E6EBF0"}`, background: p.redirectUrl ? "#29ABE215" : "transparent", color: p.redirectUrl ? "#1C6CA6" : "#4A5B6C", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
                             >🔗 Link personalizado</button>
                           </div>
                           {/* Texto do botão */}
@@ -766,9 +766,9 @@ function FormulariosPageInner() {
                             onClick={() => updatePergunta(idx, "semDisparo", !p.semDisparo)}
                             style={{
                               display: "flex", alignItems: "center", gap: 8, padding: "8px 12px",
-                              borderRadius: 8, border: `1px solid ${p.semDisparo ? "#ef4444" : "#2e2e2e"}`,
+                              borderRadius: 8, border: `1px solid ${p.semDisparo ? "#ef4444" : "#E6EBF0"}`,
                               background: p.semDisparo ? "#ef444415" : "transparent",
-                              color: p.semDisparo ? "#ef4444" : "#606060",
+                              color: p.semDisparo ? "#ef4444" : "#4A5B6C",
                               fontSize: 12, fontWeight: 600, cursor: "pointer", textAlign: "left", width: "100%",
                             }}
                           >
@@ -790,8 +790,8 @@ function FormulariosPageInner() {
                             <label style={{ ...lbl, marginBottom: 0 }}>Imagens da galeria</label>
                             <label style={{
                               display: "inline-flex", alignItems: "center", gap: 4,
-                              padding: "5px 10px", borderRadius: 7, border: "1px dashed #29ABE2",
-                              color: "#29ABE2", fontSize: 11, fontWeight: 600, cursor: "pointer",
+                              padding: "5px 10px", borderRadius: 7, border: "1px dashed #1C6CA6",
+                              color: "#1C6CA6", fontSize: 11, fontWeight: 600, cursor: "pointer",
                             }}>
                               📎 Anexar imagem
                               <input type="file" accept="image/*" multiple style={{ display: "none" }}
@@ -821,7 +821,7 @@ function FormulariosPageInner() {
                             {(p.imagensGaleria || []).map((url, gi) => (
                               <div key={gi} style={{ position: "relative", width: 56, height: 56 }}>
                                 {url.startsWith("⏳") ? (
-                                  <div style={{ width: 56, height: 56, borderRadius: 6, background: "#1a1a1a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>⏳</div>
+                                  <div style={{ width: 56, height: 56, borderRadius: 6, background: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>⏳</div>
                                 ) : (
                                   <img src={url} alt="" style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 6 }} />
                                 )}
@@ -854,7 +854,7 @@ function FormulariosPageInner() {
                               <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, marginLeft: 4 }}>
                                 <span style={{ fontSize: 10, color: "#404040" }}>Se escolher esta opção →</span>
                                 <select
-                                  style={{ ...inp, flex: 1, fontSize: 11, color: rotaOpcao ? "#29ABE2" : "#505050", padding: "5px 8px" }}
+                                  style={{ ...inp, flex: 1, fontSize: 11, color: rotaOpcao ? "#1C6CA6" : "#6B7A89", padding: "5px 8px" }}
                                   value={rotaOpcao}
                                   onChange={e => {
                                     const pergs = [...editando!.perguntas];
@@ -875,17 +875,17 @@ function FormulariosPageInner() {
                             </div>
                             );
                           })}
-                          <button onClick={() => addOpcao(idx)} style={{ background: "none", border: "1px dashed #2e2e2e", borderRadius: 4, padding: "3px 8px", color: "#606060", fontSize: 11, cursor: "pointer", width: "100%" }}>+ Opção</button>
+                          <button onClick={() => addOpcao(idx)} style={{ background: "none", border: "1px dashed #E6EBF0", borderRadius: 4, padding: "3px 8px", color: "#4A5B6C", fontSize: 11, cursor: "pointer", width: "100%" }}>+ Opção</button>
                         </div>
                       )}
 
                       {/* Lógica incondicional: pular para (qualquer tipo exceto welcome/obrigado) */}
                       {p.tipo !== "welcome" && p.tipo !== "obrigado" && (
-                        <div style={{ marginTop: 10, padding: "8px 10px", background: "#111", borderRadius: 6, border: "1px solid #1a1a1a" }}>
+                        <div style={{ marginTop: 10, padding: "8px 10px", background: "#FFFFFF", borderRadius: 6, border: "1px solid #FFFFFF" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <span style={{ fontSize: 11, color: "#505050", whiteSpace: "nowrap" }}>Após responder →</span>
+                            <span style={{ fontSize: 11, color: "#6B7A89", whiteSpace: "nowrap" }}>Após responder →</span>
                             <select
-                              style={{ ...inp, flex: 1, fontSize: 11, color: p.irPara ? "#29ABE2" : "#505050", padding: "5px 8px" }}
+                              style={{ ...inp, flex: 1, fontSize: 11, color: p.irPara ? "#1C6CA6" : "#6B7A89", padding: "5px 8px" }}
                               value={p.irPara || ""}
                               onChange={e => updatePergunta(idx, "irPara", e.target.value || undefined)}>
                               <option value="">Próxima pergunta</option>
@@ -915,20 +915,20 @@ function FormulariosPageInner() {
       {/* Modal: escolher modelo */}
       {modalModelo && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={() => setModalModelo(false)}>
-          <div style={{ background: "#141414", border: "1px solid #2a2a2a", borderRadius: 16, width: "100%", maxWidth: 560, maxHeight: "80vh", display: "flex", flexDirection: "column", overflow: "hidden" }} onClick={e => e.stopPropagation()}>
-            <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid #1e1e1e", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 16, width: "100%", maxWidth: 560, maxHeight: "80vh", display: "flex", flexDirection: "column", overflow: "hidden" }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid #FFFFFF", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                <p style={{ margin: 0, fontSize: 16, fontWeight: 600, color: "#f0f0f0" }}>Novo Formulário</p>
-                <p style={{ margin: "4px 0 0", fontSize: 12, color: "#606060" }}>Comece do zero ou use um formulário existente como base</p>
+                <p style={{ margin: 0, fontSize: 16, fontWeight: 600, color: "#0A1826" }}>Novo Formulário</p>
+                <p style={{ margin: "4px 0 0", fontSize: 12, color: "#4A5B6C" }}>Comece do zero ou use um formulário existente como base</p>
               </div>
-              <button onClick={() => setModalModelo(false)} style={{ background: "none", border: "none", color: "#606060", cursor: "pointer", padding: 4 }}><X size={18} /></button>
+              <button onClick={() => setModalModelo(false)} style={{ background: "none", border: "none", color: "#4A5B6C", cursor: "pointer", padding: 4 }}><X size={18} /></button>
             </div>
 
             {/* Começar em branco */}
             <div style={{ padding: "16px 24px 12px" }}>
               <button
                 onClick={() => { setModalModelo(false); novoFormulario(); }}
-                style={{ width: "100%", background: "#1a1a1a", border: "1px dashed #29ABE2", borderRadius: 10, padding: "14px 16px", color: "#29ABE2", fontSize: 13, fontWeight: 500, cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}
+                style={{ width: "100%", background: "#FFFFFF", border: "1px dashed #1C6CA6", borderRadius: 10, padding: "14px 16px", color: "#1C6CA6", fontSize: 13, fontWeight: 500, cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}
               >
                 <Plus size={16} />
                 Começar em branco
@@ -947,15 +947,15 @@ function FormulariosPageInner() {
                 <button
                   key={f.id}
                   onClick={() => novoFormulario(f)}
-                  style={{ background: "#0d0d0d", border: "1px solid #1e1e1e", borderRadius: 10, padding: "12px 16px", cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", transition: "border-color 0.15s" }}
-                  onMouseEnter={e => (e.currentTarget.style.borderColor = "#29ABE2")}
-                  onMouseLeave={e => (e.currentTarget.style.borderColor = "#1e1e1e")}
+                  style={{ background: "#0d0d0d", border: "1px solid #FFFFFF", borderRadius: 10, padding: "12px 16px", cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", transition: "border-color 0.15s" }}
+                  onMouseEnter={e => (e.currentTarget.style.borderColor = "#1C6CA6")}
+                  onMouseLeave={e => (e.currentTarget.style.borderColor = "#FFFFFF")}
                 >
                   <div>
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: "#f0f0f0" }}>{f.nome}</p>
-                    <p style={{ margin: "3px 0 0", fontSize: 11, color: "#606060" }}>{f.cliente_nome} · {f.perguntas?.length || 0} campos</p>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: "#0A1826" }}>{f.nome}</p>
+                    <p style={{ margin: "3px 0 0", fontSize: 11, color: "#4A5B6C" }}>{f.cliente_nome} · {f.perguntas?.length || 0} campos</p>
                   </div>
-                  <span style={{ fontSize: 11, color: "#29ABE2", background: "#29ABE215", padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>Usar modelo</span>
+                  <span style={{ fontSize: 11, color: "#1C6CA6", background: "#29ABE215", padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>Usar modelo</span>
                 </button>
               ))}
             </div>

@@ -8,7 +8,7 @@ import { useLeads, calcularTempoMedioDecisao, supabase } from "@/lib/hooks";
 import { formatCurrency } from "@/lib/utils";
 import { Flame, Percent, DollarSign, Clock, Plus, Users, Star, TrendingUp } from "lucide-react";
 
-const tooltipStyle = { background:"#1e1e1e", border:"1px solid #2e2e2e", borderRadius:"8px", fontSize:"12px", color:"#f0f0f0" };
+const tooltipStyle = { background:"#FFFFFF", border:"1px solid #E6EBF0", borderRadius:"8px", fontSize:"12px", color:"#0A1826" };
 const ORIGENS = ["Facebook","Google","Instagram","LinkedIn","Outro"];
 const ETAPAS_KEYS = ["novo","em_contato","qualificado","reuniao_agendada","nao_compareceu","proposta_enviada","ganho","perdido"];
 const ETAPAS_LABELS = ["Novo","Em contato","Qualificado","Reunião ag.","No-show","Proposta","Ganho","Perdido"];
@@ -131,14 +131,14 @@ export default function CRMDashboardPage() {
       {/* Funil de Conversão */}
       <div className="card" style={{ marginBottom:"20px" }}>
         <h2 style={{ fontSize:"15px", fontWeight:"600", marginBottom:"20px" }}>Funil de Conversão</h2>
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"0", marginBottom:"20px", borderBottom:"1px solid #2e2e2e", paddingBottom:"16px" }}>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"0", marginBottom:"20px", borderBottom:"1px solid #E6EBF0", paddingBottom:"16px" }}>
           {[
             { label:"Leads → Agendamentos", value:`${pctLeadsAgend}%` },
             { label:"Agendados → Compareceram", value:`${pctAgendReal}%` },
             { label:"Compareceram → Vendas", value:`${pctRealVenda}%` },
           ].map((item, i) => (
-            <div key={i} style={{ textAlign:"center", padding:"0 16px", borderRight: i < 2 ? "1px solid #2e2e2e" : "none" }}>
-              <p style={{ fontSize:"12px", color:"#606060", marginBottom:"6px" }}>{item.label}</p>
+            <div key={i} style={{ textAlign:"center", padding:"0 16px", borderRight: i < 2 ? "1px solid #E6EBF0" : "none" }}>
+              <p style={{ fontSize:"12px", color:"#4A5B6C", marginBottom:"6px" }}>{item.label}</p>
               <p style={{ fontSize:"22px", fontWeight:"700", color: item.value === "0.0%" ? "#404040" : "#22c55e" }}>{item.value}</p>
             </div>
           ))}
@@ -150,9 +150,9 @@ export default function CRMDashboardPage() {
             { label:"Realizadas", value:realizados },
             { label:"Fechadas", value:fechados },
           ].map((item) => (
-            <div key={item.label} style={{ background:"#1a1a1a", borderRadius:"8px", padding:"14px 16px" }}>
-              <p style={{ fontSize:"12px", color:"#606060", marginBottom:"6px" }}>{item.label}</p>
-              <p style={{ fontSize:"20px", fontWeight:"700", color: item.value > 0 ? "#f0f0f0" : "#404040" }}>{item.value}</p>
+            <div key={item.label} style={{ background:"#FFFFFF", borderRadius:"8px", padding:"14px 16px" }}>
+              <p style={{ fontSize:"12px", color:"#4A5B6C", marginBottom:"6px" }}>{item.label}</p>
+              <p style={{ fontSize:"20px", fontWeight:"700", color: item.value > 0 ? "#0A1826" : "#404040" }}>{item.value}</p>
             </div>
           ))}
         </div>
@@ -180,8 +180,8 @@ export default function CRMDashboardPage() {
 
       {/* Sem dados */}
       {total === 0 && (
-        <div style={{ background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"12px", padding:"32px", textAlign:"center", marginBottom:"20px" }}>
-          <p style={{ color:"#606060", fontSize:"14px" }}>Nenhum lead encontrado no período selecionado.</p>
+        <div style={{ background:"#FFFFFF", border:"1px solid #E6EBF0", borderRadius:"12px", padding:"32px", textAlign:"center", marginBottom:"20px" }}>
+          <p style={{ color:"#4A5B6C", fontSize:"14px" }}>Nenhum lead encontrado no período selecionado.</p>
         </div>
       )}
 
@@ -191,8 +191,8 @@ export default function CRMDashboardPage() {
           <h3 style={{ fontSize:"14px", fontWeight:"500", marginBottom:"20px" }}>Leads por etapa — Período atual</h3>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={barEtapas}>
-              <XAxis dataKey="etapa" tick={{ fontSize:10, fill:"#606060" }} axisLine={false} tickLine={false}/>
-              <YAxis tick={{ fontSize:11, fill:"#606060" }} axisLine={false} tickLine={false} allowDecimals={false}/>
+              <XAxis dataKey="etapa" tick={{ fontSize:10, fill:"#4A5B6C" }} axisLine={false} tickLine={false}/>
+              <YAxis tick={{ fontSize:11, fill:"#4A5B6C" }} axisLine={false} tickLine={false} allowDecimals={false}/>
               <Tooltip contentStyle={tooltipStyle}/>
               <Bar dataKey="valor" fill="#22c55e" radius={[4,4,0,0]} name="Leads"/>
             </BarChart>
@@ -202,8 +202,8 @@ export default function CRMDashboardPage() {
           <h3 style={{ fontSize:"14px", fontWeight:"500", marginBottom:"20px" }}>Leads por origem — Período atual</h3>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={barOrigem}>
-              <XAxis dataKey="origem" tick={{ fontSize:11, fill:"#606060" }} axisLine={false} tickLine={false}/>
-              <YAxis tick={{ fontSize:11, fill:"#606060" }} axisLine={false} tickLine={false} allowDecimals={false}/>
+              <XAxis dataKey="origem" tick={{ fontSize:11, fill:"#4A5B6C" }} axisLine={false} tickLine={false}/>
+              <YAxis tick={{ fontSize:11, fill:"#4A5B6C" }} axisLine={false} tickLine={false} allowDecimals={false}/>
               <Tooltip contentStyle={tooltipStyle}/>
               <Bar dataKey="valor" fill="#22c55e" radius={[4,4,0,0]} name="Leads"/>
             </BarChart>
@@ -218,15 +218,15 @@ export default function CRMDashboardPage() {
           <table style={{ width:"100%", borderCollapse:"collapse" }}>
             <thead>
               <tr>
-                <th style={{ padding:"10px 14px", textAlign:"left", fontSize:"11px", color:"#606060", fontWeight:"600", textTransform:"uppercase", borderBottom:"1px solid #2e2e2e" }}>ORIGEM</th>
+                <th style={{ padding:"10px 14px", textAlign:"left", fontSize:"11px", color:"#4A5B6C", fontWeight:"600", textTransform:"uppercase", borderBottom:"1px solid #E6EBF0" }}>ORIGEM</th>
                 {ETAPAS_LABELS.map((l) => (
-                  <th key={l} style={{ padding:"10px", textAlign:"center", fontSize:"11px", color:"#606060", fontWeight:"600", textTransform:"uppercase", borderBottom:"1px solid #2e2e2e" }}>{l.toUpperCase()}</th>
+                  <th key={l} style={{ padding:"10px", textAlign:"center", fontSize:"11px", color:"#4A5B6C", fontWeight:"600", textTransform:"uppercase", borderBottom:"1px solid #E6EBF0" }}>{l.toUpperCase()}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {tabelaOrigem.map((row) => (
-                <tr key={row.origem} style={{ borderBottom:"1px solid #2e2e2e" }}>
+                <tr key={row.origem} style={{ borderBottom:"1px solid #E6EBF0" }}>
                   <td style={{ padding:"10px 14px", fontSize:"13px", fontWeight:"500" }}>{row.origem}</td>
                   {row.etapas.map((v, i) => (
                     <td key={i} style={{ padding:"10px", textAlign:"center", fontSize:"13px", color: v > 0 ? "#22c55e" : "#404040" }}>{v}</td>

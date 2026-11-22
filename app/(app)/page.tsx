@@ -9,7 +9,7 @@ import PeriodSelector from "@/components/ui/PeriodSelector";
 
 // DashboardMaster está em /components/DashboardMaster.tsx (acessível via /inicio)
 
-const tooltipStyle = { background: "#1e1e1e", border: "1px solid #2e2e2e", borderRadius: "8px", fontSize: "12px", color: "#f0f0f0" };
+const tooltipStyle = { background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: "8px", fontSize: "12px", color: "#0A1826" };
 
 
 // ─── Dashboard Cliente (agência filha) ───────────────────────
@@ -90,7 +90,7 @@ function DashboardCliente() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px" }}>
         <div>
           <h1 style={{ fontSize: "22px", fontWeight: "600" }}>Dashboard do cliente {agNome}</h1>
-          <p style={{ fontSize: "13px", color: "#606060" }}>Início › Dashboard</p>
+          <p style={{ fontSize: "13px", color: "#4A5B6C" }}>Início › Dashboard</p>
         </div>
         <PeriodSelector onChange={(_period, f, t) => { setFrom(f); setTo(t); }} />
       </div>
@@ -102,14 +102,14 @@ function DashboardCliente() {
         <div className="card" style={{ padding: "24px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
             <div>
-              <p style={{ fontSize: "12px", color: "#606060" }}>Total de Conversas Novas</p>
-              <p style={{ fontSize: "28px", fontWeight: "700", color: "#f0f0f0" }}>{totalConversas}</p>
+              <p style={{ fontSize: "12px", color: "#4A5B6C" }}>Total de Conversas Novas</p>
+              <p style={{ fontSize: "28px", fontWeight: "700", color: "#0A1826" }}>{totalConversas}</p>
             </div>
             <div>
-              <p style={{ fontSize: "12px", color: "#606060" }}>Conversas Rastreadas</p>
-              <p style={{ fontSize: "20px", fontWeight: "600", color: "#22c55e" }}>{rastreadas.length} <span style={{ fontSize: "13px", color: "#606060" }}>{pctRastreadas}%</span></p>
-              <p style={{ fontSize: "12px", color: "#606060", marginTop: "8px" }}>Conversas não rastreadas</p>
-              <p style={{ fontSize: "20px", fontWeight: "600", color: "#ef4444" }}>{naoRastreadas.length} <span style={{ fontSize: "13px", color: "#606060" }}>{pctNaoRastreadas}%</span></p>
+              <p style={{ fontSize: "12px", color: "#4A5B6C" }}>Conversas Rastreadas</p>
+              <p style={{ fontSize: "20px", fontWeight: "600", color: "#22c55e" }}>{rastreadas.length} <span style={{ fontSize: "13px", color: "#4A5B6C" }}>{pctRastreadas}%</span></p>
+              <p style={{ fontSize: "12px", color: "#4A5B6C", marginTop: "8px" }}>Conversas não rastreadas</p>
+              <p style={{ fontSize: "20px", fontWeight: "600", color: "#ef4444" }}>{naoRastreadas.length} <span style={{ fontSize: "13px", color: "#4A5B6C" }}>{pctNaoRastreadas}%</span></p>
             </div>
           </div>
           <ResponsiveContainer width="100%" height={200}>
@@ -133,15 +133,15 @@ function DashboardCliente() {
             {origemData.map((o, i) => (
               <div key={o.nome} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                 <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: CORES_ORIGEM[i % CORES_ORIGEM.length] }} />
-                <span style={{ fontSize: "13px", color: "#f0f0f0", fontWeight: "600" }}>{o.nome}</span>
-                <span style={{ fontSize: "18px", fontWeight: "700", color: "#f0f0f0" }}>{o.total}</span>
+                <span style={{ fontSize: "13px", color: "#0A1826", fontWeight: "600" }}>{o.nome}</span>
+                <span style={{ fontSize: "18px", fontWeight: "700", color: "#0A1826" }}>{o.total}</span>
               </div>
             ))}
           </div>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={graficoDia}>
-              <XAxis dataKey="dia" tick={{ fontSize: 11, fill: "#606060" }} />
-              <YAxis tick={{ fontSize: 11, fill: "#606060" }} />
+              <XAxis dataKey="dia" tick={{ fontSize: 11, fill: "#4A5B6C" }} />
+              <YAxis tick={{ fontSize: 11, fill: "#4A5B6C" }} />
               <Tooltip contentStyle={tooltipStyle} />
               {todasOrigens.map((o, i) => (
                 <Bar key={o} dataKey={o} stackId="a" fill={CORES_ORIGEM[i % CORES_ORIGEM.length]} radius={i === todasOrigens.length - 1 ? [4, 4, 0, 0] : undefined} />
@@ -155,7 +155,7 @@ function DashboardCliente() {
       <h2 style={{ fontSize: "16px", fontWeight: "600", marginBottom: "16px" }}>Funil da Jornada de Compra</h2>
       <div className="card" style={{ padding: "24px", marginBottom: "32px" }}>
         {funilData.length === 0 ? (
-          <p style={{ color: "#606060", textAlign: "center", padding: "24px" }}>Nenhum lead no período.</p>
+          <p style={{ color: "#4A5B6C", textAlign: "center", padding: "24px" }}>Nenhum lead no período.</p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             {funilData.map((f, i) => {
@@ -169,8 +169,8 @@ function DashboardCliente() {
                   width: `${Math.max((f.total / maxTotal) * 100, 30)}%`,
                   transition: "width 0.5s",
                 }}>
-                  <span style={{ fontSize: "13px", fontWeight: "600", color: "#f0f0f0" }}>{f.etapa}</span>
-                  <span style={{ fontSize: "13px", color: "#a0a0a0", marginLeft: "8px" }}>{pct}% ({f.total})</span>
+                  <span style={{ fontSize: "13px", fontWeight: "600", color: "#0A1826" }}>{f.etapa}</span>
+                  <span style={{ fontSize: "13px", color: "#4A5B6C", marginLeft: "8px" }}>{pct}% ({f.total})</span>
                 </div>
               );
             })}
@@ -202,7 +202,7 @@ const HUB_CATEGORIAS = [
     key: "sdr",
     titulo: "SDR",
     descricao: "Secretaria IA, funis, jornada, CRM e rastreamento",
-    cor: "#29ABE2",
+    cor: "#1C6CA6",
     icone: "🤖",
     links: [
       { label: "Secretaria IA", href: "/secretaria-ia" },
@@ -249,8 +249,8 @@ function HubMaster() {
     <div style={{ padding: "48px 32px" }}>
       <div style={{ marginBottom: "40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
         <img src="/logo.png" alt="SALX" style={{ height: "80px", marginBottom: "24px", objectFit: "contain" }} />
-        <h1 style={{ fontSize: "26px", fontWeight: "700", color: "#f0f0f0", marginBottom: "6px" }}>Bem-vindo ao SALX Convert</h1>
-        <p style={{ fontSize: "13px", color: "#606060" }}>Selecione uma área para começar</p>
+        <h1 style={{ fontSize: "26px", fontWeight: "700", color: "#0A1826", marginBottom: "6px" }}>Bem-vindo ao SALX Convert</h1>
+        <p style={{ fontSize: "13px", color: "#4A5B6C" }}>Selecione uma área para começar</p>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px", maxWidth: "1000px", margin: "0 auto" }}>
@@ -260,8 +260,8 @@ function HubMaster() {
             <div
               key={cat.key}
               style={{
-                background: "#141414",
-                border: `1.5px solid ${isAberto ? cat.cor : "#2a2a2a"}`,
+                background: "#FFFFFF",
+                border: `1.5px solid ${isAberto ? cat.cor : "#E6EBF0"}`,
                 borderRadius: "16px",
                 padding: "24px",
                 transition: "all 0.2s",
@@ -282,8 +282,8 @@ function HubMaster() {
                   {cat.icone}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <h2 style={{ fontSize: "16px", fontWeight: "700", color: "#f0f0f0", margin: 0 }}>{cat.titulo}</h2>
-                  <p style={{ fontSize: "11px", color: "#505050", margin: 0, marginTop: "2px", lineHeight: "1.4" }}>{cat.descricao}</p>
+                  <h2 style={{ fontSize: "16px", fontWeight: "700", color: "#0A1826", margin: 0 }}>{cat.titulo}</h2>
+                  <p style={{ fontSize: "11px", color: "#6B7A89", margin: 0, marginTop: "2px", lineHeight: "1.4" }}>{cat.descricao}</p>
                 </div>
                 <span style={{ color: cat.cor, fontSize: "16px", transform: isAberto ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s", flexShrink: 0 }}>›</span>
               </div>
@@ -298,13 +298,13 @@ function HubMaster() {
                       style={{
                         display: "flex", alignItems: "center", justifyContent: "space-between",
                         padding: "8px 10px", borderRadius: "8px",
-                        background: "#1c1c1c", color: "#c0c0c0",
+                        background: "#FFFFFF", color: "#c0c0c0",
                         fontSize: "13px", fontWeight: "500",
                         textDecoration: "none",
                         transition: "all 0.15s",
                       }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = `${cat.cor}15`; e.currentTarget.style.color = "#f0f0f0"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = "#1c1c1c"; e.currentTarget.style.color = "#c0c0c0"; }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = `${cat.cor}15`; e.currentTarget.style.color = "#0A1826"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "#FFFFFF"; e.currentTarget.style.color = "#c0c0c0"; }}
                     >
                       {link.label}
                       <span style={{ color: cat.cor, fontSize: "14px" }}>→</span>
@@ -328,12 +328,12 @@ function HubMaster() {
             style={{
               flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
               padding: "12px 20px", borderRadius: "12px",
-              background: "#141414", border: `1.5px solid #2a2a2a`,
-              color: "#a0a0a0", fontSize: "13px", fontWeight: "600",
+              background: "#FFFFFF", border: `1.5px solid #E6EBF0`,
+              color: "#4A5B6C", fontSize: "13px", fontWeight: "600",
               textDecoration: "none", transition: "all 0.15s",
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = item.cor; e.currentTarget.style.color = "#f0f0f0"; e.currentTarget.style.background = `${item.cor}12`; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2a2a2a"; e.currentTarget.style.color = "#a0a0a0"; e.currentTarget.style.background = "#141414"; }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = item.cor; e.currentTarget.style.color = "#0A1826"; e.currentTarget.style.background = `${item.cor}12`; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E6EBF0"; e.currentTarget.style.color = "#4A5B6C"; e.currentTarget.style.background = "#FFFFFF"; }}
           >
             {item.label}
           </a>
@@ -361,7 +361,7 @@ export default function DashboardPage() {
 
   if (isFilha === null) return (
     <div style={{ display: "flex", justifyContent: "center", padding: "60px" }}>
-      <div style={{ width: "32px", height: "32px", borderRadius: "50%", border: "3px solid #2e2e2e", borderTop: "3px solid #29ABE2", animation: "spin 1s linear infinite" }} />
+      <div style={{ width: "32px", height: "32px", borderRadius: "50%", border: "3px solid #E6EBF0", borderTop: "3px solid #1C6CA6", animation: "spin 1s linear infinite" }} />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );

@@ -99,18 +99,18 @@ function EtapaModal({ etapa, onClose, onSave }: { etapa?: Etapa; onClose: () => 
               <option value="">Selecione um evento...</option>
               {EVENTOS_META.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}
             </select>
-            <p style={{ fontSize: "11px", color: "#606060", marginTop: "4px" }}>
+            <p style={{ fontSize: "11px", color: "#4A5B6C", marginTop: "4px" }}>
               Selecione a qual evento de conversão esta etapa da jornada estará associado...
             </p>
           </div>
 
-          <div style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "10px", padding: "14px 16px", display: "flex", flexDirection: "column", gap: "12px" }}>
+          <div style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: "10px", padding: "14px 16px", display: "flex", flexDirection: "column", gap: "12px" }}>
             <label style={{ display: "flex", alignItems: "flex-start", gap: "10px", cursor: "pointer" }}>
               <input type="checkbox" checked={form.eh_venda} onChange={e => set("eh_venda", e.target.checked)}
                 style={{ width: "15px", height: "15px", marginTop: "2px", cursor: "pointer" }}/>
               <div>
-                <p style={{ fontSize: "13px", fontWeight: "500", color: "#f0f0f0", marginBottom: "2px" }}>Etapa que representa uma venda?</p>
-                <p style={{ fontSize: "11px", color: "#606060" }}>Marque esta opção caso esta etapa da jornada represente uma venda.</p>
+                <p style={{ fontSize: "13px", fontWeight: "500", color: "#0A1826", marginBottom: "2px" }}>Etapa que representa uma venda?</p>
+                <p style={{ fontSize: "11px", color: "#4A5B6C" }}>Marque esta opção caso esta etapa da jornada represente uma venda.</p>
               </div>
             </label>
 
@@ -125,8 +125,8 @@ function EtapaModal({ etapa, onClose, onSave }: { etapa?: Etapa; onClose: () => 
               <input type="checkbox" checked={form.eh_primeiro_contato} onChange={e => set("eh_primeiro_contato", e.target.checked)}
                 style={{ width: "15px", height: "15px", marginTop: "2px", cursor: "pointer" }}/>
               <div>
-                <p style={{ fontSize: "13px", fontWeight: "500", color: "#f0f0f0", marginBottom: "2px" }}>Etapa que representa um primeiro contato?</p>
-                <p style={{ fontSize: "11px", color: "#606060" }}>Marque esta opção caso esta etapa da jornada represente um primeiro contato com sua empresa.</p>
+                <p style={{ fontSize: "13px", fontWeight: "500", color: "#0A1826", marginBottom: "2px" }}>Etapa que representa um primeiro contato?</p>
+                <p style={{ fontSize: "11px", color: "#4A5B6C" }}>Marque esta opção caso esta etapa da jornada represente um primeiro contato com sua empresa.</p>
               </div>
             </label>
           </div>
@@ -136,7 +136,7 @@ function EtapaModal({ etapa, onClose, onSave }: { etapa?: Etapa; onClose: () => 
             <textarea className="form-input" placeholder="Ex: agendei, reunião marcada, fechou..."
               value={form.termo_chave} onChange={e => set("termo_chave", e.target.value)}
               rows={3} style={{ resize: "vertical" }}/>
-            <p style={{ fontSize: "11px", color: "#606060", marginTop: "4px" }}>
+            <p style={{ fontSize: "11px", color: "#4A5B6C", marginTop: "4px" }}>
               Sempre que o sistema identificar que o termo-chave acima foi enviado pelo atendente, a conversa será ajustada para esta etapa da jornada.
             </p>
           </div>
@@ -178,7 +178,7 @@ function OrdenarModal({ etapas, onClose, onSave }: { etapas: Etapa[]; onClose: (
           <h2 style={{ fontSize: "17px", fontWeight: "600" }}>Ordenar Etapas do Funil</h2>
           <button onClick={onClose} className="btn-ghost" style={{ padding: "6px", cursor: "pointer" }}><X size={16}/></button>
         </div>
-        <p style={{ fontSize: "13px", color: "#606060", marginBottom: "24px" }}>Clique e arraste para ordenar as etapas do funil.</p>
+        <p style={{ fontSize: "13px", color: "#4A5B6C", marginBottom: "24px" }}>Clique e arraste para ordenar as etapas do funil.</p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           {lista.map((e, i) => {
@@ -195,9 +195,9 @@ function OrdenarModal({ etapas, onClose, onSave }: { etapas: Etapa[]; onClose: (
                   width: `${largura}%`, margin: "0 auto",
                   transition: "width 0.2s",
                 }}>
-                <GripVertical size={14} style={{ color: "#606060", flexShrink: 0 }}/>
+                <GripVertical size={14} style={{ color: "#4A5B6C", flexShrink: 0 }}/>
                 <span style={{ fontSize: "13px", fontWeight: "500", flex: 1 }}>{e.nome}</span>
-                <span style={{ fontSize: "11px", color: "#606060" }}>#{i + 1}</span>
+                <span style={{ fontSize: "11px", color: "#4A5B6C" }}>#{i + 1}</span>
               </div>
             );
           })}
@@ -284,14 +284,14 @@ export default function JornadaPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} style={{ textAlign: "center", color: "#606060", padding: "40px" }}>Carregando...</td></tr>
+              <tr><td colSpan={6} style={{ textAlign: "center", color: "#4A5B6C", padding: "40px" }}>Carregando...</td></tr>
             ) : !etapas.length ? (
-              <tr><td colSpan={6} style={{ textAlign: "center", color: "#606060", padding: "48px" }}>
+              <tr><td colSpan={6} style={{ textAlign: "center", color: "#4A5B6C", padding: "48px" }}>
                 Nenhuma etapa criada. Crie a primeira etapa da jornada!
               </td></tr>
             ) : etapas.map(e => (
               <tr key={e.id}>
-                <td style={{ color: "#606060", fontSize: "12px", fontFamily: "monospace" }}>{e.id.slice(0,5).toUpperCase()}</td>
+                <td style={{ color: "#4A5B6C", fontSize: "12px", fontFamily: "monospace" }}>{e.id.slice(0,5).toUpperCase()}</td>
                 <td>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <div style={{ width: "24px", height: "24px", borderRadius: "50%", background: "rgba(34,197,94,0.15)", color: "#22c55e", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "600" }}>
@@ -310,12 +310,12 @@ export default function JornadaPage() {
                   {e.evento_conversao ? (
                     <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                       <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#1877f2", display: "inline-block", flexShrink: 0 }}/>
-                      <span style={{ fontSize: "12px", color: "#a0a0a0" }}>{e.evento_conversao}</span>
-                      <span style={{ fontSize: "10px", color: "#606060" }}>(Meta Ads)</span>
+                      <span style={{ fontSize: "12px", color: "#4A5B6C" }}>{e.evento_conversao}</span>
+                      <span style={{ fontSize: "10px", color: "#4A5B6C" }}>(Meta Ads)</span>
                     </span>
-                  ) : <span style={{ color: "#606060" }}>—</span>}
+                  ) : <span style={{ color: "#4A5B6C" }}>—</span>}
                 </td>
-                <td style={{ color: "#a0a0a0", fontSize: "12px" }}>{formatarData(e.created_at)}</td>
+                <td style={{ color: "#4A5B6C", fontSize: "12px" }}>{formatarData(e.created_at)}</td>
                 <td onClick={ev => ev.stopPropagation()}>
                   <button className="btn-ghost" style={{ padding: "6px", cursor: "pointer" }}
                     onClick={ev => {
@@ -340,11 +340,11 @@ export default function JornadaPage() {
 
       {menuAberto && (
         <div
-          style={{ position: "fixed", top: menuPos.top, right: menuPos.right, background: "#1e1e1e", border: "1px solid #3a3a3a", borderRadius: "8px", overflow: "hidden", minWidth: "130px", zIndex: 9999, boxShadow: "0 4px 12px rgba(0,0,0,0.4)" }}
+          style={{ position: "fixed", top: menuPos.top, right: menuPos.right, background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: "8px", overflow: "hidden", minWidth: "130px", zIndex: 9999, boxShadow: "0 4px 12px rgba(0,0,0,0.4)" }}
           onClick={ev => ev.stopPropagation()}
         >
           <button onClick={() => { const et = etapas.find(x => x.id === menuAberto) || null; setEditando(et); setMenuAberto(null); }}
-            style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: "13px", color: "#f0f0f0", textAlign: "left", display: "flex", alignItems: "center", gap: "8px" }}>
+            style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: "13px", color: "#0A1826", textAlign: "left", display: "flex", alignItems: "center", gap: "8px" }}>
             <Edit2 size={13}/> Editar
           </button>
           <button onClick={() => { remover(menuAberto); }}

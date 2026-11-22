@@ -37,9 +37,9 @@ export default function LoginPage() {
     <div style={{ minHeight: "100vh", background: "radial-gradient(ellipse at 60% 30%, rgba(28,108,166,0.18) 0%, var(--navy) 60%)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
       <div style={{ width: "100%", maxWidth: "380px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px", justifyContent: "center", marginBottom: "40px" }}>
-          <img src="/logo.png" alt="SALX Convert" style={{ width: "56px", height: "56px", objectFit: "contain" }}/>
+          <img src="/logo-salx.png" alt="SALX Convert" style={{ width: "80px", height: "72px", objectFit: "contain" }}/>
           <div style={{ display: "flex", flexDirection: "column", lineHeight: 1 }}>
-            <span style={{ fontSize: "22px", fontWeight: "800", color: "#FFFFFF", letterSpacing: "-0.5px" }}>
+            <span style={{ fontSize: "22px", fontWeight: "800", color: "#0A1826", letterSpacing: "-0.5px" }}>
               SALX <span style={{ color: "var(--brand)" }}>Convert</span>
             </span>
             <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.5)", textAlign: "center", letterSpacing: "0.05em", marginTop: "3px" }}>

@@ -65,24 +65,24 @@ const tipoLabel: Record<string, string> = {
 
 /* ─── styles ─── */
 const inputStyle: React.CSSProperties = {
-  background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 8,
-  padding: "9px 12px", color: "#f0f0f0", fontSize: 13, width: "100%",
+  background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 8,
+  padding: "9px 12px", color: "#0A1826", fontSize: 13, width: "100%",
   boxSizing: "border-box",
 };
 const labelStyle: React.CSSProperties = {
-  fontSize: 12, fontWeight: 500, color: "#a0a0a0", marginBottom: 4, display: "block",
+  fontSize: 12, fontWeight: 500, color: "#4A5B6C", marginBottom: 4, display: "block",
 };
 const cardStyle: React.CSSProperties = {
-  background: "#141414", border: "1px solid #2e2e2e", borderRadius: 12,
+  background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 12,
   padding: 20, marginBottom: 16,
 };
 const btnPrimary: React.CSSProperties = {
-  background: "#29ABE2", color: "#fff", border: "none", borderRadius: 8,
+  background: "#1C6CA6", color: "#fff", border: "none", borderRadius: 8,
   padding: "9px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer",
   display: "inline-flex", alignItems: "center", gap: 6,
 };
 const btnGhost: React.CSSProperties = {
-  background: "transparent", color: "#a0a0a0", border: "1px solid #2e2e2e",
+  background: "transparent", color: "#4A5B6C", border: "1px solid #E6EBF0",
   borderRadius: 8, padding: "7px 12px", fontSize: 12, cursor: "pointer",
   display: "inline-flex", alignItems: "center", gap: 4,
 };
@@ -261,13 +261,13 @@ export default function FunisPage() {
 
       {/* header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 600, color: "#f0f0f0", margin: 0 }}>Funis</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 600, color: "#0A1826", margin: 0 }}>Funis</h1>
         <button style={btnPrimary} onClick={openNew}><Plus size={15} /> Novo Funil</button>
       </div>
 
       {/* search */}
       <div style={{ position: "relative", marginBottom: 20 }}>
-        <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#606060" }} />
+        <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#4A5B6C" }} />
         <input
           style={{ ...inputStyle, paddingLeft: 34 }}
           placeholder="Buscar funis..."
@@ -277,11 +277,11 @@ export default function FunisPage() {
       </div>
 
       {/* loading */}
-      {loading && <p style={{ color: "#666", fontSize: 13 }}>Carregando...</p>}
+      {loading && <p style={{ color: "#6B7A89", fontSize: 13 }}>Carregando...</p>}
 
       {/* empty */}
       {!loading && filtrados.length === 0 && (
-        <div style={{ ...cardStyle, textAlign: "center", color: "#666", padding: 48 }}>
+        <div style={{ ...cardStyle, textAlign: "center", color: "#6B7A89", padding: 48 }}>
           <MessageSquare size={32} style={{ marginBottom: 12, opacity: 0.4 }} />
           <p style={{ fontSize: 14 }}>Nenhum funil encontrado</p>
           <button style={{ ...btnPrimary, marginTop: 12 }} onClick={openNew}><Plus size={14} /> Criar primeiro funil</button>
@@ -292,7 +292,7 @@ export default function FunisPage() {
       {filtrados.map(f => {
         const expanded = expandedId === f.id;
         return (
-          <div key={f.id} style={{ ...cardStyle, transition: "border-color 0.15s", borderColor: expanded ? "#29ABE2" : "#2e2e2e" }}>
+          <div key={f.id} style={{ ...cardStyle, transition: "border-color 0.15s", borderColor: expanded ? "#1C6CA6" : "#E6EBF0" }}>
             {/* card header */}
             <div
               style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}
@@ -300,19 +300,19 @@ export default function FunisPage() {
             >
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-                  <span style={{ fontSize: 15, fontWeight: 600, color: "#f0f0f0" }}>{f.nome}</span>
+                  <span style={{ fontSize: 15, fontWeight: 600, color: "#0A1826" }}>{f.nome}</span>
                   {f.descricao && (
                     <span style={{
-                      fontSize: 11, background: "#1e1e1e", border: "1px solid #2e2e2e",
-                      borderRadius: 6, padding: "2px 8px", color: "#888",
+                      fontSize: 11, background: "#FFFFFF", border: "1px solid #E6EBF0",
+                      borderRadius: 6, padding: "2px 8px", color: "#6B7A89",
                     }}>{f.descricao}</span>
                   )}
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 12, color: "#666" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 12, color: "#6B7A89" }}>
                   <span>{f.etapas.length} etapa{f.etapas.length !== 1 ? "s" : ""}</span>
                   <span style={{ display: "flex", gap: 4, alignItems: "center" }}>
                     {Array.from(new Set(f.etapas.map(e => e.tipo_conteudo))).map(t => (
-                      <span key={t} title={tipoLabel[t]} style={{ color: "#888" }}>{tipoIcon[t]}</span>
+                      <span key={t} title={tipoLabel[t]} style={{ color: "#6B7A89" }}>{tipoIcon[t]}</span>
                     ))}
                   </span>
                 </div>
@@ -323,8 +323,8 @@ export default function FunisPage() {
                 <button
                   style={{
                     ...btnGhost,
-                    color: f.ativo ? "#29ABE2" : "#666",
-                    borderColor: f.ativo ? "#29ABE233" : "#2e2e2e",
+                    color: f.ativo ? "#1C6CA6" : "#6B7A89",
+                    borderColor: f.ativo ? "#29ABE233" : "#E6EBF0",
                   }}
                   title={f.ativo ? "Desativar" : "Ativar"}
                   onClick={() => toggleAtivo(f)}
@@ -340,26 +340,26 @@ export default function FunisPage() {
 
             {/* expanded etapas preview */}
             {expanded && f.etapas.length > 0 && (
-              <div style={{ marginTop: 16, borderTop: "1px solid #2e2e2e", paddingTop: 16 }}>
+              <div style={{ marginTop: 16, borderTop: "1px solid #E6EBF0", paddingTop: 16 }}>
                 {f.etapas.map((e, i) => (
                   <div key={i} style={{
                     display: "flex", alignItems: "flex-start", gap: 12,
-                    padding: "10px 0", borderBottom: i < f.etapas.length - 1 ? "1px solid #1e1e1e" : "none",
+                    padding: "10px 0", borderBottom: i < f.etapas.length - 1 ? "1px solid #FFFFFF" : "none",
                   }}>
                     <div style={{
-                      minWidth: 28, height: 28, borderRadius: "50%", background: "#1e1e1e",
+                      minWidth: 28, height: 28, borderRadius: "50%", background: "#FFFFFF",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 11, color: "#888", fontWeight: 600,
+                      fontSize: 11, color: "#6B7A89", fontWeight: 600,
                     }}>{i + 1}</div>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                        <span style={{ color: "#888" }}>{tipoIcon[e.tipo_conteudo]}</span>
+                        <span style={{ color: "#6B7A89" }}>{tipoIcon[e.tipo_conteudo]}</span>
                         <span style={{ fontSize: 13, color: "#ccc", fontWeight: 500 }}>
                           {e.nome || `Etapa ${i + 1}`}
                         </span>
                         <span style={{
-                          fontSize: 11, background: "#1a1a1a", borderRadius: 4,
-                          padding: "1px 6px", color: "#666",
+                          fontSize: 11, background: "#FFFFFF", borderRadius: 4,
+                          padding: "1px 6px", color: "#6B7A89",
                         }}>{fmtDelay(e.delay_minutos)}</span>
                       </div>
                       {e.texto && (
@@ -378,9 +378,9 @@ export default function FunisPage() {
               </div>
             )}
             {expanded && f.etapas.length === 0 && (
-              <p style={{ marginTop: 16, color: "#555", fontSize: 12, borderTop: "1px solid #2e2e2e", paddingTop: 16 }}>
+              <p style={{ marginTop: 16, color: "#555", fontSize: 12, borderTop: "1px solid #E6EBF0", paddingTop: 16 }}>
                 Nenhuma etapa configurada.{" "}
-                <span style={{ color: "#29ABE2", cursor: "pointer" }} onClick={() => openEdit(f)}>Editar funil</span>
+                <span style={{ color: "#1C6CA6", cursor: "pointer" }} onClick={() => openEdit(f)}>Editar funil</span>
               </p>
             )}
           </div>
@@ -394,8 +394,8 @@ export default function FunisPage() {
           display: "flex", alignItems: "center", justifyContent: "center",
         }} onClick={() => setDeleteId(null)}>
           <div style={{ ...cardStyle, width: 400, maxWidth: "90vw", margin: 0 }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ fontSize: 16, fontWeight: 600, color: "#f0f0f0", marginTop: 0, marginBottom: 12 }}>Confirmar exclusao</h3>
-            <p style={{ fontSize: 13, color: "#999", marginBottom: 20 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 600, color: "#0A1826", marginTop: 0, marginBottom: 12 }}>Confirmar exclusao</h3>
+            <p style={{ fontSize: 13, color: "#6B7A89", marginBottom: 20 }}>
               Tem certeza que deseja excluir este funil e todas as suas etapas? Esta acao nao pode ser desfeita.
             </p>
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
@@ -419,16 +419,16 @@ export default function FunisPage() {
           overflowY: "auto", padding: "40px 16px",
         }} onClick={() => setModalOpen(false)}>
           <div style={{
-            background: "#0f0f0f", border: "1px solid #2e2e2e", borderRadius: 16,
+            background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 16,
             width: 680, maxWidth: "100%", padding: 28,
           }} onClick={e => e.stopPropagation()}>
             {/* modal header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-              <h2 style={{ fontSize: 18, fontWeight: 600, color: "#f0f0f0", margin: 0 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 600, color: "#0A1826", margin: 0 }}>
                 {editId ? "Editar Funil" : "Novo Funil"}
               </h2>
               <button
-                style={{ background: "none", border: "none", color: "#666", cursor: "pointer" }}
+                style={{ background: "none", border: "none", color: "#6B7A89", cursor: "pointer" }}
                 onClick={() => setModalOpen(false)}
               ><X size={20} /></button>
             </div>
@@ -466,13 +466,13 @@ export default function FunisPage() {
               const du = delayToUnit(etapa.delay_minutos);
               return (
                 <div key={idx} style={{
-                  background: "#141414", border: "1px solid #2e2e2e", borderRadius: 10,
+                  background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 10,
                   padding: 16, marginBottom: 12,
                 }}>
                   {/* step header */}
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                     <GripVertical size={14} style={{ color: "#444" }} />
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "#888" }}>#{idx + 1}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "#6B7A89" }}>#{idx + 1}</span>
                     <div style={{ flex: 1 }} />
                     <button
                       style={{ background: "none", border: "none", color: "#555", cursor: "pointer", padding: 2 }}
@@ -565,8 +565,8 @@ export default function FunisPage() {
                       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                         <label style={{
                           ...btnGhost, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6,
-                          padding: "8px 14px", fontSize: 12, borderRadius: 8, border: "1px solid #2e2e2e",
-                          background: "#1a1a1a", color: "#a0a0a0",
+                          padding: "8px 14px", fontSize: 12, borderRadius: 8, border: "1px solid #E6EBF0",
+                          background: "#FFFFFF", color: "#4A5B6C",
                         }}>
                           <Plus size={13} /> Enviar arquivo
                           <input type="file" style={{ display: "none" }}

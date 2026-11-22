@@ -80,18 +80,18 @@ function TimeModal({ item, onClose, onSave }: { item?: Time; onClose:()=>void; o
             <label className="form-label" style={{marginBottom:"12px",display:"block"}}>Permissões por módulo</label>
             <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
               {MODULOS.map(m=>(
-                <div key={m.key} style={{background:"#1a1a1a",borderRadius:"8px",padding:"12px 16px",border:"1px solid #2e2e2e"}}>
+                <div key={m.key} style={{background:"#FFFFFF",borderRadius:"8px",padding:"12px 16px",border:"1px solid #E6EBF0"}}>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:"8px"}}>
-                    <span style={{fontSize:"13px",fontWeight:"600",color:"#f0f0f0",minWidth:"130px"}}>{m.label}</span>
+                    <span style={{fontSize:"13px",fontWeight:"600",color:"#0A1826",minWidth:"130px"}}>{m.label}</span>
                     <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
                       {m.perms.map(p=>{
                         const ativo = (permissoes[m.key]||[]).includes(p);
                         return (
                           <button key={p} onClick={()=>togglePerm(m.key,p)} style={{
                             padding:"4px 10px",borderRadius:"6px",cursor:"pointer",fontSize:"12px",fontWeight:"500",
-                            border:`1px solid ${ativo?"#29ABE2":"#3a3a3a"}`,
-                            background:ativo?"rgba(41,171,226,0.15)":"#222",
-                            color:ativo?"#f0f0f0":"#606060",
+                            border:`1px solid ${ativo?"#1C6CA6":"#E6EBF0"}`,
+                            background:ativo?"rgba(41,171,226,0.15)":"#E6EBF0",
+                            color:ativo?"#0A1826":"#4A5B6C",
                           }}>{p}</button>
                         );
                       })}
@@ -142,14 +142,14 @@ export default function TimesPage() {
   return (
     <div className="animate-in">
       <div className="breadcrumb">
-        <a href="/">Início</a><span>›</span><span style={{color:"#a0a0a0"}}>Configurações</span><span>›</span>
+        <a href="/">Início</a><span>›</span><span style={{color:"#4A5B6C"}}>Configurações</span><span>›</span>
         <span className="current">Times</span>
       </div>
       <h1 style={{fontSize:"22px",fontWeight:"600",marginBottom:"24px"}}>Times</h1>
       <div className="table-wrapper">
-        <div style={{padding:"16px",display:"flex",gap:"12px",borderBottom:"1px solid #2e2e2e"}}>
+        <div style={{padding:"16px",display:"flex",gap:"12px",borderBottom:"1px solid #E6EBF0"}}>
           <div style={{position:"relative",flex:1}}>
-            <Search size={14} style={{position:"absolute",left:"12px",top:"50%",transform:"translateY(-50%)",color:"#606060"}}/>
+            <Search size={14} style={{position:"absolute",left:"12px",top:"50%",transform:"translateY(-50%)",color:"#4A5B6C"}}/>
             <input className="search-input" placeholder="Buscar times..." value={busca} onChange={e=>setBusca(e.target.value)}/>
           </div>
           <button className="btn-primary" onClick={()=>setShowModal(true)} style={{cursor:"pointer"}}>
@@ -160,9 +160,9 @@ export default function TimesPage() {
           <thead><tr><th>NOME</th><th>MÓDULOS COM ACESSO</th><th></th></tr></thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={3} style={{textAlign:"center",color:"#606060",padding:"40px"}}>Carregando...</td></tr>
+              <tr><td colSpan={3} style={{textAlign:"center",color:"#4A5B6C",padding:"40px"}}>Carregando...</td></tr>
             ) : !items.length ? (
-              <tr><td colSpan={3} style={{textAlign:"center",color:"#606060",padding:"40px"}}>Nenhum time encontrado.</td></tr>
+              <tr><td colSpan={3} style={{textAlign:"center",color:"#4A5B6C",padding:"40px"}}>Nenhum time encontrado.</td></tr>
             ) : items.map(t=>{
               const modulos = Object.keys(t.permissoes||{}).filter(k=>(t.permissoes[k]||[]).length>0);
               return (
@@ -174,7 +174,7 @@ export default function TimesPage() {
                         <span key={m} className="badge badge-gray" style={{textTransform:"capitalize"}}>{m}</span>
                       ))}
                       {modulos.length>4&&<span className="badge badge-gray">+{modulos.length-4}</span>}
-                      {modulos.length===0&&<span style={{color:"#606060",fontSize:"12px"}}>Sem permissões</span>}
+                      {modulos.length===0&&<span style={{color:"#4A5B6C",fontSize:"12px"}}>Sem permissões</span>}
                     </div>
                   </td>
                   <td>

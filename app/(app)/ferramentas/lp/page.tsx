@@ -131,12 +131,12 @@ function LandingPagesPageInner() {
         placeholder={placeholder}
         onChange={e => setEditando(prev => ({ ...prev, [field]: e.target.value }))}
         style={{
-          background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 8,
-          padding: "10px 14px", color: "#f0f0f0", fontSize: 14, outline: "none",
+          background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 8,
+          padding: "10px 14px", color: "#0A1826", fontSize: 14, outline: "none",
           transition: "border-color 0.2s",
         }}
-        onFocus={e => e.currentTarget.style.borderColor = "#29ABE2"}
-        onBlur={e => e.currentTarget.style.borderColor = "#2e2e2e"}
+        onFocus={e => e.currentTarget.style.borderColor = "#1C6CA6"}
+        onBlur={e => e.currentTarget.style.borderColor = "#E6EBF0"}
       />
     </div>
   );
@@ -145,18 +145,18 @@ function LandingPagesPageInner() {
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
       {clienteIdParam && clienteNome && (
         <div style={{ background: "#0f1a2a", border: "1px solid #1a3a5a", borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 13, color: "#4a9aba" }}>
-          Criando para cliente: <strong style={{ color: "#29ABE2" }}>{clienteNome}</strong>
-          <a href="/ferramentas/lp" style={{ marginLeft: 12, fontSize: 12, color: "#606060", textDecoration: "underline" }}>Ver todas</a>
+          Criando para cliente: <strong style={{ color: "#1C6CA6" }}>{clienteNome}</strong>
+          <a href="/ferramentas/lp" style={{ marginLeft: 12, fontSize: 12, color: "#4A5B6C", textDecoration: "underline" }}>Ver todas</a>
         </div>
       )}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#f0f0f0", margin: 0 }}>Landing Pages</h1>
-          <p style={{ fontSize: 13, color: "#606060", margin: "4px 0 0" }}>Crie páginas públicas com vídeo e botão de WhatsApp</p>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#0A1826", margin: 0 }}>Landing Pages</h1>
+          <p style={{ fontSize: 13, color: "#4A5B6C", margin: "4px 0 0" }}>Crie páginas públicas com vídeo e botão de WhatsApp</p>
         </div>
         <button
           onClick={novaLP}
-          style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 8, border: "none", background: "#29ABE2", color: "#000", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
+          style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 8, border: "none", background: "#1C6CA6", color: "#F3F5F7", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
         >
           <Plus size={16} /> Nova LP
         </button>
@@ -165,12 +165,12 @@ function LandingPagesPageInner() {
       {/* Modal de edição */}
       {editando && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-          <div style={{ background: "#141414", border: "1px solid #2e2e2e", borderRadius: 16, width: "100%", maxWidth: 560, maxHeight: "90vh", overflowY: "auto", padding: 28 }}>
+          <div style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 16, width: "100%", maxWidth: 560, maxHeight: "90vh", overflowY: "auto", padding: 28 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-              <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f0f0", margin: 0 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: "#0A1826", margin: 0 }}>
                 {editando.id ? "Editar Landing Page" : "Nova Landing Page"}
               </h2>
-              <button onClick={() => setEditando(null)} style={{ background: "none", border: "none", color: "#606060", cursor: "pointer", padding: 4 }}>
+              <button onClick={() => setEditando(null)} style={{ background: "none", border: "none", color: "#4A5B6C", cursor: "pointer", padding: 4 }}>
                 <X size={20} />
               </button>
             </div>
@@ -186,13 +186,13 @@ function LandingPagesPageInner() {
                     value={editando.slug ?? ""}
                     placeholder="minha-pagina"
                     onChange={e => setEditando(prev => ({ ...prev, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") }))}
-                    style={{ flex: 1, background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 8, padding: "10px 14px", color: "#f0f0f0", fontSize: 14, outline: "none" }}
-                    onFocus={e => e.currentTarget.style.borderColor = "#29ABE2"}
-                    onBlur={e => e.currentTarget.style.borderColor = "#2e2e2e"}
+                    style={{ flex: 1, background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 8, padding: "10px 14px", color: "#0A1826", fontSize: 14, outline: "none" }}
+                    onFocus={e => e.currentTarget.style.borderColor = "#1C6CA6"}
+                    onBlur={e => e.currentTarget.style.borderColor = "#E6EBF0"}
                   />
                   <button
                     onClick={() => setEditando(prev => ({ ...prev, slug: gerarSlug(editando.titulo || "") }))}
-                    style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #2e2e2e", background: "#1a1a1a", color: "#808080", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}
+                    style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #E6EBF0", background: "#FFFFFF", color: "#808080", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}
                   >
                     Gerar
                   </button>
@@ -214,16 +214,16 @@ function LandingPagesPageInner() {
                   value={editando.video_url ?? ""}
                   placeholder="https://youtube.com/watch?v=... ou Vimeo"
                   onChange={e => setEditando(prev => ({ ...prev, video_url: e.target.value }))}
-                  style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 8, padding: "10px 14px", color: "#f0f0f0", fontSize: 14, outline: "none" }}
-                  onFocus={e => e.currentTarget.style.borderColor = "#29ABE2"}
-                  onBlur={e => e.currentTarget.style.borderColor = "#2e2e2e"}
+                  style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 8, padding: "10px 14px", color: "#0A1826", fontSize: 14, outline: "none" }}
+                  onFocus={e => e.currentTarget.style.borderColor = "#1C6CA6"}
+                  onBlur={e => e.currentTarget.style.borderColor = "#E6EBF0"}
                 />
                 <p style={{ fontSize: 11, color: "#404040", margin: 0 }}>YouTube ou Vimeo. Opcional — a página funciona só com texto e CTA.</p>
               </div>
 
               {/* CTA */}
-              <div style={{ background: "#0f0f0f", borderRadius: 10, padding: 16, display: "flex", flexDirection: "column", gap: 14, border: "1px solid #1e1e1e" }}>
-                <p style={{ fontSize: 12, color: "#29ABE2", fontWeight: 700, margin: 0, textTransform: "uppercase", letterSpacing: "0.05em" }}>Botão de WhatsApp</p>
+              <div style={{ background: "#FFFFFF", borderRadius: 10, padding: 16, display: "flex", flexDirection: "column", gap: 14, border: "1px solid #FFFFFF" }}>
+                <p style={{ fontSize: 12, color: "#1C6CA6", fontWeight: 700, margin: 0, textTransform: "uppercase", letterSpacing: "0.05em" }}>Botão de WhatsApp</p>
                 {input("cta_texto", "Texto do Botão", "Falar no WhatsApp")}
                 {input("cta_whatsapp", "Número do WhatsApp", "5511999999999 (com código do país)")}
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -233,9 +233,9 @@ function LandingPagesPageInner() {
                     placeholder="Mensagem que abre pré-preenchida no WhatsApp"
                     onChange={e => setEditando(prev => ({ ...prev, cta_mensagem: e.target.value }))}
                     rows={2}
-                    style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 8, padding: "10px 14px", color: "#f0f0f0", fontSize: 14, outline: "none", resize: "vertical" }}
-                    onFocus={e => e.currentTarget.style.borderColor = "#29ABE2"}
-                    onBlur={e => e.currentTarget.style.borderColor = "#2e2e2e"}
+                    style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 8, padding: "10px 14px", color: "#0A1826", fontSize: 14, outline: "none", resize: "vertical" }}
+                    onFocus={e => e.currentTarget.style.borderColor = "#1C6CA6"}
+                    onBlur={e => e.currentTarget.style.borderColor = "#E6EBF0"}
                   />
                 </div>
               </div>
@@ -246,7 +246,7 @@ function LandingPagesPageInner() {
                 <select
                   value={editando.evento_visita ?? "ViewContent"}
                   onChange={e => setEditando(prev => ({ ...prev, evento_visita: e.target.value }))}
-                  style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 8, padding: "10px 14px", color: "#f0f0f0", fontSize: 14, outline: "none" }}
+                  style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 8, padding: "10px 14px", color: "#0A1826", fontSize: 14, outline: "none" }}
                 >
                   <option value="ViewContent">ViewContent (padrão)</option>
                   <option value="PageView">PageView</option>
@@ -259,9 +259,9 @@ function LandingPagesPageInner() {
                     type="text"
                     placeholder="Nome do evento (ex: VisitaLP_Micro)"
                     onChange={e => setEditando(prev => ({ ...prev, evento_visita: e.target.value }))}
-                    style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 8, padding: "10px 14px", color: "#f0f0f0", fontSize: 14, outline: "none" }}
-                    onFocus={e => e.currentTarget.style.borderColor = "#29ABE2"}
-                    onBlur={e => e.currentTarget.style.borderColor = "#2e2e2e"}
+                    style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 8, padding: "10px 14px", color: "#0A1826", fontSize: 14, outline: "none" }}
+                    onFocus={e => e.currentTarget.style.borderColor = "#1C6CA6"}
+                    onBlur={e => e.currentTarget.style.borderColor = "#E6EBF0"}
                   />
                 )}
                 <p style={{ fontSize: 11, color: "#404040", margin: 0 }}>Dispara no pixel quando alguém abre esta página.</p>
@@ -273,7 +273,7 @@ function LandingPagesPageInner() {
                   type="checkbox"
                   checked={editando.ativo ?? true}
                   onChange={e => setEditando(prev => ({ ...prev, ativo: e.target.checked }))}
-                  style={{ width: 16, height: 16, accentColor: "#29ABE2" }}
+                  style={{ width: 16, height: 16, accentColor: "#1C6CA6" }}
                 />
                 <span style={{ fontSize: 14, color: "#c0c0c0" }}>Página ativa (acessível publicamente)</span>
               </label>
@@ -282,14 +282,14 @@ function LandingPagesPageInner() {
             <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
               <button
                 onClick={() => setEditando(null)}
-                style={{ flex: 1, padding: "12px", borderRadius: 8, border: "1px solid #2e2e2e", background: "transparent", color: "#808080", fontSize: 14, cursor: "pointer" }}
+                style={{ flex: 1, padding: "12px", borderRadius: 8, border: "1px solid #E6EBF0", background: "transparent", color: "#808080", fontSize: 14, cursor: "pointer" }}
               >
                 Cancelar
               </button>
               <button
                 onClick={salvar}
                 disabled={salvando}
-                style={{ flex: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 8, border: "none", background: "#29ABE2", color: "#000", fontSize: 14, fontWeight: 700, cursor: "pointer", opacity: salvando ? 0.7 : 1 }}
+                style={{ flex: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 8, border: "none", background: "#1C6CA6", color: "#F3F5F7", fontSize: 14, fontWeight: 700, cursor: "pointer", opacity: salvando ? 0.7 : 1 }}
               >
                 <Save size={16} />
                 {salvando ? "Salvando..." : "Salvar Landing Page"}
@@ -302,7 +302,7 @@ function LandingPagesPageInner() {
       {/* Lista */}
       {loading ? (
         <div style={{ display: "flex", justifyContent: "center", padding: 60 }}>
-          <div style={{ width: 32, height: 32, borderRadius: "50%", border: "3px solid #1a1a1a", borderTop: "3px solid #29ABE2", animation: "spin 1s linear infinite" }} />
+          <div style={{ width: 32, height: 32, borderRadius: "50%", border: "3px solid #FFFFFF", borderTop: "3px solid #1C6CA6", animation: "spin 1s linear infinite" }} />
           <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
         </div>
       ) : pages.length === 0 ? (
@@ -314,23 +314,23 @@ function LandingPagesPageInner() {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {pages.map(lp => (
-            <div key={lp.id} style={{ background: "#141414", border: "1px solid #2e2e2e", borderRadius: 12, padding: "16px 20px", display: "flex", alignItems: "center", gap: 16 }}>
+            <div key={lp.id} style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 12, padding: "16px 20px", display: "flex", alignItems: "center", gap: 16 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                  <span style={{ fontSize: 15, fontWeight: 600, color: "#f0f0f0" }}>{lp.titulo}</span>
-                  {!lp.ativo && <span style={{ fontSize: 10, background: "#2a2a2a", color: "#606060", padding: "2px 8px", borderRadius: 10 }}>Inativo</span>}
+                  <span style={{ fontSize: 15, fontWeight: 600, color: "#0A1826" }}>{lp.titulo}</span>
+                  {!lp.ativo && <span style={{ fontSize: 10, background: "#E6EBF0", color: "#4A5B6C", padding: "2px 8px", borderRadius: 10 }}>Inativo</span>}
                 </div>
-                <div style={{ fontSize: 12, color: "#606060", display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ color: "#29ABE2" }}>/lp/{lp.slug}</span>
-                  {lp.video_url && <span style={{ color: "#3a3a3a" }}>· Vídeo</span>}
-                  {lp.cta_whatsapp && <span style={{ color: "#3a3a3a" }}>· CTA WhatsApp</span>}
+                <div style={{ fontSize: 12, color: "#4A5B6C", display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ color: "#1C6CA6" }}>/lp/{lp.slug}</span>
+                  {lp.video_url && <span style={{ color: "#E6EBF0" }}>· Vídeo</span>}
+                  {lp.cta_whatsapp && <span style={{ color: "#E6EBF0" }}>· CTA WhatsApp</span>}
                 </div>
               </div>
               <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
                 <button
                   onClick={() => copiarUrl(lp.slug)}
                   title="Copiar URL"
-                  style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #2e2e2e", background: "#1a1a1a", color: copiado === lp.slug ? "#22c55e" : "#808080", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}
+                  style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #E6EBF0", background: "#FFFFFF", color: copiado === lp.slug ? "#22c55e" : "#808080", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}
                 >
                   <Copy size={14} />
                   {copiado === lp.slug ? "Copiado!" : "Copiar"}
@@ -340,20 +340,20 @@ function LandingPagesPageInner() {
                   target="_blank"
                   rel="noopener noreferrer"
                   title="Ver página"
-                  style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #2e2e2e", background: "#1a1a1a", color: "#808080", cursor: "pointer", display: "flex", alignItems: "center", textDecoration: "none" }}
+                  style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #E6EBF0", background: "#FFFFFF", color: "#808080", cursor: "pointer", display: "flex", alignItems: "center", textDecoration: "none" }}
                 >
                   <ExternalLink size={14} />
                 </a>
                 <button
                   onClick={() => setEditando(lp)}
-                  style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #2e2e2e", background: "#1a1a1a", color: "#f0f0f0", cursor: "pointer", fontSize: 13 }}
+                  style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #E6EBF0", background: "#FFFFFF", color: "#0A1826", cursor: "pointer", fontSize: 13 }}
                 >
                   Editar
                 </button>
                 <button
                   onClick={() => excluir(lp.id)}
                   title="Excluir"
-                  style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #2e2e2e", background: "#1a1a1a", color: "#606060", cursor: "pointer", display: "flex", alignItems: "center" }}
+                  style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #E6EBF0", background: "#FFFFFF", color: "#4A5B6C", cursor: "pointer", display: "flex", alignItems: "center" }}
                 >
                   <Trash2 size={14} />
                 </button>

@@ -116,7 +116,7 @@ const fmtDateShort = (d: string) => {
 /*  Constants                                                          */
 /* ------------------------------------------------------------------ */
 
-const BLUE = "#29ABE2";
+const BLUE = "#1C6CA6";
 const AMBER = "#f59e0b";
 
 type SectionKey =
@@ -296,7 +296,7 @@ function DashboardInner() {
           justifyContent: "center",
           alignItems: "center",
           height: "60vh",
-          color: "#a0a0a0",
+          color: "#4A5B6C",
           gap: 12,
         }}
       >
@@ -357,17 +357,17 @@ function DashboardInner() {
             {periodoOpcoes.map(o => (
               <button key={o.key} onClick={() => { setPeriodo(o.key); if (o.key !== "custom") setTimeout(carregarDados, 50); }}
                 style={{
-                  padding: "6px 12px", fontSize: 11, fontWeight: periodoTipo === o.key ? 600 : 400, borderRadius: 6, border: "1px solid #2e2e2e", cursor: "pointer",
-                  background: periodoTipo === o.key ? "#29ABE2" : "#1a1a1a", color: periodoTipo === o.key ? "#fff" : "#a0a0a0",
+                  padding: "6px 12px", fontSize: 11, fontWeight: periodoTipo === o.key ? 600 : 400, borderRadius: 6, border: "1px solid #E6EBF0", cursor: "pointer",
+                  background: periodoTipo === o.key ? "#1C6CA6" : "#FFFFFF", color: periodoTipo === o.key ? "#fff" : "#4A5B6C",
                 }}>
                 {o.label}
               </button>
             ))}
             <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPeriodoTipo("custom"); }}
-              style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 6, padding: "6px 10px", color: "#f0f0f0", fontSize: 13 }} />
-            <span style={{ color: "#606060", fontSize: 13 }}>a</span>
+              style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 6, padding: "6px 10px", color: "#0A1826", fontSize: 13 }} />
+            <span style={{ color: "#4A5B6C", fontSize: 13 }}>a</span>
             <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setPeriodoTipo("custom"); }}
-              style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 6, padding: "6px 10px", color: "#f0f0f0", fontSize: 13 }} />
+              style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 6, padding: "6px 10px", color: "#0A1826", fontSize: 13 }} />
             <button onClick={carregarDados} disabled={loading} style={{ ...btnPrimary, padding: "6px 16px" }}>
               {loading ? "Carregando..." : "Gerar"}
             </button>
@@ -375,18 +375,18 @@ function DashboardInner() {
         </div>
 
         {/* --- Tab selector --- */}
-        <div className="no-print" style={{ display: "flex", gap: 0, marginBottom: 20, borderBottom: "1px solid #2e2e2e" }}>
+        <div className="no-print" style={{ display: "flex", gap: 0, marginBottom: 20, borderBottom: "1px solid #E6EBF0" }}>
           <button onClick={() => setActiveTab("dashboard")} style={{
             padding: "10px 24px", fontSize: 14, fontWeight: activeTab === "dashboard" ? "600" : "400",
             background: "none", border: "none", cursor: "pointer",
-            color: activeTab === "dashboard" ? "#29ABE2" : "#606060",
-            borderBottom: activeTab === "dashboard" ? "2px solid #29ABE2" : "2px solid transparent",
+            color: activeTab === "dashboard" ? "#1C6CA6" : "#4A5B6C",
+            borderBottom: activeTab === "dashboard" ? "2px solid #1C6CA6" : "2px solid transparent",
           }}>Dashboard</button>
           <button onClick={() => setActiveTab("performance")} style={{
             padding: "10px 24px", fontSize: 14, fontWeight: activeTab === "performance" ? "600" : "400",
             background: "none", border: "none", cursor: "pointer",
-            color: activeTab === "performance" ? "#29ABE2" : "#606060",
-            borderBottom: activeTab === "performance" ? "2px solid #29ABE2" : "2px solid transparent",
+            color: activeTab === "performance" ? "#1C6CA6" : "#4A5B6C",
+            borderBottom: activeTab === "performance" ? "2px solid #1C6CA6" : "2px solid transparent",
           }}>Performance</button>
         </div>
 
@@ -401,8 +401,8 @@ function DashboardInner() {
             gap: "8px 20px",
             marginBottom: 28,
             padding: "12px 16px",
-            background: "#111",
-            border: "1px solid #2e2e2e",
+            background: "#FFFFFF",
+            border: "1px solid #E6EBF0",
             borderRadius: 10,
           }}
         >
@@ -414,7 +414,7 @@ function DashboardInner() {
                 alignItems: "center",
                 gap: 6,
                 fontSize: 13,
-                color: sections[key] ? "#f0f0f0" : "#606060",
+                color: sections[key] ? "#0A1826" : "#4A5B6C",
                 cursor: "pointer",
                 userSelect: "none",
               }}
@@ -434,13 +434,13 @@ function DashboardInner() {
         {/*  HEADER                                                    */}
         {/* ========================================================= */}
         <div style={{ textAlign: "center", marginBottom: 36 }}>
-          <h1 style={{ fontSize: 28, fontWeight: 700, color: "#f0f0f0", margin: 0, letterSpacing: "-0.02em" }}>
+          <h1 style={{ fontSize: 28, fontWeight: 700, color: "#0A1826", margin: 0, letterSpacing: "-0.02em" }}>
             CA {data.nomeCliente}
           </h1>
-          <p style={{ fontSize: 16, color: "#a0a0a0", margin: "6px 0 2px" }}>
+          <p style={{ fontSize: 16, color: "#4A5B6C", margin: "6px 0 2px" }}>
             Relatório de Desempenho
           </p>
-          <p style={{ fontSize: 13, color: "#606060" }}>
+          <p style={{ fontSize: 13, color: "#4A5B6C" }}>
             Período: De {fmtD(data.periodo.since)} a {fmtD(data.periodo.until)}
           </p>
         </div>
@@ -457,20 +457,20 @@ function DashboardInner() {
               return (
                 <div key={kpi.label} style={cardStyle}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 26, fontWeight: 700, color: "#f0f0f0", lineHeight: 1.1 }}>{kpi.value}</span>
+                    <span style={{ fontSize: 26, fontWeight: 700, color: "#0A1826", lineHeight: 1.1 }}>{kpi.value}</span>
                     {hasPct && Math.abs(kpi.pct) >= 0.1 && (
                       <span style={{
                         fontSize: 11, fontWeight: 600, padding: "2px 6px", borderRadius: 6,
                         background: isPositive ? "rgba(34,197,94,0.15)" : isNeg ? "rgba(239,68,68,0.15)" : "rgba(100,100,100,0.15)",
-                        color: isPositive ? "#22c55e" : isNeg ? "#ef4444" : "#888",
+                        color: isPositive ? "#22c55e" : isNeg ? "#ef4444" : "#6B7A89",
                       }}>
                         {kpi.pct > 0 ? "+" : ""}{kpi.pct.toFixed(1)}%
                       </span>
                     )}
                   </div>
                   <div style={{ marginTop: 6 }}>
-                    <span style={{ fontSize: 12, fontWeight: 500, color: "#a0a0a0" }}>{kpi.label}</span>
-                    <span style={{ fontSize: 11, color: "#505050", marginLeft: 6 }}>{kpi.sub}</span>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: "#4A5B6C" }}>{kpi.label}</span>
+                    <span style={{ fontSize: 11, color: "#6B7A89", marginLeft: 6 }}>{kpi.sub}</span>
                   </div>
                 </div>
               );
@@ -487,7 +487,7 @@ function DashboardInner() {
               <h2 style={sectionTitle}>Desempenho diário</h2>
               <div style={sectionLine} />
             </div>
-            <p style={{ fontSize: 12, color: "#606060", margin: "0 0 16px" }}>
+            <p style={{ fontSize: 12, color: "#4A5B6C", margin: "0 0 16px" }}>
               Mensagens recebidas por dia
             </p>
             <div style={{ width: "100%", height: 300 }}>
@@ -496,13 +496,13 @@ function DashboardInner() {
                   <XAxis
                     dataKey="date"
                     tickFormatter={fmtDateShort}
-                    tick={{ fill: "#a0a0a0", fontSize: 11 }}
-                    axisLine={{ stroke: "#2e2e2e" }}
+                    tick={{ fill: "#4A5B6C", fontSize: 11 }}
+                    axisLine={{ stroke: "#E6EBF0" }}
                     tickLine={false}
                   />
                   <YAxis
-                    tick={{ fill: "#a0a0a0", fontSize: 11 }}
-                    axisLine={{ stroke: "#2e2e2e" }}
+                    tick={{ fill: "#4A5B6C", fontSize: 11 }}
+                    axisLine={{ stroke: "#E6EBF0" }}
                     tickLine={false}
                     allowDecimals={false}
                   />
@@ -515,7 +515,7 @@ function DashboardInner() {
                     {diario.map((_, i) => (
                       <Cell key={i} fill={BLUE} />
                     ))}
-                    <LabelList dataKey="mensagens" position="top" fill="#a0a0a0" fontSize={11} fontWeight={600} />
+                    <LabelList dataKey="mensagens" position="top" fill="#4A5B6C" fontSize={11} fontWeight={600} />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -537,19 +537,19 @@ function DashboardInner() {
                 <h2 style={sectionTitle}>Performance por Criativo</h2>
                 <div style={sectionLine} />
               </div>
-              <p style={{ fontSize: 12, color: "#606060", margin: "0 0 16px" }}>
+              <p style={{ fontSize: 12, color: "#4A5B6C", margin: "0 0 16px" }}>
                 Mensagens, custo e eficiência por anúncio
               </p>
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                   <thead>
-                    <tr style={{ borderBottom: "1px solid #2e2e2e" }}>
-                      <th style={{ textAlign: "left", padding: "10px 12px", fontSize: 11, color: "#a0a0a0", fontWeight: 600 }}>Criativo</th>
-                      <th style={{ textAlign: "center", padding: "10px 8px", fontSize: 11, color: "#a0a0a0", fontWeight: 600 }}>Investido</th>
-                      <th style={{ textAlign: "center", padding: "10px 8px", fontSize: 11, color: "#a0a0a0", fontWeight: 600 }}>Msgs</th>
-                      <th style={{ textAlign: "center", padding: "10px 8px", fontSize: 11, color: "#a0a0a0", fontWeight: 600 }}>CPL</th>
-                      <th style={{ textAlign: "center", padding: "10px 8px", fontSize: 11, color: "#a0a0a0", fontWeight: 600 }}>% Msgs</th>
-                      <th style={{ textAlign: "center", padding: "10px 8px", fontSize: 11, color: "#a0a0a0", fontWeight: 600 }}>CTR</th>
+                    <tr style={{ borderBottom: "1px solid #E6EBF0" }}>
+                      <th style={{ textAlign: "left", padding: "10px 12px", fontSize: 11, color: "#4A5B6C", fontWeight: 600 }}>Criativo</th>
+                      <th style={{ textAlign: "center", padding: "10px 8px", fontSize: 11, color: "#4A5B6C", fontWeight: 600 }}>Investido</th>
+                      <th style={{ textAlign: "center", padding: "10px 8px", fontSize: 11, color: "#4A5B6C", fontWeight: 600 }}>Msgs</th>
+                      <th style={{ textAlign: "center", padding: "10px 8px", fontSize: 11, color: "#4A5B6C", fontWeight: 600 }}>CPL</th>
+                      <th style={{ textAlign: "center", padding: "10px 8px", fontSize: 11, color: "#4A5B6C", fontWeight: 600 }}>% Msgs</th>
+                      <th style={{ textAlign: "center", padding: "10px 8px", fontSize: 11, color: "#4A5B6C", fontWeight: 600 }}>CTR</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -560,18 +560,18 @@ function DashboardInner() {
                       const avgCpl = totalMsgs > 0 ? sorted.reduce((a, b) => a + b.spend, 0) / totalMsgs : 0;
                       const isEfficient = cplAd > 0 && cplAd < avgCpl;
                       return (
-                        <tr key={i} style={{ borderBottom: "1px solid #1e1e1e" }}>
-                          <td style={{ padding: "10px 12px", color: "#f0f0f0", maxWidth: 250, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <tr key={i} style={{ borderBottom: "1px solid #FFFFFF" }}>
+                          <td style={{ padding: "10px 12px", color: "#0A1826", maxWidth: 250, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             {ad.name}
                             {isEfficient && <span style={{ marginLeft: 6, fontSize: 9, padding: "1px 5px", borderRadius: 4, background: "rgba(34,197,94,0.15)", color: "#22c55e", fontWeight: 600 }}>Eficiente</span>}
                           </td>
-                          <td style={{ textAlign: "center", padding: "10px 8px", color: "#a0a0a0" }}>{fmtMoney(ad.spend)}</td>
-                          <td style={{ textAlign: "center", padding: "10px 8px", color: "#f0f0f0", fontWeight: 600 }}>{fmtNum(ad.mensagens)}</td>
-                          <td style={{ textAlign: "center", padding: "10px 8px", color: cplAd > 0 && cplAd < avgCpl ? "#22c55e" : cplAd > avgCpl * 1.3 ? "#ef4444" : "#a0a0a0", fontWeight: 600 }}>
+                          <td style={{ textAlign: "center", padding: "10px 8px", color: "#4A5B6C" }}>{fmtMoney(ad.spend)}</td>
+                          <td style={{ textAlign: "center", padding: "10px 8px", color: "#0A1826", fontWeight: 600 }}>{fmtNum(ad.mensagens)}</td>
+                          <td style={{ textAlign: "center", padding: "10px 8px", color: cplAd > 0 && cplAd < avgCpl ? "#22c55e" : cplAd > avgCpl * 1.3 ? "#ef4444" : "#4A5B6C", fontWeight: 600 }}>
                             {fmtMoney(cplAd)}
                           </td>
-                          <td style={{ textAlign: "center", padding: "10px 8px", color: "#a0a0a0" }}>{pctMsgs.toFixed(1)}%</td>
-                          <td style={{ textAlign: "center", padding: "10px 8px", color: "#a0a0a0" }}>{ad.ctr?.toFixed(2)}%</td>
+                          <td style={{ textAlign: "center", padding: "10px 8px", color: "#4A5B6C" }}>{pctMsgs.toFixed(1)}%</td>
+                          <td style={{ textAlign: "center", padding: "10px 8px", color: "#4A5B6C" }}>{ad.ctr?.toFixed(2)}%</td>
                         </tr>
                       );
                     })}
@@ -605,7 +605,7 @@ function DashboardInner() {
                 <tbody>
                   {campanhas.length === 0 && (
                     <tr>
-                      <td colSpan={5} style={{ ...td, textAlign: "center", color: "#606060" }}>
+                      <td colSpan={5} style={{ ...td, textAlign: "center", color: "#4A5B6C" }}>
                         Sem dados no período
                       </td>
                     </tr>
@@ -650,7 +650,7 @@ function DashboardInner() {
                 <tbody>
                   {anuncios.length === 0 && (
                     <tr>
-                      <td colSpan={5} style={{ ...td, textAlign: "center", color: "#606060" }}>
+                      <td colSpan={5} style={{ ...td, textAlign: "center", color: "#4A5B6C" }}>
                         Sem dados no período
                       </td>
                     </tr>
@@ -695,7 +695,7 @@ function DashboardInner() {
                 <tbody>
                   {posicionamentos.length === 0 && (
                     <tr>
-                      <td colSpan={5} style={{ ...td, textAlign: "center", color: "#606060" }}>
+                      <td colSpan={5} style={{ ...td, textAlign: "center", color: "#4A5B6C" }}>
                         Sem dados no período
                       </td>
                     </tr>
@@ -727,11 +727,11 @@ function DashboardInner() {
               <h2 style={sectionTitle}>Idade</h2>
               <div style={sectionLine} />
             </div>
-            <p style={{ fontSize: 12, color: "#606060", margin: "0 0 16px" }}>
+            <p style={{ fontSize: 12, color: "#4A5B6C", margin: "0 0 16px" }}>
               Distribuição de impressões por faixa etária
             </p>
             {idade.length === 0 ? (
-              <p style={{ textAlign: "center", color: "#606060", padding: 20 }}>
+              <p style={{ textAlign: "center", color: "#4A5B6C", padding: 20 }}>
                 Sem dados no período
               </p>
             ) : (
@@ -740,16 +740,16 @@ function DashboardInner() {
                   <BarChart data={idade} layout="vertical" margin={{ top: 5, right: 30, left: 60, bottom: 5 }}>
                     <XAxis
                       type="number"
-                      tick={{ fill: "#a0a0a0", fontSize: 11 }}
-                      axisLine={{ stroke: "#2e2e2e" }}
+                      tick={{ fill: "#4A5B6C", fontSize: 11 }}
+                      axisLine={{ stroke: "#E6EBF0" }}
                       tickLine={false}
                       allowDecimals={false}
                     />
                     <YAxis
                       type="category"
                       dataKey="age"
-                      tick={{ fill: "#a0a0a0", fontSize: 12 }}
-                      axisLine={{ stroke: "#2e2e2e" }}
+                      tick={{ fill: "#4A5B6C", fontSize: 12 }}
+                      axisLine={{ stroke: "#E6EBF0" }}
                       tickLine={false}
                       width={50}
                     />
@@ -779,7 +779,7 @@ function DashboardInner() {
           style={{
             textAlign: "center",
             padding: "36px 0 20px",
-            color: "#505050",
+            color: "#6B7A89",
             fontSize: 12,
             letterSpacing: "0.04em",
           }}
@@ -966,7 +966,7 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
     if (Math.abs(pct) < 0.1) return null;
     const isGood = inverted ? pct < 0 : pct > 0;
     const isBad = inverted ? pct > 0 : pct < 0;
-    return <span style={{ fontSize: 10, fontWeight: 600, marginLeft: 4, padding: "1px 5px", borderRadius: 4, background: isGood ? "rgba(34,197,94,0.15)" : isBad ? "rgba(239,68,68,0.15)" : "rgba(100,100,100,0.15)", color: isGood ? "#22c55e" : isBad ? "#ef4444" : "#888" }}>{pct > 0 ? "+" : ""}{pct.toFixed(1)}%</span>;
+    return <span style={{ fontSize: 10, fontWeight: 600, marginLeft: 4, padding: "1px 5px", borderRadius: 4, background: isGood ? "rgba(34,197,94,0.15)" : isBad ? "rgba(239,68,68,0.15)" : "rgba(100,100,100,0.15)", color: isGood ? "#22c55e" : isBad ? "#ef4444" : "#6B7A89" }}>{pct > 0 ? "+" : ""}{pct.toFixed(1)}%</span>;
   };
 
   // Helper comparação semana anterior (dentro da tabela)
@@ -990,15 +990,15 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
   const totCustoVenda = safe(totInvestimento, totVendas);
 
   /* --- styles ----------------------------------------------------- */
-  const inputStyle: React.CSSProperties = { background: "#222", border: "1px solid #333", borderRadius: 4, padding: "4px 8px", color: "#f0f0f0", fontSize: 13, width: 80, textAlign: "center" };
+  const inputStyle: React.CSSProperties = { background: "#E6EBF0", border: "1px solid #E6EBF0", borderRadius: 4, padding: "4px 8px", color: "#0A1826", fontSize: 13, width: 80, textAlign: "center" };
   const moneyInputStyle: React.CSSProperties = { ...inputStyle, width: 100 };
   const manualCellBg: React.CSSProperties = { background: "#2a2a1a", border: "1px solid #3a3a2a" };
-  const autoCellStyle: React.CSSProperties = { color: "#a0a0a0", textAlign: "center", padding: "8px 6px", fontSize: 13 };
-  const totalColStyle: React.CSSProperties = { fontWeight: 700, color: "#f0f0f0", background: "rgba(41,171,226,0.05)", textAlign: "center", padding: "8px 6px", fontSize: 13 };
-  const headerCellStyle: React.CSSProperties = { background: "#1e1e1e", fontWeight: 600, textAlign: "center", padding: "10px 6px", fontSize: 11, color: "#a0a0a0", borderBottom: "1px solid #2e2e2e", whiteSpace: "nowrap" };
-  const rowLabelStyle: React.CSSProperties = { fontWeight: 500, color: "#f0f0f0", paddingLeft: 16, padding: "8px 8px 8px 16px", fontSize: 13, whiteSpace: "nowrap", position: "sticky", left: 0, background: "#1a1a1a", zIndex: 1 };
+  const autoCellStyle: React.CSSProperties = { color: "#4A5B6C", textAlign: "center", padding: "8px 6px", fontSize: 13 };
+  const totalColStyle: React.CSSProperties = { fontWeight: 700, color: "#0A1826", background: "rgba(41,171,226,0.05)", textAlign: "center", padding: "8px 6px", fontSize: 13 };
+  const headerCellStyle: React.CSSProperties = { background: "#FFFFFF", fontWeight: 600, textAlign: "center", padding: "10px 6px", fontSize: 11, color: "#4A5B6C", borderBottom: "1px solid #E6EBF0", whiteSpace: "nowrap" };
+  const rowLabelStyle: React.CSSProperties = { fontWeight: 500, color: "#0A1826", paddingLeft: 16, padding: "8px 8px 8px 16px", fontSize: 13, whiteSpace: "nowrap", position: "sticky", left: 0, background: "#FFFFFF", zIndex: 1 };
 
-  if (loading) return <div style={{ textAlign: "center", padding: 40, color: "#606060" }}><Loader2 size={20} className="spin" style={{ display: "inline-block", marginRight: 8 }} />Carregando performance...</div>;
+  if (loading) return <div style={{ textAlign: "center", padding: 40, color: "#4A5B6C" }}><Loader2 size={20} className="spin" style={{ display: "inline-block", marginRight: 8 }} />Carregando performance...</div>;
 
   /* --- row definitions -------------------------------------------- */
   type RowDef = {
@@ -1048,8 +1048,8 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
     <div>
       {/* Header */}
       <div style={{ textAlign: "center", marginBottom: 32 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "#f0f0f0", marginBottom: 4 }}>Performance — {nomeCliente}</h1>
-        <p style={{ fontSize: 13, color: "#606060" }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: "#0A1826", marginBottom: 4 }}>Performance — {nomeCliente}</h1>
+        <p style={{ fontSize: 13, color: "#4A5B6C" }}>
           {pfmtDateShort(dateFrom)} a {pfmtDateShort(dateTo)}
           {temWhatsApp && <span style={{ marginLeft: 8, color: "#22c55e", fontSize: 11 }}>● Modo automático</span>}
           {!temWhatsApp && <span style={{ marginLeft: 8, color: "#f59e0b", fontSize: 11 }}>● Modo manual</span>}
@@ -1059,9 +1059,9 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
       {/* ============================================================ */}
       {/* SECTION 1: Weekly Table (horizontal - weeks as columns)      */}
       {/* ============================================================ */}
-      <div className="card" style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 12, padding: 0, overflow: "hidden", marginBottom: 32 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", borderBottom: "1px solid #2e2e2e" }}>
-          <h3 style={{ fontSize: 15, fontWeight: 600, color: "#f0f0f0", margin: 0 }}>Desempenho Semanal</h3>
+      <div className="card" style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 12, padding: 0, overflow: "hidden", marginBottom: 32 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", borderBottom: "1px solid #E6EBF0" }}>
+          <h3 style={{ fontSize: 15, fontWeight: 600, color: "#0A1826", margin: 0 }}>Desempenho Semanal</h3>
           <div style={{ display: "flex", gap: 8 }} className="no-print">
             <button onClick={sincronizarPlanilha} disabled={syncing || saving} style={{
               background: "#16a34a", color: "#fff", border: "none", borderRadius: 6,
@@ -1069,7 +1069,7 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
               opacity: syncing ? 0.6 : 1,
             }}>{syncing ? "Sincronizando..." : "↺ Sincronizar Planilha"}</button>
             <button onClick={salvar} disabled={saving} style={{
-              background: "#29ABE2", color: "#fff", border: "none", borderRadius: 6,
+              background: "#1C6CA6", color: "#fff", border: "none", borderRadius: 6,
               padding: "6px 16px", fontSize: 12, fontWeight: 600, cursor: "pointer",
               opacity: saving ? 0.6 : 1,
             }}>{saving ? "Salvando..." : "Salvar"}</button>
@@ -1080,13 +1080,13 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: semanas.length * 100 + 200 }}>
             <thead>
               <tr>
-                <th style={{ ...headerCellStyle, textAlign: "left", paddingLeft: 16, position: "sticky", left: 0, background: "#1e1e1e", zIndex: 2 }}>Métrica</th>
+                <th style={{ ...headerCellStyle, textAlign: "left", paddingLeft: 16, position: "sticky", left: 0, background: "#FFFFFF", zIndex: 2 }}>Métrica</th>
                 {semanas.map(s => (
                   <th key={s.semana_inicio} style={headerCellStyle}>
                     {pfmtDateShort(s.semana_inicio)} - {pfmtDateShort(s.semana_fim)}
                   </th>
                 ))}
-                <th style={{ ...headerCellStyle, color: "#f0f0f0", background: "rgba(41,171,226,0.1)" }}>TOTAL</th>
+                <th style={{ ...headerCellStyle, color: "#0A1826", background: "rgba(41,171,226,0.1)" }}>TOTAL</th>
               </tr>
             </thead>
             <tbody>
@@ -1095,12 +1095,12 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
                 const isSeparator = ri === manualRows.length;
                 return (
                   <tr key={row.label} style={{
-                    borderTop: isSeparator ? "2px solid #2e2e2e" : ri > 0 ? "1px solid #1e1e1e" : "none",
+                    borderTop: isSeparator ? "2px solid #E6EBF0" : ri > 0 ? "1px solid #FFFFFF" : "none",
                   }}>
                     <td style={{
                       ...rowLabelStyle,
-                      background: isManual ? "#1a1a1a" : "#1a1a1a",
-                      color: isManual ? "#f0f0f0" : "#808080",
+                      background: isManual ? "#FFFFFF" : "#FFFFFF",
+                      color: isManual ? "#0A1826" : "#808080",
                       fontSize: 12,
                     }}>
                       {row.label}
@@ -1111,7 +1111,7 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
                       const val = row.getValue(ed);
                       const weekPct = si > 0 && row.field ? getWeekPct(si, row.field) : null;
                       const weekBadge = weekPct !== null && isFinite(weekPct) && Math.abs(weekPct) >= 0.1 ? (
-                        <div style={{ fontSize: 9, fontWeight: 600, marginTop: 2, color: (row.inverted ? weekPct < 0 : weekPct > 0) ? "#22c55e" : (row.inverted ? weekPct > 0 : weekPct < 0) ? "#ef4444" : "#888" }}>
+                        <div style={{ fontSize: 9, fontWeight: 600, marginTop: 2, color: (row.inverted ? weekPct < 0 : weekPct > 0) ? "#22c55e" : (row.inverted ? weekPct > 0 : weekPct < 0) ? "#ef4444" : "#6B7A89" }}>
                           {weekPct > 0 ? "+" : ""}{weekPct.toFixed(0)}%
                         </div>
                       ) : null;
@@ -1138,7 +1138,7 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
                         return prevVal > 0 ? ((val - prevVal) / prevVal) * 100 : val > 0 ? 100 : 0;
                       })() : null;
                       const autoBadge = autoWeekPct !== null && isFinite(autoWeekPct) && Math.abs(autoWeekPct) >= 0.1 ? (
-                        <div style={{ fontSize: 9, fontWeight: 600, marginTop: 2, color: (row.inverted ? autoWeekPct < 0 : autoWeekPct > 0) ? "#22c55e" : (row.inverted ? autoWeekPct > 0 : autoWeekPct < 0) ? "#ef4444" : "#888" }}>
+                        <div style={{ fontSize: 9, fontWeight: 600, marginTop: 2, color: (row.inverted ? autoWeekPct < 0 : autoWeekPct > 0) ? "#22c55e" : (row.inverted ? autoWeekPct > 0 : autoWeekPct < 0) ? "#ef4444" : "#6B7A89" }}>
                           {autoWeekPct > 0 ? "+" : ""}{autoWeekPct.toFixed(0)}%
                         </div>
                       ) : null;
@@ -1164,9 +1164,9 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
       {/* ============================================================ */}
       {/* SECTION 2: Dashboard Panel                                    */}
       {/* ============================================================ */}
-      <div className="card" style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 12, padding: 24, marginBottom: 32 }}>
-        <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 4, color: "#f0f0f0" }}>Painel de Performance</h3>
-        {prevTotals && <p style={{ fontSize: 11, color: "#606060", marginBottom: 20 }}>Comparação com mês anterior</p>}
+      <div className="card" style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 12, padding: 24, marginBottom: 32 }}>
+        <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 4, color: "#0A1826" }}>Painel de Performance</h3>
+        {prevTotals && <p style={{ fontSize: 11, color: "#4A5B6C", marginBottom: 20 }}>Comparação com mês anterior</p>}
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 32 }}>
           {/* Left side - KPI grid */}
@@ -1175,26 +1175,26 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
               <div style={{ background: "rgba(34,197,94,0.15)", borderRadius: 10, padding: "14px 16px" }}>
                 <p style={{ fontSize: 11, color: "#86efac", marginBottom: 4 }}>Investimento em Ads</p>
-                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtMoney(totInvestimento)} <PctBadge curr={totInvestimento} prev={prevTotals?.investimento ?? 0} /></p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#0A1826" }}>{pfmtMoney(totInvestimento)} <PctBadge curr={totInvestimento} prev={prevTotals?.investimento ?? 0} /></p>
               </div>
               <div style={{ background: "rgba(59,130,246,0.15)", borderRadius: 10, padding: "14px 16px" }}>
                 <p style={{ fontSize: 11, color: "#93c5fd", marginBottom: 4 }}>Nº de Leads</p>
-                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtNum(totMensagens)} <PctBadge curr={totMensagens} prev={prevTotals?.mensagens ?? 0} /></p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#0A1826" }}>{pfmtNum(totMensagens)} <PctBadge curr={totMensagens} prev={prevTotals?.mensagens ?? 0} /></p>
               </div>
               <div style={{ background: "rgba(245,158,11,0.15)", borderRadius: 10, padding: "14px 16px" }}>
                 <p style={{ fontSize: 11, color: "#fcd34d", marginBottom: 4 }}>Custo por Lead</p>
-                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtMoney(totCustoLead)} <PctBadge curr={totCustoLead} prev={prevCL} inverted /></p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#0A1826" }}>{pfmtMoney(totCustoLead)} <PctBadge curr={totCustoLead} prev={prevCL} inverted /></p>
               </div>
             </div>
             {/* Row 2 */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
               <div style={{ background: "rgba(249,115,22,0.15)", borderRadius: 10, padding: "14px 16px" }}>
                 <p style={{ fontSize: 11, color: "#fdba74", marginBottom: 4 }}>Tx. Conv. p/ Agendamento</p>
-                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtPct(totTaxaLeadAgend)} <PctBadge curr={totTaxaLeadAgend} prev={prevTotals ? safe(prevTotals.agendamentos, prevTotals.mensagens) * 100 : 0} /></p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#0A1826" }}>{pfmtPct(totTaxaLeadAgend)} <PctBadge curr={totTaxaLeadAgend} prev={prevTotals ? safe(prevTotals.agendamentos, prevTotals.mensagens) * 100 : 0} /></p>
               </div>
               <div style={{ background: "rgba(59,130,246,0.15)", borderRadius: 10, padding: "14px 16px" }}>
                 <p style={{ fontSize: 11, color: "#93c5fd", marginBottom: 4 }}>Nº de Agendamentos</p>
-                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtNum(totAgendamentos)} <PctBadge curr={totAgendamentos} prev={prevTotals?.agendamentos ?? 0} /></p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#0A1826" }}>{pfmtNum(totAgendamentos)} <PctBadge curr={totAgendamentos} prev={prevTotals?.agendamentos ?? 0} /></p>
               </div>
               <div />
             </div>
@@ -1202,11 +1202,11 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
               <div style={{ background: "rgba(249,115,22,0.15)", borderRadius: 10, padding: "14px 16px" }}>
                 <p style={{ fontSize: 11, color: "#fdba74", marginBottom: 4 }}>Tx. Conv. p/ Comparecimento</p>
-                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtPct(totTaxaAgendRealiz)} <PctBadge curr={totTaxaAgendRealiz} prev={prevTotals ? safe(prevTotals.realizados, prevTotals.agendamentos) * 100 : 0} /></p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#0A1826" }}>{pfmtPct(totTaxaAgendRealiz)} <PctBadge curr={totTaxaAgendRealiz} prev={prevTotals ? safe(prevTotals.realizados, prevTotals.agendamentos) * 100 : 0} /></p>
               </div>
               <div style={{ background: "rgba(59,130,246,0.15)", borderRadius: 10, padding: "14px 16px" }}>
                 <p style={{ fontSize: 11, color: "#93c5fd", marginBottom: 4 }}>Nº de Realizados</p>
-                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtNum(totRealizados)} <PctBadge curr={totRealizados} prev={prevTotals?.realizados ?? 0} /></p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#0A1826" }}>{pfmtNum(totRealizados)} <PctBadge curr={totRealizados} prev={prevTotals?.realizados ?? 0} /></p>
               </div>
               <div />
             </div>
@@ -1214,11 +1214,11 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
               <div style={{ background: "rgba(249,115,22,0.15)", borderRadius: 10, padding: "14px 16px" }}>
                 <p style={{ fontSize: 11, color: "#fdba74", marginBottom: 4 }}>Tx. Conv. p/ Venda</p>
-                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtPct(totTaxaRealizVenda)} <PctBadge curr={totTaxaRealizVenda} prev={prevTotals ? safe(prevTotals.vendas, prevTotals.realizados) * 100 : 0} /></p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#0A1826" }}>{pfmtPct(totTaxaRealizVenda)} <PctBadge curr={totTaxaRealizVenda} prev={prevTotals ? safe(prevTotals.vendas, prevTotals.realizados) * 100 : 0} /></p>
               </div>
               <div style={{ background: "rgba(59,130,246,0.15)", borderRadius: 10, padding: "14px 16px" }}>
                 <p style={{ fontSize: 11, color: "#93c5fd", marginBottom: 4 }}>Nº de Vendas</p>
-                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtNum(totVendas)} <PctBadge curr={totVendas} prev={prevTotals?.vendas ?? 0} /></p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#0A1826" }}>{pfmtNum(totVendas)} <PctBadge curr={totVendas} prev={prevTotals?.vendas ?? 0} /></p>
               </div>
               <div />
             </div>
@@ -1226,22 +1226,22 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
               <div style={{ background: "rgba(139,92,246,0.15)", borderRadius: 10, padding: "14px 16px" }}>
                 <p style={{ fontSize: 11, color: "#c4b5fd", marginBottom: 4 }}>TKM</p>
-                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtMoney(totTicketMedio)}</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#0A1826" }}>{pfmtMoney(totTicketMedio)}</p>
               </div>
               <div style={{ background: "rgba(34,197,94,0.15)", borderRadius: 10, padding: "14px 16px" }}>
                 <p style={{ fontSize: 11, color: "#86efac", marginBottom: 4 }}>Faturamento</p>
-                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{pfmtMoney(totFaturamento)}</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#0A1826" }}>{pfmtMoney(totFaturamento)}</p>
               </div>
               <div style={{ background: "rgba(239,68,68,0.15)", borderRadius: 10, padding: "14px 16px" }}>
                 <p style={{ fontSize: 11, color: "#fca5a5", marginBottom: 4 }}>ROAS</p>
-                <p style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0" }}>{totRoas.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}x</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#0A1826" }}>{totRoas.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}x</p>
               </div>
             </div>
           </div>
 
           {/* Right side - Funnel */}
           <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 0 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "#a0a0a0", marginBottom: 16 }}>Funil de Conversão</p>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "#4A5B6C", marginBottom: 16 }}>Funil de Conversão</p>
             {[
               { label: "Leads", count: totMensagens, bg: "#ef4444", width: "100%" },
               { label: "Agendamentos", count: totAgendamentos, bg: "#f59e0b", width: "80%" },
@@ -1254,7 +1254,7 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
                 transition: "all 0.2s",
               }}>
                 <p style={{ fontSize: 11, color: "rgba(255,255,255,0.8)", marginBottom: 2 }}>{step.label}</p>
-                <p style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>{pfmtNum(step.count)}</p>
+                <p style={{ fontSize: 18, fontWeight: 700, color: "#0A1826" }}>{pfmtNum(step.count)}</p>
               </div>
             ))}
             <div style={{
@@ -1268,41 +1268,41 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
 
         {/* Meta extras KPI cards */}
         {Object.values(metaExtras).some(Boolean) && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 20, paddingTop: 16, borderTop: "1px solid #2e2e2e" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 20, paddingTop: 16, borderTop: "1px solid #E6EBF0" }}>
             {metaExtras.impressoes && (
               <div style={{ background: "rgba(59,130,246,0.1)", borderRadius: 10, padding: "12px 16px", minWidth: 140 }}>
                 <p style={{ fontSize: 11, color: "#93c5fd", marginBottom: 4 }}>Impressões</p>
-                <p style={{ fontSize: 18, fontWeight: 700, color: "#f0f0f0" }}>-</p>
+                <p style={{ fontSize: 18, fontWeight: 700, color: "#0A1826" }}>-</p>
               </div>
             )}
             {metaExtras.alcance && (
               <div style={{ background: "rgba(59,130,246,0.1)", borderRadius: 10, padding: "12px 16px", minWidth: 140 }}>
                 <p style={{ fontSize: 11, color: "#93c5fd", marginBottom: 4 }}>Alcance</p>
-                <p style={{ fontSize: 18, fontWeight: 700, color: "#f0f0f0" }}>-</p>
+                <p style={{ fontSize: 18, fontWeight: 700, color: "#0A1826" }}>-</p>
               </div>
             )}
             {metaExtras.cliques && (
               <div style={{ background: "rgba(59,130,246,0.1)", borderRadius: 10, padding: "12px 16px", minWidth: 140 }}>
                 <p style={{ fontSize: 11, color: "#93c5fd", marginBottom: 4 }}>Cliques</p>
-                <p style={{ fontSize: 18, fontWeight: 700, color: "#f0f0f0" }}>-</p>
+                <p style={{ fontSize: 18, fontWeight: 700, color: "#0A1826" }}>-</p>
               </div>
             )}
             {metaExtras.ctr && (
               <div style={{ background: "rgba(59,130,246,0.1)", borderRadius: 10, padding: "12px 16px", minWidth: 140 }}>
                 <p style={{ fontSize: 11, color: "#93c5fd", marginBottom: 4 }}>CTR</p>
-                <p style={{ fontSize: 18, fontWeight: 700, color: "#f0f0f0" }}>-</p>
+                <p style={{ fontSize: 18, fontWeight: 700, color: "#0A1826" }}>-</p>
               </div>
             )}
             {metaExtras.cpm && (
               <div style={{ background: "rgba(59,130,246,0.1)", borderRadius: 10, padding: "12px 16px", minWidth: 140 }}>
                 <p style={{ fontSize: 11, color: "#93c5fd", marginBottom: 4 }}>CPM</p>
-                <p style={{ fontSize: 18, fontWeight: 700, color: "#f0f0f0" }}>-</p>
+                <p style={{ fontSize: 18, fontWeight: 700, color: "#0A1826" }}>-</p>
               </div>
             )}
             {metaExtras.frequencia && (
               <div style={{ background: "rgba(59,130,246,0.1)", borderRadius: 10, padding: "12px 16px", minWidth: 140 }}>
                 <p style={{ fontSize: 11, color: "#93c5fd", marginBottom: 4 }}>Frequência</p>
-                <p style={{ fontSize: 18, fontWeight: 700, color: "#f0f0f0" }}>-</p>
+                <p style={{ fontSize: 18, fontWeight: 700, color: "#0A1826" }}>-</p>
               </div>
             )}
           </div>
@@ -1329,8 +1329,8 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
       {/* ============================================================ */}
       {/* SECTION 4: Meta Metrics selector                              */}
       {/* ============================================================ */}
-      <div className="no-print card" style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 12, padding: "16px 20px", marginBottom: 32 }}>
-        <h3 style={{ fontSize: 13, fontWeight: 600, color: "#a0a0a0", marginBottom: 12 }}>Métricas Meta (exibir no painel)</h3>
+      <div className="no-print card" style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 12, padding: "16px 20px", marginBottom: 32 }}>
+        <h3 style={{ fontSize: 13, fontWeight: 600, color: "#4A5B6C", marginBottom: 12 }}>Métricas Meta (exibir no painel)</h3>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 24px" }}>
           {[
             { key: "impressoes", label: "Impressões" },
@@ -1345,7 +1345,7 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
                 type="checkbox"
                 checked={metaExtras[item.key] || false}
                 onChange={() => setMetaExtras(prev => ({ ...prev, [item.key]: !prev[item.key] }))}
-                style={{ accentColor: "#29ABE2" }}
+                style={{ accentColor: "#1C6CA6" }}
               />
               {item.label}
             </label>
@@ -1360,7 +1360,7 @@ function PerformanceTab({ relatorioId, dateFrom, dateTo }: { relatorioId: string
 
       {/* Footer */}
       <div style={{ textAlign: "center", padding: "20px 0", color: "#404040", fontSize: 12 }}>
-        Relatório gerado com <strong style={{ color: "#606060" }}>SALX Convert</strong>
+        Relatório gerado com <strong style={{ color: "#4A5B6C" }}>SALX Convert</strong>
       </div>
     </div>
   );
@@ -1418,11 +1418,11 @@ function SimuladorCrescimento({
 
   const cardBg = "rgba(139,92,246,0.08)";
   const labelColor = "#c4b5fd";
-  const deltaColor = (d: number) => d > 0 ? "#22c55e" : d < 0 ? "#ef4444" : "#888";
+  const deltaColor = (d: number) => d > 0 ? "#22c55e" : d < 0 ? "#ef4444" : "#6B7A89";
   const deltaText = (d: number, fmt: (n: number) => string) => d === 0 ? "" : `${d > 0 ? "+" : ""}${fmt(d)}`;
 
   return (
-    <div className="no-print card" style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 12, overflow: "hidden", marginBottom: 32 }}>
+    <div className="no-print card" style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 12, overflow: "hidden", marginBottom: 32 }}>
       <div
         onClick={() => setAberto(!aberto)}
         style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", cursor: "pointer", userSelect: "none" }}
@@ -1435,14 +1435,14 @@ function SimuladorCrescimento({
 
       {aberto && (
         <div style={{ padding: "0 20px 24px" }}>
-          <p style={{ fontSize: 12, color: "#606060", marginBottom: 20 }}>
+          <p style={{ fontSize: 12, color: "#4A5B6C", marginBottom: 20 }}>
             Ajuste o investimento e veja a projeção com base nas taxas de conversão atuais
           </p>
 
           {/* Investment input */}
           <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 13, color: "#a0a0a0" }}>Investimento simulado:</span>
+              <span style={{ fontSize: 13, color: "#4A5B6C" }}>Investimento simulado:</span>
               <div style={{ position: "relative" }}>
                 <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#808080", fontSize: 13 }}>R$</span>
                 <input
@@ -1453,7 +1453,7 @@ function SimuladorCrescimento({
                   onChange={e => setSimInvestimento(parseFloat(e.target.value) || 0)}
                   style={{
                     background: "#2a2a3a", border: "2px solid #7c3aed", borderRadius: 8,
-                    padding: "10px 12px 10px 36px", color: "#f0f0f0", fontSize: 18, fontWeight: 700,
+                    padding: "10px 12px 10px 36px", color: "#0A1826", fontSize: 18, fontWeight: 700,
                     width: 200, outline: "none",
                   }}
                 />
@@ -1464,7 +1464,7 @@ function SimuladorCrescimento({
             </div>
             <button
               onClick={() => setSimInvestimento(totInvestimento)}
-              style={{ background: "#333", border: "none", borderRadius: 6, padding: "6px 12px", color: "#a0a0a0", fontSize: 11, cursor: "pointer" }}
+              style={{ background: "#E6EBF0", border: "none", borderRadius: 6, padding: "6px 12px", color: "#4A5B6C", fontSize: 11, cursor: "pointer" }}
             >
               Resetar
             </button>
@@ -1477,9 +1477,9 @@ function SimuladorCrescimento({
                 key={mult}
                 onClick={() => setSimInvestimento(Math.round(totInvestimento * mult))}
                 style={{
-                  background: Math.abs(simInvestimento - totInvestimento * mult) < 1 ? "rgba(124,58,237,0.3)" : "#252525",
-                  border: Math.abs(simInvestimento - totInvestimento * mult) < 1 ? "1px solid #7c3aed" : "1px solid #333",
-                  borderRadius: 6, padding: "6px 14px", color: "#e0e0e0", fontSize: 12,
+                  background: Math.abs(simInvestimento - totInvestimento * mult) < 1 ? "rgba(124,58,237,0.3)" : "#E6EBF0",
+                  border: Math.abs(simInvestimento - totInvestimento * mult) < 1 ? "1px solid #7c3aed" : "1px solid #E6EBF0",
+                  borderRadius: 6, padding: "6px 14px", color: "#0A1826", fontSize: 12,
                   cursor: "pointer", fontWeight: 500,
                 }}
               >
@@ -1500,7 +1500,7 @@ function SimuladorCrescimento({
             ].map(m => (
               <div key={m.label} style={{ background: cardBg, borderRadius: 10, padding: "14px 16px" }}>
                 <p style={{ fontSize: 11, color: labelColor, marginBottom: 6 }}>{m.label}</p>
-                <p style={{ fontSize: 22, fontWeight: 700, color: "#f0f0f0", marginBottom: 4 }}>{m.fmt(m.sim)}</p>
+                <p style={{ fontSize: 22, fontWeight: 700, color: "#0A1826", marginBottom: 4 }}>{m.fmt(m.sim)}</p>
                 {m.delta !== 0 && (
                   <p style={{ fontSize: 11, color: deltaColor(m.delta), fontWeight: 600 }}>
                     {deltaText(m.delta, m.fmt)}
@@ -1511,7 +1511,7 @@ function SimuladorCrescimento({
           </div>
 
           {/* Derived metrics */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12, paddingTop: 16, borderTop: "1px solid #2e2e2e" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12, paddingTop: 16, borderTop: "1px solid #E6EBF0" }}>
             {[
               { label: "Custo por Lead", value: pfmtMoney(custoLead), note: "fixo" },
               { label: "Tx Lead → Agend", value: pfmtPct(txLeadAgend * 100), note: "fixo" },
@@ -1520,7 +1520,7 @@ function SimuladorCrescimento({
               { label: "Ticket Médio", value: pfmtMoney(ticketMedio), note: "fixo" },
               { label: "ROAS Projetado", value: `${simRoas.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}x`, note: "" },
             ].map(m => (
-              <div key={m.label} style={{ background: "#1e1e1e", borderRadius: 8, padding: "10px 14px" }}>
+              <div key={m.label} style={{ background: "#FFFFFF", borderRadius: 8, padding: "10px 14px" }}>
                 <p style={{ fontSize: 10, color: "#808080", marginBottom: 4 }}>
                   {m.label} {m.note && <span style={{ color: "#555", fontSize: 9 }}>({m.note})</span>}
                 </p>
@@ -1604,34 +1604,34 @@ function CriativosPanel({ relatorioId, dateFrom, dateTo }: { relatorioId: string
   const avgCpa = totalAgend > 0 ? totalSpend / totalAgend : 0;
 
   return (
-    <div className="card" style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 12, marginBottom: 32, overflow: "hidden" }}>
+    <div className="card" style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 12, marginBottom: 32, overflow: "hidden" }}>
       <button onClick={() => setAberto(!aberto)} style={{
         width: "100%", padding: "16px 20px", background: "none", border: "none", cursor: "pointer",
         display: "flex", justifyContent: "space-between", alignItems: "center",
       }}>
-        <h3 style={{ fontSize: 15, fontWeight: 600, color: "#f0f0f0", margin: 0 }}>Performance por Criativo</h3>
-        <span style={{ color: "#606060", fontSize: 18 }}>{aberto ? "▲" : "▼"}</span>
+        <h3 style={{ fontSize: 15, fontWeight: 600, color: "#0A1826", margin: 0 }}>Performance por Criativo</h3>
+        <span style={{ color: "#4A5B6C", fontSize: 18 }}>{aberto ? "▲" : "▼"}</span>
       </button>
 
       {aberto && (
         <div style={{ padding: "0 20px 20px" }}>
           {loading ? (
-            <p style={{ color: "#606060", fontSize: 13, textAlign: "center", padding: 20 }}>Carregando criativos...</p>
+            <p style={{ color: "#4A5B6C", fontSize: 13, textAlign: "center", padding: 20 }}>Carregando criativos...</p>
           ) : criativos.length === 0 ? (
-            <p style={{ color: "#606060", fontSize: 13, textAlign: "center", padding: 20 }}>Nenhum criativo encontrado no período</p>
+            <p style={{ color: "#4A5B6C", fontSize: 13, textAlign: "center", padding: 20 }}>Nenhum criativo encontrado no período</p>
           ) : (
             <>
               {/* Tabela por campanha > conjunto > criativo */}
               {Object.entries(campanhas).map(([campName, conjuntos]: [string, any]) => (
                 <div key={campName} style={{ marginBottom: 24 }}>
-                  <h4 style={{ fontSize: 13, fontWeight: 600, color: "#29ABE2", marginBottom: 8 }}>{campName}</h4>
+                  <h4 style={{ fontSize: 13, fontWeight: 600, color: "#1C6CA6", marginBottom: 8 }}>{campName}</h4>
                   {Object.entries(conjuntos).map(([conjName, ads]: [string, any]) => (
                     <div key={conjName} style={{ marginBottom: 16, marginLeft: 12 }}>
-                      <p style={{ fontSize: 12, fontWeight: 500, color: "#a0a0a0", marginBottom: 8 }}>{conjName}</p>
+                      <p style={{ fontSize: 12, fontWeight: 500, color: "#4A5B6C", marginBottom: 8 }}>{conjName}</p>
                       <div style={{ overflowX: "auto" }}>
                         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                           <thead>
-                            <tr style={{ borderBottom: "1px solid #2e2e2e" }}>
+                            <tr style={{ borderBottom: "1px solid #E6EBF0" }}>
                               <th style={{ textAlign: "left", padding: "8px", color: "#808080", fontWeight: 600 }}>Criativo</th>
                               <th style={{ textAlign: "center", padding: "8px", color: "#808080", fontWeight: 600 }}>Investido</th>
                               <th style={{ textAlign: "center", padding: "8px", color: "#808080", fontWeight: 600 }}>Msgs</th>
@@ -1650,23 +1650,23 @@ function CriativosPanel({ relatorioId, dateFrom, dateTo }: { relatorioId: string
                               const isGoodCpl = cplAd > 0 && cplAd < avgCpl;
                               const isGoodCpa = cpaAd > 0 && cpaAd < avgCpa;
                               return (
-                                <tr key={i} style={{ borderBottom: "1px solid #1a1a1a" }}>
-                                  <td style={{ padding: "8px", color: "#f0f0f0", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                <tr key={i} style={{ borderBottom: "1px solid #FFFFFF" }}>
+                                  <td style={{ padding: "8px", color: "#0A1826", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                     {ad.ad_name}
                                   </td>
-                                  <td style={{ textAlign: "center", padding: "8px", color: "#a0a0a0" }}>{cfmtMoney(ad.spend)}</td>
-                                  <td style={{ textAlign: "center", padding: "8px", color: "#f0f0f0", fontWeight: 600 }}>{cfmtNum(ad.mensagens)}</td>
-                                  <td style={{ textAlign: "center", padding: "8px", fontWeight: 600, color: isGoodCpl ? "#22c55e" : cplAd > avgCpl * 1.3 ? "#ef4444" : "#a0a0a0" }}>
+                                  <td style={{ textAlign: "center", padding: "8px", color: "#4A5B6C" }}>{cfmtMoney(ad.spend)}</td>
+                                  <td style={{ textAlign: "center", padding: "8px", color: "#0A1826", fontWeight: 600 }}>{cfmtNum(ad.mensagens)}</td>
+                                  <td style={{ textAlign: "center", padding: "8px", fontWeight: 600, color: isGoodCpl ? "#22c55e" : cplAd > avgCpl * 1.3 ? "#ef4444" : "#4A5B6C" }}>
                                     {cfmtMoney(cplAd)}
                                   </td>
                                   <td style={{ textAlign: "center", padding: "8px" }}>
                                     <input type="number" min="0" value={ag || ""} onChange={e => setAgendEdit(prev => ({ ...prev, [cKey(ad)]: parseInt(e.target.value) || 0 }))}
-                                      style={{ width: 60, background: "#2a2a1a", border: "1px solid #3a3a2a", borderRadius: 4, padding: "3px 6px", color: "#f0f0f0", fontSize: 12, textAlign: "center" }} />
+                                      style={{ width: 60, background: "#2a2a1a", border: "1px solid #3a3a2a", borderRadius: 4, padding: "3px 6px", color: "#0A1826", fontSize: 12, textAlign: "center" }} />
                                   </td>
-                                  <td style={{ textAlign: "center", padding: "8px", fontWeight: 600, color: isGoodCpa ? "#22c55e" : cpaAd > avgCpa * 1.3 ? "#ef4444" : "#a0a0a0" }}>
+                                  <td style={{ textAlign: "center", padding: "8px", fontWeight: 600, color: isGoodCpa ? "#22c55e" : cpaAd > avgCpa * 1.3 ? "#ef4444" : "#4A5B6C" }}>
                                     {ag > 0 ? cfmtMoney(cpaAd) : "-"}
                                   </td>
-                                  <td style={{ textAlign: "center", padding: "8px", color: txConv > 0 ? "#f0f0f0" : "#606060" }}>
+                                  <td style={{ textAlign: "center", padding: "8px", color: txConv > 0 ? "#0A1826" : "#4A5B6C" }}>
                                     {ag > 0 ? cfmtPct(txConv) : "-"}
                                   </td>
                                 </tr>
@@ -1681,15 +1681,15 @@ function CriativosPanel({ relatorioId, dateFrom, dateTo }: { relatorioId: string
               ))}
 
               {/* Resumo comparativo + botão salvar */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #2e2e2e", paddingTop: 16, marginTop: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #E6EBF0", paddingTop: 16, marginTop: 8 }}>
                 <div style={{ display: "flex", gap: 24, fontSize: 12 }}>
-                  <span style={{ color: "#a0a0a0" }}>Total: <strong style={{ color: "#f0f0f0" }}>{cfmtMoney(totalSpend)}</strong> investido</span>
-                  <span style={{ color: "#a0a0a0" }}><strong style={{ color: "#f0f0f0" }}>{cfmtNum(totalMsgs)}</strong> msgs</span>
-                  <span style={{ color: "#a0a0a0" }}><strong style={{ color: "#f0f0f0" }}>{cfmtNum(totalAgend)}</strong> agendamentos</span>
-                  {totalAgend > 0 && <span style={{ color: "#a0a0a0" }}>CPA médio: <strong style={{ color: "#f0f0f0" }}>{cfmtMoney(avgCpa)}</strong></span>}
+                  <span style={{ color: "#4A5B6C" }}>Total: <strong style={{ color: "#0A1826" }}>{cfmtMoney(totalSpend)}</strong> investido</span>
+                  <span style={{ color: "#4A5B6C" }}><strong style={{ color: "#0A1826" }}>{cfmtNum(totalMsgs)}</strong> msgs</span>
+                  <span style={{ color: "#4A5B6C" }}><strong style={{ color: "#0A1826" }}>{cfmtNum(totalAgend)}</strong> agendamentos</span>
+                  {totalAgend > 0 && <span style={{ color: "#4A5B6C" }}>CPA médio: <strong style={{ color: "#0A1826" }}>{cfmtMoney(avgCpa)}</strong></span>}
                 </div>
                 <button onClick={salvarCriativos} disabled={saving} style={{
-                  background: "#29ABE2", color: "#fff", border: "none", borderRadius: 6,
+                  background: "#1C6CA6", color: "#fff", border: "none", borderRadius: 6,
                   padding: "8px 20px", fontSize: 12, fontWeight: 600, cursor: "pointer",
                   opacity: saving ? 0.6 : 1,
                 }}>{saving ? "Salvando..." : "Salvar Agendamentos"}</button>
@@ -1757,8 +1757,8 @@ function PerformanceTotalTab({ relatorioId, dateFrom, dateTo }: { relatorioId: s
     carregar();
   }, [relatorioId, dateFrom, dateTo]);
 
-  if (loading) return <div style={{ textAlign: "center", padding: 40, color: "#606060" }}><Loader2 size={20} className="spin" style={{ display: "inline-block", marginRight: 8 }} />Carregando comparativo...</div>;
-  if (!meses.length) return <div style={{ textAlign: "center", padding: 40, color: "#606060" }}>Nenhum dado encontrado.</div>;
+  if (loading) return <div style={{ textAlign: "center", padding: 40, color: "#4A5B6C" }}><Loader2 size={20} className="spin" style={{ display: "inline-block", marginRight: 8 }} />Carregando comparativo...</div>;
+  if (!meses.length) return <div style={{ textAlign: "center", padding: 40, color: "#4A5B6C" }}>Nenhum dado encontrado.</div>;
 
   const pctChg = (curr: number, prev: number) => prev > 0 ? ((curr - prev) / prev) * 100 : curr > 0 ? 100 : 0;
   const Badge = ({ curr, prev, inverted }: { curr: number; prev: number; inverted?: boolean }) => {
@@ -1791,29 +1791,29 @@ function PerformanceTotalTab({ relatorioId, dateFrom, dateTo }: { relatorioId: s
 
   const getVal = (m: any, metric: MetricDef) => metric.calc ? metric.calc(m.data) : (m.data[metric.key!] ?? 0);
 
-  const hCell: React.CSSProperties = { background: "#1e1e1e", fontWeight: 600, textAlign: "center", padding: "10px 8px", fontSize: 12, color: "#a0a0a0", borderBottom: "1px solid #2e2e2e", whiteSpace: "nowrap" };
-  const rLabel: React.CSSProperties = { fontWeight: 500, color: "#f0f0f0", padding: "8px 16px", fontSize: 13, whiteSpace: "nowrap", position: "sticky", left: 0, background: "#1a1a1a", zIndex: 1 };
-  const dCell: React.CSSProperties = { textAlign: "center", padding: "8px 8px", fontSize: 13, color: "#f0f0f0" };
+  const hCell: React.CSSProperties = { background: "#FFFFFF", fontWeight: 600, textAlign: "center", padding: "10px 8px", fontSize: 12, color: "#4A5B6C", borderBottom: "1px solid #E6EBF0", whiteSpace: "nowrap" };
+  const rLabel: React.CSSProperties = { fontWeight: 500, color: "#0A1826", padding: "8px 16px", fontSize: 13, whiteSpace: "nowrap", position: "sticky", left: 0, background: "#FFFFFF", zIndex: 1 };
+  const dCell: React.CSSProperties = { textAlign: "center", padding: "8px 8px", fontSize: 13, color: "#0A1826" };
 
   return (
     <div>
       <div style={{ textAlign: "center", marginBottom: 32 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "#f0f0f0", marginBottom: 4 }}>Comparativo Mensal — {nomeCliente}</h1>
-        <p style={{ fontSize: 13, color: "#606060" }}>{meses[0]?.label} a {meses[meses.length - 1]?.label}</p>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: "#0A1826", marginBottom: 4 }}>Comparativo Mensal — {nomeCliente}</h1>
+        <p style={{ fontSize: 13, color: "#4A5B6C" }}>{meses[0]?.label} a {meses[meses.length - 1]?.label}</p>
       </div>
-      <div className="card" style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 12, padding: 0, overflow: "hidden" }}>
+      <div className="card" style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 12, padding: 0, overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: meses.length * 130 + 200 }}>
             <thead>
               <tr>
-                <th style={{ ...hCell, textAlign: "left", paddingLeft: 16, position: "sticky", left: 0, background: "#1e1e1e", zIndex: 2 }}>Métrica</th>
+                <th style={{ ...hCell, textAlign: "left", paddingLeft: 16, position: "sticky", left: 0, background: "#FFFFFF", zIndex: 2 }}>Métrica</th>
                 {meses.map(m => <th key={m.from} style={hCell}>{m.label}</th>)}
               </tr>
             </thead>
             <tbody>
               {metrics.map((metric, ri) => (
-                <tr key={metric.label} style={{ borderTop: ri === 7 ? "2px solid #2e2e2e" : ri > 0 ? "1px solid #1e1e1e" : "none" }}>
-                  <td style={{ ...rLabel, color: ri < 7 ? "#f0f0f0" : "#808080" }}>{metric.label}</td>
+                <tr key={metric.label} style={{ borderTop: ri === 7 ? "2px solid #E6EBF0" : ri > 0 ? "1px solid #FFFFFF" : "none" }}>
+                  <td style={{ ...rLabel, color: ri < 7 ? "#0A1826" : "#808080" }}>{metric.label}</td>
                   {meses.map((m, mi) => {
                     const val = getVal(m, metric);
                     return (
@@ -1847,7 +1847,7 @@ export default function DashboardPage() {
             justifyContent: "center",
             alignItems: "center",
             height: "60vh",
-            color: "#a0a0a0",
+            color: "#4A5B6C",
             gap: 12,
           }}
         >
@@ -1866,16 +1866,16 @@ export default function DashboardPage() {
 /* ================================================================== */
 
 const cardStyle: React.CSSProperties = {
-  background: "#1a1a1a",
-  border: "1px solid #2e2e2e",
+  background: "#FFFFFF",
+  border: "1px solid #E6EBF0",
   borderRadius: 12,
   padding: "22px 24px",
   textAlign: "center",
 };
 
 const sectionCard: React.CSSProperties = {
-  background: "#1a1a1a",
-  border: "1px solid #2e2e2e",
+  background: "#FFFFFF",
+  border: "1px solid #E6EBF0",
   borderRadius: 12,
   padding: 24,
   marginBottom: 24,
@@ -1891,7 +1891,7 @@ const sectionHeaderRow: React.CSSProperties = {
 const sectionTitle: React.CSSProperties = {
   fontSize: 16,
   fontWeight: 600,
-  color: "#f0f0f0",
+  color: "#0A1826",
   margin: 0,
   whiteSpace: "nowrap",
 };
@@ -1899,14 +1899,14 @@ const sectionTitle: React.CSSProperties = {
 const sectionLine: React.CSSProperties = {
   flex: 1,
   height: 1,
-  background: "#2e2e2e",
+  background: "#E6EBF0",
 };
 
 const tooltipStyle: React.CSSProperties = {
-  background: "#1a1a1a",
-  border: "1px solid #2e2e2e",
+  background: "#FFFFFF",
+  border: "1px solid #E6EBF0",
   borderRadius: 8,
-  color: "#f0f0f0",
+  color: "#0A1826",
   fontSize: 12,
 };
 
@@ -1921,11 +1921,11 @@ const tableBase: React.CSSProperties = {
 const th: React.CSSProperties = {
   padding: "10px 14px",
   textAlign: "left",
-  color: "#606060",
+  color: "#4A5B6C",
   fontWeight: 600,
   fontSize: 11,
   textTransform: "uppercase",
-  borderBottom: "1px solid #2e2e2e",
+  borderBottom: "1px solid #E6EBF0",
   whiteSpace: "nowrap",
 };
 
@@ -1933,7 +1933,7 @@ const thR: React.CSSProperties = { ...th, textAlign: "right" };
 
 const td: React.CSSProperties = {
   padding: "10px 14px",
-  color: "#f0f0f0",
+  color: "#0A1826",
   borderBottom: "1px solid #1f1f1f",
 };
 
@@ -1950,7 +1950,7 @@ const btnPrimary: React.CSSProperties = {
   alignItems: "center",
   gap: 6,
   background: BLUE,
-  color: "#fff",
+  color: "#0A1826",
   border: "none",
   borderRadius: 8,
   padding: "8px 16px",
@@ -1963,9 +1963,9 @@ const btnSecondary: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: 6,
-  background: "#1a1a1a",
-  color: "#a0a0a0",
-  border: "1px solid #2e2e2e",
+  background: "#FFFFFF",
+  color: "#4A5B6C",
+  border: "1px solid #E6EBF0",
   borderRadius: 8,
   padding: "8px 16px",
   fontSize: 13,
@@ -1989,7 +1989,7 @@ const printCSS = `
 @media print {
   body, html {
     background: #fff !important;
-    color: #1a1a1a !important;
+    color: #FFFFFF !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
@@ -2016,7 +2016,7 @@ const printCSS = `
   /* Text colors */
   .dashboard-root h1,
   .dashboard-root h2 {
-    color: #1a1a1a !important;
+    color: #FFFFFF !important;
   }
 
   .dashboard-root p,
@@ -2026,8 +2026,8 @@ const printCSS = `
 
   /* Cards white bg */
   .dashboard-root div[style*="background: rgb(26, 26, 26)"],
-  .dashboard-root div[style*="background: #1a1a1a"],
-  .dashboard-root div[style*="background: #111"] {
+  .dashboard-root div[style*="background: #FFFFFF"],
+  .dashboard-root div[style*="background: #FFFFFF"] {
     background: #ffffff !important;
     border-color: #ddd !important;
     box-shadow: 0 1px 3px rgba(0,0,0,0.06) !important;
@@ -2035,12 +2035,12 @@ const printCSS = `
 
   /* KPI values */
   .dashboard-root div[style*="font-weight: 700"][style*="font-size: 26px"] {
-    color: #1a1a1a !important;
+    color: #FFFFFF !important;
   }
 
   /* Section lines */
   .dashboard-root div[style*="background: rgb(46, 46, 46)"],
-  .dashboard-root div[style*="background: #2e2e2e"] {
+  .dashboard-root div[style*="background: #E6EBF0"] {
     background: #ddd !important;
   }
 
@@ -2053,7 +2053,7 @@ const printCSS = `
   /* Tabela: coluna sticky precisa de background explícito pra não ficar transparente */
   .dashboard-root table td[style*="sticky"],
   .dashboard-root table th[style*="sticky"] {
-    background: #1a1a1a !important;
+    background: #FFFFFF !important;
   }
 
   /* Resultados manuais (fundo amarelado): texto branco */
@@ -2063,11 +2063,11 @@ const printCSS = `
 
   /* Resultados automáticos (calculados) e coluna TOTAL: texto preto */
   .dashboard-root table td[style*="color: rgb(160, 160, 160)"],
-  .dashboard-root table td[style*="#a0a0a0"],
+  .dashboard-root table td[style*="#4A5B6C"],
   .dashboard-root table td[style*="color: rgb(240, 240, 240)"],
-  .dashboard-root table td[style*="#f0f0f0"],
+  .dashboard-root table td[style*="#0A1826"],
   .dashboard-root table th[style*="color: rgb(240, 240, 240)"],
-  .dashboard-root table th[style*="#f0f0f0"] {
+  .dashboard-root table th[style*="#0A1826"] {
     color: #000 !important;
   }
 

@@ -29,7 +29,7 @@ export default function ConfigAgenciaPage() {
     } catch { alert("Erro ao salvar"); }
   };
 
-  if (loading) return <div style={{ padding:"40px",color:"#606060" }}>Carregando...</div>;
+  if (loading) return <div style={{ padding:"40px",color:"#4A5B6C" }}>Carregando...</div>;
 
   return (
     <div className="animate-in">
@@ -39,7 +39,7 @@ export default function ConfigAgenciaPage() {
       {["geral","contato","endereco"].map((secao) => (
         <div key={secao} className="card" style={{ marginBottom:"20px" }}>
           <h2 style={{ fontSize:"16px",fontWeight:"600",marginBottom:"4px",textTransform:"capitalize" }}>{secao === "endereco" ? "Endereço" : secao.charAt(0).toUpperCase()+secao.slice(1)}</h2>
-          <p style={{ fontSize:"13px",color:"#606060",marginBottom:"20px" }}>
+          <p style={{ fontSize:"13px",color:"#4A5B6C",marginBottom:"20px" }}>
             {secao==="geral"?"Atualize as informações gerais da sua agência.":secao==="contato"?"Atualize as informações de contato.":"Atualize o endereço da sua agência."}
           </p>
           {secao==="geral" && (
@@ -57,7 +57,7 @@ export default function ConfigAgenciaPage() {
                 <input className="form-input" placeholder="5511999999999" value={contato.whatsapp_numero}
                   onChange={(e)=>setContato(c=>({...c,whatsapp_numero:e.target.value.replace(/\D/g,"")}))}
                   style={{ fontFamily:"monospace" }}/>
-                <p style={{ fontSize:"11px",color:"#606060",marginTop:"4px" }}>DDI + DDD + numero. Ex: 5511999999999</p>
+                <p style={{ fontSize:"11px",color:"#4A5B6C",marginTop:"4px" }}>DDI + DDD + numero. Ex: 5511999999999</p>
               </div>
             </div>
           )}

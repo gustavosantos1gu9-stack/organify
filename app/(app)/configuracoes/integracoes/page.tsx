@@ -494,7 +494,7 @@ function IntegracoesCliente() {
     setCarregandoMeta(false);
   };
 
-  if (loading) return <div style={{ textAlign: "center", padding: "60px", color: "#606060" }}>Carregando...</div>;
+  if (loading) return <div style={{ textAlign: "center", padding: "60px", color: "#4A5B6C" }}>Carregando...</div>;
 
   return (
     <div className="animate-in">
@@ -508,12 +508,12 @@ function IntegracoesCliente() {
       {showSelector && (
         <>
           <div onClick={() => setShowSelector(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 100 }} />
-          <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "90%", maxWidth: "560px", maxHeight: "90vh", overflowY: "auto", background: "#141414", border: "1px solid #2e2e2e", borderRadius: "12px", zIndex: 101, padding: "28px" }}>
+          <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "90%", maxWidth: "560px", maxHeight: "90vh", overflowY: "auto", background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: "12px", zIndex: 101, padding: "28px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
               <Target size={20} color="#1877f2" />
               <h2 style={{ fontSize: "18px", fontWeight: "600", margin: 0 }}>Conectar Meta Ads</h2>
             </div>
-            <p style={{ fontSize: "13px", color: "#606060", marginBottom: "20px" }}>
+            <p style={{ fontSize: "13px", color: "#4A5B6C", marginBottom: "20px" }}>
               Selecione a conta de anúncio e o pixel que deseja usar.
             </p>
 
@@ -547,7 +547,7 @@ function IntegracoesCliente() {
               <div className="form-group" style={{ marginBottom: "20px" }}>
                 <label className="form-label">Pixel de Conversão</label>
                 {carregandoMeta ? (
-                  <p style={{ fontSize: "12px", color: "#606060" }}>Carregando pixels...</p>
+                  <p style={{ fontSize: "12px", color: "#4A5B6C" }}>Carregando pixels...</p>
                 ) : pixelsDisponiveis.length === 0 ? (
                   <p style={{ fontSize: "12px", color: "#f59e0b" }}>Nenhum pixel encontrado. Você pode criar um no Gerenciador de Eventos.</p>
                 ) : (
@@ -592,14 +592,14 @@ function IntegracoesCliente() {
               </div>
             )}
             <div>
-              <p style={{ fontSize: "14px", fontWeight: "600", color: "#f0f0f0" }}>{profileName}</p>
+              <p style={{ fontSize: "14px", fontWeight: "600", color: "#0A1826" }}>{profileName}</p>
               <p style={{ fontSize: "12px", color: "#25d366" }}>Conectado</p>
             </div>
           </div>
         ) : qrCode ? (
-          <div style={{ textAlign: "center", padding: "20px", background: "#1a1a1a", border: "1px solid rgba(37,211,102,0.3)", borderRadius: "10px" }}>
-            <p style={{ fontSize: "14px", fontWeight: "600", color: "#f0f0f0", marginBottom: "4px" }}>Escaneie o QR Code</p>
-            <p style={{ fontSize: "12px", color: "#606060", marginBottom: "20px" }}>Abra o WhatsApp → Aparelhos conectados → Conectar aparelho</p>
+          <div style={{ textAlign: "center", padding: "20px", background: "#FFFFFF", border: "1px solid rgba(37,211,102,0.3)", borderRadius: "10px" }}>
+            <p style={{ fontSize: "14px", fontWeight: "600", color: "#0A1826", marginBottom: "4px" }}>Escaneie o QR Code</p>
+            <p style={{ fontSize: "12px", color: "#4A5B6C", marginBottom: "20px" }}>Abra o WhatsApp → Aparelhos conectados → Conectar aparelho</p>
             {qrCode.startsWith("data:image") ? (
               <img src={qrCode} alt="QR" style={{ width: "220px", height: "220px", borderRadius: "8px" }} />
             ) : (
@@ -612,13 +612,13 @@ function IntegracoesCliente() {
             </div>
           </div>
         ) : pairingCode ? (
-          <div style={{ textAlign: "center", padding: "24px", background: "#1a1a1a", border: "1px solid rgba(37,211,102,0.3)", borderRadius: "10px" }}>
-            <p style={{ fontSize: "14px", fontWeight: "600", color: "#f0f0f0", marginBottom: "4px" }}>Código de pareamento</p>
-            <p style={{ fontSize: "12px", color: "#606060", marginBottom: "20px" }}>Abra o WhatsApp → Aparelhos conectados → Conectar aparelho → Vincular com número de telefone</p>
-            <div style={{ display: "inline-block", background: "#0f0f0f", border: "2px solid rgba(37,211,102,0.4)", borderRadius: "12px", padding: "16px 32px" }}>
+          <div style={{ textAlign: "center", padding: "24px", background: "#FFFFFF", border: "1px solid rgba(37,211,102,0.3)", borderRadius: "10px" }}>
+            <p style={{ fontSize: "14px", fontWeight: "600", color: "#0A1826", marginBottom: "4px" }}>Código de pareamento</p>
+            <p style={{ fontSize: "12px", color: "#4A5B6C", marginBottom: "20px" }}>Abra o WhatsApp → Aparelhos conectados → Conectar aparelho → Vincular com número de telefone</p>
+            <div style={{ display: "inline-block", background: "#FFFFFF", border: "2px solid rgba(37,211,102,0.4)", borderRadius: "12px", padding: "16px 32px" }}>
               <p style={{ fontSize: "36px", fontWeight: "700", letterSpacing: "8px", color: "#25d366", margin: 0, fontFamily: "monospace" }}>{pairingCode}</p>
             </div>
-            <p style={{ fontSize: "11px", color: "#606060", marginTop: "12px" }}>Digite esse código no WhatsApp quando solicitado</p>
+            <p style={{ fontSize: "11px", color: "#4A5B6C", marginTop: "12px" }}>Digite esse código no WhatsApp quando solicitado</p>
             <div style={{ marginTop: "16px" }}>
               <button className="btn-secondary" style={{ cursor: "pointer" }} onClick={() => { setPairingCode(null); window.location.reload(); }}>
                 <RefreshCw size={13} /> Já conectei
@@ -627,19 +627,19 @@ function IntegracoesCliente() {
           </div>
         ) : (
           <div style={{ padding: "20px" }}>
-            <p style={{ fontSize: "13px", color: "#606060", marginBottom: "16px", textAlign: "center" }}>Conecte um WhatsApp para rastrear conversas e disparar eventos.</p>
+            <p style={{ fontSize: "13px", color: "#4A5B6C", marginBottom: "16px", textAlign: "center" }}>Conecte um WhatsApp para rastrear conversas e disparar eventos.</p>
 
             {/* Cloud API (Meta Oficial) */}
             <div style={{ marginBottom: "16px" }}>
               <EmbeddedSignup onSuccess={() => window.location.reload()} />
-              <p style={{ fontSize: "11px", color: "#606060", marginTop: "6px", textAlign: "center" }}>
+              <p style={{ fontSize: "11px", color: "#4A5B6C", marginTop: "6px", textAlign: "center" }}>
                 Oficial Meta • Sem risco de ban • Recomendado
               </p>
             </div>
 
-            <div style={{ textAlign: "center", fontSize: "11px", color: "#606060", margin: "16px 0", position: "relative" }}>
-              <span style={{ background: "#141414", padding: "0 12px", position: "relative", zIndex: 1 }}>ou método alternativo</span>
-              <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: "1px", background: "#2e2e2e" }} />
+            <div style={{ textAlign: "center", fontSize: "11px", color: "#4A5B6C", margin: "16px 0", position: "relative" }}>
+              <span style={{ background: "#FFFFFF", padding: "0 12px", position: "relative", zIndex: 1 }}>ou método alternativo</span>
+              <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: "1px", background: "#E6EBF0" }} />
             </div>
 
             {/* Modo alternativo: QR ou Código */}
@@ -647,14 +647,14 @@ function IntegracoesCliente() {
               <button onClick={() => setPairingMode(false)} style={{
                 padding: "7px 16px", borderRadius: 20, fontSize: 12, cursor: "pointer",
                 background: !pairingMode ? "rgba(37,211,102,0.15)" : "transparent",
-                border: !pairingMode ? "1px solid rgba(37,211,102,0.4)" : "1px solid #2e2e2e",
-                color: !pairingMode ? "#25d366" : "#606060",
+                border: !pairingMode ? "1px solid rgba(37,211,102,0.4)" : "1px solid #E6EBF0",
+                color: !pairingMode ? "#25d366" : "#4A5B6C",
               }}>QR Code</button>
               <button onClick={() => setPairingMode(true)} style={{
                 padding: "7px 16px", borderRadius: 20, fontSize: 12, cursor: "pointer",
                 background: pairingMode ? "rgba(37,211,102,0.15)" : "transparent",
-                border: pairingMode ? "1px solid rgba(37,211,102,0.4)" : "1px solid #2e2e2e",
-                color: pairingMode ? "#25d366" : "#606060",
+                border: pairingMode ? "1px solid rgba(37,211,102,0.4)" : "1px solid #E6EBF0",
+                color: pairingMode ? "#25d366" : "#4A5B6C",
               }}>Código</button>
             </div>
 
@@ -671,7 +671,7 @@ function IntegracoesCliente() {
                   <MessageCircle size={16} style={{ marginRight: "6px" }} />
                   {criando ? "Gerando código..." : "Gerar código de pareamento"}
                 </button>
-                <p style={{ fontSize: "11px", color: "#606060", textAlign: "center" }}>
+                <p style={{ fontSize: "11px", color: "#4A5B6C", textAlign: "center" }}>
                   Digite o número do WhatsApp que quer conectar
                 </p>
               </div>
@@ -693,7 +693,7 @@ function IntegracoesCliente() {
                     padding: "8px 16px", borderRadius: 20, fontSize: 12, cursor: "pointer",
                     background: linkCopiado ? "rgba(37,211,102,0.08)" : "rgba(100,100,100,0.08)",
                     border: `1px solid ${linkCopiado ? "rgba(37,211,102,0.3)" : "rgba(100,100,100,0.2)"}`,
-                    color: linkCopiado ? "#25d366" : "#a0a0a0",
+                    color: linkCopiado ? "#25d366" : "#4A5B6C",
                   }}
                 >
                   {linkCopiado ? "✓ Link copiado!" : "🔗 Copiar link de reconexão para a cliente"}
@@ -705,7 +705,7 @@ function IntegracoesCliente() {
                   style={{
                     display: "inline-flex", alignItems: "center", gap: "6px",
                     padding: "8px 16px", borderRadius: 20, fontSize: 12, cursor: "pointer",
-                    background: "rgba(100,100,100,0.08)", border: "1px solid rgba(100,100,100,0.2)", color: "#606060",
+                    background: "rgba(100,100,100,0.08)", border: "1px solid rgba(100,100,100,0.2)", color: "#4A5B6C",
                     opacity: gerandoToken ? 0.6 : 1,
                   }}
                 >
@@ -726,7 +726,7 @@ function IntegracoesCliente() {
           <MessageCircle size={20} color="#25d366" />
           <h2 style={{ fontSize: "16px", fontWeight: "600" }}>Notificação de Leads</h2>
         </div>
-        <p style={{ fontSize: "13px", color: "#606060", marginBottom: "16px" }}>
+        <p style={{ fontSize: "13px", color: "#4A5B6C", marginBottom: "16px" }}>
           Quando um lead chegar (Meta Lead Ads ou formulário), enviar notificação num grupo do WhatsApp com os dados e link para chamar.
         </p>
         <div className="form-group" style={{ marginBottom: "12px" }}>
@@ -737,7 +737,7 @@ function IntegracoesCliente() {
             value={grupoNotificacaoJid}
             onChange={e => setGrupoNotificacaoJid(e.target.value)}
           />
-          <p style={{ fontSize: "11px", color: "#606060", marginTop: "4px" }}>
+          <p style={{ fontSize: "11px", color: "#4A5B6C", marginTop: "4px" }}>
             Para encontrar o JID: no WhatsApp, abra o grupo → copie o link de convite → o número antes de "@g.us" é o JID.
           </p>
         </div>
@@ -756,18 +756,18 @@ function IntegracoesCliente() {
       {/* Meta Ads - Pixel */}
       <div className="card">
         <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
-          <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: metaAtivo ? "#29ABE2" : "#ef4444" }} />
+          <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: metaAtivo ? "#1C6CA6" : "#ef4444" }} />
           <Target size={18} color="#1877f2" />
           <h2 style={{ fontSize: "16px", fontWeight: "600" }}>Meta Ads</h2>
         </div>
-        <p style={{ fontSize: "13px", color: "#606060", marginBottom: "20px" }}>Pixel e Conversions API para rastrear e otimizar campanhas</p>
+        <p style={{ fontSize: "13px", color: "#4A5B6C", marginBottom: "20px" }}>Pixel e Conversions API para rastrear e otimizar campanhas</p>
 
         {/* Botão OAuth — conectar/reconectar com 1 clique */}
         <button onClick={() => {
           window.location.href = `/api/auth/meta?agencia_id=${agenciaId}&return_to=/configuracoes/integracoes&token_type=master`;
         }} style={{
           width: "100%", padding: "14px", borderRadius: "10px", cursor: "pointer",
-          background: metaAtivo ? "#1a1a2e" : "#1877f2", color: metaAtivo ? "#29ABE2" : "#fff",
+          background: metaAtivo ? "#1a1a2e" : "#1877f2", color: metaAtivo ? "#1C6CA6" : "#fff",
           border: metaAtivo ? "1px solid #1877f2" : "none",
           fontSize: "15px", fontWeight: "600", marginBottom: "16px",
           display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
@@ -775,9 +775,9 @@ function IntegracoesCliente() {
           <Target size={18} /> {metaAtivo ? "Reconectar Facebook (renovar token)" : "Conectar com Facebook"}
         </button>
         {!metaAtivo && (
-          <div style={{ textAlign: "center", fontSize: "11px", color: "#606060", margin: "16px 0", position: "relative" }}>
-            <span style={{ background: "#141414", padding: "0 12px", position: "relative", zIndex: 1 }}>ou preencha manualmente</span>
-            <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: "1px", background: "#2e2e2e" }} />
+          <div style={{ textAlign: "center", fontSize: "11px", color: "#4A5B6C", margin: "16px 0", position: "relative" }}>
+            <span style={{ background: "#FFFFFF", padding: "0 12px", position: "relative", zIndex: 1 }}>ou preencha manualmente</span>
+            <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: "1px", background: "#E6EBF0" }} />
           </div>
         )}
 
@@ -785,44 +785,44 @@ function IntegracoesCliente() {
           <div className="form-group">
             <label className="form-label">Pixel ID</label>
             <input className="form-input" placeholder="1234567890123456" value={pixelId} onChange={e => setPixelId(e.target.value)} />
-            <p style={{ fontSize: "11px", color: "#505050", marginTop: "6px" }}>Gerenciador de Eventos → Fontes de dados → ID do Pixel</p>
+            <p style={{ fontSize: "11px", color: "#6B7A89", marginTop: "6px" }}>Gerenciador de Eventos → Fontes de dados → ID do Pixel</p>
           </div>
           <div className="form-group">
             <label className="form-label">Access Token (Conversions API)</label>
             <div style={{ position: "relative" }}>
               <input className="form-input" placeholder="EAAxxxxxxx..." type={showToken ? "text" : "password"}
                 value={metaToken} onChange={e => setMetaToken(e.target.value)} style={{ paddingRight: "40px" }} />
-              <button onClick={() => setShowToken(!showToken)} style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#606060" }}>
+              <button onClick={() => setShowToken(!showToken)} style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#4A5B6C" }}>
                 {showToken ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>
-            <p style={{ fontSize: "11px", color: "#505050", marginTop: "6px" }}>Gerenciador de Eventos → Pixel → Configuracoes → Gerar token</p>
+            <p style={{ fontSize: "11px", color: "#6B7A89", marginTop: "6px" }}>Gerenciador de Eventos → Pixel → Configuracoes → Gerar token</p>
           </div>
         </div>
         {/* Gerenciador de Anúncios */}
-        <div style={{ borderTop: "1px solid #2e2e2e", paddingTop: "16px", marginTop: "4px", marginBottom: "16px" }}>
+        <div style={{ borderTop: "1px solid #E6EBF0", paddingTop: "16px", marginTop: "4px", marginBottom: "16px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
             <div>
-              <p style={{ fontSize: "14px", fontWeight: "600", color: "#f0f0f0", margin: 0 }}>Gerenciador de Anuncios</p>
-              <p style={{ fontSize: "12px", color: "#606060", margin: 0 }}>Para filtrar conversas por campanha e conjunto de anuncios</p>
+              <p style={{ fontSize: "14px", fontWeight: "600", color: "#0A1826", margin: 0 }}>Gerenciador de Anuncios</p>
+              <p style={{ fontSize: "12px", color: "#4A5B6C", margin: 0 }}>Para filtrar conversas por campanha e conjunto de anuncios</p>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: metaAdsAtivo ? "#29ABE2" : "#ef4444" }} />
-              <span style={{ fontSize: "12px", color: metaAdsAtivo ? "#29ABE2" : "#ef4444" }}>{metaAdsAtivo ? "Ativo" : "Inativo"}</span>
+              <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: metaAdsAtivo ? "#1C6CA6" : "#ef4444" }} />
+              <span style={{ fontSize: "12px", color: metaAdsAtivo ? "#1C6CA6" : "#ef4444" }}>{metaAdsAtivo ? "Ativo" : "Inativo"}</span>
             </div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
             <div className="form-group">
               <label className="form-label">Ad Account ID</label>
               <input className="form-input" placeholder="act_1234567890" value={metaAdAccountId} onChange={e => setMetaAdAccountId(e.target.value)} />
-              <p style={{ fontSize: "11px", color: "#505050", marginTop: "6px" }}>Gerenciador de Anuncios → URL da conta (act_XXXXXXXXX)</p>
+              <p style={{ fontSize: "11px", color: "#6B7A89", marginTop: "6px" }}>Gerenciador de Anuncios → URL da conta (act_XXXXXXXXX)</p>
             </div>
             <div className="form-group">
               <label className="form-label">Token do Gerenciador de Negocios</label>
               <div style={{ position: "relative" }}>
                 <input className="form-input" placeholder="EAAxxxxxxx..." type={showBusinessToken ? "text" : "password"}
                   value={metaBusinessToken} onChange={e => setMetaBusinessToken(e.target.value)} style={{ paddingRight: "40px" }} />
-                <button onClick={() => setShowBusinessToken(!showBusinessToken)} style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#606060" }}>
+                <button onClick={() => setShowBusinessToken(!showBusinessToken)} style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#4A5B6C" }}>
                   {showBusinessToken ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
@@ -842,11 +842,11 @@ function IntegracoesCliente() {
           </div>
           {/* Passo a passo */}
           <details style={{ marginTop: "12px" }}>
-            <summary style={{ fontSize: "12px", color: "#29ABE2", cursor: "pointer", userSelect: "none" }}>Como gerar o Token do Gerenciador?</summary>
-            <div style={{ marginTop: "10px", padding: "14px", background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "8px", fontSize: "12px", color: "#a0a0a0", lineHeight: "1.8" }}>
-              <p style={{ color: "#f0f0f0", fontWeight: "600", marginBottom: "8px" }}>Passo a passo:</p>
+            <summary style={{ fontSize: "12px", color: "#1C6CA6", cursor: "pointer", userSelect: "none" }}>Como gerar o Token do Gerenciador?</summary>
+            <div style={{ marginTop: "10px", padding: "14px", background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: "8px", fontSize: "12px", color: "#4A5B6C", lineHeight: "1.8" }}>
+              <p style={{ color: "#0A1826", fontWeight: "600", marginBottom: "8px" }}>Passo a passo:</p>
               <ol style={{ margin: 0, paddingLeft: "18px" }}>
-                <li>Acesse <strong style={{ color: "#29ABE2" }}>business.facebook.com</strong> → Configuracoes do Negocio</li>
+                <li>Acesse <strong style={{ color: "#1C6CA6" }}>business.facebook.com</strong> → Configuracoes do Negocio</li>
                 <li>No menu lateral: <strong>Usuarios</strong> → <strong>Usuarios do sistema</strong></li>
                 <li>Se nao tem usuario, clique em <strong>Adicionar</strong> → nome "SALX Convert" → funcao <strong>Admin</strong></li>
                 <li>Clique no usuario criado</li>
@@ -872,10 +872,10 @@ function IntegracoesCliente() {
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"20px"}}>
           <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
             <div style={{width:"10px",height:"10px",borderRadius:"50%",background:openaiAtivoC?"#22c55e":"#ef4444"}}/>
-            <Bot size={18} color="#a0a0a0"/>
+            <Bot size={18} color="#4A5B6C"/>
             <h2 style={{fontSize:"16px",fontWeight:"600"}}>Assistente IA (WhatsApp)</h2>
           </div>
-          <label style={{display:"flex",alignItems:"center",gap:"8px",cursor:"pointer",fontSize:"13px",color:"#a0a0a0"}}>
+          <label style={{display:"flex",alignItems:"center",gap:"8px",cursor:"pointer",fontSize:"13px",color:"#4A5B6C"}}>
             <input type="checkbox" checked={openaiAtivoC} onChange={e=>setOpenaiAtivoC(e.target.checked)} style={{width:"14px",height:"14px"}}/>
             {openaiAtivoC?"Ativo":"Inativo"}
           </label>
@@ -909,7 +909,7 @@ function IntegracoesCliente() {
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"12px",marginBottom:"16px"}}>
           <div className="form-group">
             <label className="form-label">Temperatura ({openaiTempC})</label>
-            <input type="range" min="0" max="1" step="0.1" value={openaiTempC} onChange={e=>setOpenaiTempC(Number(e.target.value))} style={{width:"100%",accentColor:"#29ABE2"}}/>
+            <input type="range" min="0" max="1" step="0.1" value={openaiTempC} onChange={e=>setOpenaiTempC(Number(e.target.value))} style={{width:"100%",accentColor:"#1C6CA6"}}/>
           </div>
           <div className="form-group">
             <label className="form-label">Max Tokens</label>
@@ -930,7 +930,7 @@ function IntegracoesCliente() {
             <input className="form-input" type="time" value={openaiHorarioFimC} onChange={e=>setOpenaiHorarioFimC(e.target.value)}/>
           </div>
         </div>
-        <p style={{fontSize:"11px",color:"#606060",marginBottom:"16px"}}>Se vazio, responde 24h. Se humano responder, a IA pausa por 5 min naquela conversa.</p>
+        <p style={{fontSize:"11px",color:"#4A5B6C",marginBottom:"16px"}}>Se vazio, responde 24h. Se humano responder, a IA pausa por 5 min naquela conversa.</p>
         <div style={{display:"flex",justifyContent:"flex-end"}}>
           <button className="btn-primary" onClick={async()=>{
             try{
@@ -1307,7 +1307,7 @@ function IntegracoesMaster() {
     <div className="animate-in">
       <div className="breadcrumb">
         <a href="/">Início</a><span>›</span>
-        <span style={{color:"#a0a0a0"}}>Configurações</span><span>›</span>
+        <span style={{color:"#4A5B6C"}}>Configurações</span><span>›</span>
         <span className="current">Integrações</span>
       </div>
       <h1 style={{fontSize:"22px",fontWeight:"600",marginBottom:"28px"}}>Integrações</h1>
@@ -1315,17 +1315,17 @@ function IntegracoesMaster() {
       {/* WhatsApp */}
       <div className="card" style={{marginBottom:"20px"}}>
         <div style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:"20px"}}>
-          <MessageCircle size={20} color="#29ABE2"/>
+          <MessageCircle size={20} color="#1C6CA6"/>
           <h2 style={{fontSize:"16px",fontWeight:"600"}}>WhatsApp</h2>
         </div>
 
-        <div style={{borderBottom:"1px solid #2e2e2e",marginBottom:"24px"}}>
+        <div style={{borderBottom:"1px solid #E6EBF0",marginBottom:"24px"}}>
           {(["conexao","cobrancas","api"] as const).map(tab=>(
             <button key={tab} onClick={()=>setWaTab(tab)} style={{
               padding:"8px 20px",background:"none",border:"none",cursor:"pointer",
               fontSize:"13px",fontWeight:"500",
-              color:waTab===tab?"#f0f0f0":"#606060",
-              borderBottom:waTab===tab?"2px solid #29ABE2":"2px solid transparent",
+              color:waTab===tab?"#0A1826":"#4A5B6C",
+              borderBottom:waTab===tab?"2px solid #1C6CA6":"2px solid transparent",
               marginBottom:"-1px",transition:"all 0.15s",
             }}>
               {tab==="conexao"?"Conexão":tab==="cobrancas"?"Cobranças":"API"}
@@ -1336,8 +1336,8 @@ function IntegracoesMaster() {
         {waTab==="conexao" && (
           <div style={{display:"flex",flexDirection:"column",gap:"20px"}}>
             {/* Config da API */}
-            <div style={{background:"#1a1a1a",border:"1px solid #2e2e2e",borderRadius:"10px",padding:"16px"}}>
-              <p style={{fontSize:"13px",fontWeight:"600",marginBottom:"12px",color:"#f0f0f0"}}>Configuração da Evolution API</p>
+            <div style={{background:"#FFFFFF",border:"1px solid #E6EBF0",borderRadius:"10px",padding:"16px"}}>
+              <p style={{fontSize:"13px",fontWeight:"600",marginBottom:"12px",color:"#0A1826"}}>Configuração da Evolution API</p>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px",marginBottom:"12px"}}>
                 <div className="form-group">
                   <label className="form-label">URL da API</label>
@@ -1356,7 +1356,7 @@ function IntegracoesMaster() {
             {/* Instâncias */}
             <div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px"}}>
-                <p style={{fontSize:"13px",fontWeight:"600",color:"#f0f0f0"}}>Instâncias WhatsApp</p>
+                <p style={{fontSize:"13px",fontWeight:"600",color:"#0A1826"}}>Instâncias WhatsApp</p>
                 <button className="btn-ghost" onClick={carregarInstancias} style={{cursor:"pointer",padding:"6px"}}>
                   <RefreshCw size={14}/>
                 </button>
@@ -1364,9 +1364,9 @@ function IntegracoesMaster() {
 
               {/* Lista de instâncias */}
               {loadingInst ? (
-                <p style={{fontSize:"13px",color:"#606060"}}>Carregando instâncias...</p>
+                <p style={{fontSize:"13px",color:"#4A5B6C"}}>Carregando instâncias...</p>
               ) : instancias.length === 0 ? (
-                <p style={{fontSize:"13px",color:"#606060"}}>Nenhuma instância encontrada.</p>
+                <p style={{fontSize:"13px",color:"#4A5B6C"}}>Nenhuma instância encontrada.</p>
               ) : instancias.map(inst => {
                 const nome = getNome(inst);
                 const status = getStatus(inst);
@@ -1374,7 +1374,7 @@ function IntegracoesMaster() {
                 return (
                   <div key={inst.id || nome} style={{
                     display:"flex",alignItems:"center",justifyContent:"space-between",
-                    padding:"12px 16px",background:"#1a1a1a",border:`1px solid ${conectado?"rgba(41,171,226,0.3)":"#2e2e2e"}`,
+                    padding:"12px 16px",background:"#FFFFFF",border:`1px solid ${conectado?"rgba(41,171,226,0.3)":"#E6EBF0"}`,
                     borderRadius:"8px",marginBottom:"8px",
                   }}>
                     <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
@@ -1382,13 +1382,13 @@ function IntegracoesMaster() {
                         <img src={inst.profilePicUrl} alt="" style={{width:"36px",height:"36px",borderRadius:"50%",objectFit:"cover"}}/>
                       ) : (
                         conectado
-                          ? <Wifi size={16} style={{color:"#29ABE2"}}/>
+                          ? <Wifi size={16} style={{color:"#1C6CA6"}}/>
                           : <WifiOff size={16} style={{color:"#ef4444"}}/>
                       )}
                       <div>
-                        <p style={{fontSize:"13px",fontWeight:"600",color:"#f0f0f0"}}>{inst.profileName || nome}</p>
-                        <p style={{fontSize:"11px",color:"#606060"}}>{nome}</p>
-                        <p style={{fontSize:"11px",color:conectado?"#29ABE2":"#ef4444",textTransform:"capitalize"}}>{conectado?"● Conectado":"● Desconectado"}</p>
+                        <p style={{fontSize:"13px",fontWeight:"600",color:"#0A1826"}}>{inst.profileName || nome}</p>
+                        <p style={{fontSize:"11px",color:"#4A5B6C"}}>{nome}</p>
+                        <p style={{fontSize:"11px",color:conectado?"#1C6CA6":"#ef4444",textTransform:"capitalize"}}>{conectado?"● Conectado":"● Desconectado"}</p>
                       </div>
                     </div>
                     <div style={{display:"flex",gap:"8px"}}>
@@ -1410,13 +1410,13 @@ function IntegracoesMaster() {
               {/* QR Code */}
               {qrCode && qrInstancia && (
                 <div style={{
-                  background:"#1a1a1a",border:"1px solid rgba(41,171,226,0.3)",
+                  background:"#FFFFFF",border:"1px solid rgba(41,171,226,0.3)",
                   borderRadius:"10px",padding:"20px",textAlign:"center",marginTop:"12px",
                 }}>
-                  <p style={{fontSize:"13px",fontWeight:"600",color:"#f0f0f0",marginBottom:"4px"}}>
-                    Conectar: <span style={{color:"#29ABE2"}}>{qrInstancia}</span>
+                  <p style={{fontSize:"13px",fontWeight:"600",color:"#0A1826",marginBottom:"4px"}}>
+                    Conectar: <span style={{color:"#1C6CA6"}}>{qrInstancia}</span>
                   </p>
-                  <p style={{fontSize:"12px",color:"#606060",marginBottom:"16px"}}>
+                  <p style={{fontSize:"12px",color:"#4A5B6C",marginBottom:"16px"}}>
                     Abra o WhatsApp → Aparelhos conectados → Conectar aparelho → Escaneie o QR Code
                   </p>
                   {qrCode.startsWith("data:image") ? (
@@ -1434,10 +1434,10 @@ function IntegracoesMaster() {
 
               {/* Nova instância */}
               <div style={{
-                marginTop:"16px",padding:"16px",background:"#1a1a1a",
-                border:"1px dashed #3a3a3a",borderRadius:"8px",
+                marginTop:"16px",padding:"16px",background:"#FFFFFF",
+                border:"1px dashed #E6EBF0",borderRadius:"8px",
               }}>
-                <p style={{fontSize:"13px",fontWeight:"600",color:"#f0f0f0",marginBottom:"12px"}}>
+                <p style={{fontSize:"13px",fontWeight:"600",color:"#0A1826",marginBottom:"12px"}}>
                   <Plus size={13} style={{marginRight:"6px",verticalAlign:"middle"}}/>
                   Nova instância
                 </p>
@@ -1462,7 +1462,7 @@ function IntegracoesMaster() {
               <textarea className="form-input" rows={8} value={cobrancaMsg}
                 onChange={e=>setCobrancaMsg(e.target.value)}
                 style={{resize:"vertical",fontFamily:"monospace",fontSize:"13px"}}/>
-              <p style={{fontSize:"11px",color:"#606060",marginTop:"4px"}}>
+              <p style={{fontSize:"11px",color:"#4A5B6C",marginTop:"4px"}}>
                 Placeholders: NOME_CLIENTE, VALOR, DATA_VENCIMENTO, CATEGORIA
               </p>
             </div>
@@ -1474,13 +1474,13 @@ function IntegracoesMaster() {
 
         {waTab==="api" && (
           <div style={{display:"flex",flexDirection:"column",gap:"16px"}}>
-            <div style={{background:"rgba(41,171,226,0.06)",border:"1px solid rgba(41,171,226,0.2)",borderRadius:"8px",padding:"12px 16px",fontSize:"13px",color:"#a0a0a0"}}>
+            <div style={{background:"rgba(41,171,226,0.06)",border:"1px solid rgba(41,171,226,0.2)",borderRadius:"8px",padding:"12px 16px",fontSize:"13px",color:"#4A5B6C"}}>
               Use o endpoint abaixo para receber leads de formulários externos.
             </div>
             <div className="form-group">
               <label className="form-label">Endpoint Leads</label>
               <input className="form-input" value={typeof window!=="undefined"?`${window.location.origin}/api/leads/SuaChaveAPI`:""} readOnly
-                style={{fontFamily:"monospace",fontSize:"12px",color:"#29ABE2"}}
+                style={{fontFamily:"monospace",fontSize:"12px",color:"#1C6CA6"}}
                 onClick={e=>(e.target as HTMLInputElement).select()}/>
             </div>
           </div>
@@ -1491,16 +1491,16 @@ function IntegracoesMaster() {
       <div className="card" style={{marginBottom:"20px"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"4px"}}>
           <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-            <div style={{width:"10px",height:"10px",borderRadius:"50%",background:metaAtivo?"#29ABE2":"#ef4444"}}/>
+            <div style={{width:"10px",height:"10px",borderRadius:"50%",background:metaAtivo?"#1C6CA6":"#ef4444"}}/>
             <Target size={18} color="#1877f2"/>
             <h2 style={{fontSize:"16px",fontWeight:"600"}}>Meta Ads</h2>
           </div>
-          <label style={{display:"flex",alignItems:"center",gap:"8px",cursor:"pointer",fontSize:"13px",color:"#a0a0a0"}}>
+          <label style={{display:"flex",alignItems:"center",gap:"8px",cursor:"pointer",fontSize:"13px",color:"#4A5B6C"}}>
             <input type="checkbox" checked={metaAtivo} onChange={e=>setMetaAtivo(e.target.checked)} style={{width:"14px",height:"14px"}}/>
             {metaAtivo?"Ativo":"Inativo"}
           </label>
         </div>
-        <p style={{fontSize:"13px",color:"#606060",marginBottom:"16px"}}>Pixel e Conversions API para rastrear eventos do inbox do master</p>
+        <p style={{fontSize:"13px",color:"#4A5B6C",marginBottom:"16px"}}>Pixel e Conversions API para rastrear eventos do inbox do master</p>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"16px",marginBottom:"16px"}}>
           <div className="form-group">
             <label className="form-label">Pixel ID</label>
@@ -1511,22 +1511,22 @@ function IntegracoesMaster() {
             <div style={{position:"relative"}}>
               <input className="form-input" placeholder="EAAxxxxxxx..." type={showMetaToken?"text":"password"}
                 value={metaToken} onChange={e=>setMetaToken(e.target.value)} style={{paddingRight:"40px"}}/>
-              <button onClick={()=>setShowMetaToken(!showMetaToken)} style={{position:"absolute",right:"10px",top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#606060"}}>
+              <button onClick={()=>setShowMetaToken(!showMetaToken)} style={{position:"absolute",right:"10px",top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#4A5B6C"}}>
                 {showMetaToken?<EyeOff size={14}/>:<Eye size={14}/>}
               </button>
             </div>
           </div>
         </div>
         {/* Conexão Inbox Master / Formulários */}
-        <div style={{borderTop:"1px solid #2e2e2e",paddingTop:"16px",marginBottom:"16px"}}>
-          <p style={{fontSize:"14px",fontWeight:"600",color:"#f0f0f0",margin:"0 0 4px 0"}}>Inbox Master / Formulários</p>
-          <p style={{fontSize:"12px",color:"#606060",marginBottom:"12px"}}>Conta Facebook com acesso ao pixel acima — usada para disparar eventos CAPI e receber leads do formulário</p>
+        <div style={{borderTop:"1px solid #E6EBF0",paddingTop:"16px",marginBottom:"16px"}}>
+          <p style={{fontSize:"14px",fontWeight:"600",color:"#0A1826",margin:"0 0 4px 0"}}>Inbox Master / Formulários</p>
+          <p style={{fontSize:"12px",color:"#4A5B6C",marginBottom:"12px"}}>Conta Facebook com acesso ao pixel acima — usada para disparar eventos CAPI e receber leads do formulário</p>
           <button onClick={async () => {
             const agId = await getAgenciaId();
             window.location.href = `/api/auth/meta?agencia_id=${agId}&return_to=/configuracoes/integracoes&token_type=pixel`;
           }} style={{
             width:"100%", padding:"12px", borderRadius:"10px", cursor:"pointer", marginBottom:"8px",
-            background:"#1a1a2e", color:"#29ABE2", border:"1px solid #1877f2",
+            background:"#1a1a2e", color:"#1C6CA6", border:"1px solid #1877f2",
             fontSize:"14px", fontWeight:"600", display:"flex", alignItems:"center", justifyContent:"center", gap:"8px",
           }}>
             <Target size={16}/> Conectar Facebook (Inbox / Formulários)
@@ -1536,19 +1536,19 @@ function IntegracoesMaster() {
               Conectado: {metaTokenNome}
             </div>
           ) : (
-            <div style={{fontSize:"12px",color:"#606060"}}>Nenhuma conta conectada</div>
+            <div style={{fontSize:"12px",color:"#4A5B6C"}}>Nenhuma conta conectada</div>
           )}
         </div>
         {/* Seção Gerenciador de Anúncios */}
-        <div style={{borderTop:"1px solid #2e2e2e",paddingTop:"16px",marginTop:"4px",marginBottom:"16px"}}>
+        <div style={{borderTop:"1px solid #E6EBF0",paddingTop:"16px",marginTop:"4px",marginBottom:"16px"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
             <div>
-              <p style={{fontSize:"14px",fontWeight:"600",color:"#f0f0f0",margin:0}}>Gerenciador de Anúncios</p>
-              <p style={{fontSize:"12px",color:"#606060",margin:0}}>Para filtrar conversas por campanha e conjunto de anúncios</p>
+              <p style={{fontSize:"14px",fontWeight:"600",color:"#0A1826",margin:0}}>Gerenciador de Anúncios</p>
+              <p style={{fontSize:"12px",color:"#4A5B6C",margin:0}}>Para filtrar conversas por campanha e conjunto de anúncios</p>
             </div>
             <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
-              <div style={{width:"8px",height:"8px",borderRadius:"50%",background:metaAdsAtivo?"#29ABE2":"#ef4444"}}/>
-              <span style={{fontSize:"12px",color:metaAdsAtivo?"#29ABE2":"#ef4444"}}>{metaAdsAtivo?"Ativo":"Inativo"}</span>
+              <div style={{width:"8px",height:"8px",borderRadius:"50%",background:metaAdsAtivo?"#1C6CA6":"#ef4444"}}/>
+              <span style={{fontSize:"12px",color:metaAdsAtivo?"#1C6CA6":"#ef4444"}}>{metaAdsAtivo?"Ativo":"Inativo"}</span>
             </div>
           </div>
           <button onClick={async () => {
@@ -1556,7 +1556,7 @@ function IntegracoesMaster() {
             window.location.href = `/api/auth/meta?agencia_id=${agId}&return_to=/configuracoes/integracoes&token_type=gerenciador`;
           }} style={{
             width:"100%", padding:"12px", borderRadius:"10px", cursor:"pointer", marginBottom:"8px",
-            background:"#1a1a2e", color:"#29ABE2", border:"1px solid #1877f2",
+            background:"#1a1a2e", color:"#1C6CA6", border:"1px solid #1877f2",
             fontSize:"14px", fontWeight:"600", display:"flex", alignItems:"center", justifyContent:"center", gap:"8px",
           }}>
             <Target size={16}/> Conectar Facebook (Gerenciador de Anúncios)
@@ -1566,33 +1566,33 @@ function IntegracoesMaster() {
               Conectado: {metaBusinessTokenNome}
             </div>
           ) : (
-            <div style={{fontSize:"12px",color:"#606060",marginBottom:"12px"}}>Nenhuma conta conectada</div>
+            <div style={{fontSize:"12px",color:"#4A5B6C",marginBottom:"12px"}}>Nenhuma conta conectada</div>
           )}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"16px"}}>
             <div className="form-group">
               <label className="form-label">Ad Account ID</label>
               <input className="form-input" placeholder="act_1234567890" value={metaAdAccountId} onChange={e=>setMetaAdAccountId(e.target.value)}/>
-              <p style={{fontSize:"11px",color:"#606060",marginTop:"4px"}}>Encontre em Gerenciador de Anúncios → URL da conta</p>
+              <p style={{fontSize:"11px",color:"#4A5B6C",marginTop:"4px"}}>Encontre em Gerenciador de Anúncios → URL da conta</p>
             </div>
             <div className="form-group">
               <label className="form-label">Token do Gerenciador (manual)</label>
               <div style={{position:"relative"}}>
                 <input className="form-input" placeholder="EAAxxxxxxx..." type={showBusinessToken?"text":"password"}
                   value={metaBusinessToken} onChange={e=>setMetaBusinessToken(e.target.value)} style={{paddingRight:"40px"}}/>
-                <button onClick={()=>setShowBusinessToken(!showBusinessToken)} style={{position:"absolute",right:"10px",top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#606060"}}>
+                <button onClick={()=>setShowBusinessToken(!showBusinessToken)} style={{position:"absolute",right:"10px",top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#4A5B6C"}}>
                   {showBusinessToken?<EyeOff size={14}/>:<Eye size={14}/>}
                 </button>
               </div>
-              <p style={{fontSize:"11px",color:"#606060",marginTop:"4px"}}>Opcional — use o botão acima para conectar via OAuth</p>
+              <p style={{fontSize:"11px",color:"#4A5B6C",marginTop:"4px"}}>Opcional — use o botão acima para conectar via OAuth</p>
             </div>
           </div>
           {/* Passo a passo */}
           <details style={{marginTop:"12px"}}>
-            <summary style={{fontSize:"12px",color:"#29ABE2",cursor:"pointer",userSelect:"none"}}>Como gerar o Token do Gerenciador?</summary>
-            <div style={{marginTop:"10px",padding:"14px",background:"#1a1a1a",border:"1px solid #2e2e2e",borderRadius:"8px",fontSize:"12px",color:"#a0a0a0",lineHeight:"1.8"}}>
-              <p style={{color:"#f0f0f0",fontWeight:"600",marginBottom:"8px"}}>Passo a passo:</p>
+            <summary style={{fontSize:"12px",color:"#1C6CA6",cursor:"pointer",userSelect:"none"}}>Como gerar o Token do Gerenciador?</summary>
+            <div style={{marginTop:"10px",padding:"14px",background:"#FFFFFF",border:"1px solid #E6EBF0",borderRadius:"8px",fontSize:"12px",color:"#4A5B6C",lineHeight:"1.8"}}>
+              <p style={{color:"#0A1826",fontWeight:"600",marginBottom:"8px"}}>Passo a passo:</p>
               <ol style={{margin:0,paddingLeft:"18px"}}>
-                <li>Acesse <strong style={{color:"#29ABE2"}}>business.facebook.com</strong> → Configuracoes do Negocio</li>
+                <li>Acesse <strong style={{color:"#1C6CA6"}}>business.facebook.com</strong> → Configuracoes do Negocio</li>
                 <li>No menu lateral: <strong>Usuarios</strong> → <strong>Usuarios do sistema</strong></li>
                 <li>Se nao tem usuario, clique em <strong>Adicionar</strong> → nome "SALX Convert" → funcao <strong>Admin</strong></li>
                 <li>Clique no usuario criado</li>
@@ -1618,10 +1618,10 @@ function IntegracoesMaster() {
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"20px"}}>
           <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
             <div style={{width:"10px",height:"10px",borderRadius:"50%",background:openaiAtivo?"#22c55e":"#ef4444"}}/>
-            <Bot size={18} color="#a0a0a0"/>
+            <Bot size={18} color="#4A5B6C"/>
             <h2 style={{fontSize:"16px",fontWeight:"600"}}>Assistente IA (WhatsApp)</h2>
           </div>
-          <label style={{display:"flex",alignItems:"center",gap:"8px",cursor:"pointer",fontSize:"13px",color:"#a0a0a0"}}>
+          <label style={{display:"flex",alignItems:"center",gap:"8px",cursor:"pointer",fontSize:"13px",color:"#4A5B6C"}}>
             <input type="checkbox" checked={openaiAtivo} onChange={e=>setOpenaiAtivo(e.target.checked)} style={{width:"14px",height:"14px"}}/>
             {openaiAtivo?"Ativo":"Inativo"}
           </label>
@@ -1654,15 +1654,15 @@ function IntegracoesMaster() {
           <textarea className="form-input" rows={6} value={openaiPrompt} onChange={e=>setOpenaiPrompt(e.target.value)}
             placeholder={"Você é a assistente da [Nome da Empresa].\n\nServiços oferecidos:\n- ...\n\nPreços:\n- ...\n\nHorários de atendimento:\n- ...\n\nRegras:\n- Seja educada e profissional\n- Nunca invente informações\n- Se não souber algo, diga que vai verificar\n- Tente agendar um horário"}
             style={{resize:"vertical",minHeight:"120px"}}/>
-          <p style={{fontSize:"11px",color:"#606060",marginTop:"4px"}}>Descreva a personalidade, serviços, preços, horários e regras do assistente. Quanto mais detalhado, melhor.</p>
+          <p style={{fontSize:"11px",color:"#4A5B6C",marginTop:"4px"}}>Descreva a personalidade, serviços, preços, horários e regras do assistente. Quanto mais detalhado, melhor.</p>
         </div>
 
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"12px",marginBottom:"16px"}}>
           <div className="form-group">
             <label className="form-label">Temperatura ({openaiTemp})</label>
             <input type="range" min="0" max="1" step="0.1" value={openaiTemp} onChange={e=>setOpenaiTemp(Number(e.target.value))}
-              style={{width:"100%",accentColor:"#29ABE2"}}/>
-            <div style={{display:"flex",justifyContent:"space-between",fontSize:"10px",color:"#606060"}}><span>Preciso</span><span>Criativo</span></div>
+              style={{width:"100%",accentColor:"#1C6CA6"}}/>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:"10px",color:"#4A5B6C"}}><span>Preciso</span><span>Criativo</span></div>
           </div>
           <div className="form-group">
             <label className="form-label">Max Tokens</label>
@@ -1684,7 +1684,7 @@ function IntegracoesMaster() {
             <input className="form-input" type="time" value={openaiHorarioFim} onChange={e=>setOpenaiHorarioFim(e.target.value)}/>
           </div>
         </div>
-        <p style={{fontSize:"11px",color:"#606060",marginBottom:"16px"}}>Se vazio, a IA responde 24h. Se configurado, só responde dentro do horário. A IA não responde se um humano respondeu nos últimos 5 minutos.</p>
+        <p style={{fontSize:"11px",color:"#4A5B6C",marginBottom:"16px"}}>Se vazio, a IA responde 24h. Se configurado, só responde dentro do horário. A IA não responde se um humano respondeu nos últimos 5 minutos.</p>
 
         <div style={{display:"flex",justifyContent:"flex-end"}}>
           <button className="btn-primary" onClick={salvarOpenAI} style={{cursor:"pointer"}}><Check size={14}/> Salvar Assistente IA</button>
@@ -1695,7 +1695,7 @@ function IntegracoesMaster() {
       <div className="card">
         <div style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:"16px"}}>
           <div style={{width:"10px",height:"10px",borderRadius:"50%",background:"#ef4444"}}/>
-          <CreditCard size={18} color="#a0a0a0"/>
+          <CreditCard size={18} color="#4A5B6C"/>
           <h2 style={{fontSize:"16px",fontWeight:"600"}}>Asaas</h2>
         </div>
         <div className="form-group" style={{marginBottom:"16px"}}>
@@ -1726,7 +1726,7 @@ export default function IntegracoesPage() {
 
   if (isFilha === null) return (
     <div style={{ display: "flex", justifyContent: "center", padding: "60px" }}>
-      <div style={{ width: "32px", height: "32px", borderRadius: "50%", border: "3px solid #2e2e2e", borderTop: "3px solid #29ABE2", animation: "spin 1s linear infinite" }} />
+      <div style={{ width: "32px", height: "32px", borderRadius: "50%", border: "3px solid #E6EBF0", borderTop: "3px solid #1C6CA6", animation: "spin 1s linear infinite" }} />
     </div>
   );
 

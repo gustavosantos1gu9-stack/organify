@@ -211,23 +211,23 @@ export default function EditarClienteModal({ cliente, onClose, onSave }: EditarC
         </div>
 
         {/* Vincular cadastro */}
-        <div style={{ marginBottom:"20px", padding:"12px 14px", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"10px" }}>
+        <div style={{ marginBottom:"20px", padding:"12px 14px", background:"#FFFFFF", border:"1px solid #E6EBF0", borderRadius:"10px" }}>
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom: mostraBusca || cadastroVinculado ? "10px" : "0" }}>
             <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
-              <UserCircle2 size={15} color={cadastroVinculado ? "#29ABE2" : "#606060"}/>
-              <span style={{ fontSize:"13px", color: cadastroVinculado ? "#f0f0f0" : "#606060", fontWeight: cadastroVinculado ? "600" : "400" }}>
+              <UserCircle2 size={15} color={cadastroVinculado ? "#1C6CA6" : "#4A5B6C"}/>
+              <span style={{ fontSize:"13px", color: cadastroVinculado ? "#0A1826" : "#4A5B6C", fontWeight: cadastroVinculado ? "600" : "400" }}>
                 {cadastroVinculado ? cadastroVinculado.nome : "Vincular formulário de cadastro"}
               </span>
               {cadastroVinculado && <span style={{ fontSize:"11px", color:"#22c55e", background:"#052e16", padding:"2px 6px", borderRadius:"8px" }}>vinculado</span>}
             </div>
             <div style={{ display:"flex", gap:"6px" }}>
               {cadastroVinculado && (
-                <button onClick={desvincular} style={{ background:"none", border:"1px solid #2e2e2e", borderRadius:"6px", padding:"4px 8px", cursor:"pointer", color:"#606060", fontSize:"11px" }}>
+                <button onClick={desvincular} style={{ background:"none", border:"1px solid #E6EBF0", borderRadius:"6px", padding:"4px 8px", cursor:"pointer", color:"#4A5B6C", fontSize:"11px" }}>
                   Remover
                 </button>
               )}
               <button onClick={() => setMostraBusca(v => !v)}
-                style={{ background: mostraBusca ? "#29ABE220" : "none", border:"1px solid #2e2e2e", borderRadius:"6px", padding:"4px 8px", cursor:"pointer", color:"#a0a0a0", fontSize:"11px", display:"flex", alignItems:"center", gap:"4px" }}>
+                style={{ background: mostraBusca ? "#29ABE220" : "none", border:"1px solid #E6EBF0", borderRadius:"6px", padding:"4px 8px", cursor:"pointer", color:"#4A5B6C", fontSize:"11px", display:"flex", alignItems:"center", gap:"4px" }}>
                 <Search size={11}/> {cadastroVinculado ? "Trocar" : "Buscar"}
               </button>
             </div>
@@ -241,8 +241,8 @@ export default function EditarClienteModal({ cliente, onClose, onSave }: EditarC
                 { label:"Faturamento", value: cadastroVinculado.faturamento_medio },
               ].map(item => (
                 <div key={item.label}>
-                  <p style={{ fontSize:"10px", color:"#606060", margin:"0 0 2px" }}>{item.label}</p>
-                  <p style={{ fontSize:"12px", color:"#f0f0f0", margin:0 }}>{item.value || "—"}</p>
+                  <p style={{ fontSize:"10px", color:"#4A5B6C", margin:"0 0 2px" }}>{item.label}</p>
+                  <p style={{ fontSize:"12px", color:"#0A1826", margin:0 }}>{item.value || "—"}</p>
                 </div>
               ))}
             </div>
@@ -253,17 +253,17 @@ export default function EditarClienteModal({ cliente, onClose, onSave }: EditarC
               <input value={buscaCadastro} onChange={e => setBuscaCadastro(e.target.value)}
                 placeholder="Buscar por nome..."
                 autoFocus
-                style={{ width:"100%", background:"#0f0f0f", border:"1px solid #3a3a3a", borderRadius:"6px", padding:"7px 10px", color:"#f0f0f0", fontSize:"13px", boxSizing:"border-box" as const, outline:"none" }}/>
-              <div style={{ maxHeight:"150px", overflowY:"auto", marginTop:"4px", border:"1px solid #2e2e2e", borderRadius:"6px", background:"#0f0f0f" }}>
+                style={{ width:"100%", background:"#FFFFFF", border:"1px solid #E6EBF0", borderRadius:"6px", padding:"7px 10px", color:"#0A1826", fontSize:"13px", boxSizing:"border-box" as const, outline:"none" }}/>
+              <div style={{ maxHeight:"150px", overflowY:"auto", marginTop:"4px", border:"1px solid #E6EBF0", borderRadius:"6px", background:"#FFFFFF" }}>
                 {cadastrosFiltrados.length === 0 ? (
-                  <p style={{ color:"#606060", fontSize:"12px", padding:"10px 12px", margin:0 }}>Nenhum cadastro encontrado.</p>
+                  <p style={{ color:"#4A5B6C", fontSize:"12px", padding:"10px 12px", margin:0 }}>Nenhum cadastro encontrado.</p>
                 ) : cadastrosFiltrados.map(c => (
                   <button key={c.id} onClick={() => vincularCadastro(c)}
-                    style={{ display:"flex", alignItems:"center", justifyContent:"space-between", width:"100%", padding:"8px 12px", background:"none", border:"none", cursor:"pointer", color:"#f0f0f0", fontSize:"13px", textAlign:"left" }}
-                    onMouseEnter={e => e.currentTarget.style.background = "#1a1a1a"}
+                    style={{ display:"flex", alignItems:"center", justifyContent:"space-between", width:"100%", padding:"8px 12px", background:"none", border:"none", cursor:"pointer", color:"#0A1826", fontSize:"13px", textAlign:"left" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "#FFFFFF"}
                     onMouseLeave={e => e.currentTarget.style.background = "none"}>
                     <span>{c.nome}</span>
-                    <span style={{ fontSize:"11px", color:"#606060" }}>{c.email}</span>
+                    <span style={{ fontSize:"11px", color:"#4A5B6C" }}>{c.email}</span>
                   </button>
                 ))}
               </div>
@@ -285,7 +285,7 @@ export default function EditarClienteModal({ cliente, onClose, onSave }: EditarC
                     onClick={() => isDone && setStep(n)}>
                     {isDone ? <Check size={14}/> : n}
                   </div>
-                  <span style={{ fontSize:"11px", color: isActive?"#f0f0f0":isDone?"#a0a0a0":"#606060", whiteSpace:"nowrap" }}>{label}</span>
+                  <span style={{ fontSize:"11px", color: isActive?"#0A1826":isDone?"#4A5B6C":"#4A5B6C", whiteSpace:"nowrap" }}>{label}</span>
                 </div>
                 {i < 2 && <div className={`step-line ${isDone?"done":""}`} style={{ marginBottom:"20px" }}/>}
               </div>
@@ -302,9 +302,9 @@ export default function EditarClienteModal({ cliente, onClose, onSave }: EditarC
                 {(["fisica","juridica"] as const).map((t) => (
                   <button key={t} onClick={() => setTipo(t)} style={{
                     flex:1, padding:"10px", borderRadius:"8px", cursor:"pointer",
-                    border:`1px solid ${tipo===t?"#f0f0f0":"#2e2e2e"}`,
-                    background:tipo===t?"rgba(41,171,226,0.1)":"#222",
-                    color:tipo===t?"#f0f0f0":"#a0a0a0",
+                    border:`1px solid ${tipo===t?"#0A1826":"#E6EBF0"}`,
+                    background:tipo===t?"rgba(41,171,226,0.1)":"#E6EBF0",
+                    color:tipo===t?"#0A1826":"#4A5B6C",
                     fontSize:"13px", fontWeight:"500",
                     display:"flex", alignItems:"center", justifyContent:"center", gap:"6px"
                   }}>
@@ -333,9 +333,9 @@ export default function EditarClienteModal({ cliente, onClose, onSave }: EditarC
                   <input className="form-input" value={form.telefone} onChange={(e)=>set("telefone",e.target.value)} style={{ flex:1 }}/>
                   <button onClick={()=>set("whatsapp",!form.whatsapp)} style={{
                     width:"38px", height:"38px", borderRadius:"8px", cursor:"pointer", flexShrink:0,
-                    border:`1px solid ${form.whatsapp?"#f0f0f0":"#2e2e2e"}`,
-                    background:form.whatsapp?"rgba(41,171,226,0.1)":"#222",
-                    color:form.whatsapp?"#f0f0f0":"#606060",
+                    border:`1px solid ${form.whatsapp?"#0A1826":"#E6EBF0"}`,
+                    background:form.whatsapp?"rgba(41,171,226,0.1)":"#E6EBF0",
+                    color:form.whatsapp?"#0A1826":"#4A5B6C",
                     display:"flex", alignItems:"center", justifyContent:"center"
                   }}><MessageCircle size={15}/></button>
                 </div>
@@ -430,15 +430,15 @@ export default function EditarClienteModal({ cliente, onClose, onSave }: EditarC
               <label className="form-label">Status</label>
               <div style={{ display:"flex", gap:"8px" }}>
                 {[
-                  { value:"ativo", label:"Ativo", color:"#29ABE2" },
+                  { value:"ativo", label:"Ativo", color:"#1C6CA6" },
                   { value:"pendencia", label:"Pendência", color:"#f59e0b" },
                   { value:"saiu", label:"Saiu", color:"#ef4444" },
                 ].map((s) => (
                   <button key={s.value} onClick={()=>set("status_recorrencia",s.value)} style={{
                     flex:1, padding:"8px", borderRadius:"8px", cursor:"pointer",
-                    border:`1px solid ${form.status_recorrencia===s.value?s.color:"#2e2e2e"}`,
-                    background:form.status_recorrencia===s.value?`${s.color}18`:"#222",
-                    color:form.status_recorrencia===s.value?s.color:"#a0a0a0",
+                    border:`1px solid ${form.status_recorrencia===s.value?s.color:"#E6EBF0"}`,
+                    background:form.status_recorrencia===s.value?`${s.color}18`:"#E6EBF0",
+                    color:form.status_recorrencia===s.value?s.color:"#4A5B6C",
                     fontSize:"13px", fontWeight:"500",
                   }}>{s.label}</button>
                 ))}
@@ -450,9 +450,9 @@ export default function EditarClienteModal({ cliente, onClose, onSave }: EditarC
                 {[{ value:"mentoria", label:"Mentoria" }, { value:"assessoria", label:"Assessoria" }].map((s) => (
                   <button key={s.value} onClick={()=>set("servico",s.value)} style={{
                     flex:1, padding:"10px", borderRadius:"8px", cursor:"pointer",
-                    border:`1px solid ${form.servico===s.value?"#f0f0f0":"#2e2e2e"}`,
-                    background:form.servico===s.value?"rgba(41,171,226,0.1)":"#222",
-                    color:form.servico===s.value?"#f0f0f0":"#a0a0a0",
+                    border:`1px solid ${form.servico===s.value?"#0A1826":"#E6EBF0"}`,
+                    background:form.servico===s.value?"rgba(41,171,226,0.1)":"#E6EBF0",
+                    color:form.servico===s.value?"#0A1826":"#4A5B6C",
                     fontSize:"13px", fontWeight:"500",
                   }}>{s.label}</button>
                 ))}
@@ -469,9 +469,9 @@ export default function EditarClienteModal({ cliente, onClose, onSave }: EditarC
                   ].map((f) => (
                     <button key={f.value} onClick={()=>set("frequencia",f.value)} style={{
                       flex:1, padding:"10px 8px", borderRadius:"8px", cursor:"pointer",
-                      border:`1px solid ${form.frequencia===f.value?"#f0f0f0":"#2e2e2e"}`,
-                      background:form.frequencia===f.value?"rgba(41,171,226,0.1)":"#222",
-                      color:form.frequencia===f.value?"#f0f0f0":"#a0a0a0",
+                      border:`1px solid ${form.frequencia===f.value?"#0A1826":"#E6EBF0"}`,
+                      background:form.frequencia===f.value?"rgba(41,171,226,0.1)":"#E6EBF0",
+                      color:form.frequencia===f.value?"#0A1826":"#4A5B6C",
                       fontSize:"12px", fontWeight:"500",
                       display:"flex", flexDirection:"column", alignItems:"center", gap:"2px",
                     }}>

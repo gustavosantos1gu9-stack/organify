@@ -50,9 +50,9 @@ function FornecedorModal({ item, onClose, onSave }: { item?: Fornecedor; onClose
               {(["fisica","juridica"] as const).map(t=>(
                 <button key={t} onClick={()=>setTipo(t)} style={{
                   flex:1,padding:"10px",borderRadius:"8px",cursor:"pointer",
-                  border:`1px solid ${tipo===t?"#f0f0f0":"#2e2e2e"}`,
-                  background:tipo===t?"rgba(41,171,226,0.1)":"#222",
-                  color:tipo===t?"#f0f0f0":"#a0a0a0",
+                  border:`1px solid ${tipo===t?"#0A1826":"#E6EBF0"}`,
+                  background:tipo===t?"rgba(41,171,226,0.1)":"#E6EBF0",
+                  color:tipo===t?"#0A1826":"#4A5B6C",
                   fontSize:"13px",fontWeight:"500",
                   display:"flex",alignItems:"center",justifyContent:"center",gap:"6px"
                 }}>
@@ -121,14 +121,14 @@ export default function FornecedoresPage() {
   return (
     <div className="animate-in">
       <div className="breadcrumb">
-        <a href="/">Início</a><span>›</span><span style={{color:"#a0a0a0"}}>Configurações</span><span>›</span>
+        <a href="/">Início</a><span>›</span><span style={{color:"#4A5B6C"}}>Configurações</span><span>›</span>
         <span className="current">Fornecedores</span>
       </div>
       <h1 style={{fontSize:"22px",fontWeight:"600",marginBottom:"24px"}}>Fornecedores</h1>
       <div className="table-wrapper">
-        <div style={{padding:"16px",display:"flex",gap:"12px",borderBottom:"1px solid #2e2e2e"}}>
+        <div style={{padding:"16px",display:"flex",gap:"12px",borderBottom:"1px solid #E6EBF0"}}>
           <div style={{position:"relative",flex:1}}>
-            <Search size={14} style={{position:"absolute",left:"12px",top:"50%",transform:"translateY(-50%)",color:"#606060"}}/>
+            <Search size={14} style={{position:"absolute",left:"12px",top:"50%",transform:"translateY(-50%)",color:"#4A5B6C"}}/>
             <input className="search-input" placeholder="Buscar fornecedores..." value={busca} onChange={e=>setBusca(e.target.value)}/>
           </div>
           <button className="btn-primary" onClick={()=>setShowModal(true)} style={{cursor:"pointer"}}>
@@ -139,16 +139,16 @@ export default function FornecedoresPage() {
           <thead><tr><th>TIPO</th><th>NOME</th><th>CNPJ/CPF</th><th>E-MAIL</th><th>TELEFONE</th><th></th></tr></thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} style={{textAlign:"center",color:"#606060",padding:"40px"}}>Carregando...</td></tr>
+              <tr><td colSpan={6} style={{textAlign:"center",color:"#4A5B6C",padding:"40px"}}>Carregando...</td></tr>
             ) : !items.length ? (
-              <tr><td colSpan={6} style={{textAlign:"center",color:"#606060",padding:"40px"}}>Nenhum fornecedor encontrado.</td></tr>
+              <tr><td colSpan={6} style={{textAlign:"center",color:"#4A5B6C",padding:"40px"}}>Nenhum fornecedor encontrado.</td></tr>
             ) : items.map(f=>(
               <tr key={f.id}>
                 <td><span className="badge badge-gray">{f.tipo==="fisica"?"Pessoa física":"Pessoa jurídica"}</span></td>
                 <td style={{fontWeight:"500"}}>{f.nome}</td>
-                <td style={{color:"#a0a0a0"}}>{f.documento||"—"}</td>
-                <td style={{color:"#a0a0a0"}}>{f.email||"—"}</td>
-                <td style={{color:"#a0a0a0"}}>{f.telefone||"—"}</td>
+                <td style={{color:"#4A5B6C"}}>{f.documento||"—"}</td>
+                <td style={{color:"#4A5B6C"}}>{f.email||"—"}</td>
+                <td style={{color:"#4A5B6C"}}>{f.telefone||"—"}</td>
                 <td>
                   <div style={{display:"flex",gap:"6px"}}>
                     <button className="btn-secondary" style={{padding:"5px 10px",fontSize:"12px",cursor:"pointer"}} onClick={()=>setEditando(f)}>

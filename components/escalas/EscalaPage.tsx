@@ -569,9 +569,9 @@ function RelatorioModal({ historico, onClose }: RelatorioProps) {
               for (const m of cliente.meses) mesesMap[m.label] = m;
 
               return (
-                <div key={cliente.nome} style={{ background: "var(--card-bg)", borderRadius: "10px", border: "1px solid #2e2e2e", overflow: "hidden" }}>
+                <div key={cliente.nome} style={{ background: "var(--card-bg)", borderRadius: "10px", border: "1px solid #E6EBF0", overflow: "hidden" }}>
                   {/* Header do cliente */}
-                  <div style={{ padding: "14px 18px", borderBottom: "1px solid #2e2e2e", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ padding: "14px 18px", borderBottom: "1px solid #E6EBF0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                       <span style={{ fontSize: "15px", fontWeight: "600", color: "var(--navy)" }}>{cliente.nome}</span>
                       <span style={{ fontSize: "12px", color: "#a855f7", fontWeight: "600", background: "rgba(168,85,247,0.12)", padding: "2px 8px", borderRadius: "4px" }}>
@@ -587,7 +587,7 @@ function RelatorioModal({ historico, onClose }: RelatorioProps) {
                   <div style={{ overflow: "auto" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "700px" }}>
                       <thead>
-                        <tr style={{ borderBottom: "1px solid #2e2e2e" }}>
+                        <tr style={{ borderBottom: "1px solid #E6EBF0" }}>
                           <th style={{ padding: "10px 14px", textAlign: "left", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "500", position: "sticky", left: 0, background: "var(--card-bg)", zIndex: 1 }}>MÊS</th>
                           <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "500" }}>AGEND.</th>
                           <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "500" }}>% AGEND.</th>
@@ -604,10 +604,10 @@ function RelatorioModal({ historico, onClose }: RelatorioProps) {
                           const entry = mesesMap[mesLabel];
                           if (!entry) {
                             return (
-                              <tr key={mesLabel} style={{ borderBottom: "1px solid #1a1a1a" }}>
+                              <tr key={mesLabel} style={{ borderBottom: "1px solid #FFFFFF" }}>
                                 <td style={{ padding: "8px 14px", fontSize: "12px", color: "var(--text-secondary)", position: "sticky", left: 0, background: "var(--card-bg)" }}>{mesLabel}</td>
                                 {Array.from({ length: 8 }).map((_, i) => (
-                                  <td key={i} style={{ padding: "8px 14px", textAlign: "center", fontSize: "12px", color: "#333" }}>—</td>
+                                  <td key={i} style={{ padding: "8px 14px", textAlign: "center", fontSize: "12px", color: "#E6EBF0" }}>—</td>
                                 ))}
                               </tr>
                             );
@@ -623,7 +623,7 @@ function RelatorioModal({ historico, onClose }: RelatorioProps) {
                           const pctCusto = prev ? calcPct(entry.custo_medio, prev.custo_medio) : 0;
 
                           return (
-                            <tr key={mesLabel} style={{ borderBottom: "1px solid #1a1a1a" }}>
+                            <tr key={mesLabel} style={{ borderBottom: "1px solid #FFFFFF" }}>
                               <td style={{ padding: "8px 14px", fontSize: "12px", color: "var(--text-secondary)", fontWeight: "500", position: "sticky", left: 0, background: "var(--card-bg)" }}>{mesLabel}</td>
                               <td style={{ padding: "8px 14px", textAlign: "center", fontSize: "13px", color: "var(--navy)", fontWeight: "500" }}>{entry.agendamentos}</td>
                               <td style={{ padding: "8px 14px", textAlign: "center" }}>{prev ? pctBadge(pctAgend) : <span style={{ color: "var(--text-secondary)", fontSize: "11px" }}>1o mês</span>}</td>
@@ -641,7 +641,7 @@ function RelatorioModal({ historico, onClose }: RelatorioProps) {
                   </div>
 
                   {/* Resumo */}
-                  <div style={{ padding: "10px 18px", borderTop: "1px solid #2e2e2e", display: "flex", gap: "24px", fontSize: "11px", color: "var(--text-secondary)" }}>
+                  <div style={{ padding: "10px 18px", borderTop: "1px solid #E6EBF0", display: "flex", gap: "24px", fontSize: "11px", color: "var(--text-secondary)" }}>
                     <span>Total agend.: <span style={{ color: "var(--navy)" }}>{cliente.meses.reduce((s, m) => s + m.agendamentos, 0)}</span></span>
                     <span>Total investido: <span style={{ color: "var(--navy)" }}>{formatCurrency(cliente.meses.reduce((s, m) => s + m.investimento, 0))}</span></span>
                     <span>Taxa escala: <span style={{ color: cliente.totalEscalas > 0 ? "var(--success)" : "var(--alert-text)" }}>{cliente.meses.length > 0 ? Math.round((cliente.totalEscalas / cliente.meses.length) * 100) : 0}%</span></span>

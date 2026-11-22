@@ -563,7 +563,7 @@ export default function ConexoesPage() {
     <div className="animate-in">
       <div className="breadcrumb">
         <a href="/">Início</a><span>›</span>
-        <span style={{ color: "#a0a0a0" }}>Relatórios Meta</span><span>›</span>
+        <span style={{ color: "#4A5B6C" }}>Relatórios Meta</span><span>›</span>
         <span className="current">Conexões</span>
       </div>
       <h1 style={{ fontSize: "22px", fontWeight: "600", marginBottom: "28px" }}>Conexões</h1>
@@ -602,9 +602,9 @@ export default function ConexoesPage() {
               <Target size={18} /> Conectar com Facebook
             </button>
 
-            <div style={{ textAlign: "center", fontSize: "12px", color: "#606060", marginBottom: "16px" }}>ou cole o token manualmente</div>
+            <div style={{ textAlign: "center", fontSize: "12px", color: "#4A5B6C", marginBottom: "16px" }}>ou cole o token manualmente</div>
 
-            <p style={{ fontSize: "13px", color: "#606060", marginBottom: "16px" }}>
+            <p style={{ fontSize: "13px", color: "#4A5B6C", marginBottom: "16px" }}>
               Cole o token da sua <strong>conta pessoal</strong> do Facebook para listar todas as contas de anúncio que você gerencia.
             </p>
             <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
@@ -613,7 +613,7 @@ export default function ConexoesPage() {
                   value={metaToken} onChange={e => setMetaToken(e.target.value)} style={{ paddingRight: "40px" }} />
                 <button onClick={() => setShowToken(!showToken)} style={{
                   position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)",
-                  background: "none", border: "none", cursor: "pointer", color: "#606060",
+                  background: "none", border: "none", cursor: "pointer", color: "#4A5B6C",
                 }}>
                   {showToken ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
@@ -626,15 +626,15 @@ export default function ConexoesPage() {
             {metaToken.trim() && (
               <details style={{ marginBottom: "12px" }}>
                 <summary style={{ fontSize: "12px", color: "#22c55e", cursor: "pointer", userSelect: "none" }}>Estender token para 60 dias</summary>
-                <div style={{ marginTop: "10px", padding: "14px", background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "8px", fontSize: "12px", color: "#a0a0a0", lineHeight: "1.8" }}>
-                  <p style={{ fontSize: "11px", color: "#606060", marginBottom: "10px" }}>
-                    Encontre o App ID e App Secret em <strong style={{ color: "#29ABE2" }}>developers.facebook.com</strong> → seu app → Configurações → Básico
+                <div style={{ marginTop: "10px", padding: "14px", background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: "8px", fontSize: "12px", color: "#4A5B6C", lineHeight: "1.8" }}>
+                  <p style={{ fontSize: "11px", color: "#4A5B6C", marginBottom: "10px" }}>
+                    Encontre o App ID e App Secret em <strong style={{ color: "#1C6CA6" }}>developers.facebook.com</strong> → seu app → Configurações → Básico
                   </p>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "10px" }}>
                     <input className="form-input" placeholder="App ID" value={appId} onChange={e => setAppId(e.target.value)} style={{ fontSize: "12px" }} />
                     <div style={{ position: "relative" }}>
                       <input className="form-input" placeholder="App Secret" type={showAppSecret ? "text" : "password"} value={appSecret} onChange={e => setAppSecret(e.target.value)} style={{ fontSize: "12px", paddingRight: "32px" }} />
-                      <button onClick={() => setShowAppSecret(!showAppSecret)} style={{ position: "absolute", right: "8px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#606060" }}>
+                      <button onClick={() => setShowAppSecret(!showAppSecret)} style={{ position: "absolute", right: "8px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#4A5B6C" }}>
                         {showAppSecret ? <EyeOff size={12} /> : <Eye size={12} />}
                       </button>
                     </div>
@@ -648,11 +648,11 @@ export default function ConexoesPage() {
             )}
 
             <details style={{ marginBottom: "12px" }}>
-              <summary style={{ fontSize: "12px", color: "#29ABE2", cursor: "pointer", userSelect: "none" }}>Como gerar o Token da conta pessoal?</summary>
-              <div style={{ marginTop: "10px", padding: "14px", background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "8px", fontSize: "12px", color: "#a0a0a0", lineHeight: "1.8" }}>
-                <p style={{ color: "#f0f0f0", fontWeight: "600", marginBottom: "8px" }}>Passo a passo:</p>
+              <summary style={{ fontSize: "12px", color: "#1C6CA6", cursor: "pointer", userSelect: "none" }}>Como gerar o Token da conta pessoal?</summary>
+              <div style={{ marginTop: "10px", padding: "14px", background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: "8px", fontSize: "12px", color: "#4A5B6C", lineHeight: "1.8" }}>
+                <p style={{ color: "#0A1826", fontWeight: "600", marginBottom: "8px" }}>Passo a passo:</p>
                 <ol style={{ margin: 0, paddingLeft: "18px" }}>
-                  <li>Acesse <strong style={{ color: "#29ABE2" }}>developers.facebook.com</strong></li>
+                  <li>Acesse <strong style={{ color: "#1C6CA6" }}>developers.facebook.com</strong></li>
                   <li>No menu superior, clique em <strong>Ferramentas</strong> → <strong>Explorador da Graph API</strong></li>
                   <li>No campo <strong>Aplicativo do Facebook</strong>, selecione seu app (ex: "Salx Digital" ou "API de Marketing")</li>
                   <li>Clique em <strong>Gerar Token de Acesso</strong> (botão azul)</li>
@@ -665,9 +665,9 @@ export default function ConexoesPage() {
             </details>
           </>
         ) : (
-          <div style={{ borderTop: "1px solid #2e2e2e", paddingTop: "16px" }}>
+          <div style={{ borderTop: "1px solid #E6EBF0", paddingTop: "16px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-              <p style={{ fontSize: "13px", fontWeight: "600", color: "#f0f0f0" }}>
+              <p style={{ fontSize: "13px", fontWeight: "600", color: "#0A1826" }}>
                 Contas de anúncio ({contas.length})
               </p>
               <button className="btn-ghost" onClick={() => carregarContasAnuncio(metaToken)} style={{ cursor: "pointer", padding: "4px" }}>
@@ -675,24 +675,24 @@ export default function ConexoesPage() {
               </button>
             </div>
             {loadingContas ? (
-              <p style={{ fontSize: "12px", color: "#606060" }}>Carregando contas...</p>
+              <p style={{ fontSize: "12px", color: "#4A5B6C" }}>Carregando contas...</p>
             ) : erroContas ? (
               <div style={{ padding: "12px 14px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "8px" }}>
                 <p style={{ fontSize: "12px", color: "#ef4444", marginBottom: "6px" }}>{erroContas}</p>
                 <p style={{ fontSize: "11px", color: "#f59e0b" }}>Desconecte e reconecte com um novo token.</p>
               </div>
             ) : contas.length === 0 ? (
-              <p style={{ fontSize: "12px", color: "#606060" }}>Nenhuma conta encontrada.</p>
+              <p style={{ fontSize: "12px", color: "#4A5B6C" }}>Nenhuma conta encontrada.</p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "6px", maxHeight: "250px", overflowY: "auto" }}>
                 {contas.map((c: any) => (
                   <div key={c.id} style={{
                     display: "flex", justifyContent: "space-between", alignItems: "center",
-                    padding: "10px 14px", background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "8px",
+                    padding: "10px 14px", background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: "8px",
                   }}>
                     <div>
-                      <p style={{ fontSize: "13px", fontWeight: "500", color: "#f0f0f0" }}>{c.name}</p>
-                      <p style={{ fontSize: "11px", color: "#606060" }}>{c.id}</p>
+                      <p style={{ fontSize: "13px", fontWeight: "500", color: "#0A1826" }}>{c.name}</p>
+                      <p style={{ fontSize: "11px", color: "#4A5B6C" }}>{c.id}</p>
                     </div>
                     <span style={{
                       fontSize: "11px", padding: "3px 8px", borderRadius: "12px",
@@ -720,7 +720,7 @@ export default function ConexoesPage() {
         </div>
 
         {loadingWa ? (
-          <p style={{ fontSize: "13px", color: "#606060" }}>Verificando conexão...</p>
+          <p style={{ fontSize: "13px", color: "#4A5B6C" }}>Verificando conexão...</p>
         ) : waConectado ? (
           /* WhatsApp conectado */
           <div style={{
@@ -737,7 +737,7 @@ export default function ConexoesPage() {
                 </div>
               )}
               <div>
-                <p style={{ fontSize: "14px", fontWeight: "600", color: "#f0f0f0" }}>{instanciaProfile || instancia}</p>
+                <p style={{ fontSize: "14px", fontWeight: "600", color: "#0A1826" }}>{instanciaProfile || instancia}</p>
                 <p style={{ fontSize: "12px", color: "#25d366" }}>Conectado</p>
               </div>
             </div>
@@ -754,13 +754,13 @@ export default function ConexoesPage() {
         ) : qrCode ? (
           /* QR Code pra escanear */
           <div style={{
-            background: "#1a1a1a", border: "1px solid rgba(37,211,102,0.3)",
+            background: "#FFFFFF", border: "1px solid rgba(37,211,102,0.3)",
             borderRadius: "10px", padding: "24px", textAlign: "center",
           }}>
-            <p style={{ fontSize: "14px", fontWeight: "600", color: "#f0f0f0", marginBottom: "4px" }}>
+            <p style={{ fontSize: "14px", fontWeight: "600", color: "#0A1826", marginBottom: "4px" }}>
               Escaneie o QR Code
             </p>
-            <p style={{ fontSize: "12px", color: "#606060", marginBottom: "20px" }}>
+            <p style={{ fontSize: "12px", color: "#4A5B6C", marginBottom: "20px" }}>
               Abra o WhatsApp no celular → Aparelhos conectados → Conectar aparelho
             </p>
             <div style={{ position: "relative", display: "inline-block" }}>
@@ -785,7 +785,7 @@ export default function ConexoesPage() {
               )}
             </div>
             <div style={{ marginTop: "12px" }}>
-              <p style={{ fontSize: "11px", color: "#606060" }}>
+              <p style={{ fontSize: "11px", color: "#4A5B6C" }}>
                 {qrRefreshing ? "Atualizando QR Code..." : `Atualiza automaticamente em ${qrTimer}s`}
               </p>
               <p style={{ fontSize: "11px", color: "#25d366", marginTop: "4px" }}>
@@ -801,7 +801,7 @@ export default function ConexoesPage() {
         ) : (
           /* Botão pra conectar */
           <div style={{ textAlign: "center", padding: "20px" }}>
-            <p style={{ fontSize: "13px", color: "#606060", marginBottom: "16px" }}>
+            <p style={{ fontSize: "13px", color: "#4A5B6C", marginBottom: "16px" }}>
               Conecte um WhatsApp para enviar os relatórios nos grupos dos clientes.
             </p>
             <div style={{ display: "flex", gap: "8px", justifyContent: "center", alignItems: "center", marginBottom: "12px" }}>
@@ -830,7 +830,7 @@ export default function ConexoesPage() {
             <Plus size={18} color="#25d366" />
             <h2 style={{ fontSize: "16px", fontWeight: "600" }}>Instâncias WhatsApp</h2>
           </div>
-          <span style={{ fontSize: "12px", color: "#606060" }}>{waInstancias.filter(i => i.tipo !== "cloud").length} instância(s)</span>
+          <span style={{ fontSize: "12px", color: "#4A5B6C" }}>{waInstancias.filter(i => i.tipo !== "cloud").length} instância(s)</span>
         </div>
 
         {/* Lista de instâncias */}
@@ -840,15 +840,15 @@ export default function ConexoesPage() {
               <div key={inst.id} style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 padding: "12px 16px",
-                background: inst.conectado ? "rgba(37,211,102,0.05)" : "#1a1a1a",
-                border: `1px solid ${inst.conectado ? "rgba(37,211,102,0.2)" : "#2e2e2e"}`,
+                background: inst.conectado ? "rgba(37,211,102,0.05)" : "#FFFFFF",
+                border: `1px solid ${inst.conectado ? "rgba(37,211,102,0.2)" : "#E6EBF0"}`,
                 borderRadius: "10px",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                   <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: inst.conectado ? "#22c55e" : "#ef4444" }} />
                   <div>
-                    <p style={{ fontSize: "13px", fontWeight: "600", color: "#f0f0f0", margin: 0 }}>{inst.nome}</p>
-                    <p style={{ fontSize: "11px", color: "#606060", margin: 0 }}>{inst.instancia}</p>
+                    <p style={{ fontSize: "13px", fontWeight: "600", color: "#0A1826", margin: 0 }}>{inst.nome}</p>
+                    <p style={{ fontSize: "11px", color: "#4A5B6C", margin: 0 }}>{inst.instancia}</p>
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: "6px" }}>
@@ -868,8 +868,8 @@ export default function ConexoesPage() {
                     }}>Desconectar</button>
                   )}
                   <button onClick={() => removerInstancia(inst)} style={{
-                    background: "none", border: "1px solid #2e2e2e",
-                    borderRadius: "6px", padding: "4px 8px", cursor: "pointer", color: "#606060",
+                    background: "none", border: "1px solid #E6EBF0",
+                    borderRadius: "6px", padding: "4px 8px", cursor: "pointer", color: "#4A5B6C",
                   }}><Trash2 size={12} /></button>
                 </div>
               </div>
@@ -879,11 +879,11 @@ export default function ConexoesPage() {
 
         {/* QR Code de nova instância */}
         {qrNovaInst && (
-          <div style={{ background: "#1a1a1a", border: "1px solid rgba(37,211,102,0.3)", borderRadius: "10px", padding: "24px", textAlign: "center", marginBottom: "16px" }}>
-            <p style={{ fontSize: "14px", fontWeight: "600", color: "#f0f0f0", marginBottom: "4px" }}>
+          <div style={{ background: "#FFFFFF", border: "1px solid rgba(37,211,102,0.3)", borderRadius: "10px", padding: "24px", textAlign: "center", marginBottom: "16px" }}>
+            <p style={{ fontSize: "14px", fontWeight: "600", color: "#0A1826", marginBottom: "4px" }}>
               Escaneie o QR Code — {qrNovaInstNome}
             </p>
-            <p style={{ fontSize: "12px", color: "#606060", marginBottom: "16px" }}>
+            <p style={{ fontSize: "12px", color: "#4A5B6C", marginBottom: "16px" }}>
               Abra o WhatsApp → Aparelhos conectados → Conectar
             </p>
             {qrNovaInst.startsWith("data:image") ? (
@@ -925,19 +925,19 @@ export default function ConexoesPage() {
           <span style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "10px", background: "rgba(37,211,102,0.15)", color: "#25d366", fontWeight: "600" }}>OFICIAL</span>
         </div>
 
-        <p style={{ fontSize: "12px", color: "#606060", marginBottom: "16px" }}>
+        <p style={{ fontSize: "12px", color: "#4A5B6C", marginBottom: "16px" }}>
           Adicione números da WhatsApp Business API oficial da Meta. Sem risco de ban, histórico de 30 dias, grátis até 1.000 conversas/mês por número.
         </p>
 
         {/* Embedded Signup — conectar com 1 clique */}
         <div style={{ marginBottom: "16px" }}>
           <EmbeddedSignup onSuccess={() => carregarInstancias()} />
-          <p style={{ fontSize: "11px", color: "#606060", marginTop: "8px", textAlign: "center" }}>
+          <p style={{ fontSize: "11px", color: "#4A5B6C", marginTop: "8px", textAlign: "center" }}>
             Conecte seu número do WhatsApp Business diretamente pelo Facebook. Método recomendado.
           </p>
         </div>
 
-        <div style={{ textAlign: "center", fontSize: "11px", color: "#606060", margin: "12px 0" }}>
+        <div style={{ textAlign: "center", fontSize: "11px", color: "#4A5B6C", margin: "12px 0" }}>
           ou adicione manualmente
         </div>
 
@@ -955,15 +955,15 @@ export default function ConexoesPage() {
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                   <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#22c55e" }} />
                   <div>
-                    <p style={{ fontSize: "13px", fontWeight: "600", color: "#f0f0f0", margin: 0 }}>{inst.nome}</p>
-                    <p style={{ fontSize: "11px", color: "#606060", margin: 0 }}>
+                    <p style={{ fontSize: "13px", fontWeight: "600", color: "#0A1826", margin: 0 }}>{inst.nome}</p>
+                    <p style={{ fontSize: "11px", color: "#4A5B6C", margin: 0 }}>
                       {inst.cloud_display_phone || inst.cloud_phone_id} • Cloud API
                     </p>
                   </div>
                 </div>
                 <button onClick={() => removerInstancia(inst)} style={{
-                  background: "none", border: "1px solid #2e2e2e",
-                  borderRadius: "6px", padding: "4px 8px", cursor: "pointer", color: "#606060",
+                  background: "none", border: "1px solid #E6EBF0",
+                  borderRadius: "6px", padding: "4px 8px", cursor: "pointer", color: "#4A5B6C",
                 }}><Trash2 size={12} /></button>
               </div>
             ))}
@@ -982,14 +982,14 @@ export default function ConexoesPage() {
         </button>
 
         <details style={{ marginTop: "12px" }}>
-          <summary style={{ fontSize: "12px", color: "#29ABE2", cursor: "pointer", userSelect: "none" }}>Como obter Phone Number ID e Token?</summary>
-          <div style={{ marginTop: "10px", padding: "14px", background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "8px", fontSize: "12px", color: "#a0a0a0", lineHeight: "1.8" }}>
-            <p><strong style={{ color: "#f0f0f0" }}>Phone Number ID:</strong></p>
+          <summary style={{ fontSize: "12px", color: "#1C6CA6", cursor: "pointer", userSelect: "none" }}>Como obter Phone Number ID e Token?</summary>
+          <div style={{ marginTop: "10px", padding: "14px", background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: "8px", fontSize: "12px", color: "#4A5B6C", lineHeight: "1.8" }}>
+            <p><strong style={{ color: "#0A1826" }}>Phone Number ID:</strong></p>
             <ol style={{ margin: "4px 0 12px", paddingLeft: "18px" }}>
               <li>developers.facebook.com → seu app → WhatsApp → <strong>API Setup</strong></li>
               <li>Copie o <strong>Phone number ID</strong> (número grande, não confundir com o telefone)</li>
             </ol>
-            <p><strong style={{ color: "#f0f0f0" }}>Access Token:</strong></p>
+            <p><strong style={{ color: "#0A1826" }}>Access Token:</strong></p>
             <ol style={{ margin: "4px 0", paddingLeft: "18px" }}>
               <li>Mesma tela → gere um token permanente via <strong>System User</strong> no Business Manager</li>
               <li>Permissões: <strong>whatsapp_business_messaging, whatsapp_business_management</strong></li>

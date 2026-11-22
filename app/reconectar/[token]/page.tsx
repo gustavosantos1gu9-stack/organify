@@ -158,7 +158,7 @@ export default function ReconectarPage({ params }: PageProps) {
   if (carregando) {
     return (
       <Wrapper>
-        <p style={{ color: "#a0a0a0", fontSize: 15 }}>Carregando...</p>
+        <p style={{ color: "#4A5B6C", fontSize: 15 }}>Carregando...</p>
       </Wrapper>
     );
   }
@@ -181,7 +181,7 @@ export default function ReconectarPage({ params }: PageProps) {
         <h2 style={{ color: "#22c55e", fontSize: 22, fontWeight: 700, margin: "0 0 8px" }}>
           Tudo certo!
         </h2>
-        <p style={{ color: "#a0a0a0", fontSize: 15, textAlign: "center", maxWidth: 300 }}>
+        <p style={{ color: "#4A5B6C", fontSize: 15, textAlign: "center", maxWidth: 300 }}>
           Seu WhatsApp está conectado{agenciaNome ? ` a ${agenciaNome}` : ""}.
         </p>
       </Wrapper>
@@ -193,16 +193,16 @@ export default function ReconectarPage({ params }: PageProps) {
       {/* Header */}
       <div style={{ marginBottom: 24, textAlign: "center" }}>
         <div style={{ fontSize: 36, marginBottom: 8 }}>📱</div>
-        <h1 style={{ color: "#f0f0f0", fontSize: 20, fontWeight: 700, margin: "0 0 4px" }}>
+        <h1 style={{ color: "#0A1826", fontSize: 20, fontWeight: 700, margin: "0 0 4px" }}>
           Conectar WhatsApp
         </h1>
         {agenciaNome && (
-          <p style={{ color: "#606060", fontSize: 13, margin: 0 }}>{agenciaNome}</p>
+          <p style={{ color: "#4A5B6C", fontSize: 13, margin: 0 }}>{agenciaNome}</p>
         )}
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", borderBottom: "1px solid #2e2e2e", marginBottom: 24, width: "100%", maxWidth: 360 }}>
+      <div style={{ display: "flex", borderBottom: "1px solid #E6EBF0", marginBottom: 24, width: "100%", maxWidth: 360 }}>
         <TabBtn active={!pairingMode} onClick={() => { setPairingMode(false); setErro(""); }}>QR Code</TabBtn>
         <TabBtn active={pairingMode} onClick={() => { setPairingMode(true); setErro(""); setQr(null); }}>Código</TabBtn>
       </div>
@@ -210,7 +210,7 @@ export default function ReconectarPage({ params }: PageProps) {
       {/* Mensagem de andamento */}
       {mensagem && (
         <div style={{ background: "rgba(41,171,226,0.08)", border: "1px solid rgba(41,171,226,0.2)", borderRadius: 10, padding: "12px 16px", marginBottom: 20, maxWidth: 320, width: "100%" }}>
-          <p style={{ color: "#29ABE2", fontSize: 13, margin: 0, textAlign: "center" }}>{mensagem}</p>
+          <p style={{ color: "#1C6CA6", fontSize: 13, margin: 0, textAlign: "center" }}>{mensagem}</p>
         </div>
       )}
 
@@ -223,8 +223,8 @@ export default function ReconectarPage({ params }: PageProps) {
         // QR Code tab
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
           {reconectando ? (
-            <div style={{ width: 220, height: 220, background: "#1e1e1e", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <p style={{ color: "#606060", fontSize: 13 }}>Gerando QR...</p>
+            <div style={{ width: 220, height: 220, background: "#FFFFFF", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <p style={{ color: "#4A5B6C", fontSize: 13 }}>Gerando QR...</p>
             </div>
           ) : qr ? (
             <img
@@ -233,16 +233,16 @@ export default function ReconectarPage({ params }: PageProps) {
               style={{ width: 220, height: 220, borderRadius: 12, background: "#fff", padding: 8 }}
             />
           ) : (
-            <div style={{ width: 220, height: 220, background: "#1e1e1e", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <p style={{ color: "#606060", fontSize: 13, textAlign: "center", padding: 16 }}>
+            <div style={{ width: 220, height: 220, background: "#FFFFFF", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <p style={{ color: "#4A5B6C", fontSize: 13, textAlign: "center", padding: 16 }}>
                 {mensagem || "Aguardando QR..."}
               </p>
             </div>
           )}
 
           {/* Instruções */}
-          <div style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 10, padding: "14px 16px", maxWidth: 320, width: "100%" }}>
-            <p style={{ color: "#a0a0a0", fontSize: 12, fontWeight: 600, marginBottom: 10 }}>COMO CONECTAR:</p>
+          <div style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 10, padding: "14px 16px", maxWidth: 320, width: "100%" }}>
+            <p style={{ color: "#4A5B6C", fontSize: 12, fontWeight: 600, marginBottom: 10 }}>COMO CONECTAR:</p>
             {[
               "Abra o WhatsApp no celular",
               "Toque nos 3 pontos (⋮) ou em Configurações",
@@ -251,14 +251,14 @@ export default function ReconectarPage({ params }: PageProps) {
               "Aponte a câmera para o QR Code acima",
             ].map((passo, i) => (
               <div key={i} style={{ display: "flex", gap: 10, marginBottom: i < 4 ? 8 : 0 }}>
-                <span style={{ color: "#29ABE2", fontSize: 12, fontWeight: 700, minWidth: 18 }}>{i + 1}.</span>
-                <span style={{ color: "#a0a0a0", fontSize: 12 }}>{passo}</span>
+                <span style={{ color: "#1C6CA6", fontSize: 12, fontWeight: 700, minWidth: 18 }}>{i + 1}.</span>
+                <span style={{ color: "#4A5B6C", fontSize: 12 }}>{passo}</span>
               </div>
             ))}
           </div>
 
           {qr && (
-            <p style={{ color: "#606060", fontSize: 11, margin: 0 }}>
+            <p style={{ color: "#4A5B6C", fontSize: 11, margin: 0 }}>
               O QR expira em ~30s. Ele se atualiza automaticamente.
             </p>
           )}
@@ -266,7 +266,7 @@ export default function ReconectarPage({ params }: PageProps) {
       ) : (
         // Código tab
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, width: "100%", maxWidth: 320 }}>
-          <p style={{ color: "#a0a0a0", fontSize: 13, textAlign: "center", margin: 0 }}>
+          <p style={{ color: "#4A5B6C", fontSize: 13, textAlign: "center", margin: 0 }}>
             Digite o número do WhatsApp que você quer conectar.
           </p>
           <input
@@ -275,8 +275,8 @@ export default function ReconectarPage({ params }: PageProps) {
             value={telefone}
             onChange={e => setTelefone(e.target.value)}
             style={{
-              width: "100%", padding: "12px 14px", background: "#1e1e1e",
-              border: "1px solid #3a3a3a", borderRadius: 8, color: "#f0f0f0",
+              width: "100%", padding: "12px 14px", background: "#FFFFFF",
+              border: "1px solid #E6EBF0", borderRadius: 8, color: "#0A1826",
               fontSize: 16, outline: "none", boxSizing: "border-box",
             }}
           />
@@ -289,17 +289,17 @@ export default function ReconectarPage({ params }: PageProps) {
           </button>
 
           {pairingCode && (
-            <div style={{ background: "#1a1a1a", border: "1px solid #29ABE2", borderRadius: 12, padding: "20px 24px", textAlign: "center" }}>
-              <p style={{ color: "#606060", fontSize: 12, marginBottom: 8 }}>Código de pareamento:</p>
-              <p style={{ color: "#f0f0f0", fontSize: 28, fontWeight: 700, letterSpacing: 4, margin: 0 }}>{pairingCode}</p>
-              <p style={{ color: "#606060", fontSize: 11, marginTop: 8 }}>Digite este código no WhatsApp → Aparelhos conectados → Conectar com número de telefone</p>
+            <div style={{ background: "#FFFFFF", border: "1px solid #1C6CA6", borderRadius: 12, padding: "20px 24px", textAlign: "center" }}>
+              <p style={{ color: "#4A5B6C", fontSize: 12, marginBottom: 8 }}>Código de pareamento:</p>
+              <p style={{ color: "#0A1826", fontSize: 28, fontWeight: 700, letterSpacing: 4, margin: 0 }}>{pairingCode}</p>
+              <p style={{ color: "#4A5B6C", fontSize: 11, marginTop: 8 }}>Digite este código no WhatsApp → Aparelhos conectados → Conectar com número de telefone</p>
             </div>
           )}
 
           {/* Instruções código */}
           {!pairingCode && (
-            <div style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 10, padding: "14px 16px", width: "100%" }}>
-              <p style={{ color: "#a0a0a0", fontSize: 12, fontWeight: 600, marginBottom: 10 }}>COMO USAR O CÓDIGO:</p>
+            <div style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 10, padding: "14px 16px", width: "100%" }}>
+              <p style={{ color: "#4A5B6C", fontSize: 12, fontWeight: 600, marginBottom: 10 }}>COMO USAR O CÓDIGO:</p>
               {[
                 "Abra o WhatsApp no celular",
                 "Toque em Aparelhos conectados",
@@ -307,8 +307,8 @@ export default function ReconectarPage({ params }: PageProps) {
                 "Digite o código que aparecer aqui",
               ].map((passo, i) => (
                 <div key={i} style={{ display: "flex", gap: 10, marginBottom: i < 3 ? 8 : 0 }}>
-                  <span style={{ color: "#29ABE2", fontSize: 12, fontWeight: 700, minWidth: 18 }}>{i + 1}.</span>
-                  <span style={{ color: "#a0a0a0", fontSize: 12 }}>{passo}</span>
+                  <span style={{ color: "#1C6CA6", fontSize: 12, fontWeight: 700, minWidth: 18 }}>{i + 1}.</span>
+                  <span style={{ color: "#4A5B6C", fontSize: 12 }}>{passo}</span>
                 </div>
               ))}
             </div>
@@ -323,7 +323,7 @@ function Wrapper({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
       minHeight: "100dvh",
-      background: "#0f0f0f",
+      background: "#FFFFFF",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
@@ -342,8 +342,8 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
       onClick={onClick}
       style={{
         flex: 1, padding: "10px 0", background: "none", border: "none",
-        borderBottom: active ? "2px solid #29ABE2" : "2px solid transparent",
-        color: active ? "#29ABE2" : "#606060",
+        borderBottom: active ? "2px solid #1C6CA6" : "2px solid transparent",
+        color: active ? "#1C6CA6" : "#4A5B6C",
         fontSize: 13, fontWeight: active ? 600 : 400, cursor: "pointer",
         transition: "color 0.15s",
       }}

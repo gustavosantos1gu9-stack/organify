@@ -61,9 +61,9 @@ export default function MensagensRastreavesPage() {
       <h1 style={{ fontSize: "22px", fontWeight: "600", marginBottom: "24px" }}>Mensagens Rastreáveis</h1>
 
       <div className="table-wrapper">
-        <div style={{ padding: "16px", borderBottom: "1px solid #2e2e2e" }}>
+        <div style={{ padding: "16px", borderBottom: "1px solid #E6EBF0" }}>
           <div style={{ position: "relative" }}>
-            <Search size={14} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#606060" }} />
+            <Search size={14} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#4A5B6C" }} />
             <input className="search-input" placeholder="Buscar por telefone, nome ou mensagem..." value={busca} onChange={e => setBusca(e.target.value)} />
           </div>
         </div>
@@ -81,23 +81,23 @@ export default function MensagensRastreavesPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={7} style={{ textAlign: "center", color: "#606060", padding: "48px" }}>Carregando...</td></tr>
+              <tr><td colSpan={7} style={{ textAlign: "center", color: "#4A5B6C", padding: "48px" }}>Carregando...</td></tr>
             ) : !filtrados.length ? (
-              <tr><td colSpan={7} style={{ textAlign: "center", color: "#606060", padding: "48px" }}>Nenhuma mensagem encontrada.</td></tr>
+              <tr><td colSpan={7} style={{ textAlign: "center", color: "#4A5B6C", padding: "48px" }}>Nenhuma mensagem encontrada.</td></tr>
             ) : filtrados.map(m => (
               <tr key={m.id}>
-                <td style={{ fontSize: "12px", color: "#a0a0a0", whiteSpace: "nowrap" }}>
+                <td style={{ fontSize: "12px", color: "#4A5B6C", whiteSpace: "nowrap" }}>
                   {new Date(m.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
                 </td>
                 <td>
-                  <p style={{ fontSize: "13px", fontWeight: "500", color: "#f0f0f0", margin: 0 }}>{m.leads?.nome || "—"}</p>
-                  <p style={{ fontSize: "11px", color: "#606060", margin: 0 }}>{m.telefone}</p>
+                  <p style={{ fontSize: "13px", fontWeight: "500", color: "#0A1826", margin: 0 }}>{m.leads?.nome || "—"}</p>
+                  <p style={{ fontSize: "11px", color: "#4A5B6C", margin: 0 }}>{m.telefone}</p>
                 </td>
-                <td style={{ fontSize: "12px", color: "#a0a0a0", maxWidth: "250px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <td style={{ fontSize: "12px", color: "#4A5B6C", maxWidth: "250px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {m.mensagem || "—"}
                 </td>
                 <td><span className="badge badge-gray">{m.utm_source}</span></td>
-                <td style={{ fontSize: "12px", color: "#a0a0a0" }}>{m.utm_campaign || "—"}</td>
+                <td style={{ fontSize: "12px", color: "#4A5B6C" }}>{m.utm_campaign || "—"}</td>
                 <td>
                   <span style={{
                     padding: "3px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: "500",
@@ -110,7 +110,7 @@ export default function MensagensRastreavesPage() {
                 <td>
                   <span style={{
                     padding: "3px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: "500",
-                    background: "rgba(41,171,226,0.15)", color: "#29ABE2",
+                    background: "rgba(41,171,226,0.15)", color: "#1C6CA6",
                     textTransform: "capitalize",
                   }}>
                     {(m.leads?.etapa || "novo").replace(/_/g, " ")}

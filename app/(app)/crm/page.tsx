@@ -11,22 +11,22 @@ import { useLeads, criarLead, removerLead, atualizarEtapaLead, Lead, supabase, g
 import { formatCurrency } from "@/lib/utils";
 
 const ETAPAS_PADRAO = [
-  { key:"novo", label:"Não respondeu", color:"#a0a0a0" },
+  { key:"novo", label:"Não respondeu", color:"#4A5B6C" },
   { key:"em_contato", label:"Em contato", color:"#3b82f6" },
   { key:"qualificado", label:"Qualificado", color:"#06b6d4" },
   { key:"reuniao_agendada", label:"Reunião agendada", color:"#f59e0b" },
   { key:"nao_compareceu", label:"Não compareceu", color:"#f97316" },
   { key:"proposta_enviada", label:"Proposta enviada", color:"#8b5cf6" },
-  { key:"ganho", label:"Ganho", color:"#29ABE2" },
+  { key:"ganho", label:"Ganho", color:"#1C6CA6" },
   { key:"perdido", label:"Perdido", color:"#ef4444" },
 ];
 
-const CORES_ETAPAS = ["#a0a0a0", "#3b82f6", "#06b6d4", "#f59e0b", "#f97316", "#8b5cf6", "#22c55e", "#ec4899", "#29ABE2", "#ef4444"];
+const CORES_ETAPAS = ["#4A5B6C", "#3b82f6", "#06b6d4", "#f59e0b", "#f97316", "#8b5cf6", "#22c55e", "#ec4899", "#1C6CA6", "#ef4444"];
 
 function getQualificacao(etapa: string, etapas: { key: string; label: string; color: string }[]): { label: string; color: string; bg: string } {
   const total = etapas.length;
   const idx = etapas.findIndex(e => e.key === etapa);
-  if (idx < 0) return { label: "—", color: "#606060", bg: "rgba(96,96,96,0.1)" };
+  if (idx < 0) return { label: "—", color: "#4A5B6C", bg: "rgba(96,96,96,0.1)" };
   const pct = total > 1 ? idx / (total - 1) : 0;
   if (pct < 0.33) return { label: "Frio", color: "#3b82f6", bg: "rgba(59,130,246,0.12)" };
   if (pct < 0.66) return { label: "Morno", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" };
@@ -83,24 +83,24 @@ function KanbanBoard({ leads, etapas, onEtapaChange, onRemover, onConverter, onE
         const total = cards.reduce((a,b)=>a+(b.valor||0),0);
         return (
           <div key={etapa.key}
-            style={{ minWidth:"220px", flex:"0 0 220px", borderRight: idx < etapas.length-1 ? "1px solid #2e2e2e" : "none" }}
+            style={{ minWidth:"220px", flex:"0 0 220px", borderRight: idx < etapas.length-1 ? "1px solid #E6EBF0" : "none" }}
             onDragOver={(e)=>{ e.preventDefault(); setDragOver(etapa.key); }}
             onDragLeave={()=>setDragOver(null)}
             onDrop={(e)=>{ e.preventDefault(); if(dragId.current){ onEtapaChange(dragId.current,etapa.key); dragId.current=null; } setDragOver(null); }}
           >
             {/* Header da coluna */}
             <div style={{
-              padding:"12px 14px", borderBottom:"1px solid #2e2e2e",
+              padding:"12px 14px", borderBottom:"1px solid #E6EBF0",
               background: isOver ? `${etapa.color}08` : "transparent",
             }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"4px" }}>
                 <div style={{ display:"flex", alignItems:"center", gap:"6px" }}>
                   <div style={{ width:"8px", height:"8px", borderRadius:"50%", background:etapa.color, flexShrink:0 }}/>
-                  <span style={{ fontSize:"12px", fontWeight:"600", color:"#f0f0f0" }}>{etapa.label}</span>
-                  <span style={{ fontSize:"11px", background:"#2a2a2a", color:"#606060", padding:"1px 7px", borderRadius:"10px" }}>{cards.length}</span>
+                  <span style={{ fontSize:"12px", fontWeight:"600", color:"#0A1826" }}>{etapa.label}</span>
+                  <span style={{ fontSize:"11px", background:"#E6EBF0", color:"#4A5B6C", padding:"1px 7px", borderRadius:"10px" }}>{cards.length}</span>
                 </div>
               </div>
-              <p style={{ fontSize:"12px", color: total > 0 ? "#29ABE2" : "#404040", fontWeight:"600", paddingLeft:"14px" }}>
+              <p style={{ fontSize:"12px", color: total > 0 ? "#1C6CA6" : "#404040", fontWeight:"600", paddingLeft:"14px" }}>
                 {formatCurrency(total)}
               </p>
             </div>
@@ -112,42 +112,42 @@ function KanbanBoard({ leads, etapas, onEtapaChange, onRemover, onConverter, onE
                   onDragStart={()=>{ dragId.current=lead.id; }}
                   onDragEnd={()=>{ dragId.current=null; setDragOver(null); }}
                   style={{
-                    background:"#1e1e1e", border:"1px solid #2e2e2e",
+                    background:"#FFFFFF", border:"1px solid #E6EBF0",
                     borderRadius:"8px", padding:"10px 12px",
                     cursor:"grab", userSelect:"none",
                     transition:"border-color 0.1s",
                     position:"relative",
                   }}
-                  onMouseEnter={(e)=>{ (e.currentTarget as HTMLElement).style.borderColor="#3a3a3a"; }}
-                  onMouseLeave={(e)=>{ (e.currentTarget as HTMLElement).style.borderColor="#2e2e2e"; }}
+                  onMouseEnter={(e)=>{ (e.currentTarget as HTMLElement).style.borderColor="#E6EBF0"; }}
+                  onMouseLeave={(e)=>{ (e.currentTarget as HTMLElement).style.borderColor="#E6EBF0"; }}
                 >
                   {/* Topo do card */}
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"6px" }}>
                     <div style={{ display:"flex", alignItems:"center", gap:"6px", flex:1, minWidth:0 }}>
                       <div style={{ width:"8px", height:"8px", borderRadius:"50%", background: getQualificacao(lead.etapa, etapas).color, flexShrink:0 }}/>
-                      <span style={{ fontSize:"13px", fontWeight:"500", color:"#f0f0f0", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{lead.nome}</span>
+                      <span style={{ fontSize:"13px", fontWeight:"500", color:"#0A1826", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{lead.nome}</span>
                     </div>
                     <button onClick={(e)=>{ e.stopPropagation(); setMenuAberto(menuAberto===lead.id?null:lead.id); }}
-                      style={{ background:"none", border:"none", color:"#606060", cursor:"pointer", padding:"0 0 0 6px", lineHeight:1, flexShrink:0, fontSize:"18px", letterSpacing:"1px" }}>
+                      style={{ background:"none", border:"none", color:"#4A5B6C", cursor:"pointer", padding:"0 0 0 6px", lineHeight:1, flexShrink:0, fontSize:"18px", letterSpacing:"1px" }}>
                       ···
                     </button>
                     {menuAberto===lead.id && (
-                      <div style={{ position:"absolute", right:"8px", top:"32px", background:"#1e1e1e", border:"1px solid #3a3a3a", borderRadius:"8px", overflow:"hidden", zIndex:100, minWidth:"140px", boxShadow:"0 4px 12px rgba(0,0,0,0.4)" }}>
+                      <div style={{ position:"absolute", right:"8px", top:"32px", background:"#FFFFFF", border:"1px solid #E6EBF0", borderRadius:"8px", overflow:"hidden", zIndex:100, minWidth:"140px", boxShadow:"0 4px 12px rgba(0,0,0,0.4)" }}>
                         <button onClick={(e)=>{ e.stopPropagation(); setMenuAberto(null); onEditar(lead); }}
-                          style={{ width:"100%", padding:"10px 14px", background:"none", border:"none", color:"#f0f0f0", cursor:"pointer", fontSize:"13px", textAlign:"left", display:"flex", alignItems:"center", gap:"8px" }}
-                          onMouseEnter={(e)=>(e.currentTarget.style.background="#2a2a2a")}
+                          style={{ width:"100%", padding:"10px 14px", background:"none", border:"none", color:"#0A1826", cursor:"pointer", fontSize:"13px", textAlign:"left", display:"flex", alignItems:"center", gap:"8px" }}
+                          onMouseEnter={(e)=>(e.currentTarget.style.background="#E6EBF0")}
                           onMouseLeave={(e)=>(e.currentTarget.style.background="none")}>
                           ✏️ Editar lead
                         </button>
                         <button onClick={(e)=>{ e.stopPropagation(); abrirNota(lead); }}
-                          style={{ width:"100%", padding:"10px 14px", background:"none", border:"none", color:"#f0f0f0", cursor:"pointer", fontSize:"13px", textAlign:"left", display:"flex", alignItems:"center", gap:"8px" }}
-                          onMouseEnter={(e)=>(e.currentTarget.style.background="#2a2a2a")}
+                          style={{ width:"100%", padding:"10px 14px", background:"none", border:"none", color:"#0A1826", cursor:"pointer", fontSize:"13px", textAlign:"left", display:"flex", alignItems:"center", gap:"8px" }}
+                          onMouseEnter={(e)=>(e.currentTarget.style.background="#E6EBF0")}
                           onMouseLeave={(e)=>(e.currentTarget.style.background="none")}>
                           📝 Anotar
                         </button>
                         <button onClick={(e)=>{ e.stopPropagation(); setMenuAberto(null); onRemover(lead.id); }}
                           style={{ width:"100%", padding:"10px 14px", background:"none", border:"none", color:"#ef4444", cursor:"pointer", fontSize:"13px", textAlign:"left", display:"flex", alignItems:"center", gap:"8px" }}
-                          onMouseEnter={(e)=>(e.currentTarget.style.background="#2a2a2a")}
+                          onMouseEnter={(e)=>(e.currentTarget.style.background="#E6EBF0")}
                           onMouseLeave={(e)=>(e.currentTarget.style.background="none")}>
                           🗑️ Remover
                         </button>
@@ -156,18 +156,18 @@ function KanbanBoard({ leads, etapas, onEtapaChange, onRemover, onConverter, onE
                   </div>
 
                   {/* Valor */}
-                  <div style={{ background:"#252525", borderRadius:"4px", padding:"4px 8px", marginBottom:"8px", textAlign:"center" }}>
-                    <span style={{ fontSize:"12px", color: lead.valor ? "#29ABE2" : "#404040", fontWeight:"600" }}>
+                  <div style={{ background:"#E6EBF0", borderRadius:"4px", padding:"4px 8px", marginBottom:"8px", textAlign:"center" }}>
+                    <span style={{ fontSize:"12px", color: lead.valor ? "#1C6CA6" : "#404040", fontWeight:"600" }}>
                       {lead.valor ? formatCurrency(lead.valor) : "R$ 0,00"}
                     </span>
                   </div>
 
                   {/* Infos UTM */}
                   {lead.utm_campaign && (
-                    <p style={{ fontSize:"11px", color:"#606060", marginBottom:"2px" }}>📣 {lead.utm_campaign}</p>
+                    <p style={{ fontSize:"11px", color:"#4A5B6C", marginBottom:"2px" }}>📣 {lead.utm_campaign}</p>
                   )}
                   {lead.utm_content && (
-                    <p style={{ fontSize:"11px", color:"#606060", marginBottom:"6px" }}>👥 {lead.utm_content}</p>
+                    <p style={{ fontSize:"11px", color:"#4A5B6C", marginBottom:"6px" }}>👥 {lead.utm_content}</p>
                   )}
 
                   {/* Botões Ganho / Perda */}
@@ -178,7 +178,7 @@ function KanbanBoard({ leads, etapas, onEtapaChange, onRemover, onConverter, onE
                         flex:1, padding:"5px 0", borderRadius:"6px", cursor:"pointer", fontSize:"12px", fontWeight:"500",
                         border:"none",
                         background: lead.convertido_cliente_id ? "rgba(41,171,226,0.2)" : "rgba(41,171,226,0.15)",
-                        color:"#29ABE2",
+                        color:"#1C6CA6",
                         display:"flex", alignItems:"center", justifyContent:"center", gap:"4px",
                       }}
                     >
@@ -200,22 +200,22 @@ function KanbanBoard({ leads, etapas, onEtapaChange, onRemover, onConverter, onE
 
                   {/* Anotação inline */}
                   {notaAberta===lead.id && (
-                    <div style={{ background:"#151515", border:"1px solid #3a3a3a", borderRadius:"6px", padding:"8px", marginBottom:"6px" }}
+                    <div style={{ background:"#151515", border:"1px solid #E6EBF0", borderRadius:"6px", padding:"8px", marginBottom:"6px" }}
                       onClick={(e)=>e.stopPropagation()}>
                       <textarea
                         autoFocus
                         value={notaTexto}
                         onChange={(e)=>setNotaTexto(e.target.value)}
                         placeholder="Escreva sua anotação..."
-                        style={{ width:"100%", background:"transparent", border:"none", color:"#f0f0f0", fontSize:"12px", resize:"none", outline:"none", minHeight:"60px" }}
+                        style={{ width:"100%", background:"transparent", border:"none", color:"#0A1826", fontSize:"12px", resize:"none", outline:"none", minHeight:"60px" }}
                       />
                       <div style={{ display:"flex", justifyContent:"flex-end", gap:"4px", marginTop:"4px" }}>
                         <button onClick={()=>setNotaAberta(null)}
-                          style={{ background:"#2a2a2a", border:"none", borderRadius:"4px", padding:"4px 8px", cursor:"pointer", color:"#606060", fontSize:"11px", display:"flex", alignItems:"center", gap:"3px" }}>
+                          style={{ background:"#E6EBF0", border:"none", borderRadius:"4px", padding:"4px 8px", cursor:"pointer", color:"#4A5B6C", fontSize:"11px", display:"flex", alignItems:"center", gap:"3px" }}>
                           <X size={10}/> Cancelar
                         </button>
                         <button onClick={()=>salvarNota(lead.id)} disabled={salvandoNota}
-                          style={{ background:"#29ABE2", border:"none", borderRadius:"4px", padding:"4px 8px", cursor:"pointer", color:"#000", fontSize:"11px", fontWeight:"600", display:"flex", alignItems:"center", gap:"3px" }}>
+                          style={{ background:"#1C6CA6", border:"none", borderRadius:"4px", padding:"4px 8px", cursor:"pointer", color:"#F3F5F7", fontSize:"11px", fontWeight:"600", display:"flex", alignItems:"center", gap:"3px" }}>
                           <Check size={10}/> {salvandoNota?"Salvando...":"Salvar"}
                         </button>
                       </div>
@@ -225,9 +225,9 @@ function KanbanBoard({ leads, etapas, onEtapaChange, onRemover, onConverter, onE
                   {/* Preview da anotação */}
                   {lead.observacoes && notaAberta!==lead.id && (
                     <div onClick={(e)=>{ e.stopPropagation(); abrirNota(lead); }}
-                      style={{ background:"#1a1a1a", borderRadius:"4px", padding:"5px 8px", marginBottom:"6px", cursor:"pointer", display:"flex", alignItems:"flex-start", gap:"5px" }}>
+                      style={{ background:"#FFFFFF", borderRadius:"4px", padding:"5px 8px", marginBottom:"6px", cursor:"pointer", display:"flex", alignItems:"flex-start", gap:"5px" }}>
                       <StickyNote size={10} style={{ color:"#f59e0b", flexShrink:0, marginTop:"2px" }}/>
-                      <p style={{ fontSize:"11px", color:"#a0a0a0", overflow:"hidden", textOverflow:"ellipsis", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical" as const }}>{lead.observacoes}</p>
+                      <p style={{ fontSize:"11px", color:"#4A5B6C", overflow:"hidden", textOverflow:"ellipsis", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical" as const }}>{lead.observacoes}</p>
                     </div>
                   )}
 
@@ -344,12 +344,12 @@ export default function CRMPage() {
 
       <div className="table-wrapper">
         {/* Toggle + botões topo */}
-        <div style={{ padding:"14px 16px", display:"flex", alignItems:"center", gap:"12px", borderBottom:"1px solid #2e2e2e", flexWrap:"wrap" }}>
+        <div style={{ padding:"14px 16px", display:"flex", alignItems:"center", gap:"12px", borderBottom:"1px solid #E6EBF0", flexWrap:"wrap" }}>
           <label className="toggle">
             <input type="checkbox" checked={view==="kanban"} onChange={(e)=>setView(e.target.checked?"kanban":"table")}/>
             <span className="toggle-slider"/>
           </label>
-          <span style={{ fontSize:"13px", color:"#a0a0a0" }}>
+          <span style={{ fontSize:"13px", color:"#4A5B6C" }}>
             {view==="kanban" ? "Visualização em Kanban" : "Visualização em Tabela"}
           </span>
           <div style={{ marginLeft:"auto", display:"flex", gap:"8px" }}>
@@ -359,14 +359,14 @@ export default function CRMPage() {
         </div>
 
         {/* Barra de busca e filtros */}
-        <div style={{ padding:"12px 16px", display:"flex", gap:"10px", borderBottom:"1px solid #2e2e2e", flexWrap:"wrap" }}>
+        <div style={{ padding:"12px 16px", display:"flex", gap:"10px", borderBottom:"1px solid #E6EBF0", flexWrap:"wrap" }}>
           <div style={{ position:"relative", flex:1, minWidth:"200px" }}>
-            <Search size={14} style={{ position:"absolute", left:"12px", top:"50%", transform:"translateY(-50%)", color:"#606060" }}/>
+            <Search size={14} style={{ position:"absolute", left:"12px", top:"50%", transform:"translateY(-50%)", color:"#4A5B6C" }}/>
             <input className="search-input" placeholder="Buscar leads..." value={busca} onChange={(e)=>setBusca(e.target.value)}/>
           </div>
           <button onClick={()=>setFiltrosAbertos(true)} className="btn-secondary" style={{ cursor:"pointer",fontSize:"12px",position:"relative" }}>
             <Filter size={13}/> Filtros
-            {Object.keys(filtros).length > 0 && <span style={{ position:"absolute",top:"-4px",right:"-4px",background:"#29ABE2",color:"#000",fontSize:"9px",fontWeight:"800",borderRadius:"50%",width:"14px",height:"14px",display:"flex",alignItems:"center",justifyContent:"center" }}>{Object.keys(filtros).length}</span>}
+            {Object.keys(filtros).length > 0 && <span style={{ position:"absolute",top:"-4px",right:"-4px",background:"#1C6CA6",color:"#F3F5F7",fontSize:"9px",fontWeight:"800",borderRadius:"50%",width:"14px",height:"14px",display:"flex",alignItems:"center",justifyContent:"center" }}>{Object.keys(filtros).length}</span>}
           </button>
           {Object.keys(filtros).length > 0 && (
             <button onClick={()=>setFiltros({})} className="btn-ghost" style={{ cursor:"pointer",fontSize:"12px",color:"#ef4444" }}>
@@ -378,7 +378,7 @@ export default function CRMPage() {
 
         {/* Botões importar (apenas tabela) */}
         {view==="table" && (
-          <div style={{ padding:"10px 16px", display:"flex", gap:"8px", borderBottom:"1px solid #2e2e2e" }}>
+          <div style={{ padding:"10px 16px", display:"flex", gap:"8px", borderBottom:"1px solid #E6EBF0" }}>
             <button className="btn-secondary" style={{ fontSize:"12px" }}><Upload size={13}/> Importar leads</button>
             <button className="btn-secondary" style={{ fontSize:"12px" }}><Upload size={13}/> Modelo de importação</button>
           </div>
@@ -386,7 +386,7 @@ export default function CRMPage() {
 
         {/* Conteúdo */}
         {loading ? (
-          <div style={{ padding:"48px", textAlign:"center", color:"#606060" }}>Carregando...</div>
+          <div style={{ padding:"48px", textAlign:"center", color:"#4A5B6C" }}>Carregando...</div>
         ) : view==="kanban" ? (
           <KanbanBoard
             leads={filtrados}
@@ -415,10 +415,10 @@ export default function CRMPage() {
             </thead>
             <tbody>
               {!filtrados.length ? (
-                <tr><td colSpan={10} style={{ textAlign:"center",color:"#606060",padding:"48px" }}>Nenhum lead encontrado.</td></tr>
+                <tr><td colSpan={10} style={{ textAlign:"center",color:"#4A5B6C",padding:"48px" }}>Nenhum lead encontrado.</td></tr>
               ) : filtrados.map((l, idx)=>(
                 <tr key={l.id}>
-                  <td style={{ color:"#606060", fontSize:"12px" }}>{idx+1}</td>
+                  <td style={{ color:"#4A5B6C", fontSize:"12px" }}>{idx+1}</td>
                   <td>
                     <input type="checkbox" style={{ width:"14px",height:"14px" }}/>
                   </td>
@@ -431,11 +431,11 @@ export default function CRMPage() {
                     </div>
                   </td>
                   <td style={{ fontWeight:"500" }}>{l.nome}</td>
-                  <td style={{ color:"#a0a0a0",fontSize:"12px" }}>—</td>
+                  <td style={{ color:"#4A5B6C",fontSize:"12px" }}>—</td>
                   <td><EtapaBadge etapa={l.etapa} etapas={ETAPAS}/></td>
                   <td><span className="badge badge-gray">{l.origens?.nome||"—"}</span></td>
-                  <td style={{ color:"#a0a0a0",fontSize:"12px" }}>{l.telefone||"—"}</td>
-                  <td style={{ color:"#606060",fontSize:"12px" }}>{new Date(l.created_at).toLocaleDateString("pt-BR")}</td>
+                  <td style={{ color:"#4A5B6C",fontSize:"12px" }}>{l.telefone||"—"}</td>
+                  <td style={{ color:"#4A5B6C",fontSize:"12px" }}>{new Date(l.created_at).toLocaleDateString("pt-BR")}</td>
                   <td>
                     <div style={{ display:"flex",gap:"6px" }}>
                       <button className="btn-secondary" style={{ padding:"5px 10px",fontSize:"12px" }} onClick={()=>setEditando(l)}>

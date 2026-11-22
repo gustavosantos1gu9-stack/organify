@@ -42,7 +42,7 @@ function statusUTI(acoes: AcaoUTI[]): { label: string; cor: string } {
   if (pct === 0) return { label: "Crítico", cor: "#ef4444" };
   if (pct < 0.5) return { label: "Em Tratamento", cor: "#f59e0b" };
   if (pct < 1) return { label: "Melhorando", cor: "#22c55e" };
-  return { label: "Estável", cor: "#29ABE2" };
+  return { label: "Estável", cor: "#1C6CA6" };
 }
 
 export default function PageUTI() {
@@ -144,22 +144,22 @@ export default function PageUTI() {
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <span style={{ fontSize: "24px" }}>🏥</span>
-            <h1 style={{ fontSize: "20px", fontWeight: 700, color: "#f0f0f0", margin: 0 }}>UTI de Clientes</h1>
+            <h1 style={{ fontSize: "20px", fontWeight: 700, color: "#0A1826", margin: 0 }}>UTI de Clientes</h1>
           </div>
-          <p style={{ fontSize: "13px", color: "#606060", margin: "4px 0 0 34px" }}>
+          <p style={{ fontSize: "13px", color: "#4A5B6C", margin: "4px 0 0 34px" }}>
             Clientes com custo alto que precisam de recuperação
           </p>
         </div>
         <button onClick={carregar}
-          style={{ background: "none", border: "1px solid #2e2e2e", borderRadius: "6px", padding: "7px 12px", color: "#606060", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px", fontSize: "13px" }}>
+          style={{ background: "none", border: "1px solid #E6EBF0", borderRadius: "6px", padding: "7px 12px", color: "#4A5B6C", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px", fontSize: "13px" }}>
           <RefreshCw size={13}/> Atualizar
         </button>
       </div>
 
       {loading ? (
-        <div style={{ textAlign: "center", padding: "80px", color: "#606060" }}>Carregando...</div>
+        <div style={{ textAlign: "center", padding: "80px", color: "#4A5B6C" }}>Carregando...</div>
       ) : !clientes.length ? (
-        <div style={{ textAlign: "center", padding: "80px", color: "#606060" }}>
+        <div style={{ textAlign: "center", padding: "80px", color: "#4A5B6C" }}>
           <div style={{ fontSize: "40px", marginBottom: "12px" }}>🏥</div>
           <div style={{ fontSize: "14px" }}>Nenhum cliente na UTI.</div>
           <div style={{ fontSize: "12px", color: "#404040", marginTop: "6px" }}>
@@ -177,13 +177,13 @@ export default function PageUTI() {
             const padrao = acoesPadraoDisponiveis(c.id);
 
             return (
-              <div key={c.id} style={{ background: "#141414", border: "1px solid #ef444430", borderRadius: "10px", padding: "20px", position: "relative" }}>
+              <div key={c.id} style={{ background: "#FFFFFF", border: "1px solid #ef444430", borderRadius: "10px", padding: "20px", position: "relative" }}>
                 {/* Header do card */}
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                     <span style={{ fontSize: "20px" }}>🏥</span>
                     <div>
-                      <div style={{ fontSize: "16px", fontWeight: 700, color: "#f0f0f0" }}>{c.nome}</div>
+                      <div style={{ fontSize: "16px", fontWeight: 700, color: "#0A1826" }}>{c.nome}</div>
                       <div style={{ display: "flex", gap: "12px", marginTop: "4px", flexWrap: "wrap" }}>
                         {c.investimento_mensal > 0 && (
                           <span style={{ fontSize: "12px", color: "#ef4444", fontWeight: 600 }}>
@@ -199,8 +199,8 @@ export default function PageUTI() {
                             <ExternalLink size={10}/>
                           </a>
                         )}
-                        {c.gestor && <span style={{ fontSize: "12px", color: "#606060" }}>Gestor: {c.gestor}</span>}
-                        {c.consultor && <span style={{ fontSize: "12px", color: "#606060" }}>Consultor: {c.consultor}</span>}
+                        {c.gestor && <span style={{ fontSize: "12px", color: "#4A5B6C" }}>Gestor: {c.gestor}</span>}
+                        {c.consultor && <span style={{ fontSize: "12px", color: "#4A5B6C" }}>Consultor: {c.consultor}</span>}
                       </div>
                     </div>
                   </div>
@@ -213,7 +213,7 @@ export default function PageUTI() {
                     {/* Remover da UTI */}
                     <button onClick={() => removerDaUTI(c.id, c.nome)}
                       title="Remover da UTI"
-                      style={{ background: "none", border: "1px solid #2e2e2e", borderRadius: "6px", padding: "4px 8px", color: "#606060", cursor: "pointer", fontSize: "11px" }}>
+                      style={{ background: "none", border: "1px solid #E6EBF0", borderRadius: "6px", padding: "4px 8px", color: "#4A5B6C", cursor: "pointer", fontSize: "11px" }}>
                       Alta
                     </button>
                   </div>
@@ -223,10 +223,10 @@ export default function PageUTI() {
                 {total > 0 && (
                   <div style={{ marginBottom: "14px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                      <span style={{ fontSize: "11px", color: "#606060" }}>Progresso do plano de ação</span>
-                      <span style={{ fontSize: "11px", color: "#a0a0a0" }}>{feitas}/{total} ações ({pct}%)</span>
+                      <span style={{ fontSize: "11px", color: "#4A5B6C" }}>Progresso do plano de ação</span>
+                      <span style={{ fontSize: "11px", color: "#4A5B6C" }}>{feitas}/{total} ações ({pct}%)</span>
                     </div>
-                    <div style={{ height: "6px", background: "#2a2a2a", borderRadius: "3px", overflow: "hidden" }}>
+                    <div style={{ height: "6px", background: "#E6EBF0", borderRadius: "3px", overflow: "hidden" }}>
                       <div style={{ height: "100%", width: `${pct}%`, background: statusCor, borderRadius: "3px", transition: "width 0.3s" }}/>
                     </div>
                   </div>
@@ -235,14 +235,14 @@ export default function PageUTI() {
                 {/* Lista de ações */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "12px" }}>
                   {acoesCliente.map(a => (
-                    <div key={a.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "7px 10px", background: a.feito ? "#0a1a0a" : "#1a1a1a", borderRadius: "6px", border: `1px solid ${a.feito ? "#22c55e30" : "#2e2e2e"}` }}>
+                    <div key={a.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "7px 10px", background: a.feito ? "#0a1a0a" : "#FFFFFF", borderRadius: "6px", border: `1px solid ${a.feito ? "#22c55e30" : "#E6EBF0"}` }}>
                       <input
                         type="checkbox"
                         checked={a.feito}
                         onChange={() => toggleAcao(a)}
                         style={{ accentColor: "#22c55e", width: "15px", height: "15px", cursor: "pointer", flexShrink: 0 }}
                       />
-                      <span style={{ flex: 1, fontSize: "13px", color: a.feito ? "#606060" : "#d0d0d0", textDecoration: a.feito ? "line-through" : "none" }}>
+                      <span style={{ flex: 1, fontSize: "13px", color: a.feito ? "#4A5B6C" : "#d0d0d0", textDecoration: a.feito ? "line-through" : "none" }}>
                         {a.acao}
                       </span>
                       <button onClick={() => removerAcao(a)}
@@ -261,12 +261,12 @@ export default function PageUTI() {
                 </div>
 
                 {/* Ações rápidas */}
-                <div style={{ borderTop: "1px solid #1e1e1e", paddingTop: "12px" }}>
-                  <div style={{ fontSize: "11px", color: "#505050", marginBottom: "8px", fontWeight: 600 }}>ADICIONAR AÇÃO</div>
+                <div style={{ borderTop: "1px solid #FFFFFF", paddingTop: "12px" }}>
+                  <div style={{ fontSize: "11px", color: "#6B7A89", marginBottom: "8px", fontWeight: 600 }}>ADICIONAR AÇÃO</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "8px" }}>
                     {padrao.map(texto => (
                       <button key={texto} onClick={() => adicionarAcaoPadrao(c.id, texto)}
-                        style={{ background: "#1e1e1e", border: "1px solid #2e2e2e", borderRadius: "20px", padding: "4px 10px", fontSize: "11px", color: "#a0a0a0", cursor: "pointer", whiteSpace: "nowrap" }}>
+                        style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: "20px", padding: "4px 10px", fontSize: "11px", color: "#4A5B6C", cursor: "pointer", whiteSpace: "nowrap" }}>
                         + {texto}
                       </button>
                     ))}
@@ -281,20 +281,20 @@ export default function PageUTI() {
                         onChange={e => setNovaAcao(prev => ({ ...prev, [c.id]: e.target.value }))}
                         onKeyDown={e => { if (e.key === "Enter") adicionarAcaoCustom(c.id); if (e.key === "Escape") setAdicionando(prev => ({ ...prev, [c.id]: false })); }}
                         placeholder="Descrever ação personalizada..."
-                        style={{ flex: 1, background: "#1a1a1a", border: "1px solid #29ABE2", borderRadius: "6px", padding: "6px 10px", color: "#f0f0f0", fontSize: "12px", outline: "none" }}
+                        style={{ flex: 1, background: "#FFFFFF", border: "1px solid #1C6CA6", borderRadius: "6px", padding: "6px 10px", color: "#0A1826", fontSize: "12px", outline: "none" }}
                       />
                       <button onClick={() => adicionarAcaoCustom(c.id)}
-                        style={{ background: "#29ABE2", border: "none", borderRadius: "6px", padding: "6px 12px", color: "#fff", cursor: "pointer", fontSize: "12px", fontWeight: 600 }}>
+                        style={{ background: "#1C6CA6", border: "none", borderRadius: "6px", padding: "6px 12px", color: "#fff", cursor: "pointer", fontSize: "12px", fontWeight: 600 }}>
                         Adicionar
                       </button>
                       <button onClick={() => setAdicionando(prev => ({ ...prev, [c.id]: false }))}
-                        style={{ background: "none", border: "1px solid #2e2e2e", borderRadius: "6px", padding: "6px 10px", color: "#606060", cursor: "pointer", fontSize: "12px" }}>
+                        style={{ background: "none", border: "1px solid #E6EBF0", borderRadius: "6px", padding: "6px 10px", color: "#4A5B6C", cursor: "pointer", fontSize: "12px" }}>
                         Cancelar
                       </button>
                     </div>
                   ) : (
                     <button onClick={() => setAdicionando(prev => ({ ...prev, [c.id]: true }))}
-                      style={{ background: "none", border: "1px dashed #2e2e2e", borderRadius: "6px", padding: "6px 12px", color: "#505050", cursor: "pointer", fontSize: "12px", display: "flex", alignItems: "center", gap: "5px" }}>
+                      style={{ background: "none", border: "1px dashed #E6EBF0", borderRadius: "6px", padding: "6px 12px", color: "#6B7A89", cursor: "pointer", fontSize: "12px", display: "flex", alignItems: "center", gap: "5px" }}>
                       <Plus size={12}/> Ação personalizada
                     </button>
                   )}

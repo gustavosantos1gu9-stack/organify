@@ -130,18 +130,18 @@ function AgenciaModal({ item, onClose, onSave }: { item?: Agencia; onClose: () =
                   <div key={m.key} onClick={() => toggleModulo(m.key)} style={{
                     display: "flex", alignItems: "center", gap: "10px",
                     padding: "10px 14px", borderRadius: "8px", cursor: "pointer",
-                    background: ativo ? "rgba(41,171,226,0.08)" : "#1a1a1a",
-                    border: `1px solid ${ativo ? "rgba(41,171,226,0.3)" : "#2e2e2e"}`,
+                    background: ativo ? "rgba(41,171,226,0.08)" : "#FFFFFF",
+                    border: `1px solid ${ativo ? "rgba(41,171,226,0.3)" : "#E6EBF0"}`,
                   }}>
                     <div style={{
                       width: "18px", height: "18px", borderRadius: "4px",
-                      border: `2px solid ${ativo ? "#29ABE2" : "#3a3a3a"}`,
-                      background: ativo ? "#29ABE2" : "transparent",
+                      border: `2px solid ${ativo ? "#1C6CA6" : "#E6EBF0"}`,
+                      background: ativo ? "#1C6CA6" : "transparent",
                       display: "flex", alignItems: "center", justifyContent: "center",
                     }}>
                       {ativo && <Check size={12} color="#000" />}
                     </div>
-                    <span style={{ fontSize: "13px", color: ativo ? "#f0f0f0" : "#808080" }}>{m.label}</span>
+                    <span style={{ fontSize: "13px", color: ativo ? "#0A1826" : "#808080" }}>{m.label}</span>
                   </div>
                 );
               })}
@@ -192,7 +192,7 @@ function UserModal({ agenciaId, agenciaNome, onClose, onSave }: { agenciaId: str
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
           <div>
             <h2 style={{ fontSize: "17px", fontWeight: "600" }}>Novo Usuário</h2>
-            <p style={{ fontSize: "12px", color: "#606060", marginTop: "2px" }}>{agenciaNome}</p>
+            <p style={{ fontSize: "12px", color: "#4A5B6C", marginTop: "2px" }}>{agenciaNome}</p>
           </div>
           <button onClick={onClose} className="btn-ghost" style={{ padding: "6px", cursor: "pointer" }}><X size={16} /></button>
         </div>
@@ -209,7 +209,7 @@ function UserModal({ agenciaId, agenciaNome, onClose, onSave }: { agenciaId: str
         {erro && (
           <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "8px", padding: "10px 14px", fontSize: "13px", color: "#ef4444", marginTop: "12px" }}>{erro}</div>
         )}
-        <p style={{ fontSize: "11px", color: "#606060", marginTop: "12px" }}>O usuário receberá um email de convite para acessar a plataforma.</p>
+        <p style={{ fontSize: "11px", color: "#4A5B6C", marginTop: "12px" }}>O usuário receberá um email de convite para acessar a plataforma.</p>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "20px" }}>
           <button className="btn-secondary" onClick={onClose} style={{ cursor: "pointer" }}>Cancelar</button>
           <button className="btn-primary" onClick={handleSave} disabled={loading} style={{ cursor: "pointer" }}>
@@ -276,14 +276,14 @@ export default function ClientesSaasPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
         <div>
           <h1 style={{ fontSize: "22px", fontWeight: "600" }}>Clientes SaaS</h1>
-          <p style={{ fontSize: "13px", color: "#606060", marginTop: "4px" }}>Gerencie as agências das suas clientes com acesso próprio à plataforma.</p>
+          <p style={{ fontSize: "13px", color: "#4A5B6C", marginTop: "4px" }}>Gerencie as agências das suas clientes com acesso próprio à plataforma.</p>
         </div>
       </div>
 
       <div className="table-wrapper">
-        <div style={{ padding: "16px", display: "flex", gap: "12px", borderBottom: "1px solid #2e2e2e" }}>
+        <div style={{ padding: "16px", display: "flex", gap: "12px", borderBottom: "1px solid #E6EBF0" }}>
           <div style={{ position: "relative", flex: 1 }}>
-            <Search size={14} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#606060" }} />
+            <Search size={14} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#4A5B6C" }} />
             <input className="search-input" placeholder="Buscar clientes..." value={busca} onChange={e => setBusca(e.target.value)} />
           </div>
           <button className="btn-primary" onClick={() => setShowModal(true)} style={{ cursor: "pointer" }}>
@@ -292,23 +292,23 @@ export default function ClientesSaasPage() {
         </div>
 
         {loading ? (
-          <div style={{ textAlign: "center", color: "#606060", padding: "48px" }}>Carregando...</div>
+          <div style={{ textAlign: "center", color: "#4A5B6C", padding: "48px" }}>Carregando...</div>
         ) : !filtrados.length ? (
-          <div style={{ textAlign: "center", color: "#606060", padding: "48px" }}>
+          <div style={{ textAlign: "center", color: "#4A5B6C", padding: "48px" }}>
             {agencias.length === 0 ? "Nenhuma cliente cadastrada. Clique em \"Nova Cliente\" para começar." : "Nenhuma cliente encontrada."}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column" }}>
             {filtrados.map(a => (
-              <div key={a.id} style={{ borderBottom: "1px solid #2e2e2e" }}>
+              <div key={a.id} style={{ borderBottom: "1px solid #E6EBF0" }}>
                 {/* Linha principal */}
                 <div style={{
                   display: "flex", alignItems: "center", padding: "16px 20px", gap: "16px",
                   cursor: "pointer",
                 }} onClick={() => toggleExpandir(a.id)}>
-                  <Building2 size={18} color="#29ABE2" />
+                  <Building2 size={18} color="#1C6CA6" />
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: "14px", fontWeight: "600", color: "#f0f0f0" }}>{a.nome}</p>
+                    <p style={{ fontSize: "14px", fontWeight: "600", color: "#0A1826" }}>{a.nome}</p>
                     <div style={{ display: "flex", gap: "6px", marginTop: "6px", flexWrap: "wrap" }}>
                       {(a.modulos_habilitados || []).map(m => {
                         const mod = MODULOS_DISPONIVEIS.find(md => md.key === m);
@@ -329,7 +329,7 @@ export default function ClientesSaasPage() {
                       onClick={e => { e.stopPropagation(); setConfirmDelete(a); setConfirmNome(""); }}>
                       <Trash2 size={12} />
                     </button>
-                    {expandido === a.id ? <ChevronUp size={16} color="#606060" /> : <ChevronDown size={16} color="#606060" />}
+                    {expandido === a.id ? <ChevronUp size={16} color="#4A5B6C" /> : <ChevronDown size={16} color="#4A5B6C" />}
                   </div>
                 </div>
 
@@ -337,7 +337,7 @@ export default function ClientesSaasPage() {
                 {expandido === a.id && (
                   <div style={{ padding: "0 20px 16px 54px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-                      <p style={{ fontSize: "13px", fontWeight: "600", color: "#a0a0a0" }}>
+                      <p style={{ fontSize: "13px", fontWeight: "600", color: "#4A5B6C" }}>
                         <Users size={13} style={{ display: "inline", verticalAlign: "middle", marginRight: "6px" }} />
                         Usuários ({usuarios[a.id]?.length || 0})
                       </p>
@@ -347,19 +347,19 @@ export default function ClientesSaasPage() {
                       </button>
                     </div>
                     {!usuarios[a.id] ? (
-                      <p style={{ fontSize: "12px", color: "#606060" }}>Carregando...</p>
+                      <p style={{ fontSize: "12px", color: "#4A5B6C" }}>Carregando...</p>
                     ) : usuarios[a.id].length === 0 ? (
-                      <p style={{ fontSize: "12px", color: "#606060" }}>Nenhum usuário. Convide o primeiro acima.</p>
+                      <p style={{ fontSize: "12px", color: "#4A5B6C" }}>Nenhum usuário. Convide o primeiro acima.</p>
                     ) : (
                       <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                         {usuarios[a.id].map(u => (
                           <div key={u.id} style={{
                             display: "flex", justifyContent: "space-between", alignItems: "center",
-                            padding: "8px 12px", background: "#1a1a1a", borderRadius: "6px", border: "1px solid #2e2e2e",
+                            padding: "8px 12px", background: "#FFFFFF", borderRadius: "6px", border: "1px solid #E6EBF0",
                           }}>
                             <div>
-                              <span style={{ fontSize: "13px", color: "#f0f0f0" }}>{u.nome}</span>
-                              <span style={{ fontSize: "11px", color: "#606060", marginLeft: "8px" }}>{u.email}</span>
+                              <span style={{ fontSize: "13px", color: "#0A1826" }}>{u.nome}</span>
+                              <span style={{ fontSize: "11px", color: "#4A5B6C", marginLeft: "8px" }}>{u.email}</span>
                             </div>
                             <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
                               {u._acesso_externo && (
@@ -371,7 +371,7 @@ export default function ClientesSaasPage() {
                               <span style={{
                                 fontSize: "11px", padding: "2px 8px", borderRadius: "12px",
                                 background: u.ativo ? "rgba(41,171,226,0.15)" : "rgba(96,96,96,0.15)",
-                                color: u.ativo ? "#f0f0f0" : "#606060",
+                                color: u.ativo ? "#0A1826" : "#4A5B6C",
                               }}>{u.ativo ? "Ativo" : "Inativo"}</span>
                             </div>
                           </div>
@@ -404,8 +404,8 @@ export default function ClientesSaasPage() {
               <h2 style={{ fontSize: "17px", fontWeight: "600", color: "#ef4444" }}>Excluir Cliente</h2>
               <button onClick={() => !deletando && setConfirmDelete(null)} className="btn-ghost" style={{ padding: "6px", cursor: "pointer" }}><X size={16} /></button>
             </div>
-            <p style={{ fontSize: "13px", color: "#a0a0a0", lineHeight: "1.6", marginBottom: "8px" }}>
-              Isso vai excluir permanentemente <strong style={{ color: "#f0f0f0" }}>{confirmDelete.nome}</strong> e todos os dados associados:
+            <p style={{ fontSize: "13px", color: "#4A5B6C", lineHeight: "1.6", marginBottom: "8px" }}>
+              Isso vai excluir permanentemente <strong style={{ color: "#0A1826" }}>{confirmDelete.nome}</strong> e todos os dados associados:
             </p>
             <ul style={{ fontSize: "12px", color: "#808080", lineHeight: "1.8", paddingLeft: "18px", marginBottom: "16px" }}>
               <li>Conversas e mensagens do WhatsApp</li>
@@ -414,11 +414,11 @@ export default function ClientesSaasPage() {
               <li>Integrações e instância Evolution</li>
               <li>Configurações de jornada e automações</li>
             </ul>
-            <p style={{ fontSize: "12px", color: "#a0a0a0", marginBottom: "6px" }}>
+            <p style={{ fontSize: "12px", color: "#4A5B6C", marginBottom: "6px" }}>
               Esta ação <strong style={{ color: "#ef4444" }}>não pode ser desfeita</strong> e não afeta nenhuma outra agência.
             </p>
-            <p style={{ fontSize: "12px", color: "#a0a0a0", marginBottom: "8px" }}>
-              Digite <strong style={{ color: "#f0f0f0" }}>{confirmDelete.nome}</strong> para confirmar:
+            <p style={{ fontSize: "12px", color: "#4A5B6C", marginBottom: "8px" }}>
+              Digite <strong style={{ color: "#0A1826" }}>{confirmDelete.nome}</strong> para confirmar:
             </p>
             <input
               className="form-input"

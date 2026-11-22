@@ -100,8 +100,8 @@ export default function ClientesExternosPage() {
   };
 
   const inp: React.CSSProperties = {
-    background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 8,
-    padding: "10px 14px", color: "#f0f0f0", fontSize: 14, outline: "none", width: "100%", boxSizing: "border-box",
+    background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 8,
+    padding: "10px 14px", color: "#0A1826", fontSize: 14, outline: "none", width: "100%", boxSizing: "border-box",
   };
   const lbl: React.CSSProperties = { fontSize: 12, color: "#808080", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 };
 
@@ -109,12 +109,12 @@ export default function ClientesExternosPage() {
     <div style={{ maxWidth: 1000, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#f0f0f0", margin: 0 }}>Clientes Externos</h1>
-          <p style={{ fontSize: 13, color: "#606060", margin: "4px 0 0" }}>Gerencie formulários e LPs para clientes sem acesso ao sistema</p>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#0A1826", margin: 0 }}>Clientes Externos</h1>
+          <p style={{ fontSize: 13, color: "#4A5B6C", margin: "4px 0 0" }}>Gerencie formulários e LPs para clientes sem acesso ao sistema</p>
         </div>
         <button
           onClick={() => setModal({ ...VAZIO })}
-          style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 8, border: "none", background: "#29ABE2", color: "#000", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
+          style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 8, border: "none", background: "#1C6CA6", color: "#F3F5F7", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
         >
           <Plus size={16} /> Novo Cliente
         </button>
@@ -122,7 +122,7 @@ export default function ClientesExternosPage() {
 
       {loading ? (
         <div style={{ display: "flex", justifyContent: "center", padding: 60 }}>
-          <div style={{ width: 32, height: 32, borderRadius: "50%", border: "3px solid #1a1a1a", borderTop: "3px solid #29ABE2", animation: "spin 1s linear infinite" }} />
+          <div style={{ width: 32, height: 32, borderRadius: "50%", border: "3px solid #FFFFFF", borderTop: "3px solid #1C6CA6", animation: "spin 1s linear infinite" }} />
           <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
         </div>
       ) : clientes.length === 0 ? (
@@ -135,35 +135,35 @@ export default function ClientesExternosPage() {
           {clientes.map(c => (
             <div
               key={c.id}
-              style={{ background: "#141414", border: "1px solid #2e2e2e", borderRadius: 12, padding: 20, cursor: "pointer", transition: "border-color 0.2s" }}
+              style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 12, padding: 20, cursor: "pointer", transition: "border-color 0.2s" }}
               onClick={() => router.push(`/ferramentas/clientes/${c.id}`)}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = "#29ABE2")}
-              onMouseLeave={e => (e.currentTarget.style.borderColor = "#2e2e2e")}
+              onMouseEnter={e => (e.currentTarget.style.borderColor = "#1C6CA6")}
+              onMouseLeave={e => (e.currentTarget.style.borderColor = "#E6EBF0")}
             >
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   {c.logo_url ? (
-                    <img src={c.logo_url} alt="" style={{ width: 36, height: 36, borderRadius: 8, objectFit: "contain", background: "#2a2a2a" }} />
+                    <img src={c.logo_url} alt="" style={{ width: 36, height: 36, borderRadius: 8, objectFit: "contain", background: "#E6EBF0" }} />
                   ) : (
-                    <div style={{ width: 36, height: 36, borderRadius: 8, background: "#29ABE220", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: "#29ABE2" }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 8, background: "#29ABE220", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: "#1C6CA6" }}>
                       {c.nome[0]?.toUpperCase()}
                     </div>
                   )}
                   <div>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: "#f0f0f0" }}>{c.nome}</div>
-                    {!c.ativo && <span style={{ fontSize: 10, background: "#2a2a2a", color: "#606060", padding: "1px 6px", borderRadius: 6 }}>Inativo</span>}
+                    <div style={{ fontSize: 15, fontWeight: 600, color: "#0A1826" }}>{c.nome}</div>
+                    {!c.ativo && <span style={{ fontSize: 10, background: "#E6EBF0", color: "#4A5B6C", padding: "1px 6px", borderRadius: 6 }}>Inativo</span>}
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 4 }} onClick={e => e.stopPropagation()}>
                   <button
                     onClick={() => setModal(c)}
-                    style={{ padding: "5px 8px", borderRadius: 6, border: "1px solid #2e2e2e", background: "#1a1a1a", color: "#808080", cursor: "pointer", display: "flex", alignItems: "center" }}
+                    style={{ padding: "5px 8px", borderRadius: 6, border: "1px solid #E6EBF0", background: "#FFFFFF", color: "#808080", cursor: "pointer", display: "flex", alignItems: "center" }}
                   >
                     <Edit2 size={13} />
                   </button>
                   <button
                     onClick={() => remover(c.id)}
-                    style={{ padding: "5px 8px", borderRadius: 6, border: "1px solid #2e2e2e", background: "#1a1a1a", color: "#606060", cursor: "pointer", display: "flex", alignItems: "center" }}
+                    style={{ padding: "5px 8px", borderRadius: 6, border: "1px solid #E6EBF0", background: "#FFFFFF", color: "#4A5B6C", cursor: "pointer", display: "flex", alignItems: "center" }}
                   >
                     <Trash2 size={13} />
                   </button>
@@ -171,15 +171,15 @@ export default function ClientesExternosPage() {
               </div>
 
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-                <span style={{ fontSize: 11, padding: "3px 8px", borderRadius: 6, background: c.meta_pixel_id ? "#29ABE215" : "#2a2a2a", color: c.meta_pixel_id ? "#29ABE2" : "#505050" }}>
+                <span style={{ fontSize: 11, padding: "3px 8px", borderRadius: 6, background: c.meta_pixel_id ? "#29ABE215" : "#E6EBF0", color: c.meta_pixel_id ? "#1C6CA6" : "#6B7A89" }}>
                   Pixel {c.meta_pixel_id ? "✓" : "—"}
                 </span>
-                <span style={{ fontSize: 11, padding: "3px 8px", borderRadius: 6, background: c.whatsapp_notificacao ? "#22c55e15" : "#2a2a2a", color: c.whatsapp_notificacao ? "#22c55e" : "#505050" }}>
+                <span style={{ fontSize: 11, padding: "3px 8px", borderRadius: 6, background: c.whatsapp_notificacao ? "#22c55e15" : "#E6EBF0", color: c.whatsapp_notificacao ? "#22c55e" : "#6B7A89" }}>
                   WhatsApp {c.whatsapp_notificacao ? "✓" : "—"}
                 </span>
               </div>
 
-              <div style={{ display: "flex", gap: 12, fontSize: 12, color: "#606060" }}>
+              <div style={{ display: "flex", gap: 12, fontSize: 12, color: "#4A5B6C" }}>
                 <span>{c._form_count} formulário{c._form_count !== 1 ? "s" : ""}</span>
                 <span>·</span>
                 <span>{c._lp_count} landing page{c._lp_count !== 1 ? "s" : ""}</span>
@@ -191,12 +191,12 @@ export default function ClientesExternosPage() {
 
       {modal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-          <div style={{ background: "#141414", border: "1px solid #2e2e2e", borderRadius: 16, width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto", padding: 28 }}>
+          <div style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 16, width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto", padding: 28 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-              <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f0f0", margin: 0 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: "#0A1826", margin: 0 }}>
                 {modal.id ? "Editar Cliente" : "Novo Cliente Externo"}
               </h2>
-              <button onClick={() => setModal(null)} style={{ background: "none", border: "none", color: "#606060", cursor: "pointer", padding: 4 }}>
+              <button onClick={() => setModal(null)} style={{ background: "none", border: "none", color: "#4A5B6C", cursor: "pointer", padding: 4 }}>
                 <X size={20} />
               </button>
             </div>
@@ -223,16 +223,16 @@ export default function ClientesExternosPage() {
                 <input style={inp} value={modal.whatsapp_notificacao ?? ""} onChange={e => setModal(p => ({ ...p, whatsapp_notificacao: e.target.value }))} placeholder="5511999999999" />
               </div>
               <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
-                <input type="checkbox" checked={modal.ativo ?? true} onChange={e => setModal(p => ({ ...p, ativo: e.target.checked }))} style={{ width: 16, height: 16, accentColor: "#29ABE2" }} />
+                <input type="checkbox" checked={modal.ativo ?? true} onChange={e => setModal(p => ({ ...p, ativo: e.target.checked }))} style={{ width: 16, height: 16, accentColor: "#1C6CA6" }} />
                 <span style={{ fontSize: 14, color: "#c0c0c0" }}>Cliente ativo</span>
               </label>
             </div>
 
             <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
-              <button onClick={() => setModal(null)} style={{ flex: 1, padding: 12, borderRadius: 8, border: "1px solid #2e2e2e", background: "transparent", color: "#808080", fontSize: 14, cursor: "pointer" }}>
+              <button onClick={() => setModal(null)} style={{ flex: 1, padding: 12, borderRadius: 8, border: "1px solid #E6EBF0", background: "transparent", color: "#808080", fontSize: 14, cursor: "pointer" }}>
                 Cancelar
               </button>
-              <button onClick={salvar} disabled={salvando} style={{ flex: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: 12, borderRadius: 8, border: "none", background: "#29ABE2", color: "#000", fontSize: 14, fontWeight: 700, cursor: "pointer", opacity: salvando ? 0.7 : 1 }}>
+              <button onClick={salvar} disabled={salvando} style={{ flex: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: 12, borderRadius: 8, border: "none", background: "#1C6CA6", color: "#F3F5F7", fontSize: 14, fontWeight: 700, cursor: "pointer", opacity: salvando ? 0.7 : 1 }}>
                 <Save size={16} /> {salvando ? "Salvando..." : "Salvar"}
               </button>
             </div>

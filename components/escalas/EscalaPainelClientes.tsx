@@ -126,7 +126,7 @@ function RenovacaoDisplay({ renovou, dataInicio }: { renovou: boolean | null; da
   const cor = diasRestantes > 30 ? "var(--success)" : diasRestantes > 15 ? "var(--caution-text)" : "var(--alert-text)";
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-      <div style={{ height: "5px", background: "#222", borderRadius: "3px", overflow: "hidden", width: "80px" }}>
+      <div style={{ height: "5px", background: "#E6EBF0", borderRadius: "3px", overflow: "hidden", width: "80px" }}>
         <div style={{ height: "100%", width: `${progresso}%`, background: cor, borderRadius: "3px" }} />
       </div>
       <span style={{ fontSize: "10px", color: cor, fontWeight: "500" }}>{diasRestantes}d restantes</span>
@@ -457,7 +457,7 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
       {/* Abas */}
       <div style={{
         display: "flex", gap: "4px", marginBottom: "24px",
-        background: "var(--card-bg)", border: "1px solid #2e2e2e",
+        background: "var(--card-bg)", border: "1px solid #E6EBF0",
         borderRadius: "10px", padding: "4px", width: "fit-content",
       }}>
         <button style={tabStyle(aba === "painel")} onClick={() => setAba("painel")}>
@@ -474,12 +474,12 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
 
           {/* KPIs */}
           <div style={{ display: "flex", gap: "12px", marginBottom: "24px", flexWrap: "wrap" }}>
-            <div style={{ background: "var(--card-bg)", border: "1px solid #2a2a2a", borderRadius: "10px", padding: "14px 20px", minWidth: "130px" }}>
+            <div style={{ background: "var(--card-bg)", border: "1px solid #E6EBF0", borderRadius: "10px", padding: "14px 20px", minWidth: "130px" }}>
               <div style={{ fontSize: "11px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>Total de clientes</div>
               <div style={{ fontSize: "26px", fontWeight: "700", color: "var(--navy)", lineHeight: 1 }}>{total}</div>
             </div>
 
-            <div style={{ background: "var(--card-bg)", border: "1px solid #2a2a2a", borderRadius: "10px", padding: "14px 20px", minWidth: "180px" }}>
+            <div style={{ background: "var(--card-bg)", border: "1px solid #E6EBF0", borderRadius: "10px", padding: "14px 20px", minWidth: "180px" }}>
               <div style={{ fontSize: "11px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>Resposta da planilha</div>
               <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
                 <span style={{ fontSize: "26px", fontWeight: "700", color: "var(--navy)", lineHeight: 1 }}>{pctResposta}%</span>
@@ -547,7 +547,7 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
           {loading ? (
             <div style={{ padding: "40px", textAlign: "center", color: "var(--text-secondary)" }}>Carregando...</div>
           ) : clientes.length === 0 ? (
-            <div style={{ padding: "40px", textAlign: "center", color: "var(--text-secondary)", background: "var(--card-bg)", border: "1px solid #2e2e2e", borderRadius: "10px" }}>
+            <div style={{ padding: "40px", textAlign: "center", color: "var(--text-secondary)", background: "var(--card-bg)", border: "1px solid #E6EBF0", borderRadius: "10px" }}>
               Nenhum cliente encontrado.
             </div>
           ) : (
@@ -584,7 +584,7 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
                     onDragEnd={() => { setDragOver(null); dragId.current = null; }}
                     style={{
                       background: isDragTarget ? "var(--hover-row)" : "var(--card-bg)",
-                      border: "1px solid #2a2a2a",
+                      border: "1px solid #E6EBF0",
                       borderLeft: `4px solid ${p.cor}`,
                       borderRadius: "8px",
                       opacity: isDragging ? 0.4 : 1,
@@ -753,7 +753,7 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
                               onClick={e => e.stopPropagation()}
                               placeholder="Digite aqui… (Ctrl+Enter para salvar)"
                               rows={2}
-                              style={{ flex: 1, background: "#111", border: "1px solid #2e2e2e", borderRadius: "6px", color: "var(--navy)", fontSize: "13px", padding: "7px 10px", resize: "none", fontFamily: "inherit", outline: "none", lineHeight: "1.5" }}
+                              style={{ flex: 1, background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: "6px", color: "var(--navy)", fontSize: "13px", padding: "7px 10px", resize: "none", fontFamily: "inherit", outline: "none", lineHeight: "1.5" }}
                             />
                             <button
                               onClick={e => { e.stopPropagation(); salvarAtualizacao(cliente.id); }}
@@ -804,14 +804,14 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
             <h2 style={{ fontSize: "16px", fontWeight: "600", color: "var(--navy)", margin: 0 }}>Calendário de Análises</h2>
             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
               <button onClick={() => { if (calMes === 0) { setCalMes(11); setCalAno(calAno - 1); } else setCalMes(calMes - 1); }}
-                style={{ background: "#252525", border: "1px solid #383838", borderRadius: "6px", width: "32px", height: "32px", cursor: "pointer", color: "var(--text-secondary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                style={{ background: "#E6EBF0", border: "1px solid #383838", borderRadius: "6px", width: "32px", height: "32px", cursor: "pointer", color: "var(--text-secondary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <ChevronLeft size={16} />
               </button>
               <span style={{ fontSize: "15px", fontWeight: "600", color: "var(--navy)", minWidth: "160px", textAlign: "center" }}>
                 {MESES_CAL[calMes]} {calAno}
               </span>
               <button onClick={() => { if (calMes === 11) { setCalMes(0); setCalAno(calAno + 1); } else setCalMes(calMes + 1); }}
-                style={{ background: "#252525", border: "1px solid #383838", borderRadius: "6px", width: "32px", height: "32px", cursor: "pointer", color: "var(--text-secondary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                style={{ background: "#E6EBF0", border: "1px solid #383838", borderRadius: "6px", width: "32px", height: "32px", cursor: "pointer", color: "var(--text-secondary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <ChevronRight size={16} />
               </button>
             </div>

@@ -14,18 +14,18 @@ import {
 } from "lucide-react";
 
 const tooltipStyle = {
-  background: "#1e1e1e",
-  border: "1px solid #2e2e2e",
+  background: "#FFFFFF",
+  border: "1px solid #E6EBF0",
   borderRadius: "8px",
   fontSize: "12px",
-  color: "#f0f0f0",
+  color: "#0A1826",
 };
 
 const ORIGEM_COLORS: Record<string, string> = {
   "Meta Ads": "#3b82f6",
   "Google Ads": "#22c55e",
   "Link": "#f59e0b",
-  "Não Rastreada": "#606060",
+  "Não Rastreada": "#4A5B6C",
 };
 
 interface Conversa {
@@ -268,7 +268,7 @@ export default function InboxDashboardPage() {
   if (loading) {
     return (
       <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ width: "40px", height: "40px", borderRadius: "50%", border: "3px solid #2e2e2e", borderTop: "3px solid #29ABE2", animation: "spin 1s linear infinite" }} />
+        <div style={{ width: "40px", height: "40px", borderRadius: "50%", border: "3px solid #E6EBF0", borderTop: "3px solid #1C6CA6", animation: "spin 1s linear infinite" }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
@@ -292,9 +292,9 @@ export default function InboxDashboardPage() {
       {/* ── SEÇÃO 1: NOVOS CONTATOS DO PERÍODO ── */}
       {/* ══════════════════════════════════════════════════ */}
       <div style={{ marginBottom: "32px" }}>
-        <h2 style={{ fontSize: "16px", fontWeight: "600", marginBottom: "16px", color: "#29ABE2", display: "flex", alignItems: "center", gap: "8px" }}>
+        <h2 style={{ fontSize: "16px", fontWeight: "600", marginBottom: "16px", color: "#1C6CA6", display: "flex", alignItems: "center", gap: "8px" }}>
           <MessageCircle size={18} /> Novos Contatos no Período
-          <span style={{ fontSize: "12px", fontWeight: "400", color: "#606060" }}>(primeira mensagem no período)</span>
+          <span style={{ fontSize: "12px", fontWeight: "400", color: "#4A5B6C" }}>(primeira mensagem no período)</span>
         </h2>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "16px", marginBottom: "16px" }}>
@@ -314,14 +314,14 @@ export default function InboxDashboardPage() {
         {/* Funil dos Novos */}
         <div className="card" style={{ marginBottom: "16px" }}>
           <h3 style={{ fontSize: "14px", fontWeight: "500", marginBottom: "16px" }}>Funil dos Novos Contatos</h3>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 0, marginBottom: "16px", borderBottom: "1px solid #2e2e2e", paddingBottom: "16px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 0, marginBottom: "16px", borderBottom: "1px solid #E6EBF0", paddingBottom: "16px" }}>
             {[
               { label: "Leads → Agendamentos", value: `${funilNovos.pctAgend}%` },
               { label: "Agendados → Compareceram", value: `${funilNovos.pctComp}%` },
               { label: "Compareceram → Vendas", value: `${funilNovos.pctVenda}%` },
             ].map((item, i) => (
-              <div key={i} style={{ textAlign: "center", padding: "0 16px", borderRight: i < 2 ? "1px solid #2e2e2e" : "none" }}>
-                <p style={{ fontSize: "12px", color: "#606060", marginBottom: "6px" }}>{item.label}</p>
+              <div key={i} style={{ textAlign: "center", padding: "0 16px", borderRight: i < 2 ? "1px solid #E6EBF0" : "none" }}>
+                <p style={{ fontSize: "12px", color: "#4A5B6C", marginBottom: "6px" }}>{item.label}</p>
                 <p style={{ fontSize: "22px", fontWeight: "700", color: item.value === "0.0%" ? "#404040" : "#22c55e" }}>{item.value}</p>
               </div>
             ))}
@@ -333,9 +333,9 @@ export default function InboxDashboardPage() {
               { label: "Compareceram", value: funilNovos.compareceram },
               { label: "Fechadas", value: funilNovos.fecharam },
             ].map((item) => (
-              <div key={item.label} style={{ background: "#1a1a1a", borderRadius: "8px", padding: "14px 16px" }}>
-                <p style={{ fontSize: "12px", color: "#606060", marginBottom: "6px" }}>{item.label}</p>
-                <p style={{ fontSize: "20px", fontWeight: "700", color: item.value > 0 ? "#f0f0f0" : "#404040" }}>{item.value}</p>
+              <div key={item.label} style={{ background: "#FFFFFF", borderRadius: "8px", padding: "14px 16px" }}>
+                <p style={{ fontSize: "12px", color: "#4A5B6C", marginBottom: "6px" }}>{item.label}</p>
+                <p style={{ fontSize: "20px", fontWeight: "700", color: item.value > 0 ? "#0A1826" : "#404040" }}>{item.value}</p>
               </div>
             ))}
           </div>
@@ -349,7 +349,7 @@ export default function InboxDashboardPage() {
         <div style={{ marginBottom: "32px" }}>
           <h2 style={{ fontSize: "16px", fontWeight: "600", marginBottom: "16px", color: "#f59e0b", display: "flex", alignItems: "center", gap: "8px" }}>
             <TrendingUp size={18} /> Retornos de Meses Anteriores
-            <span style={{ fontSize: "12px", fontWeight: "400", color: "#606060" }}>(contatos antigos que agendaram/compareceram/fecharam neste período)</span>
+            <span style={{ fontSize: "12px", fontWeight: "400", color: "#4A5B6C" }}>(contatos antigos que agendaram/compareceram/fecharam neste período)</span>
           </h2>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "16px", marginBottom: "16px" }}>
@@ -386,14 +386,14 @@ export default function InboxDashboardPage() {
         {/* Funil Total */}
         <div className="card" style={{ marginBottom: "16px" }}>
           <h3 style={{ fontSize: "14px", fontWeight: "500", marginBottom: "16px" }}>Funil Total (Novos + Retornos)</h3>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 0, marginBottom: "16px", borderBottom: "1px solid #2e2e2e", paddingBottom: "16px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 0, marginBottom: "16px", borderBottom: "1px solid #E6EBF0", paddingBottom: "16px" }}>
             {[
               { label: "Leads → Agendamentos", value: `${funilTotal.pctAgend}%` },
               { label: "Agendados → Compareceram", value: `${funilTotal.pctComp}%` },
               { label: "Compareceram → Vendas", value: `${funilTotal.pctVenda}%` },
             ].map((item, i) => (
-              <div key={i} style={{ textAlign: "center", padding: "0 16px", borderRight: i < 2 ? "1px solid #2e2e2e" : "none" }}>
-                <p style={{ fontSize: "12px", color: "#606060", marginBottom: "6px" }}>{item.label}</p>
+              <div key={i} style={{ textAlign: "center", padding: "0 16px", borderRight: i < 2 ? "1px solid #E6EBF0" : "none" }}>
+                <p style={{ fontSize: "12px", color: "#4A5B6C", marginBottom: "6px" }}>{item.label}</p>
                 <p style={{ fontSize: "22px", fontWeight: "700", color: item.value === "0.0%" ? "#404040" : "#22c55e" }}>{item.value}</p>
               </div>
             ))}
@@ -405,9 +405,9 @@ export default function InboxDashboardPage() {
               { label: "Compareceram", value: funilTotal.compareceram },
               { label: "Fechadas", value: funilTotal.fecharam },
             ].map((item) => (
-              <div key={item.label} style={{ background: "#1a1a1a", borderRadius: "8px", padding: "14px 16px" }}>
-                <p style={{ fontSize: "12px", color: "#606060", marginBottom: "6px" }}>{item.label}</p>
-                <p style={{ fontSize: "20px", fontWeight: "700", color: item.value > 0 ? "#f0f0f0" : "#404040" }}>{item.value}</p>
+              <div key={item.label} style={{ background: "#FFFFFF", borderRadius: "8px", padding: "14px 16px" }}>
+                <p style={{ fontSize: "12px", color: "#4A5B6C", marginBottom: "6px" }}>{item.label}</p>
+                <p style={{ fontSize: "20px", fontWeight: "700", color: item.value > 0 ? "#0A1826" : "#404040" }}>{item.value}</p>
               </div>
             ))}
           </div>
@@ -424,8 +424,8 @@ export default function InboxDashboardPage() {
 
       {/* ── Sem dados ── */}
       {totalGeral === 0 && (
-        <div style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "12px", padding: "32px", textAlign: "center", marginBottom: "20px" }}>
-          <p style={{ color: "#606060", fontSize: "14px" }}>Nenhuma conversa encontrada no período selecionado.</p>
+        <div style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: "12px", padding: "32px", textAlign: "center", marginBottom: "20px" }}>
+          <p style={{ color: "#4A5B6C", fontSize: "14px" }}>Nenhuma conversa encontrada no período selecionado.</p>
         </div>
       )}
 
@@ -435,20 +435,20 @@ export default function InboxDashboardPage() {
           <h3 style={{ fontSize: "14px", fontWeight: "500", marginBottom: "20px" }}>Conversas por dia</h3>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={barDia}>
-              <XAxis dataKey="dia" tick={{ fontSize: 10, fill: "#606060" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: "#606060" }} axisLine={false} tickLine={false} allowDecimals={false} />
+              <XAxis dataKey="dia" tick={{ fontSize: 10, fill: "#4A5B6C" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: "#4A5B6C" }} axisLine={false} tickLine={false} allowDecimals={false} />
               <Tooltip contentStyle={tooltipStyle} />
               <Bar dataKey="Meta Ads" stackId="a" fill="#3b82f6" radius={[0, 0, 0, 0]} />
               <Bar dataKey="Google Ads" stackId="a" fill="#22c55e" />
               <Bar dataKey="Link" stackId="a" fill="#f59e0b" />
-              <Bar dataKey="Não Rastreada" stackId="a" fill="#606060" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Não Rastreada" stackId="a" fill="#4A5B6C" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
           <div style={{ display: "flex", gap: "16px", justifyContent: "center", marginTop: "12px" }}>
             {Object.entries(ORIGEM_COLORS).map(([label, color]) => (
               <div key={label} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                 <div style={{ width: "10px", height: "10px", borderRadius: "2px", background: color }} />
-                <span style={{ fontSize: "11px", color: "#a0a0a0" }}>{label}</span>
+                <span style={{ fontSize: "11px", color: "#4A5B6C" }}>{label}</span>
               </div>
             ))}
           </div>
@@ -478,7 +478,7 @@ export default function InboxDashboardPage() {
                         entry.name === "Meta Ads" ? "#3b82f6"
                         : entry.name === "Google Ads" ? "#22c55e"
                         : entry.name === "Link Rastreável" ? "#f59e0b"
-                        : "#606060"
+                        : "#4A5B6C"
                       }
                     />
                   ))}
@@ -488,7 +488,7 @@ export default function InboxDashboardPage() {
             </ResponsiveContainer>
           ) : (
             <div style={{ height: 260, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <p style={{ color: "#606060", fontSize: "13px" }}>Sem dados</p>
+              <p style={{ color: "#4A5B6C", fontSize: "13px" }}>Sem dados</p>
             </div>
           )}
         </div>
@@ -504,7 +504,7 @@ export default function InboxDashboardPage() {
               const novosPct = item.count > 0 ? (item.novos / item.count) * 100 : 100;
               return (
                 <div key={item.nome} style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                  <span style={{ fontSize: "12px", color: "#a0a0a0", width: "140px", textAlign: "right", flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <span style={{ fontSize: "12px", color: "#4A5B6C", width: "140px", textAlign: "right", flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {item.nome}
                   </span>
                   <div style={{ flex: 1, position: "relative" }}>
@@ -512,7 +512,7 @@ export default function InboxDashboardPage() {
                       style={{
                         height: "32px",
                         width: `${widthPct}%`,
-                        background: `linear-gradient(to right, #29ABE2 ${novosPct}%, #f59e0b ${novosPct}%)`,
+                        background: `linear-gradient(to right, #1C6CA6 ${novosPct}%, #f59e0b ${novosPct}%)`,
                         borderRadius: "6px",
                         display: "flex",
                         alignItems: "center",
@@ -522,7 +522,7 @@ export default function InboxDashboardPage() {
                         gap: "6px",
                       }}
                     >
-                      <span style={{ fontSize: "12px", fontWeight: "600", color: "#f0f0f0" }}>
+                      <span style={{ fontSize: "12px", fontWeight: "600", color: "#0A1826" }}>
                         {item.count}
                       </span>
                       {item.retornos > 0 && (
@@ -538,12 +538,12 @@ export default function InboxDashboardPage() {
           </div>
           <div style={{ display: "flex", gap: "16px", justifyContent: "center", marginTop: "12px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <div style={{ width: "10px", height: "10px", borderRadius: "2px", background: "#29ABE2" }} />
-              <span style={{ fontSize: "11px", color: "#a0a0a0" }}>Novos</span>
+              <div style={{ width: "10px", height: "10px", borderRadius: "2px", background: "#1C6CA6" }} />
+              <span style={{ fontSize: "11px", color: "#4A5B6C" }}>Novos</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <div style={{ width: "10px", height: "10px", borderRadius: "2px", background: "#f59e0b" }} />
-              <span style={{ fontSize: "11px", color: "#a0a0a0" }}>Retornos</span>
+              <span style={{ fontSize: "11px", color: "#4A5B6C" }}>Retornos</span>
             </div>
           </div>
         </div>
@@ -556,22 +556,22 @@ export default function InboxDashboardPage() {
           {topCampanhas.length > 0 ? (
             <ResponsiveContainer width="100%" height={Math.max(topCampanhas.length * 36, 120)}>
               <BarChart data={topCampanhas} layout="vertical" margin={{ left: 10, right: 20 }}>
-                <XAxis type="number" tick={{ fontSize: 11, fill: "#606060" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <XAxis type="number" tick={{ fontSize: 11, fill: "#4A5B6C" }} axisLine={false} tickLine={false} allowDecimals={false} />
                 <YAxis
                   type="category"
                   dataKey="name"
-                  tick={{ fontSize: 11, fill: "#a0a0a0" }}
+                  tick={{ fontSize: 11, fill: "#4A5B6C" }}
                   axisLine={false}
                   tickLine={false}
                   width={160}
                 />
                 <Tooltip contentStyle={tooltipStyle} />
-                <Bar dataKey="value" fill="#29ABE2" radius={[0, 4, 4, 0]} name="Conversas" />
+                <Bar dataKey="value" fill="#1C6CA6" radius={[0, 4, 4, 0]} name="Conversas" />
               </BarChart>
             </ResponsiveContainer>
           ) : (
             <div style={{ height: 120, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <p style={{ color: "#606060", fontSize: "13px" }}>Sem campanhas no período</p>
+              <p style={{ color: "#4A5B6C", fontSize: "13px" }}>Sem campanhas no período</p>
             </div>
           )}
         </div>
@@ -581,11 +581,11 @@ export default function InboxDashboardPage() {
           {topAnuncios.length > 0 ? (
             <ResponsiveContainer width="100%" height={Math.max(topAnuncios.length * 36, 120)}>
               <BarChart data={topAnuncios} layout="vertical" margin={{ left: 10, right: 20 }}>
-                <XAxis type="number" tick={{ fontSize: 11, fill: "#606060" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <XAxis type="number" tick={{ fontSize: 11, fill: "#4A5B6C" }} axisLine={false} tickLine={false} allowDecimals={false} />
                 <YAxis
                   type="category"
                   dataKey="name"
-                  tick={{ fontSize: 11, fill: "#a0a0a0" }}
+                  tick={{ fontSize: 11, fill: "#4A5B6C" }}
                   axisLine={false}
                   tickLine={false}
                   width={160}
@@ -596,7 +596,7 @@ export default function InboxDashboardPage() {
             </ResponsiveContainer>
           ) : (
             <div style={{ height: 120, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <p style={{ color: "#606060", fontSize: "13px" }}>Sem anúncios no período</p>
+              <p style={{ color: "#4A5B6C", fontSize: "13px" }}>Sem anúncios no período</p>
             </div>
           )}
         </div>
@@ -612,31 +612,31 @@ export default function InboxDashboardPage() {
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>
-                  <th style={{ padding: "10px 14px", textAlign: "left", fontSize: "11px", color: "#606060", fontWeight: "600", textTransform: "uppercase", borderBottom: "1px solid #2e2e2e" }}>
+                  <th style={{ padding: "10px 14px", textAlign: "left", fontSize: "11px", color: "#4A5B6C", fontWeight: "600", textTransform: "uppercase", borderBottom: "1px solid #E6EBF0" }}>
                     CAMPANHA
                   </th>
                   {etapas.map((et) => (
-                    <th key={et.id} style={{ padding: "10px", textAlign: "center", fontSize: "11px", color: "#606060", fontWeight: "600", textTransform: "uppercase", borderBottom: "1px solid #2e2e2e", whiteSpace: "nowrap" }}>
+                    <th key={et.id} style={{ padding: "10px", textAlign: "center", fontSize: "11px", color: "#4A5B6C", fontWeight: "600", textTransform: "uppercase", borderBottom: "1px solid #E6EBF0", whiteSpace: "nowrap" }}>
                       {et.nome.toUpperCase()}
                     </th>
                   ))}
-                  <th style={{ padding: "10px", textAlign: "center", fontSize: "11px", color: "#606060", fontWeight: "600", textTransform: "uppercase", borderBottom: "1px solid #2e2e2e" }}>
+                  <th style={{ padding: "10px", textAlign: "center", fontSize: "11px", color: "#4A5B6C", fontWeight: "600", textTransform: "uppercase", borderBottom: "1px solid #E6EBF0" }}>
                     TOTAL
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {tabelaData.map((row) => (
-                  <tr key={row.campaign} style={{ borderBottom: "1px solid #2e2e2e" }}>
+                  <tr key={row.campaign} style={{ borderBottom: "1px solid #E6EBF0" }}>
                     <td style={{ padding: "10px 14px", fontSize: "13px", fontWeight: "500", maxWidth: "220px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {row.campaign}
                     </td>
                     {row.porEtapa.map((v, i) => (
-                      <td key={i} style={{ padding: "10px", textAlign: "center", fontSize: "13px", color: v > 0 ? "#29ABE2" : "#404040" }}>
+                      <td key={i} style={{ padding: "10px", textAlign: "center", fontSize: "13px", color: v > 0 ? "#1C6CA6" : "#404040" }}>
                         {v}
                       </td>
                     ))}
-                    <td style={{ padding: "10px", textAlign: "center", fontSize: "13px", fontWeight: "600", color: row.total > 0 ? "#f0f0f0" : "#404040" }}>
+                    <td style={{ padding: "10px", textAlign: "center", fontSize: "13px", fontWeight: "600", color: row.total > 0 ? "#0A1826" : "#404040" }}>
                       {row.total}
                     </td>
                   </tr>

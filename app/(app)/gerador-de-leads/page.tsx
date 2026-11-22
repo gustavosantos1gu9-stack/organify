@@ -112,14 +112,14 @@ export default function ChurnPage() {
         <div>
           <div className="breadcrumb"><a href="/">Início</a><span>›</span><span className="current">Churn</span></div>
           <h1 style={{ fontSize:"22px", fontWeight:"600" }}>Churn de Clientes</h1>
-          <p style={{ fontSize:"13px", color:"#606060", marginTop:"4px" }}>{clientes.length} clientes no histórico</p>
+          <p style={{ fontSize:"13px", color:"#4A5B6C", marginTop:"4px" }}>{clientes.length} clientes no histórico</p>
         </div>
         <div style={{ display:"flex", gap:"8px" }}>
           <div style={{ position:"relative" }}>
-            <Search size={13} style={{ position:"absolute", left:"10px", top:"50%", transform:"translateY(-50%)", color:"#606060" }}/>
+            <Search size={13} style={{ position:"absolute", left:"10px", top:"50%", transform:"translateY(-50%)", color:"#4A5B6C" }}/>
             <input className="search-input" placeholder="Buscar..." value={busca} onChange={e=>setBusca(e.target.value)} style={{ paddingLeft:"32px", width:"200px" }}/>
           </div>
-          <select value={sort} onChange={e=>setSort(e.target.value)} style={{ background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", padding:"7px 10px", color:"#f0f0f0", fontSize:"12px", cursor:"pointer" }}>
+          <select value={sort} onChange={e=>setSort(e.target.value)} style={{ background:"#FFFFFF", border:"1px solid #E6EBF0", borderRadius:"8px", padding:"7px 10px", color:"#0A1826", fontSize:"12px", cursor:"pointer" }}>
             <option value="data_churn">Data Churn</option>
             <option value="data_entrada">Data Entrada</option>
             <option value="nome">Nome</option>
@@ -136,45 +136,45 @@ export default function ChurnPage() {
       <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"16px", marginBottom:"20px" }}>
         {/* Churn Total */}
         <div className="card" style={{ padding:"16px 20px" }}>
-          <p style={{ fontSize:"11px", color:"#606060", margin:"0 0 4px" }}>
+          <p style={{ fontSize:"11px", color:"#4A5B6C", margin:"0 0 4px" }}>
             Churn Total{filtroMes!=="Todos"?` — ${filtroMes}`:""}
           </p>
           <p style={{ fontSize:"28px", fontWeight:"700", color:"#ef4444", margin:0 }}>{churnTotal}</p>
-          <p style={{ fontSize:"11px", color:"#606060", margin:"4px 0 0" }}>Base {mesBaseAno}: {baseMes} clientes</p>
+          <p style={{ fontSize:"11px", color:"#4A5B6C", margin:"4px 0 0" }}>Base {mesBaseAno}: {baseMes} clientes</p>
         </div>
         {/* Tempo Médio */}
         <div className="card" style={{ padding:"16px 20px" }}>
-          <p style={{ fontSize:"11px", color:"#606060", margin:"0 0 4px" }}>Tempo Médio do Cliente</p>
-          <p style={{ fontSize:"28px", fontWeight:"700", color:"#29ABE2", margin:0 }}>
+          <p style={{ fontSize:"11px", color:"#4A5B6C", margin:"0 0 4px" }}>Tempo Médio do Cliente</p>
+          <p style={{ fontSize:"28px", fontWeight:"700", color:"#1C6CA6", margin:0 }}>
             {historico.length > 0 ? `${historico[historico.length-1]?.tempo_medio_meses || "—"}m` : "—"}
           </p>
-          <p style={{ fontSize:"11px", color:"#606060", margin:"4px 0 0" }}>meses antes do churn</p>
+          <p style={{ fontSize:"11px", color:"#4A5B6C", margin:"4px 0 0" }}>meses antes do churn</p>
         </div>
 
         {/* Churn Rate */}
         <div className="card" style={{ padding:"16px 20px" }}>
-          <p style={{ fontSize:"11px", color:"#606060", margin:"0 0 4px" }}>Churn Rate</p>
+          <p style={{ fontSize:"11px", color:"#4A5B6C", margin:"0 0 4px" }}>Churn Rate</p>
           <p style={{ fontSize:"28px", fontWeight:"700", color:"#ef4444", margin:0 }}>{churnRate}%</p>
-          <p style={{ fontSize:"11px", color:"#606060", margin:"4px 0 0" }}>{churnTotal} churns ÷ {baseMes} base</p>
+          <p style={{ fontSize:"11px", color:"#4A5B6C", margin:"4px 0 0" }}>{churnTotal} churns ÷ {baseMes} base</p>
         </div>
 
         {/* Meta de Churn */}
         <div className="card" style={{ padding:"16px 20px", cursor:"pointer" }} onClick={()=>!editandoMeta&&setEditandoMeta(true)}>
-          <p style={{ fontSize:"11px", color:"#606060", margin:"0 0 4px" }}>Meta de Churn Mensal</p>
+          <p style={{ fontSize:"11px", color:"#4A5B6C", margin:"0 0 4px" }}>Meta de Churn Mensal</p>
           {editandoMeta ? (
             <div style={{ display:"flex", gap:"8px", alignItems:"center" }}>
               <input autoFocus type="number" defaultValue={metaChurn}
                 onBlur={e=>salvarMeta(e.target.value)}
                 onKeyDown={e=>{if(e.key==="Enter")salvarMeta((e.target as HTMLInputElement).value);}}
-                style={{ background:"#1a1a1a", border:"1px solid #29ABE2", borderRadius:"6px", padding:"4px 10px", color:"#f0f0f0", fontSize:"22px", fontWeight:"700", width:"80px" }}/>
-              <span style={{ fontSize:"12px", color:"#606060" }}>clientes</span>
+                style={{ background:"#FFFFFF", border:"1px solid #1C6CA6", borderRadius:"6px", padding:"4px 10px", color:"#0A1826", fontSize:"22px", fontWeight:"700", width:"80px" }}/>
+              <span style={{ fontSize:"12px", color:"#4A5B6C" }}>clientes</span>
             </div>
           ) : (
             <>
               <p style={{ fontSize:"28px", fontWeight:"700", color:metaChurn&&churnTotal<=Number(metaChurn)?"#22c55e":"#f59e0b", margin:0 }}>
                 {metaChurn||"—"}
               </p>
-              <p style={{ fontSize:"11px", color:"#606060", margin:"4px 0 0" }}>
+              <p style={{ fontSize:"11px", color:"#4A5B6C", margin:"4px 0 0" }}>
                 {metaChurn?(churnTotal<=Number(metaChurn)?"✅ Dentro da meta":`⚠️ ${churnTotal-Number(metaChurn)} acima da meta`):"Clique para definir a meta"}
               </p>
             </>
@@ -186,7 +186,7 @@ export default function ChurnPage() {
       {historico.length > 0 && (
         <div className="card" style={{ marginBottom:"20px", padding:"16px 20px" }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"14px" }}>
-            <h3 style={{ fontSize:"13px", fontWeight:"600", color:"#f0f0f0", margin:0 }}>
+            <h3 style={{ fontSize:"13px", fontWeight:"600", color:"#0A1826", margin:0 }}>
               📊 Histórico de Cálculos (a cada 4 meses)
             </h3>
             <button onClick={async () => {
@@ -205,23 +205,23 @@ export default function ChurnPage() {
               <thead>
                 <tr style={{ borderBottom:"1px solid #29ABE230" }}>
                   {["Período","Data Cálculo","Base","Total Churn","Churn Rate","Tempo Médio"].map(h=>(
-                    <th key={h} style={{ padding:"8px 12px", textAlign:"left", fontSize:"11px", color:"#606060", fontWeight:"600", borderRight:"1px solid #29ABE215" }}>{h}</th>
+                    <th key={h} style={{ padding:"8px 12px", textAlign:"left", fontSize:"11px", color:"#4A5B6C", fontWeight:"600", borderRight:"1px solid #29ABE215" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {historico.map((h:any, idx:number) => (
-                  <tr key={h.id} style={{ borderBottom:"1px solid #1e1e1e", background:idx%2===0?"transparent":"#0a0a0a" }}>
-                    <td style={{ padding:"8px 12px", fontWeight:"600", color:"#29ABE2", borderRight:"1px solid #29ABE215" }}>{h.periodo}</td>
-                    <td style={{ padding:"8px 12px", color:"#a0a0a0", borderRight:"1px solid #29ABE215" }}>
+                  <tr key={h.id} style={{ borderBottom:"1px solid #FFFFFF", background:idx%2===0?"transparent":"#0a0a0a" }}>
+                    <td style={{ padding:"8px 12px", fontWeight:"600", color:"#1C6CA6", borderRight:"1px solid #29ABE215" }}>{h.periodo}</td>
+                    <td style={{ padding:"8px 12px", color:"#4A5B6C", borderRight:"1px solid #29ABE215" }}>
                       {h.data_calculo ? new Date(h.data_calculo).toLocaleDateString("pt-BR") : "—"}
                     </td>
-                    <td style={{ padding:"8px 12px", color:"#f0f0f0", borderRight:"1px solid #29ABE215" }}>{h.base_clientes||"—"}</td>
+                    <td style={{ padding:"8px 12px", color:"#0A1826", borderRight:"1px solid #29ABE215" }}>{h.base_clientes||"—"}</td>
                     <td style={{ padding:"8px 12px", color:"#ef4444", borderRight:"1px solid #29ABE215" }}>{h.total_churn||"—"}</td>
                     <td style={{ padding:"8px 12px", borderRight:"1px solid #29ABE215" }}>
                       {h.churn_rate ? <span style={{ color:"#ef4444", fontWeight:"600" }}>{h.churn_rate}%</span> : "—"}
                     </td>
-                    <td style={{ padding:"8px 12px", color:"#29ABE2" }}>
+                    <td style={{ padding:"8px 12px", color:"#1C6CA6" }}>
                       {h.tempo_medio_meses ? `${h.tempo_medio_meses} meses` : "—"}
                     </td>
                   </tr>
@@ -237,9 +237,9 @@ export default function ChurnPage() {
         <div style={{ display:"flex", gap:"6px", minWidth:"max-content" }}>
           <button onClick={()=>setFiltroMes("Todos")} style={{
             padding:"4px 12px", borderRadius:"20px", border:"1px solid", cursor:"pointer", fontSize:"12px",
-            borderColor:filtroMes==="Todos"?"#ef4444":"#2e2e2e",
+            borderColor:filtroMes==="Todos"?"#ef4444":"#E6EBF0",
             background:filtroMes==="Todos"?"rgba(239,68,68,0.1)":"transparent",
-            color:filtroMes==="Todos"?"#ef4444":"#606060",
+            color:filtroMes==="Todos"?"#ef4444":"#4A5B6C",
           }}>Todos ({clientes.length})</button>
           {MESES_FIXOS.map(m => {
             const count = clientes.filter(c=>c.data_churn===m).length;
@@ -253,13 +253,13 @@ export default function ChurnPage() {
             return (
               <button key={m} onClick={()=>setFiltroMes(m)} style={{
                 padding:"4px 12px", borderRadius:"20px", border:"1px solid", cursor:"pointer", fontSize:"12px", whiteSpace:"nowrap",
-                borderColor:filtroMes===m?"#ef4444":temDados?"#2e2e2e":"#1a1a1a",
+                borderColor:filtroMes===m?"#ef4444":temDados?"#E6EBF0":"#FFFFFF",
                 background:filtroMes===m?"rgba(239,68,68,0.1)":"transparent",
-                color:filtroMes===m?"#ef4444":temDados?"#a0a0a0":"#333",
+                color:filtroMes===m?"#ef4444":temDados?"#4A5B6C":"#E6EBF0",
                 opacity:temDados?1:0.4,
               }}>
                 {m}{temDados?` (${count})`:""}
-                {snap&&temDados?<span style={{ fontSize:"10px", color:"#606060", marginLeft:"4px" }}>/{snap.clientes_ativos}</span>:null}
+                {snap&&temDados?<span style={{ fontSize:"10px", color:"#4A5B6C", marginLeft:"4px" }}>/{snap.clientes_ativos}</span>:null}
               </button>
             );
           })}
@@ -278,28 +278,28 @@ export default function ChurnPage() {
           </thead>
           <tbody>
             {loading?(
-              <tr><td colSpan={9} style={{ textAlign:"center", color:"#606060", padding:"48px" }}>Carregando...</td></tr>
+              <tr><td colSpan={9} style={{ textAlign:"center", color:"#4A5B6C", padding:"48px" }}>Carregando...</td></tr>
             ):!filtrados.length?(
-              <tr><td colSpan={9} style={{ textAlign:"center", color:"#606060", padding:"48px" }}>Nenhum registro encontrado.</td></tr>
+              <tr><td colSpan={9} style={{ textAlign:"center", color:"#4A5B6C", padding:"48px" }}>Nenhum registro encontrado.</td></tr>
             ):filtrados.map((c,idx)=>(
               <tr key={c.id} style={{ borderBottom:"1px solid #29ABE215", background:idx%2===0?"transparent":"#0a0a0a" }}>
-                <td style={{ fontWeight:"600", color:"#f0f0f0", borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>{c.nome}</td>
-                <td style={{ color:"#a0a0a0", fontSize:"12px", borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>{formatarData(c.data_entrada)}</td>
+                <td style={{ fontWeight:"600", color:"#0A1826", borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>{c.nome}</td>
+                <td style={{ color:"#4A5B6C", fontSize:"12px", borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>{formatarData(c.data_entrada)}</td>
                 <td style={{ borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>
                   <span style={{ fontSize:"12px", padding:"2px 8px", borderRadius:"10px", background:"rgba(239,68,68,0.1)", color:"#ef4444" }}>{c.data_churn||"—"}</span>
                 </td>
-                <td style={{ color:"#a0a0a0", fontSize:"12px", borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>{c.consultor||"—"}</td>
-                <td style={{ color:"#a0a0a0", fontSize:"12px", borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>{c.gestor||"—"}</td>
-                <td style={{ color:"#a0a0a0", fontSize:"12px", borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>{c.squad||"—"}</td>
-                <td style={{ color:"#f0f0f0", fontSize:"12px", borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>{c.investimento_mensal?`R$ ${Number(c.investimento_mensal).toLocaleString("pt-BR")}`:"—"}</td>
-                <td style={{ color:"#a0a0a0", fontSize:"12px", maxWidth:"180px", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", borderRight:"1px solid #29ABE215" }}>{c.motivo_churn||"—"}</td>
-                <td style={{ color:"#a0a0a0", fontSize:"12px", maxWidth:"180px", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.feedback||"—"}</td>
+                <td style={{ color:"#4A5B6C", fontSize:"12px", borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>{c.consultor||"—"}</td>
+                <td style={{ color:"#4A5B6C", fontSize:"12px", borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>{c.gestor||"—"}</td>
+                <td style={{ color:"#4A5B6C", fontSize:"12px", borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>{c.squad||"—"}</td>
+                <td style={{ color:"#0A1826", fontSize:"12px", borderRight:"1px solid #29ABE215", whiteSpace:"nowrap" }}>{c.investimento_mensal?`R$ ${Number(c.investimento_mensal).toLocaleString("pt-BR")}`:"—"}</td>
+                <td style={{ color:"#4A5B6C", fontSize:"12px", maxWidth:"180px", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", borderRight:"1px solid #29ABE215" }}>{c.motivo_churn||"—"}</td>
+                <td style={{ color:"#4A5B6C", fontSize:"12px", maxWidth:"180px", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.feedback||"—"}</td>
               </tr>
             ))}
           </tbody>
         </table>
         {filtrados.length>0&&(
-          <div style={{ padding:"10px 16px", borderTop:"1px solid #2e2e2e", fontSize:"12px", color:"#606060" }}>
+          <div style={{ padding:"10px 16px", borderTop:"1px solid #E6EBF0", fontSize:"12px", color:"#4A5B6C" }}>
             {filtrados.length} registro{filtrados.length!==1?"s":""}
           </div>
         )}

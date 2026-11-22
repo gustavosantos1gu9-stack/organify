@@ -77,15 +77,15 @@ export default function Filtros({ grupos, valores, onChange, onLimpar }: Filtros
         right: aberto ? 0 : "-420px",
         width: "380px",
         height: "100vh",
-        background: "#111",
-        borderLeft: "1px solid #2e2e2e",
+        background: "#FFFFFF",
+        borderLeft: "1px solid #E6EBF0",
         zIndex: 200,
         display: "flex",
         flexDirection: "column",
         transition: "right 0.25s ease",
       }}>
         {/* Header */}
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"20px 24px", borderBottom:"1px solid #2e2e2e" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"20px 24px", borderBottom:"1px solid #E6EBF0" }}>
           <h3 style={{ fontSize:"16px", fontWeight:"600" }}>Filtros</h3>
           <button onClick={() => setAberto(false)} className="btn-ghost" style={{ padding:"6px", cursor:"pointer" }}>
             <X size={16}/>
@@ -96,20 +96,20 @@ export default function Filtros({ grupos, valores, onChange, onLimpar }: Filtros
         <div style={{ flex:1, padding:"24px", display:"flex", flexDirection:"column", gap:"20px", overflowY:"auto" }}>
           {grupos.map((grupo) => (
             <div key={grupo.key}>
-              <label style={{ fontSize:"11px", fontWeight:"600", color:"#606060", textTransform:"uppercase", letterSpacing:"0.05em", display:"block", marginBottom:"8px" }}>
+              <label style={{ fontSize:"11px", fontWeight:"600", color:"#4A5B6C", textTransform:"uppercase", letterSpacing:"0.05em", display:"block", marginBottom:"8px" }}>
                 {grupo.label}
               </label>
 
               {grupo.tipo === "date-range" ? (
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"8px" }}>
                   <div>
-                    <label style={{ fontSize:"11px", color:"#606060", display:"block", marginBottom:"4px" }}>De</label>
+                    <label style={{ fontSize:"11px", color:"#4A5B6C", display:"block", marginBottom:"4px" }}>De</label>
                     <input type="date" className="form-input"
                       value={local[`${grupo.key}_de`] || ""}
                       onChange={e => setLocal_(`${grupo.key}_de`, e.target.value)}/>
                   </div>
                   <div>
-                    <label style={{ fontSize:"11px", color:"#606060", display:"block", marginBottom:"4px" }}>Até</label>
+                    <label style={{ fontSize:"11px", color:"#4A5B6C", display:"block", marginBottom:"4px" }}>Até</label>
                     <input type="date" className="form-input"
                       value={local[`${grupo.key}_ate`] || ""}
                       onChange={e => setLocal_(`${grupo.key}_ate`, e.target.value)}/>
@@ -132,7 +132,7 @@ export default function Filtros({ grupos, valores, onChange, onLimpar }: Filtros
         </div>
 
         {/* Footer */}
-        <div style={{ padding:"20px 24px", borderTop:"1px solid #2e2e2e", display:"flex", gap:"8px" }}>
+        <div style={{ padding:"20px 24px", borderTop:"1px solid #E6EBF0", display:"flex", gap:"8px" }}>
           <button className="btn-secondary" style={{ flex:1, justifyContent:"center", cursor:"pointer" }} onClick={handleLimpar}>
             Limpar
           </button>

@@ -73,7 +73,7 @@ export default function PerfilPage() {
       />
       <button onClick={() => setShow(s => ({ ...s, [showKey]: !s[showKey] }))} style={{
         position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)",
-        background: "none", border: "none", cursor: "pointer", color: "#606060",
+        background: "none", border: "none", cursor: "pointer", color: "#4A5B6C",
       }}>
         {show[showKey] ? <EyeOff size={14}/> : <Eye size={14}/>}
       </button>
@@ -90,7 +90,7 @@ export default function PerfilPage() {
       {/* Informações do Perfil */}
       <div className="card" style={{ marginBottom: "20px" }}>
         <h2 style={{ fontSize: "15px", fontWeight: "600", marginBottom: "4px" }}>Informação do Perfil</h2>
-        <p style={{ fontSize: "13px", color: "#606060", marginBottom: "24px" }}>
+        <p style={{ fontSize: "13px", color: "#4A5B6C", marginBottom: "24px" }}>
           Atualize as informações do perfil da sua conta e o endereço de e-mail.
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
@@ -120,7 +120,7 @@ export default function PerfilPage() {
       {/* Atualizar Senha */}
       <div className="card" style={{ marginBottom: "20px" }}>
         <h2 style={{ fontSize: "15px", fontWeight: "600", marginBottom: "4px" }}>Atualizar a senha</h2>
-        <p style={{ fontSize: "13px", color: "#606060", marginBottom: "24px" }}>
+        <p style={{ fontSize: "13px", color: "#4A5B6C", marginBottom: "24px" }}>
           Certifique-se de que sua conta esteja usando uma senha longa e aleatória para permanecer segura.
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
@@ -147,7 +147,7 @@ export default function PerfilPage() {
       {/* 2FA */}
       <div className="card">
         <h2 style={{ fontSize: "15px", fontWeight: "600", marginBottom: "4px" }}>Autenticação de dois fatores</h2>
-        <p style={{ fontSize: "13px", color: "#606060", marginBottom: "24px" }}>
+        <p style={{ fontSize: "13px", color: "#4A5B6C", marginBottom: "24px" }}>
           Adicione segurança extra à sua conta habilitando a autenticação de dois fatores.
         </p>
         <div style={{ display: "flex", justifyContent: "flex-end" }}>

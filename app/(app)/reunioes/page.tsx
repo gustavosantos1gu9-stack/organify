@@ -187,7 +187,7 @@ export default function ReunioesPage() {
   function ProgressBar({ value, max, color }: { value: number; max: number; color: string }) {
     const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
     return (
-      <div style={{ width: "100%", height: "6px", background: "#2e2e2e", borderRadius: "3px", overflow: "hidden" }}>
+      <div style={{ width: "100%", height: "6px", background: "#E6EBF0", borderRadius: "3px", overflow: "hidden" }}>
         <div style={{ width: `${pct}%`, height: "100%", background: color, borderRadius: "3px", transition: "width 0.3s" }} />
       </div>
     );
@@ -198,10 +198,10 @@ export default function ReunioesPage() {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
         <div>
-          <h1 style={{ fontSize: "22px", fontWeight: "700", color: "#f0f0f0", margin: 0 }}>
+          <h1 style={{ fontSize: "22px", fontWeight: "700", color: "#0A1826", margin: 0 }}>
             Reuniões Lavínia
           </h1>
-          <p style={{ fontSize: "13px", color: "#606060", marginTop: "4px" }}>
+          <p style={{ fontSize: "13px", color: "#4A5B6C", marginTop: "4px" }}>
             Controle de reuniões mensais
           </p>
         </div>
@@ -218,17 +218,17 @@ export default function ReunioesPage() {
       {/* Month Selector */}
       <div style={{
         display: "flex", alignItems: "center", gap: "16px", marginBottom: "24px",
-        background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "10px", padding: "12px 20px",
+        background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: "10px", padding: "12px 20px",
       }}>
-        <button onClick={prevMonth} style={{ background: "#2a2a2a", border: "1px solid #3a3a3a", borderRadius: "6px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#a0a0a0" }}>
+        <button onClick={prevMonth} style={{ background: "#E6EBF0", border: "1px solid #E6EBF0", borderRadius: "6px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#4A5B6C" }}>
           <ChevronLeft size={16} />
         </button>
         <div style={{ flex: 1, textAlign: "center" }}>
-          <span style={{ fontSize: "18px", fontWeight: "600", color: "#f0f0f0" }}>
+          <span style={{ fontSize: "18px", fontWeight: "600", color: "#0A1826" }}>
             {MESES[mes - 1]} {ano}
           </span>
         </div>
-        <button onClick={nextMonth} style={{ background: "#2a2a2a", border: "1px solid #3a3a3a", borderRadius: "6px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#a0a0a0" }}>
+        <button onClick={nextMonth} style={{ background: "#E6EBF0", border: "1px solid #E6EBF0", borderRadius: "6px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#4A5B6C" }}>
           <ChevronRight size={16} />
         </button>
       </div>
@@ -238,12 +238,12 @@ export default function ReunioesPage() {
         {/* Total */}
         <div className="kpi-card">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
-            <span style={{ fontSize: "13px", color: "#a0a0a0" }}>Total de Reuniões</span>
+            <span style={{ fontSize: "13px", color: "#4A5B6C" }}>Total de Reuniões</span>
             <div style={{ width: "34px", height: "34px", borderRadius: "8px", background: "rgba(59,130,246,0.12)", display: "flex", alignItems: "center", justifyContent: "center", color: "#3b82f6" }}>
               <CalendarCheck size={18} />
             </div>
           </div>
-          <div style={{ fontSize: "28px", fontWeight: "700", color: "#f0f0f0" }}>{kpis.total}</div>
+          <div style={{ fontSize: "28px", fontWeight: "700", color: "#0A1826" }}>{kpis.total}</div>
           {metaData && metaData.meta_total > 0 && (
             <div style={{ marginTop: "8px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#707070", marginBottom: "4px" }}>
@@ -258,12 +258,12 @@ export default function ReunioesPage() {
         {/* Realizadas */}
         <div className="kpi-card">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
-            <span style={{ fontSize: "13px", color: "#a0a0a0" }}>Realizadas</span>
+            <span style={{ fontSize: "13px", color: "#4A5B6C" }}>Realizadas</span>
             <div style={{ width: "34px", height: "34px", borderRadius: "8px", background: "rgba(34,197,94,0.12)", display: "flex", alignItems: "center", justifyContent: "center", color: "#22c55e" }}>
               <CheckCircle2 size={18} />
             </div>
           </div>
-          <div style={{ fontSize: "28px", fontWeight: "700", color: "#f0f0f0" }}>{kpis.realizadas}</div>
+          <div style={{ fontSize: "28px", fontWeight: "700", color: "#0A1826" }}>{kpis.realizadas}</div>
           {metaData && metaData.meta_realizadas > 0 && (
             <div style={{ marginTop: "8px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#707070", marginBottom: "4px" }}>
@@ -278,12 +278,12 @@ export default function ReunioesPage() {
         {/* Apresentação */}
         <div className="kpi-card">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
-            <span style={{ fontSize: "13px", color: "#a0a0a0" }}>Apresentação</span>
+            <span style={{ fontSize: "13px", color: "#4A5B6C" }}>Apresentação</span>
             <div style={{ width: "34px", height: "34px", borderRadius: "8px", background: "rgba(168,85,247,0.12)", display: "flex", alignItems: "center", justifyContent: "center", color: "#a855f7" }}>
               <Users size={18} />
             </div>
           </div>
-          <div style={{ fontSize: "28px", fontWeight: "700", color: "#f0f0f0" }}>{kpis.apresentacao}</div>
+          <div style={{ fontSize: "28px", fontWeight: "700", color: "#0A1826" }}>{kpis.apresentacao}</div>
           {metaData && metaData.meta_apresentacao > 0 && (
             <div style={{ marginTop: "8px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#707070", marginBottom: "4px" }}>
@@ -298,12 +298,12 @@ export default function ReunioesPage() {
         {/* Alinhamento */}
         <div className="kpi-card">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
-            <span style={{ fontSize: "13px", color: "#a0a0a0" }}>Alinhamento</span>
+            <span style={{ fontSize: "13px", color: "#4A5B6C" }}>Alinhamento</span>
             <div style={{ width: "34px", height: "34px", borderRadius: "8px", background: "rgba(245,158,11,0.12)", display: "flex", alignItems: "center", justifyContent: "center", color: "#f59e0b" }}>
               <MessageSquare size={18} />
             </div>
           </div>
-          <div style={{ fontSize: "28px", fontWeight: "700", color: "#f0f0f0" }}>{kpis.alinhamento}</div>
+          <div style={{ fontSize: "28px", fontWeight: "700", color: "#0A1826" }}>{kpis.alinhamento}</div>
           {metaData && metaData.meta_alinhamento > 0 && (
             <div style={{ marginTop: "8px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#707070", marginBottom: "4px" }}>
@@ -319,11 +319,11 @@ export default function ReunioesPage() {
       {/* Barra de taxa de realização */}
       {kpis.total > 0 && (
         <div style={{
-          background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "10px",
+          background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: "10px",
           padding: "16px 20px", marginBottom: "24px",
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-            <span style={{ fontSize: "13px", color: "#a0a0a0", display: "flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ fontSize: "13px", color: "#4A5B6C", display: "flex", alignItems: "center", gap: "6px" }}>
               <TrendingUp size={14} /> Taxa de Realização
             </span>
             <span style={{
@@ -333,8 +333,8 @@ export default function ReunioesPage() {
               {Math.round((kpis.realizadas / kpis.total) * 100)}%
             </span>
           </div>
-          <ProgressBar value={kpis.realizadas} max={kpis.total} color="#29ABE2" />
-          <div style={{ display: "flex", gap: "16px", marginTop: "8px", fontSize: "11px", color: "#606060" }}>
+          <ProgressBar value={kpis.realizadas} max={kpis.total} color="#1C6CA6" />
+          <div style={{ display: "flex", gap: "16px", marginTop: "8px", fontSize: "11px", color: "#4A5B6C" }}>
             <span>{kpis.realizadas} realizadas</span>
             <span>{kpis.agendadas} agendadas</span>
             <span>{kpis.canceladas} canceladas/não compareceu</span>
@@ -356,11 +356,11 @@ export default function ReunioesPage() {
 
       {/* Tabela */}
       {loading ? (
-        <div style={{ textAlign: "center", padding: "60px", color: "#606060" }}>Carregando...</div>
+        <div style={{ textAlign: "center", padding: "60px", color: "#4A5B6C" }}>Carregando...</div>
       ) : filtradas.length === 0 ? (
         <div style={{
-          textAlign: "center", padding: "60px", color: "#606060",
-          background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "10px",
+          textAlign: "center", padding: "60px", color: "#4A5B6C",
+          background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: "10px",
         }}>
           <CalendarCheck size={40} style={{ marginBottom: "12px", opacity: 0.3 }} />
           <p>Nenhuma reunião em {MESES[mes - 1]} {ano}</p>
@@ -370,11 +370,11 @@ export default function ReunioesPage() {
         </div>
       ) : (
         <div style={{
-          background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "10px", overflow: "hidden",
+          background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: "10px", overflow: "hidden",
         }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ borderBottom: "1px solid #2e2e2e" }}>
+              <tr style={{ borderBottom: "1px solid #E6EBF0" }}>
                 {["Nome", "Participantes", "Status", "Data", "Motivo", "Feedback", ""].map((h) => (
                   <th key={h} style={{
                     padding: "12px 16px", textAlign: "left", fontSize: "12px",
@@ -389,17 +389,17 @@ export default function ReunioesPage() {
               {filtradas.map((r) => {
                 const st = getStatusStyle(r.status);
                 return (
-                  <tr key={r.id} style={{ borderBottom: "1px solid #1e1e1e" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "#222")}
+                  <tr key={r.id} style={{ borderBottom: "1px solid #FFFFFF" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "#E6EBF0")}
                     onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
-                    <td style={{ padding: "12px 16px", fontSize: "14px", color: "#f0f0f0", fontWeight: "500" }}>
+                    <td style={{ padding: "12px 16px", fontSize: "14px", color: "#0A1826", fontWeight: "500" }}>
                       {r.nome}
                     </td>
-                    <td style={{ padding: "12px 16px", fontSize: "13px", color: "#a0a0a0" }}>
+                    <td style={{ padding: "12px 16px", fontSize: "13px", color: "#4A5B6C" }}>
                       <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
                         {r.clientes?.nome && (
-                          <span style={{ color: "#29ABE2", fontSize: "12px", fontWeight: "500" }}>{r.clientes.nome}</span>
+                          <span style={{ color: "#1C6CA6", fontSize: "12px", fontWeight: "500" }}>{r.clientes.nome}</span>
                         )}
                         {r.participantes && <span>{r.participantes}</span>}
                         {!r.clientes?.nome && !r.participantes && "—"}
@@ -420,13 +420,13 @@ export default function ReunioesPage() {
                         ))}
                       </select>
                     </td>
-                    <td style={{ padding: "12px 16px", fontSize: "13px", color: "#a0a0a0" }}>
+                    <td style={{ padding: "12px 16px", fontSize: "13px", color: "#4A5B6C" }}>
                       {r.data ? new Date(r.data).toLocaleDateString("pt-BR") : "—"}
                     </td>
-                    <td style={{ padding: "12px 16px", fontSize: "13px", color: "#a0a0a0" }}>
+                    <td style={{ padding: "12px 16px", fontSize: "13px", color: "#4A5B6C" }}>
                       {r.motivo ?? "—"}
                     </td>
-                    <td style={{ padding: "12px 16px", fontSize: "13px", color: "#a0a0a0", maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <td style={{ padding: "12px 16px", fontSize: "13px", color: "#4A5B6C", maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {r.feedback || "—"}
                     </td>
                     <td style={{ padding: "12px 16px", textAlign: "right" }}>
@@ -452,7 +452,7 @@ export default function ReunioesPage() {
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal animate-in" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "520px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-              <h2 style={{ fontSize: "18px", fontWeight: "600", color: "#f0f0f0" }}>
+              <h2 style={{ fontSize: "18px", fontWeight: "600", color: "#0A1826" }}>
                 {editando ? "Editar Reunião" : "Nova Reunião"}
               </h2>
               <button onClick={() => setShowModal(false)} className="btn-ghost" style={{ padding: "4px" }}>
@@ -532,7 +532,7 @@ export default function ReunioesPage() {
         <div className="modal-overlay" onClick={() => setShowMetaModal(false)}>
           <div className="modal animate-in" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "480px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-              <h2 style={{ fontSize: "18px", fontWeight: "600", color: "#f0f0f0" }}>
+              <h2 style={{ fontSize: "18px", fontWeight: "600", color: "#0A1826" }}>
                 Metas - {MESES[mes - 1]} {ano}
               </h2>
               <button onClick={() => setShowMetaModal(false)} className="btn-ghost" style={{ padding: "4px" }}>
@@ -548,25 +548,25 @@ export default function ReunioesPage() {
               <div className="form-group">
                 <label className="form-label">Meta de Reuniões Totais</label>
                 <input className="form-input" type="number" min={0} value={metaForm.meta_total} onChange={(e) => setMetaForm({ ...metaForm, meta_total: Number(e.target.value) })} />
-                <span style={{ fontSize: "11px", color: "#606060" }}>Atual: {kpis.total} ({metaForm.meta_total > 0 ? Math.round((kpis.total / metaForm.meta_total) * 100) : 0}%)</span>
+                <span style={{ fontSize: "11px", color: "#4A5B6C" }}>Atual: {kpis.total} ({metaForm.meta_total > 0 ? Math.round((kpis.total / metaForm.meta_total) * 100) : 0}%)</span>
               </div>
 
               <div className="form-group">
                 <label className="form-label">Meta de Reuniões Realizadas</label>
                 <input className="form-input" type="number" min={0} value={metaForm.meta_realizadas} onChange={(e) => setMetaForm({ ...metaForm, meta_realizadas: Number(e.target.value) })} />
-                <span style={{ fontSize: "11px", color: "#606060" }}>Atual: {kpis.realizadas} ({metaForm.meta_realizadas > 0 ? Math.round((kpis.realizadas / metaForm.meta_realizadas) * 100) : 0}%)</span>
+                <span style={{ fontSize: "11px", color: "#4A5B6C" }}>Atual: {kpis.realizadas} ({metaForm.meta_realizadas > 0 ? Math.round((kpis.realizadas / metaForm.meta_realizadas) * 100) : 0}%)</span>
               </div>
 
               <div className="form-group">
                 <label className="form-label">Meta de Apresentações</label>
                 <input className="form-input" type="number" min={0} value={metaForm.meta_apresentacao} onChange={(e) => setMetaForm({ ...metaForm, meta_apresentacao: Number(e.target.value) })} />
-                <span style={{ fontSize: "11px", color: "#606060" }}>Atual: {kpis.apresentacao} ({metaForm.meta_apresentacao > 0 ? Math.round((kpis.apresentacao / metaForm.meta_apresentacao) * 100) : 0}%)</span>
+                <span style={{ fontSize: "11px", color: "#4A5B6C" }}>Atual: {kpis.apresentacao} ({metaForm.meta_apresentacao > 0 ? Math.round((kpis.apresentacao / metaForm.meta_apresentacao) * 100) : 0}%)</span>
               </div>
 
               <div className="form-group">
                 <label className="form-label">Meta de Alinhamentos</label>
                 <input className="form-input" type="number" min={0} value={metaForm.meta_alinhamento} onChange={(e) => setMetaForm({ ...metaForm, meta_alinhamento: Number(e.target.value) })} />
-                <span style={{ fontSize: "11px", color: "#606060" }}>Atual: {kpis.alinhamento} ({metaForm.meta_alinhamento > 0 ? Math.round((kpis.alinhamento / metaForm.meta_alinhamento) * 100) : 0}%)</span>
+                <span style={{ fontSize: "11px", color: "#4A5B6C" }}>Atual: {kpis.alinhamento} ({metaForm.meta_alinhamento > 0 ? Math.round((kpis.alinhamento / metaForm.meta_alinhamento) * 100) : 0}%)</span>
               </div>
             </div>
 

@@ -148,7 +148,7 @@ export default function EditarLeadModal({ lead, onClose, onSave }: EditarLeadMod
                     onClick={() => isDone && setStep(n)}>
                     {isDone ? <Check size={14} /> : n}
                   </div>
-                  <span style={{ fontSize: "11px", color: isActive ? "#22c55e" : isDone ? "#22c55e" : "#606060", whiteSpace: "nowrap" }}>
+                  <span style={{ fontSize: "11px", color: isActive ? "#22c55e" : isDone ? "#22c55e" : "#4A5B6C", whiteSpace: "nowrap" }}>
                     {label}
                   </span>
                 </div>
@@ -216,8 +216,8 @@ export default function EditarLeadModal({ lead, onClose, onSave }: EditarLeadMod
                 </select>
               </div>
             </div>
-            <div style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "8px", padding: "14px", marginTop: "4px" }}>
-              <p style={{ fontSize: "11px", fontWeight: "600", color: "#606060", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px" }}>Rastreamento UTM</p>
+            <div style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: "8px", padding: "14px", marginTop: "4px" }}>
+              <p style={{ fontSize: "11px", fontWeight: "600", color: "#4A5B6C", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px" }}>Rastreamento UTM</p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
                 <div className="form-group">
                   <label className="form-label">Campanha</label>
@@ -248,10 +248,10 @@ export default function EditarLeadModal({ lead, onClose, onSave }: EditarLeadMod
             </div>
 
             {/* Atividades */}
-            <div style={{ border: "1px solid #2e2e2e", borderRadius: "10px", overflow: "hidden", marginTop: "8px" }}>
-              <div style={{ padding: "14px 16px", borderBottom: "1px solid #2e2e2e" }}>
+            <div style={{ border: "1px solid #E6EBF0", borderRadius: "10px", overflow: "hidden", marginTop: "8px" }}>
+              <div style={{ padding: "14px 16px", borderBottom: "1px solid #E6EBF0" }}>
                 <h3 style={{ fontSize: "14px", fontWeight: "600", marginBottom: "12px" }}>Atividades</h3>
-                <div style={{ display: "flex", borderBottom: "1px solid #2e2e2e" }}>
+                <div style={{ display: "flex", borderBottom: "1px solid #E6EBF0" }}>
                   {[
                     { key: "comentarios", label: "Comentários", count: comentarios.length },
                     { key: "timeline", label: "Timeline", count: historico.length + 1 },
@@ -261,12 +261,12 @@ export default function EditarLeadModal({ lead, onClose, onSave }: EditarLeadMod
                       style={{
                         padding: "8px 16px", background: "none", border: "none", cursor: "pointer",
                         fontSize: "13px", fontWeight: "500",
-                        color: abaAtividade === aba.key ? "#f0f0f0" : "#606060",
+                        color: abaAtividade === aba.key ? "#0A1826" : "#4A5B6C",
                         borderBottom: abaAtividade === aba.key ? "2px solid #22c55e" : "2px solid transparent",
                         marginBottom: "-1px", display: "flex", alignItems: "center", gap: "6px",
                       }}>
                       {aba.label}
-                      <span style={{ background: "#2a2a2a", padding: "1px 6px", borderRadius: "10px", fontSize: "11px", color: "#a0a0a0" }}>{aba.count}</span>
+                      <span style={{ background: "#E6EBF0", padding: "1px 6px", borderRadius: "10px", fontSize: "11px", color: "#4A5B6C" }}>{aba.count}</span>
                     </button>
                   ))}
                 </div>
@@ -277,14 +277,14 @@ export default function EditarLeadModal({ lead, onClose, onSave }: EditarLeadMod
                 {abaAtividade === "comentarios" && (
                   <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                     {comentarios.length === 0 && (
-                      <p style={{ fontSize: "13px", color: "#606060", textAlign: "center", padding: "16px 0" }}>Nenhum comentário ainda</p>
+                      <p style={{ fontSize: "13px", color: "#4A5B6C", textAlign: "center", padding: "16px 0" }}>Nenhum comentário ainda</p>
                     )}
                     {comentarios.map((c, i) => (
                       <div key={i} style={{ display: "flex", gap: "10px" }}>
                         <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "#22c55e", color: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700", flexShrink: 0 }}>G</div>
-                        <div style={{ flex: 1, background: "#1a1a1a", borderRadius: "8px", padding: "10px 12px" }}>
-                          <p style={{ fontSize: "13px", color: "#f0f0f0", marginBottom: "4px" }}>{c.texto}</p>
-                          <p style={{ fontSize: "11px", color: "#606060" }}>{c.data}</p>
+                        <div style={{ flex: 1, background: "#FFFFFF", borderRadius: "8px", padding: "10px 12px" }}>
+                          <p style={{ fontSize: "13px", color: "#0A1826", marginBottom: "4px" }}>{c.texto}</p>
+                          <p style={{ fontSize: "11px", color: "#4A5B6C" }}>{c.data}</p>
                         </div>
                       </div>
                     ))}
@@ -315,41 +315,41 @@ export default function EditarLeadModal({ lead, onClose, onSave }: EditarLeadMod
                         Atualizar
                       </button>
                     </div>
-                    <p style={{ fontSize: "13px", fontWeight: "600", color: "#a0a0a0", marginBottom: "12px" }}>Histórico de Atividades</p>
+                    <p style={{ fontSize: "13px", fontWeight: "600", color: "#4A5B6C", marginBottom: "12px" }}>Histórico de Atividades</p>
 
                     {/* Lead criado */}
                     <div style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
                       <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "rgba(34,197,94,0.15)", color: "#22c55e", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700", flexShrink: 0 }}>G</div>
-                      <div style={{ flex: 1, background: "#1a1a1a", borderRadius: "8px", padding: "10px 14px" }}>
+                      <div style={{ flex: 1, background: "#FFFFFF", borderRadius: "8px", padding: "10px 14px" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
                           <span style={{ fontSize: "13px", fontWeight: "500" }}>Gustavo</span>
-                          <span style={{ fontSize: "11px", color: "#606060" }}>{formatDataHora(lead.created_at)}</span>
+                          <span style={{ fontSize: "11px", color: "#4A5B6C" }}>{formatDataHora(lead.created_at)}</span>
                         </div>
-                        <p style={{ fontSize: "13px", color: "#a0a0a0" }}>Lead criado</p>
+                        <p style={{ fontSize: "13px", color: "#4A5B6C" }}>Lead criado</p>
                       </div>
                     </div>
 
                     {/* Histórico de mudanças de etapa */}
                     {historico.length === 0 ? (
-                      <p style={{ fontSize: "13px", color: "#606060", textAlign: "center", padding: "12px 0" }}>Nenhuma mudança de etapa registrada.</p>
+                      <p style={{ fontSize: "13px", color: "#4A5B6C", textAlign: "center", padding: "12px 0" }}>Nenhuma mudança de etapa registrada.</p>
                     ) : historico.map((h) => (
                       <div key={h.id} style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
                         <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "rgba(59,130,246,0.15)", color: "#3b82f6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700", flexShrink: 0 }}>G</div>
-                        <div style={{ flex: 1, background: "#1a1a1a", borderRadius: "8px", padding: "10px 14px" }}>
+                        <div style={{ flex: 1, background: "#FFFFFF", borderRadius: "8px", padding: "10px 14px" }}>
                           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
                             <span style={{ fontSize: "13px", fontWeight: "500" }}>Gustavo</span>
-                            <span style={{ fontSize: "11px", color: "#606060" }}>{formatDataHora(h.created_at)}</span>
+                            <span style={{ fontSize: "11px", color: "#4A5B6C" }}>{formatDataHora(h.created_at)}</span>
                           </div>
-                          <p style={{ fontSize: "13px", color: "#a0a0a0", marginBottom: "8px" }}>
+                          <p style={{ fontSize: "13px", color: "#4A5B6C", marginBottom: "8px" }}>
                             Status alterado de '{getEtapaLabel(h.etapa_anterior)}' para '{getEtapaLabel(h.etapa_nova)}'
                           </p>
                           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                            <div style={{ background: "#222", borderRadius: "6px", padding: "8px 10px" }}>
-                              <p style={{ fontSize: "11px", color: "#606060", marginBottom: "4px" }}>Valor anterior:</p>
-                              <p style={{ fontSize: "12px", color: "#a0a0a0" }}>{getEtapaLabel(h.etapa_anterior)}</p>
+                            <div style={{ background: "#E6EBF0", borderRadius: "6px", padding: "8px 10px" }}>
+                              <p style={{ fontSize: "11px", color: "#4A5B6C", marginBottom: "4px" }}>Valor anterior:</p>
+                              <p style={{ fontSize: "12px", color: "#4A5B6C" }}>{getEtapaLabel(h.etapa_anterior)}</p>
                             </div>
-                            <div style={{ background: "#222", borderRadius: "6px", padding: "8px 10px" }}>
-                              <p style={{ fontSize: "11px", color: "#606060", marginBottom: "4px" }}>Novo valor:</p>
+                            <div style={{ background: "#E6EBF0", borderRadius: "6px", padding: "8px 10px" }}>
+                              <p style={{ fontSize: "11px", color: "#4A5B6C", marginBottom: "4px" }}>Novo valor:</p>
                               <p style={{ fontSize: "12px", color: "#22c55e" }}>{getEtapaLabel(h.etapa_nova)}</p>
                             </div>
                           </div>
@@ -368,13 +368,13 @@ export default function EditarLeadModal({ lead, onClose, onSave }: EditarLeadMod
                         <Plus size={12} /> Adicionar
                       </button>
                     </div>
-                    <div style={{ background: "#1a1a1a", borderRadius: "8px", padding: "10px 14px", fontSize: "12px", color: "#606060" }}>
+                    <div style={{ background: "#FFFFFF", borderRadius: "8px", padding: "10px 14px", fontSize: "12px", color: "#4A5B6C" }}>
                       Agende datas para receber notificações via WhatsApp lembrando de fazer um follow-up deste lead.
                     </div>
                     {followups.length === 0 ? (
-                      <p style={{ fontSize: "13px", color: "#606060", textAlign: "center", padding: "12px 0" }}>Nenhum follow-up adicionado.</p>
+                      <p style={{ fontSize: "13px", color: "#4A5B6C", textAlign: "center", padding: "12px 0" }}>Nenhum follow-up adicionado.</p>
                     ) : followups.map((f, i) => (
-                      <div key={i} style={{ display: "flex", alignItems: "center", gap: "8px", background: "#1a1a1a", borderRadius: "8px", padding: "8px 12px" }}>
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: "8px", background: "#FFFFFF", borderRadius: "8px", padding: "8px 12px" }}>
                         <input type="date" className="form-input" value={f} style={{ flex: 1, fontSize: "12px", padding: "4px 8px" }} readOnly />
                         <button onClick={() => setFollowups((prev) => prev.filter((_, idx) => idx !== i))}
                           style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: "4px" }}>

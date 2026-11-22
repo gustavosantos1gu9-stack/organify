@@ -267,7 +267,7 @@ export default function FinancasPage() {
                 padding: "9px 18px",
                 fontSize: "13px",
                 fontWeight: "600",
-                color: "#FFFFFF",
+                color: "#0A1826",
                 cursor: "pointer",
               }}
             >
@@ -328,7 +328,7 @@ export default function FinancasPage() {
                 padding: "7px 14px",
                 fontSize: "13px",
                 fontWeight: "600",
-                color: "#FFFFFF",
+                color: "#0A1826",
                 cursor: saving ? "not-allowed" : "pointer",
                 opacity: saving ? 0.7 : 1,
               }}

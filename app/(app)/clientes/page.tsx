@@ -45,8 +45,8 @@ type SortDir = "asc" | "desc";
 function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; sortDir: SortDir }) {
   if (sortKey !== col) return <ChevronsUpDown size={12} style={{ color:"#404040", marginLeft:"4px", verticalAlign:"middle" }}/>;
   return sortDir === "asc"
-    ? <ChevronUp size={12} style={{ color:"#29ABE2", marginLeft:"4px", verticalAlign:"middle" }}/>
-    : <ChevronDown size={12} style={{ color:"#29ABE2", marginLeft:"4px", verticalAlign:"middle" }}/>;
+    ? <ChevronUp size={12} style={{ color:"#1C6CA6", marginLeft:"4px", verticalAlign:"middle" }}/>
+    : <ChevronDown size={12} style={{ color:"#1C6CA6", marginLeft:"4px", verticalAlign:"middle" }}/>;
 }
 
 function StatusSelect({ cliente, onRefresh }: { cliente: Cliente; onRefresh: () => void }) {
@@ -57,7 +57,7 @@ function StatusSelect({ cliente, onRefresh }: { cliente: Cliente; onRefresh: () 
   );
 
   const opcoes = [
-    { value:"ativo", label:"Ativo", color:"#29ABE2" },
+    { value:"ativo", label:"Ativo", color:"#1C6CA6" },
     { value:"pendencia", label:"Pendência", color:"#f59e0b" },
     { value:"saiu", label:"Saiu", color:"#ef4444" },
   ];
@@ -91,12 +91,12 @@ function StatusSelect({ cliente, onRefresh }: { cliente: Cliente; onRefresh: () 
       }}>
         <div style={{ width:"10px", height:"10px", borderRadius:"50%", background:atual.color, flexShrink:0 }}/>
         <span style={{ fontSize:"12px", color:atual.color }}>{atual.label}</span>
-        <span style={{ fontSize:"10px", color:"#606060" }}>▾</span>
+        <span style={{ fontSize:"10px", color:"#4A5B6C" }}>▾</span>
       </button>
       {open && (
         <div style={{
           position:"absolute", top:"100%", left:0, zIndex:100,
-          background:"#1e1e1e", border:"1px solid #3a3a3a", borderRadius:"8px",
+          background:"#FFFFFF", border:"1px solid #E6EBF0", borderRadius:"8px",
           overflow:"hidden", minWidth:"130px", boxShadow:"0 4px 12px rgba(0,0,0,0.4)",
         }}>
           {opcoes.map(o => (
@@ -213,38 +213,38 @@ function ModalRecorrencia({ cliente, onClose, onSucesso }: { cliente: Cliente; o
 
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.7)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{ background:"#141414", border:"1px solid #2e2e2e", borderRadius:"12px", width:"440px", maxHeight:"80vh", overflow:"auto", boxShadow:"0 20px 60px rgba(0,0,0,0.5)" }}>
-        <div style={{ padding:"16px 20px", borderBottom:"1px solid #2e2e2e", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background:"#FFFFFF", border:"1px solid #E6EBF0", borderRadius:"12px", width:"440px", maxHeight:"80vh", overflow:"auto", boxShadow:"0 20px 60px rgba(0,0,0,0.5)" }}>
+        <div style={{ padding:"16px 20px", borderBottom:"1px solid #E6EBF0", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
           <div>
-            <h3 style={{ margin:0, fontSize:"15px", fontWeight:"600", color:"#f0f0f0" }}>Recorrência de Pagamento</h3>
-            <p style={{ margin:"2px 0 0", fontSize:"12px", color:"#606060" }}>{cliente.nome}</p>
+            <h3 style={{ margin:0, fontSize:"15px", fontWeight:"600", color:"#0A1826" }}>Recorrência de Pagamento</h3>
+            <p style={{ margin:"2px 0 0", fontSize:"12px", color:"#4A5B6C" }}>{cliente.nome}</p>
           </div>
-          <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", color:"#606060" }}><X size={16}/></button>
+          <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", color:"#4A5B6C" }}><X size={16}/></button>
         </div>
         <div style={{ padding:"20px", display:"flex", flexDirection:"column", gap:"10px" }}>
           <input placeholder="Descrição (ex: Assessoria)" value={desc} onChange={e => setDesc(e.target.value)}
-            style={{ background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", padding:"9px 12px", color:"#f0f0f0", fontSize:"13px" }}/>
+            style={{ background:"#FFFFFF", border:"1px solid #E6EBF0", borderRadius:"8px", padding:"9px 12px", color:"#0A1826", fontSize:"13px" }}/>
           <div style={{ display:"flex", gap:"10px" }}>
             <input placeholder="Valor (R$)" value={valor} onChange={e => setValor(e.target.value)} type="number" step="0.01"
-              style={{ flex:1, background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", padding:"9px 12px", color:"#f0f0f0", fontSize:"13px" }}/>
+              style={{ flex:1, background:"#FFFFFF", border:"1px solid #E6EBF0", borderRadius:"8px", padding:"9px 12px", color:"#0A1826", fontSize:"13px" }}/>
             <input placeholder={freq === "quinzenal" ? "1º Dia" : "Dia"} value={dia} onChange={e => setDia(e.target.value)} type="number" min="1" max="31"
-              style={{ width:"70px", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", padding:"9px 12px", color:"#f0f0f0", fontSize:"13px", textAlign:"center" }}/>
+              style={{ width:"70px", background:"#FFFFFF", border:"1px solid #E6EBF0", borderRadius:"8px", padding:"9px 12px", color:"#0A1826", fontSize:"13px", textAlign:"center" }}/>
             {freq === "quinzenal" && (
               <input placeholder="2º Dia" value={dia2} onChange={e => setDia2(e.target.value)} type="number" min="1" max="31"
-                style={{ width:"70px", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", padding:"9px 12px", color:"#f0f0f0", fontSize:"13px", textAlign:"center" }}/>
+                style={{ width:"70px", background:"#FFFFFF", border:"1px solid #E6EBF0", borderRadius:"8px", padding:"9px 12px", color:"#0A1826", fontSize:"13px", textAlign:"center" }}/>
             )}
           </div>
           <div style={{ display:"flex", gap:"10px" }}>
             <select value={freq} onChange={e => setFreq(e.target.value)}
-              style={{ flex:1, background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", padding:"9px 12px", color:"#f0f0f0", fontSize:"13px", cursor:"pointer" }}>
+              style={{ flex:1, background:"#FFFFFF", border:"1px solid #E6EBF0", borderRadius:"8px", padding:"9px 12px", color:"#0A1826", fontSize:"13px", cursor:"pointer" }}>
               <option value="quinzenal">Quinzenal</option>
               <option value="mensal">Mensal</option>
               <option value="trimestral">Trimestral</option>
             </select>
             <input type="month" value={mesInicio} onChange={e => setMesInicio(e.target.value)} title="Mês de início"
-              style={{ width:"140px", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", padding:"9px 12px", color:"#f0f0f0", fontSize:"13px" }}/>
+              style={{ width:"140px", background:"#FFFFFF", border:"1px solid #E6EBF0", borderRadius:"8px", padding:"9px 12px", color:"#0A1826", fontSize:"13px" }}/>
             <select value={meses} onChange={e => setMeses(Number(e.target.value))}
-              style={{ width:"100px", background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", padding:"9px 12px", color:"#f0f0f0", fontSize:"13px", cursor:"pointer" }}>
+              style={{ width:"100px", background:"#FFFFFF", border:"1px solid #E6EBF0", borderRadius:"8px", padding:"9px 12px", color:"#0A1826", fontSize:"13px", cursor:"pointer" }}>
               <option value={6}>6 meses</option>
               <option value={12}>12 meses</option>
               <option value={24}>24 meses</option>
@@ -252,20 +252,20 @@ function ModalRecorrencia({ cliente, onClose, onSucesso }: { cliente: Cliente; o
           </div>
           {recorrencias.length === 0 && (
             <button onClick={criar} disabled={salvando || !valor || !diasPreenchidos}
-              style={{ background:(!valor||!diasPreenchidos)?"#2e2e2e":"#29ABE2", border:"none", borderRadius:"8px", padding:"10px", cursor:(!valor||!diasPreenchidos)?"default":"pointer", color:(!valor||!diasPreenchidos)?"#606060":"#000", fontWeight:"600", fontSize:"13px", marginTop:"4px" }}>
+              style={{ background:(!valor||!diasPreenchidos)?"#E6EBF0":"#1C6CA6", border:"none", borderRadius:"8px", padding:"10px", cursor:(!valor||!diasPreenchidos)?"default":"pointer", color:(!valor||!diasPreenchidos)?"#4A5B6C":"#000", fontWeight:"600", fontSize:"13px", marginTop:"4px" }}>
               {salvando ? "Criando..." : "Criar Recorrência e Lançamentos"}
             </button>
           )}
           {sucesso && <p style={{ color:"#22c55e", fontSize:"12px", margin:0, textAlign:"center" }}>{sucesso}</p>}
 
           {recorrencias.length > 0 && (
-            <div style={{ marginTop:"8px", borderTop:"1px solid #2e2e2e", paddingTop:"12px" }}>
-              <p style={{ fontSize:"11px", color:"#606060", margin:"0 0 8px", textTransform:"uppercase", fontWeight:"600" }}>Recorrências ativas</p>
+            <div style={{ marginTop:"8px", borderTop:"1px solid #E6EBF0", paddingTop:"12px" }}>
+              <p style={{ fontSize:"11px", color:"#4A5B6C", margin:"0 0 8px", textTransform:"uppercase", fontWeight:"600" }}>Recorrências ativas</p>
               {recorrencias.map(r => (
-                <div key={r.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 10px", background:"#1a1a1a", borderRadius:"8px", marginBottom:"6px", border:"1px solid #2e2e2e" }}>
+                <div key={r.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 10px", background:"#FFFFFF", borderRadius:"8px", marginBottom:"6px", border:"1px solid #E6EBF0" }}>
                   <div>
-                    <p style={{ fontSize:"13px", color:"#f0f0f0", margin:0 }}>{r.descricao}</p>
-                    <p style={{ fontSize:"11px", color:"#606060", margin:0 }}>Dia {r.dia_vencimento} • {r.periodicidade}</p>
+                    <p style={{ fontSize:"13px", color:"#0A1826", margin:0 }}>{r.descricao}</p>
+                    <p style={{ fontSize:"11px", color:"#4A5B6C", margin:0 }}>Dia {r.dia_vencimento} • {r.periodicidade}</p>
                   </div>
                   <span style={{ fontSize:"13px", color:"#22c55e", fontWeight:"600" }}>R$ {Number(r.valor).toFixed(2)}</span>
                 </div>
@@ -474,9 +474,9 @@ export default function ClientesPage() {
       </div>
 
       <div className="table-wrapper">
-        <div style={{ padding:"16px", display:"flex", gap:"12px", borderBottom:"1px solid #2e2e2e", flexWrap:"wrap" }}>
+        <div style={{ padding:"16px", display:"flex", gap:"12px", borderBottom:"1px solid #E6EBF0", flexWrap:"wrap" }}>
           <div style={{ position:"relative", flex:1, minWidth:"200px" }}>
-            <Search size={14} style={{ position:"absolute", left:"12px", top:"50%", transform:"translateY(-50%)", color:"#606060" }}/>
+            <Search size={14} style={{ position:"absolute", left:"12px", top:"50%", transform:"translateY(-50%)", color:"#4A5B6C" }}/>
             <input className="search-input" placeholder="Buscar clientes..." value={busca} onChange={(e) => setBusca(e.target.value)}/>
           </div>
           <Filtros grupos={FILTROS_GRUPOS} valores={filtros}
@@ -490,7 +490,7 @@ export default function ClientesPage() {
             }).length;
             return qtd > 0 ? (
               <button onClick={() => setFiltraSemControle(v => !v)}
-                style={{ background: filtraSemControle ? "#ef444420" : "#1a1a1a", border: `1px solid ${filtraSemControle ? "#ef4444" : "#3a3a3a"}`, borderRadius:"8px", padding:"7px 12px", cursor:"pointer", color: filtraSemControle ? "#ef4444" : "#f59e0b", fontWeight:"600", fontSize:"12px", display:"flex", alignItems:"center", gap:"6px" }}
+                style={{ background: filtraSemControle ? "#ef444420" : "#FFFFFF", border: `1px solid ${filtraSemControle ? "#ef4444" : "#E6EBF0"}`, borderRadius:"8px", padding:"7px 12px", cursor:"pointer", color: filtraSemControle ? "#ef4444" : "#f59e0b", fontWeight:"600", fontSize:"12px", display:"flex", alignItems:"center", gap:"6px" }}
                 title="Clientes no financeiro mas sem cadastro no controle de clientes">
                 ⚠ {qtd} sem controle
               </button>
@@ -500,11 +500,11 @@ export default function ClientesPage() {
         </div>
 
         {Object.values(filtros).some(Boolean) && (
-          <div style={{ padding:"8px 16px", background:"rgba(41,171,226,0.05)", borderBottom:"1px solid #2e2e2e", display:"flex", gap:"8px", flexWrap:"wrap" }}>
+          <div style={{ padding:"8px 16px", background:"rgba(41,171,226,0.05)", borderBottom:"1px solid #E6EBF0", display:"flex", gap:"8px", flexWrap:"wrap" }}>
             {Object.entries(filtros).filter(([,v]) => v).map(([k, v]) => (
-              <span key={k} style={{ display:"flex", alignItems:"center", gap:"4px", background:"rgba(41,171,226,0.1)", color:"#29ABE2", padding:"3px 10px", borderRadius:"20px", fontSize:"12px" }}>
+              <span key={k} style={{ display:"flex", alignItems:"center", gap:"4px", background:"rgba(41,171,226,0.1)", color:"#1C6CA6", padding:"3px 10px", borderRadius:"20px", fontSize:"12px" }}>
                 {v}
-                <button onClick={() => setFiltros((f) => ({ ...f, [k]: "" }))} style={{ background:"none", border:"none", cursor:"pointer", color:"#29ABE2", padding:"0", lineHeight:1 }}>×</button>
+                <button onClick={() => setFiltros((f) => ({ ...f, [k]: "" }))} style={{ background:"none", border:"none", cursor:"pointer", color:"#1C6CA6", padding:"0", lineHeight:1 }}>×</button>
               </span>
             ))}
           </div>
@@ -545,15 +545,15 @@ export default function ClientesPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={11} style={{ textAlign:"center",color:"#606060",padding:"40px" }}>Carregando...</td></tr>
+                <tr><td colSpan={11} style={{ textAlign:"center",color:"#4A5B6C",padding:"40px" }}>Carregando...</td></tr>
               ) : !filtrados.length ? (
-                <tr><td colSpan={11} style={{ textAlign:"center",color:"#606060",padding:"40px" }}>Nenhum cliente encontrado.</td></tr>
+                <tr><td colSpan={11} style={{ textAlign:"center",color:"#4A5B6C",padding:"40px" }}>Nenhum cliente encontrado.</td></tr>
               ) : filtrados.map((c) => (
                 <tr key={c.id}>
                   <td><input type="checkbox" style={{ width:"14px",height:"14px" }}/></td>
                   <td><StatusSelect cliente={c} onRefresh={refresh}/></td>
                   <td>
-                    <div style={{ width:"32px",height:"32px",borderRadius:"50%",background:"#29ABE220",color:"#29ABE2",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"12px",fontWeight:"600" }}>
+                    <div style={{ width:"32px",height:"32px",borderRadius:"50%",background:"#29ABE220",color:"#1C6CA6",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"12px",fontWeight:"600" }}>
                       {c.nome.charAt(0).toUpperCase()}
                     </div>
                   </td>
@@ -563,19 +563,19 @@ export default function ClientesPage() {
                       <span className={`badge ${c.servico==="assessoria"?"badge-green":"badge-gray"}`} style={{ textTransform:"capitalize" }}>
                         {c.servico}
                       </span>
-                    ) : <span style={{color:"#606060"}}>—</span>}
+                    ) : <span style={{color:"#4A5B6C"}}>—</span>}
                   </td>
                   <td>
                     {c.servico === "assessoria" && c.frequencia ? (
                       <span className="badge badge-gray" style={{ textTransform:"capitalize" }}>{c.frequencia}</span>
-                    ) : <span style={{color:"#606060"}}>—</span>}
+                    ) : <span style={{color:"#4A5B6C"}}>—</span>}
                   </td>
-                  <td style={{ color:"#29ABE2", fontWeight:"600" }}>
+                  <td style={{ color:"#1C6CA6", fontWeight:"600" }}>
                     {c.valor_oportunidade ? formatCurrency(c.valor_oportunidade) : "—"}
                   </td>
-                  <td style={{ color:"#a0a0a0", fontSize:"12px" }}>{c.cidade || "—"}</td>
-                  <td style={{ color:"#a0a0a0", fontSize:"12px" }}>{c.estado || "—"}</td>
-                  <td style={{ color:"#a0a0a0" }}>{new Date(c.created_at).toLocaleDateString("pt-BR")}</td>
+                  <td style={{ color:"#4A5B6C", fontSize:"12px" }}>{c.cidade || "—"}</td>
+                  <td style={{ color:"#4A5B6C", fontSize:"12px" }}>{c.estado || "—"}</td>
+                  <td style={{ color:"#4A5B6C" }}>{new Date(c.created_at).toLocaleDateString("pt-BR")}</td>
                   <td>
                     <div style={{ display:"flex",gap:"6px" }}>
                       <button className="btn-ghost" style={{ padding:"5px 8px", color: clientesComRec.has(c.id) ? "#22c55e" : undefined }} title={clientesComRec.has(c.id) ? "Recorrência ativa" : "Criar recorrência"} onClick={() => setRecCliente(c)}>

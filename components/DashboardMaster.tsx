@@ -5,7 +5,7 @@ import {
   Users, UserX, UserPlus, TrendingUp, RotateCcw,
   ArrowDownToLine, ArrowUpFromLine, DollarSign,
   UserCheck, ShoppingBag, Percent, Clock,
-  MinusCircle, AlertCircle, PlusCircle
+  MinusCircle, AlertCircle, PlusCircle, Calendar
 } from "lucide-react";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis,
@@ -175,11 +175,12 @@ export default function DashboardMaster() {
           clientes_total: controleClientes.filter((c: any) => c.status !== "saiu").length,
           isAtual: true,
         };
-        const todasLinhas = [linhaAtual, ...snapshots.filter(s => s.mes_ano !== mesAtualStr)];
+        const chaveMes = (ma: string) => { const [m, a] = String(ma || "").split("/"); return Number(a || 0) * 12 + mesesNomes.indexOf(m); };
+        const todasLinhas = [linhaAtual, ...snapshots.filter(s => s.mes_ano !== mesAtualStr).sort((a: any, b: any) => chaveMes(b.mes_ano) - chaveMes(a.mes_ano))];
         return (
           <div className="card" style={{ marginBottom: "20px", padding: "16px 20px" }}>
             <h3 style={{ fontSize: "13px", fontWeight: "600", color: "var(--navy)", marginBottom: "14px", display: "flex", alignItems: "center", gap: "8px" }}>
-              📅 Base de Clientes por Mês
+              <Calendar size={15} color="var(--brand)" /> Base de Clientes por Mês
               <span style={{ fontSize: "11px", color: "var(--text-secondary)", fontWeight: "400" }}>Atualiza em tempo real até o último dia de cada mês</span>
             </h3>
             <div style={{ overflowX: "auto" }}>

@@ -278,7 +278,7 @@ export default function Topbar({ onMenuToggle }: TopbarProps) {
                       padding: "2px 6px",
                       borderRadius: "4px",
                       background: "var(--brand)",
-                      color: "#FFFFFF",
+                      color: "#0A1826",
                       marginLeft: "auto",
                     }}>MASTER</span>
                   )}
@@ -362,7 +362,7 @@ export default function Topbar({ onMenuToggle }: TopbarProps) {
       {isMaster && (
         <span style={{
           background: "var(--brand)",
-          color: "#FFFFFF",
+          color: "#0A1826",
           fontSize: "10px",
           fontWeight: "700",
           padding: "3px 8px",

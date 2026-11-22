@@ -19,7 +19,7 @@ interface Anotacao {
 }
 
 const STATUS_CORES: Record<string, string> = {
-  ativo: "#29ABE2", saiu: "#ef4444", pausado: "#f59e0b",
+  ativo: "#1C6CA6", saiu: "#ef4444", pausado: "#f59e0b",
   pendencia: "#f59e0b", prospecto: "#8b5cf6",
 };
 
@@ -81,10 +81,10 @@ export default function ClienteDetalhePage() {
 
   useEffect(() => { carregar(); }, [params.id]);
 
-  if (loading) return <div style={{ padding:"40px", color:"#606060", fontSize:"13px" }}>Carregando...</div>;
-  if (!cliente) return <div style={{ padding:"40px", color:"#606060" }}>Cliente não encontrado.</div>;
+  if (loading) return <div style={{ padding:"40px", color:"#4A5B6C", fontSize:"13px" }}>Carregando...</div>;
+  if (!cliente) return <div style={{ padding:"40px", color:"#4A5B6C" }}>Cliente não encontrado.</div>;
 
-  const statusCor = STATUS_CORES[cliente.status_recorrencia || "ativo"] || "#606060";
+  const statusCor = STATUS_CORES[cliente.status_recorrencia || "ativo"] || "#4A5B6C";
 
   return (
     <div className="animate-in" style={{ maxWidth:"900px" }}>
@@ -125,7 +125,7 @@ export default function ClienteDetalhePage() {
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"16px", marginBottom:"16px" }}>
         {/* Info principal */}
         <div className="card">
-          <h3 style={{ fontSize:"13px", fontWeight:"600", color:"#f0f0f0", marginBottom:"16px", paddingBottom:"10px", borderBottom:"1px solid #2e2e2e" }}>
+          <h3 style={{ fontSize:"13px", fontWeight:"600", color:"#0A1826", marginBottom:"16px", paddingBottom:"10px", borderBottom:"1px solid #E6EBF0" }}>
             Informações do Cliente
           </h3>
           <div style={{ display:"flex", flexDirection:"column", gap:"12px" }}>
@@ -135,15 +135,15 @@ export default function ClienteDetalhePage() {
               { icon:<DollarSign size={14}/>, label:"Investimento Mensal", value:cliente.investimento_mensal ? `R$ ${Number(cliente.investimento_mensal).toLocaleString("pt-BR")}` : "—" },
             ].map(item => (
               <div key={item.label} style={{ display:"flex", alignItems:"center", gap:"10px" }}>
-                <span style={{ color:"#606060", flexShrink:0 }}>{item.icon}</span>
+                <span style={{ color:"#4A5B6C", flexShrink:0 }}>{item.icon}</span>
                 <div>
-                  <p style={{ fontSize:"11px", color:"#606060", margin:0 }}>{item.label}</p>
+                  <p style={{ fontSize:"11px", color:"#4A5B6C", margin:0 }}>{item.label}</p>
                   {item.link ? (
-                    <a href={item.link} target="_blank" rel="noreferrer" style={{ fontSize:"13px", color:"#29ABE2", textDecoration:"none" }}>
+                    <a href={item.link} target="_blank" rel="noreferrer" style={{ fontSize:"13px", color:"#1C6CA6", textDecoration:"none" }}>
                       {item.value}
                     </a>
                   ) : (
-                    <p style={{ fontSize:"13px", color:"#f0f0f0", margin:0 }}>{item.value}</p>
+                    <p style={{ fontSize:"13px", color:"#0A1826", margin:0 }}>{item.value}</p>
                   )}
                 </div>
               </div>
@@ -153,7 +153,7 @@ export default function ClienteDetalhePage() {
 
         {/* Time */}
         <div className="card">
-          <h3 style={{ fontSize:"13px", fontWeight:"600", color:"#f0f0f0", marginBottom:"16px", paddingBottom:"10px", borderBottom:"1px solid #2e2e2e" }}>
+          <h3 style={{ fontSize:"13px", fontWeight:"600", color:"#0A1826", marginBottom:"16px", paddingBottom:"10px", borderBottom:"1px solid #E6EBF0" }}>
             Time Responsável
           </h3>
           {editando ? (
@@ -187,8 +187,8 @@ export default function ClienteDetalhePage() {
                 { label:"Squad", value:cliente.squad },
               ].map(item => (
                 <div key={item.label}>
-                  <p style={{ fontSize:"11px", color:"#606060", margin:0 }}>{item.label}</p>
-                  <p style={{ fontSize:"13px", color:"#f0f0f0", margin:0 }}>{item.value || "—"}</p>
+                  <p style={{ fontSize:"11px", color:"#4A5B6C", margin:0 }}>{item.label}</p>
+                  <p style={{ fontSize:"13px", color:"#0A1826", margin:0 }}>{item.value || "—"}</p>
                 </div>
               ))}
               {cliente.status_recorrencia === "saiu" && cliente.motivo_churn && (
@@ -196,7 +196,7 @@ export default function ClienteDetalhePage() {
                   <p style={{ fontSize:"11px", color:"#ef4444", margin:"0 0 4px" }}>
                     <TrendingDown size={12} style={{ display:"inline", marginRight:"4px" }}/>Motivo do Churn
                   </p>
-                  <p style={{ fontSize:"13px", color:"#f0f0f0", margin:0 }}>{cliente.motivo_churn}</p>
+                  <p style={{ fontSize:"13px", color:"#0A1826", margin:0 }}>{cliente.motivo_churn}</p>
                 </div>
               )}
             </div>
@@ -206,9 +206,9 @@ export default function ClienteDetalhePage() {
 
       {/* Anotações */}
       <div className="card">
-        <h3 style={{ fontSize:"13px", fontWeight:"600", color:"#f0f0f0", marginBottom:"16px", paddingBottom:"10px", borderBottom:"1px solid #2e2e2e" }}>
+        <h3 style={{ fontSize:"13px", fontWeight:"600", color:"#0A1826", marginBottom:"16px", paddingBottom:"10px", borderBottom:"1px solid #E6EBF0" }}>
           Anotações da Equipe
-          <span style={{ fontSize:"11px", color:"#606060", fontWeight:"400", marginLeft:"8px" }}>{anotacoes.length} anotações</span>
+          <span style={{ fontSize:"11px", color:"#4A5B6C", fontWeight:"400", marginLeft:"8px" }}>{anotacoes.length} anotações</span>
         </h3>
 
         {/* Nova anotação */}
@@ -224,20 +224,20 @@ export default function ClienteDetalhePage() {
 
         {/* Lista de anotações */}
         {!anotacoes.length ? (
-          <p style={{ color:"#606060", fontSize:"13px", textAlign:"center", padding:"20px" }}>
+          <p style={{ color:"#4A5B6C", fontSize:"13px", textAlign:"center", padding:"20px" }}>
             Nenhuma anotação ainda. Adicione a primeira!
           </p>
         ) : (
           <div style={{ display:"flex", flexDirection:"column", gap:"10px" }}>
             {anotacoes.map(an => (
-              <div key={an.id} style={{ background:"#1a1a1a", borderRadius:"8px", padding:"12px 14px", border:"1px solid #2e2e2e" }}>
+              <div key={an.id} style={{ background:"#FFFFFF", borderRadius:"8px", padding:"12px 14px", border:"1px solid #E6EBF0" }}>
                 <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"6px" }}>
-                  <span style={{ fontSize:"12px", fontWeight:"600", color:"#29ABE2" }}>{an.usuario}</span>
-                  <span style={{ fontSize:"11px", color:"#606060" }}>
+                  <span style={{ fontSize:"12px", fontWeight:"600", color:"#1C6CA6" }}>{an.usuario}</span>
+                  <span style={{ fontSize:"11px", color:"#4A5B6C" }}>
                     {new Date(an.created_at).toLocaleString("pt-BR", { day:"2-digit", month:"2-digit", year:"2-digit", hour:"2-digit", minute:"2-digit" })}
                   </span>
                 </div>
-                <p style={{ fontSize:"13px", color:"#f0f0f0", margin:0, whiteSpace:"pre-wrap" }}>{an.conteudo}</p>
+                <p style={{ fontSize:"13px", color:"#0A1826", margin:0, whiteSpace:"pre-wrap" }}>{an.conteudo}</p>
               </div>
             ))}
           </div>

@@ -230,9 +230,9 @@ export default function ContasBancariasPage() {
       <h1 style={{ fontSize: "22px", fontWeight: "600", marginBottom: "24px" }}>Contas bancárias</h1>
 
       <div className="table-wrapper">
-        <div style={{ padding: "16px", display: "flex", gap: "12px", borderBottom: "1px solid #2e2e2e" }}>
+        <div style={{ padding: "16px", display: "flex", gap: "12px", borderBottom: "1px solid #E6EBF0" }}>
           <div style={{ position: "relative", flex: 1 }}>
-            <Search size={14} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#606060" }} />
+            <Search size={14} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#4A5B6C" }} />
             <input
               className="search-input"
               placeholder="Buscar contas bancárias..."
@@ -258,9 +258,9 @@ export default function ContasBancariasPage() {
           </thead>
           <tbody>
             {loadingContas ? (
-              <tr><td colSpan={6} style={{ textAlign: "center", color: "#606060", padding: "40px" }}>Carregando...</td></tr>
+              <tr><td colSpan={6} style={{ textAlign: "center", color: "#4A5B6C", padding: "40px" }}>Carregando...</td></tr>
             ) : !filtradas.length ? (
-              <tr><td colSpan={6} style={{ textAlign: "center", color: "#606060", padding: "40px" }}>Nenhuma conta bancária encontrada.</td></tr>
+              <tr><td colSpan={6} style={{ textAlign: "center", color: "#4A5B6C", padding: "40px" }}>Nenhuma conta bancária encontrada.</td></tr>
             ) : filtradas.map((conta) => (
               <tr key={conta.id}>
                 <td style={{ fontWeight: "500" }}>{conta.banco}</td>
@@ -340,7 +340,7 @@ export default function ContasBancariasPage() {
                 <input className="form-input" value={form.apelido} onChange={(e) => setForm({ ...form, apelido: e.target.value })} />
               </div>
               <div className="form-group" style={{ display: "flex", alignItems: "center", paddingTop: "24px" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px", color: "#a0a0a0" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px", color: "#4A5B6C" }}>
                   <input type="checkbox" checked={form.conta_recebimento} onChange={(e) => setForm({ ...form, conta_recebimento: e.target.checked })} />
                   Conta de recebimento?
                 </label>
@@ -371,7 +371,7 @@ export default function ContasBancariasPage() {
                 <button
                   type="button"
                   onClick={() => setShowSenha(!showSenha)}
-                  style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#606060" }}
+                  style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#4A5B6C" }}
                 >
                   {showSenha ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>

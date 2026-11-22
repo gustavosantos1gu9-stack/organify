@@ -100,9 +100,9 @@ export default function DisparosWebhookPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={5} style={{ textAlign: "center", color: "#606060", padding: "48px" }}>Carregando...</td></tr>
+              <tr><td colSpan={5} style={{ textAlign: "center", color: "#4A5B6C", padding: "48px" }}>Carregando...</td></tr>
             ) : !webhooks.length ? (
-              <tr><td colSpan={5} style={{ textAlign: "center", color: "#606060", padding: "48px" }}>
+              <tr><td colSpan={5} style={{ textAlign: "center", color: "#4A5B6C", padding: "48px" }}>
                 Nenhum webhook configurado. Configure webhooks para receber notificações em tempo real.
               </td></tr>
             ) : webhooks.map(wh => (
@@ -110,10 +110,10 @@ export default function DisparosWebhookPage() {
                 <td style={{ fontWeight: "500" }}>{wh.nome}</td>
                 <td>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <code style={{ fontSize: "11px", color: "#29ABE2", background: "#1a1a1a", padding: "2px 6px", borderRadius: "4px", maxWidth: "250px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <code style={{ fontSize: "11px", color: "#1C6CA6", background: "#FFFFFF", padding: "2px 6px", borderRadius: "4px", maxWidth: "250px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {wh.url}
                     </code>
-                    <button onClick={() => navigator.clipboard.writeText(wh.url)} style={{ background: "none", border: "none", cursor: "pointer", color: "#606060" }}>
+                    <button onClick={() => navigator.clipboard.writeText(wh.url)} style={{ background: "none", border: "none", cursor: "pointer", color: "#4A5B6C" }}>
                       <Copy size={12} />
                     </button>
                   </div>
@@ -130,8 +130,8 @@ export default function DisparosWebhookPage() {
                   <button onClick={() => toggleAtivo(wh)} style={{
                     fontSize: "11px", padding: "3px 10px", borderRadius: "20px", cursor: "pointer",
                     background: wh.ativo ? "rgba(34,197,94,0.15)" : "rgba(96,96,96,0.15)",
-                    color: wh.ativo ? "#22c55e" : "#606060",
-                    border: `1px solid ${wh.ativo ? "rgba(34,197,94,0.3)" : "#2e2e2e"}`,
+                    color: wh.ativo ? "#22c55e" : "#4A5B6C",
+                    border: `1px solid ${wh.ativo ? "rgba(34,197,94,0.3)" : "#E6EBF0"}`,
                   }}>{wh.ativo ? "Ativo" : "Inativo"}</button>
                 </td>
                 <td>
@@ -170,18 +170,18 @@ export default function DisparosWebhookPage() {
                       <div key={ev.key} onClick={() => toggleEvento(ev.key)} style={{
                         display: "flex", alignItems: "center", gap: "10px",
                         padding: "8px 12px", borderRadius: "6px", cursor: "pointer",
-                        background: ativo ? "rgba(41,171,226,0.08)" : "#1a1a1a",
-                        border: `1px solid ${ativo ? "rgba(41,171,226,0.3)" : "#2e2e2e"}`,
+                        background: ativo ? "rgba(41,171,226,0.08)" : "#FFFFFF",
+                        border: `1px solid ${ativo ? "rgba(41,171,226,0.3)" : "#E6EBF0"}`,
                       }}>
                         <div style={{
                           width: "16px", height: "16px", borderRadius: "3px",
-                          border: `2px solid ${ativo ? "#29ABE2" : "#3a3a3a"}`,
-                          background: ativo ? "#29ABE2" : "transparent",
+                          border: `2px solid ${ativo ? "#1C6CA6" : "#E6EBF0"}`,
+                          background: ativo ? "#1C6CA6" : "transparent",
                           display: "flex", alignItems: "center", justifyContent: "center",
                         }}>
                           {ativo && <Check size={10} color="#000" />}
                         </div>
-                        <span style={{ fontSize: "13px", color: ativo ? "#f0f0f0" : "#808080" }}>{ev.label}</span>
+                        <span style={{ fontSize: "13px", color: ativo ? "#0A1826" : "#808080" }}>{ev.label}</span>
                       </div>
                     );
                   })}

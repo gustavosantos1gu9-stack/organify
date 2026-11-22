@@ -52,15 +52,15 @@ export function SalxLogo({ showText = true, size = 'md', collapsed = false }: Sa
 
         <defs>
           <linearGradient id="bar1" x1="9" y1="22" x2="9" y2="42" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#29ABE2" />
+            <stop offset="0%" stopColor="#1C6CA6" />
             <stop offset="100%" stopColor="#1a7cb0" />
           </linearGradient>
           <linearGradient id="bar2" x1="23" y1="14" x2="23" y2="42" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#29ABE2" />
+            <stop offset="0%" stopColor="#1C6CA6" />
             <stop offset="100%" stopColor="#1a7cb0" />
           </linearGradient>
           <linearGradient id="arrowGrad" x1="6" y1="38" x2="38" y2="6" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#29ABE2" stopOpacity="0.6" />
+            <stop offset="0%" stopColor="#1C6CA6" stopOpacity="0.6" />
             <stop offset="100%" stopColor="#ffffff" />
           </linearGradient>
         </defs>
@@ -74,7 +74,7 @@ export function SalxLogo({ showText = true, size = 'md', collapsed = false }: Sa
               fontFamily: "'Inter', 'Arial Black', sans-serif",
               fontWeight: 900,
               fontSize: size === 'sm' ? '16px' : size === 'lg' ? '26px' : '20px',
-              color: '#ffffff',
+              color: '#0A1826',
               letterSpacing: '0.04em',
               lineHeight: 1,
             }}
@@ -86,7 +86,7 @@ export function SalxLogo({ showText = true, size = 'md', collapsed = false }: Sa
               fontFamily: "'Inter', 'Arial', sans-serif",
               fontWeight: 700,
               fontSize: size === 'sm' ? '8px' : size === 'lg' ? '13px' : '10px',
-              color: '#29ABE2',
+              color: '#1C6CA6',
               letterSpacing: '0.25em',
               lineHeight: 1,
               marginTop: '2px',

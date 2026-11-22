@@ -214,8 +214,8 @@ export default function ClienteExternoDetailPage() {
   );
 
   const inp: React.CSSProperties = {
-    background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 8,
-    padding: "10px 14px", color: "#f0f0f0", fontSize: 14, outline: "none", width: "100%", boxSizing: "border-box",
+    background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 8,
+    padding: "10px 14px", color: "#0A1826", fontSize: 14, outline: "none", width: "100%", boxSizing: "border-box",
   };
   const lbl: React.CSSProperties = {
     fontSize: 12, color: "#808080", fontWeight: 600, textTransform: "uppercase",
@@ -224,31 +224,31 @@ export default function ClienteExternoDetailPage() {
 
   if (loading) return (
     <div style={{ display: "flex", justifyContent: "center", padding: 80 }}>
-      <div style={{ width: 32, height: 32, borderRadius: "50%", border: "3px solid #1a1a1a", borderTop: "3px solid #29ABE2", animation: "spin 1s linear infinite" }} />
+      <div style={{ width: 32, height: 32, borderRadius: "50%", border: "3px solid #FFFFFF", borderTop: "3px solid #1C6CA6", animation: "spin 1s linear infinite" }} />
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 
   if (!cliente) return (
-    <div style={{ textAlign: "center", padding: 80, color: "#606060" }}>Cliente não encontrado.</div>
+    <div style={{ textAlign: "center", padding: 80, color: "#4A5B6C" }}>Cliente não encontrado.</div>
   );
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-        <button onClick={() => router.push("/ferramentas/clientes")} style={{ background: "none", border: "1px solid #2e2e2e", borderRadius: 8, padding: "6px 12px", color: "#808080", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+        <button onClick={() => router.push("/ferramentas/clientes")} style={{ background: "none", border: "1px solid #E6EBF0", borderRadius: 8, padding: "6px 12px", color: "#808080", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
           <ArrowLeft size={14} /> Voltar
         </button>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: "#f0f0f0", margin: 0 }}>{cliente.nome}</h1>
-        {!cliente.ativo && <span style={{ fontSize: 11, background: "#2a2a2a", color: "#606060", padding: "3px 8px", borderRadius: 6 }}>Inativo</span>}
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: "#0A1826", margin: 0 }}>{cliente.nome}</h1>
+        {!cliente.ativo && <span style={{ fontSize: 11, background: "#E6EBF0", color: "#4A5B6C", padding: "3px 8px", borderRadius: 6 }}>Inativo</span>}
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 2, marginBottom: 24, background: "#141414", borderRadius: 10, padding: 4, border: "1px solid #2e2e2e", width: "fit-content" }}>
+      <div style={{ display: "flex", gap: 2, marginBottom: 24, background: "#FFFFFF", borderRadius: 10, padding: 4, border: "1px solid #E6EBF0", width: "fit-content" }}>
         {(["config", "forms", "lps"] as const).map(t => (
           <button key={t} onClick={() => setTab(t)} style={{
             padding: "8px 18px", borderRadius: 7, border: "none", fontSize: 13, fontWeight: 500, cursor: "pointer",
-            background: tab === t ? "#29ABE2" : "transparent",
+            background: tab === t ? "#1C6CA6" : "transparent",
             color: tab === t ? "#000" : "#808080",
           }}>
             {t === "config" ? "Configuração" : t === "forms" ? `Formulários (${formularios.length})` : `Landing Pages (${lps.length})`}
@@ -258,7 +258,7 @@ export default function ClienteExternoDetailPage() {
 
       {/* Tab: Configuração */}
       {tab === "config" && form && (
-        <div style={{ background: "#141414", border: "1px solid #2e2e2e", borderRadius: 12, padding: 28 }}>
+        <div style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 12, padding: 28 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 520 }}>
 
             {/* Nome */}
@@ -273,10 +273,10 @@ export default function ClienteExternoDetailPage() {
               <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
                 {logoPreview && (
                   <div style={{ position: "relative", flexShrink: 0 }}>
-                    <img src={logoPreview} alt="Logo" style={{ width: 56, height: 56, objectFit: "contain", borderRadius: 8, border: "1px solid #2e2e2e", background: "#111" }} />
+                    <img src={logoPreview} alt="Logo" style={{ width: 56, height: 56, objectFit: "contain", borderRadius: 8, border: "1px solid #E6EBF0", background: "#FFFFFF" }} />
                     <button
                       onClick={() => { setLogoPreview(""); setForm(p => p && ({ ...p, logo_url: "" })); supabase.from("clientes_externos").update({ logo_url: "" }).eq("id", id); }}
-                      style={{ position: "absolute", top: -6, right: -6, background: "#333", border: "none", borderRadius: "50%", width: 18, height: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
+                      style={{ position: "absolute", top: -6, right: -6, background: "#E6EBF0", border: "none", borderRadius: "50%", width: 18, height: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
                     >
                       <X size={10} color="#aaa" />
                     </button>
@@ -286,7 +286,7 @@ export default function ClienteExternoDetailPage() {
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadandoLogo}
-                  style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", borderRadius: 8, border: "1px dashed #3a3a3a", background: "#1a1a1a", color: "#808080", cursor: "pointer", fontSize: 13, opacity: uploadandoLogo ? 0.6 : 1 }}
+                  style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", borderRadius: 8, border: "1px dashed #E6EBF0", background: "#FFFFFF", color: "#808080", cursor: "pointer", fontSize: 13, opacity: uploadandoLogo ? 0.6 : 1 }}
                 >
                   <Upload size={14} /> {uploadandoLogo ? "Enviando..." : logoPreview ? "Trocar imagem" : "Enviar logo"}
                 </button>
@@ -304,7 +304,7 @@ export default function ClienteExternoDetailPage() {
                 type="password"
               />
               {tokenDefault && !form.meta_access_token && (
-                <span style={{ fontSize: 11, color: "#505050", marginTop: 4, display: "block" }}>Usando token da Lavínia (padrão)</span>
+                <span style={{ fontSize: 11, color: "#6B7A89", marginTop: 4, display: "block" }}>Usando token da Lavínia (padrão)</span>
               )}
             </div>
 
@@ -314,15 +314,15 @@ export default function ClienteExternoDetailPage() {
               <button
                 onClick={buscarContas}
                 disabled={buscandoContas}
-                style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", borderRadius: 8, border: "1px solid #2e2e2e", background: "#1a1a1a", color: "#c0c0c0", cursor: "pointer", fontSize: 13, width: "100%", opacity: buscandoContas ? 0.6 : 1 }}
+                style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", borderRadius: 8, border: "1px solid #E6EBF0", background: "#FFFFFF", color: "#c0c0c0", cursor: "pointer", fontSize: 13, width: "100%", opacity: buscandoContas ? 0.6 : 1 }}
               >
                 <Search size={14} /> {buscandoContas ? "Buscando contas..." : "Buscar contas de anúncios"}
               </button>
 
               {mostrarContas && (
-                <div style={{ marginTop: 10, background: "#111", border: "1px solid #2e2e2e", borderRadius: 8, overflow: "hidden" }}>
+                <div style={{ marginTop: 10, background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 8, overflow: "hidden" }}>
                   {/* Busca */}
-                  <div style={{ padding: "8px 10px", borderBottom: "1px solid #1e1e1e" }}>
+                  <div style={{ padding: "8px 10px", borderBottom: "1px solid #FFFFFF" }}>
                     <input
                       style={{ ...inp, padding: "7px 10px", fontSize: 13 }}
                       placeholder="Filtrar contas..."
@@ -332,13 +332,13 @@ export default function ClienteExternoDetailPage() {
                   </div>
 
                   {buscandoContas ? (
-                    <div style={{ padding: 16, color: "#505050", fontSize: 13, textAlign: "center" }}>Carregando...</div>
+                    <div style={{ padding: 16, color: "#6B7A89", fontSize: 13, textAlign: "center" }}>Carregando...</div>
                   ) : erroContas ? (
                     <div style={{ padding: 14, color: "#ef4444", fontSize: 12, background: "#ef444410", borderRadius: 6, margin: 8 }}>
                       ⚠ {erroContas}
                     </div>
                   ) : contasFiltradas.length === 0 ? (
-                    <div style={{ padding: 16, color: "#505050", fontSize: 13, textAlign: "center" }}>Nenhuma conta encontrada.</div>
+                    <div style={{ padding: 16, color: "#6B7A89", fontSize: 13, textAlign: "center" }}>Nenhuma conta encontrada.</div>
                   ) : (
                     <div style={{ maxHeight: 200, overflowY: "auto" }}>
                       {contasFiltradas.map(c => (
@@ -348,12 +348,12 @@ export default function ClienteExternoDetailPage() {
                           style={{
                             width: "100%", textAlign: "left", padding: "10px 14px", border: "none",
                             background: contaSelecionada === c.id_clean ? "rgba(41,171,226,0.1)" : "transparent",
-                            borderLeft: contaSelecionada === c.id_clean ? "3px solid #29ABE2" : "3px solid transparent",
-                            color: "#e0e0e0", cursor: "pointer", fontSize: 13, display: "flex", flexDirection: "column", gap: 2,
+                            borderLeft: contaSelecionada === c.id_clean ? "3px solid #1C6CA6" : "3px solid transparent",
+                            color: "#0A1826", cursor: "pointer", fontSize: 13, display: "flex", flexDirection: "column", gap: 2,
                           }}
                         >
                           <span style={{ fontWeight: 600 }}>{c.name}</span>
-                          <span style={{ fontSize: 11, color: "#505050" }}>{c.id_clean} {c.business ? `· ${c.business}` : ""}</span>
+                          <span style={{ fontSize: 11, color: "#6B7A89" }}>{c.id_clean} {c.business ? `· ${c.business}` : ""}</span>
                         </button>
                       ))}
                     </div>
@@ -361,12 +361,12 @@ export default function ClienteExternoDetailPage() {
 
                   {/* Pixels da conta selecionada */}
                   {contaSelecionada && (
-                    <div style={{ borderTop: "1px solid #1e1e1e", padding: "10px 14px" }}>
-                      <div style={{ fontSize: 11, color: "#505050", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Pixels da conta</div>
+                    <div style={{ borderTop: "1px solid #FFFFFF", padding: "10px 14px" }}>
+                      <div style={{ fontSize: 11, color: "#6B7A89", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Pixels da conta</div>
                       {buscandoPixels ? (
-                        <div style={{ fontSize: 13, color: "#505050" }}>Carregando pixels...</div>
+                        <div style={{ fontSize: 13, color: "#6B7A89" }}>Carregando pixels...</div>
                       ) : pixelsDisponiveis.length === 0 ? (
-                        <div style={{ fontSize: 13, color: "#505050" }}>Nenhum pixel encontrado.</div>
+                        <div style={{ fontSize: 13, color: "#6B7A89" }}>Nenhum pixel encontrado.</div>
                       ) : (
                         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                           {pixelsDisponiveis.map(px => (
@@ -375,13 +375,13 @@ export default function ClienteExternoDetailPage() {
                               onClick={() => { setForm(p => p && ({ ...p, meta_pixel_id: px.id })); }}
                               style={{
                                 textAlign: "left", padding: "8px 12px", borderRadius: 6, border: "1px solid",
-                                borderColor: form.meta_pixel_id === px.id ? "#29ABE2" : "#2a2a2a",
-                                background: form.meta_pixel_id === px.id ? "rgba(41,171,226,0.1)" : "#1a1a1a",
-                                color: "#e0e0e0", cursor: "pointer", fontSize: 13,
+                                borderColor: form.meta_pixel_id === px.id ? "#1C6CA6" : "#E6EBF0",
+                                background: form.meta_pixel_id === px.id ? "rgba(41,171,226,0.1)" : "#FFFFFF",
+                                color: "#0A1826", cursor: "pointer", fontSize: 13,
                               }}
                             >
                               <span style={{ fontWeight: 600 }}>{px.name || "Pixel sem nome"}</span>
-                              <span style={{ fontSize: 11, color: "#505050", marginLeft: 8 }}>{px.id}</span>
+                              <span style={{ fontSize: 11, color: "#6B7A89", marginLeft: 8 }}>{px.id}</span>
                             </button>
                           ))}
                         </div>
@@ -394,9 +394,9 @@ export default function ClienteExternoDetailPage() {
               {/* Pixel selecionado */}
               {form.meta_pixel_id && (
                 <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 12, color: "#505050" }}>Pixel selecionado:</span>
-                  <span style={{ fontSize: 12, color: "#29ABE2", fontWeight: 600 }}>{form.meta_pixel_id}</span>
-                  <button onClick={() => setForm(p => p && ({ ...p, meta_pixel_id: "" }))} style={{ background: "none", border: "none", cursor: "pointer", color: "#505050", padding: 0, display: "flex" }}>
+                  <span style={{ fontSize: 12, color: "#6B7A89" }}>Pixel selecionado:</span>
+                  <span style={{ fontSize: 12, color: "#1C6CA6", fontWeight: 600 }}>{form.meta_pixel_id}</span>
+                  <button onClick={() => setForm(p => p && ({ ...p, meta_pixel_id: "" }))} style={{ background: "none", border: "none", cursor: "pointer", color: "#6B7A89", padding: 0, display: "flex" }}>
                     <X size={12} />
                   </button>
                 </div>
@@ -410,11 +410,11 @@ export default function ClienteExternoDetailPage() {
             </div>
 
             <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
-              <input type="checkbox" checked={form.ativo} onChange={e => setForm(p => p && ({ ...p, ativo: e.target.checked }))} style={{ width: 16, height: 16, accentColor: "#29ABE2" }} />
+              <input type="checkbox" checked={form.ativo} onChange={e => setForm(p => p && ({ ...p, ativo: e.target.checked }))} style={{ width: 16, height: 16, accentColor: "#1C6CA6" }} />
               <span style={{ fontSize: 14, color: "#c0c0c0" }}>Cliente ativo</span>
             </label>
 
-            <button onClick={salvar} disabled={salvando} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 8, border: "none", background: "#29ABE2", color: "#000", fontSize: 14, fontWeight: 700, cursor: "pointer", opacity: salvando ? 0.7 : 1 }}>
+            <button onClick={salvar} disabled={salvando} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 8, border: "none", background: "#1C6CA6", color: "#F3F5F7", fontSize: 14, fontWeight: 700, cursor: "pointer", opacity: salvando ? 0.7 : 1 }}>
               <Save size={16} /> {salvando ? "Salvando..." : "Salvar Configurações"}
             </button>
           </div>
@@ -427,7 +427,7 @@ export default function ClienteExternoDetailPage() {
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
             <button
               onClick={() => router.push(`/formularios?cliente_id=${id}`)}
-              style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 8, border: "none", background: "#29ABE2", color: "#000", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
+              style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 8, border: "none", background: "#1C6CA6", color: "#F3F5F7", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
             >
               + Novo Formulário
             </button>
@@ -439,24 +439,24 @@ export default function ClienteExternoDetailPage() {
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {formularios.map(f => (
-                <div key={f.id} style={{ background: "#141414", border: "1px solid #2e2e2e", borderRadius: 12, padding: "16px 20px", display: "flex", alignItems: "center", gap: 16 }}>
+                <div key={f.id} style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 12, padding: "16px 20px", display: "flex", alignItems: "center", gap: 16 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: "#f0f0f0", marginBottom: 4 }}>{f.nome}</div>
-                    <div style={{ fontSize: 12, color: "#29ABE2" }}>/f/{f.slug}</div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: "#0A1826", marginBottom: 4 }}>{f.nome}</div>
+                    <div style={{ fontSize: 12, color: "#1C6CA6" }}>/f/{f.slug}</div>
                   </div>
                   <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
                     <button
                       onClick={() => copiar(`${appUrl}/f/${f.slug}`, `f-${f.id}`)}
-                      style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid #2e2e2e", background: "#1a1a1a", color: copiado === `f-${f.id}` ? "#22c55e" : "#808080", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}
+                      style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid #E6EBF0", background: "#FFFFFF", color: copiado === `f-${f.id}` ? "#22c55e" : "#808080", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}
                     >
                       <Copy size={13} /> {copiado === `f-${f.id}` ? "Copiado!" : "Copiar"}
                     </button>
-                    <a href={`/f/${f.slug}`} target="_blank" rel="noopener noreferrer" style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid #2e2e2e", background: "#1a1a1a", color: "#808080", cursor: "pointer", display: "flex", alignItems: "center", textDecoration: "none" }}>
+                    <a href={`/f/${f.slug}`} target="_blank" rel="noopener noreferrer" style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid #E6EBF0", background: "#FFFFFF", color: "#808080", cursor: "pointer", display: "flex", alignItems: "center", textDecoration: "none" }}>
                       <ExternalLink size={13} />
                     </a>
                     <button
                       onClick={() => router.push(`/formularios?cliente_id=${id}&form_id=${f.id}`)}
-                      style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #2e2e2e", background: "#1a1a1a", color: "#f0f0f0", cursor: "pointer", fontSize: 13 }}
+                      style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #E6EBF0", background: "#FFFFFF", color: "#0A1826", cursor: "pointer", fontSize: 13 }}
                     >
                       Editar
                     </button>
@@ -474,7 +474,7 @@ export default function ClienteExternoDetailPage() {
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
             <button
               onClick={() => router.push(`/ferramentas/lp?cliente_id=${id}`)}
-              style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 8, border: "none", background: "#29ABE2", color: "#000", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
+              style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 8, border: "none", background: "#1C6CA6", color: "#F3F5F7", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
             >
               + Nova LP
             </button>
@@ -486,24 +486,24 @@ export default function ClienteExternoDetailPage() {
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {lps.map(lp => (
-                <div key={lp.id} style={{ background: "#141414", border: "1px solid #2e2e2e", borderRadius: 12, padding: "16px 20px", display: "flex", alignItems: "center", gap: 16 }}>
+                <div key={lp.id} style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 12, padding: "16px 20px", display: "flex", alignItems: "center", gap: 16 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: "#f0f0f0", marginBottom: 4 }}>{lp.titulo}</div>
-                    <div style={{ fontSize: 12, color: "#29ABE2" }}>/lp/{lp.slug}</div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: "#0A1826", marginBottom: 4 }}>{lp.titulo}</div>
+                    <div style={{ fontSize: 12, color: "#1C6CA6" }}>/lp/{lp.slug}</div>
                   </div>
                   <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
                     <button
                       onClick={() => copiar(`${appUrl}/lp/${lp.slug}`, `lp-${lp.id}`)}
-                      style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid #2e2e2e", background: "#1a1a1a", color: copiado === `lp-${lp.id}` ? "#22c55e" : "#808080", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}
+                      style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid #E6EBF0", background: "#FFFFFF", color: copiado === `lp-${lp.id}` ? "#22c55e" : "#808080", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}
                     >
                       <Copy size={13} /> {copiado === `lp-${lp.id}` ? "Copiado!" : "Copiar"}
                     </button>
-                    <a href={`/lp/${lp.slug}`} target="_blank" rel="noopener noreferrer" style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid #2e2e2e", background: "#1a1a1a", color: "#808080", cursor: "pointer", display: "flex", alignItems: "center", textDecoration: "none" }}>
+                    <a href={`/lp/${lp.slug}`} target="_blank" rel="noopener noreferrer" style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid #E6EBF0", background: "#FFFFFF", color: "#808080", cursor: "pointer", display: "flex", alignItems: "center", textDecoration: "none" }}>
                       <ExternalLink size={13} />
                     </a>
                     <button
                       onClick={() => router.push(`/ferramentas/lp?cliente_id=${id}&lp_id=${lp.id}`)}
-                      style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #2e2e2e", background: "#1a1a1a", color: "#f0f0f0", cursor: "pointer", fontSize: 13 }}
+                      style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #E6EBF0", background: "#FFFFFF", color: "#0A1826", cursor: "pointer", fontSize: 13 }}
                     >
                       Editar
                     </button>

@@ -100,9 +100,9 @@ function UsuarioModal({ item, times, agenciasFilhas, onClose, onSave }: { item?:
               {[{v:true,l:"Ativo"},{v:false,l:"Inativo"}].map(s=>(
                 <button key={String(s.v)} onClick={()=>set("ativo",s.v)} style={{
                   flex:1,padding:"8px",borderRadius:"8px",cursor:"pointer",fontSize:"13px",fontWeight:"500",
-                  border:`1px solid ${form.ativo===s.v?"#f0f0f0":"#2e2e2e"}`,
-                  background:form.ativo===s.v?"rgba(41,171,226,0.1)":"#222",
-                  color:form.ativo===s.v?"#f0f0f0":"#a0a0a0",
+                  border:`1px solid ${form.ativo===s.v?"#0A1826":"#E6EBF0"}`,
+                  background:form.ativo===s.v?"rgba(41,171,226,0.1)":"#E6EBF0",
+                  color:form.ativo===s.v?"#0A1826":"#4A5B6C",
                 }}>{s.l}</button>
               ))}
             </div>
@@ -115,11 +115,11 @@ function UsuarioModal({ item, times, agenciasFilhas, onClose, onSave }: { item?:
                   <button key={ag.id} onClick={() => setAcessoFilhas(prev => prev.includes(ag.id) ? prev.filter(x=>x!==ag.id) : [...prev, ag.id])}
                     style={{
                       display:"flex",alignItems:"center",gap:"10px",padding:"10px 14px",
-                      background: acessoFilhas.includes(ag.id) ? "rgba(41,171,226,0.1)" : "#1a1a1a",
-                      border: `1px solid ${acessoFilhas.includes(ag.id) ? "#29ABE2" : "#2e2e2e"}`,
-                      borderRadius:"8px",cursor:"pointer",textAlign:"left",color:"#f0f0f0",fontSize:"13px",width:"100%",
+                      background: acessoFilhas.includes(ag.id) ? "rgba(41,171,226,0.1)" : "#FFFFFF",
+                      border: `1px solid ${acessoFilhas.includes(ag.id) ? "#1C6CA6" : "#E6EBF0"}`,
+                      borderRadius:"8px",cursor:"pointer",textAlign:"left",color:"#0A1826",fontSize:"13px",width:"100%",
                     }}>
-                    <div style={{width:"18px",height:"18px",borderRadius:"4px",border:`2px solid ${acessoFilhas.includes(ag.id)?"#29ABE2":"#606060"}`,display:"flex",alignItems:"center",justifyContent:"center",background:acessoFilhas.includes(ag.id)?"#29ABE2":"transparent",flexShrink:0}}>
+                    <div style={{width:"18px",height:"18px",borderRadius:"4px",border:`2px solid ${acessoFilhas.includes(ag.id)?"#1C6CA6":"#4A5B6C"}`,display:"flex",alignItems:"center",justifyContent:"center",background:acessoFilhas.includes(ag.id)?"#1C6CA6":"transparent",flexShrink:0}}>
                       {acessoFilhas.includes(ag.id) && <Check size={12} color="#fff"/>}
                     </div>
                     {ag.nome}
@@ -133,7 +133,7 @@ function UsuarioModal({ item, times, agenciasFilhas, onClose, onSave }: { item?:
           <div style={{ background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.25)", borderRadius:"8px", padding:"10px 14px", fontSize:"13px", color:"#ef4444", marginTop:"12px" }}>{erro}</div>
         )}
         {!isEdit && (
-          <p style={{ fontSize:"11px", color:"#606060", marginTop:"12px" }}>O usuário receberá um email de convite para definir sua senha e acessar a plataforma.</p>
+          <p style={{ fontSize:"11px", color:"#4A5B6C", marginTop:"12px" }}>O usuário receberá um email de convite para definir sua senha e acessar a plataforma.</p>
         )}
         <div style={{display:"flex",justifyContent:"flex-end",gap:"8px",marginTop:"24px"}}>
           <button className="btn-secondary" onClick={onClose} style={{cursor:"pointer"}}>Cancelar</button>
@@ -182,14 +182,14 @@ export default function UsuariosPage() {
   return (
     <div className="animate-in">
       <div className="breadcrumb">
-        <a href="/">Início</a><span>›</span><span style={{color:"#a0a0a0"}}>Configurações</span><span>›</span>
+        <a href="/">Início</a><span>›</span><span style={{color:"#4A5B6C"}}>Configurações</span><span>›</span>
         <span className="current">Usuários</span>
       </div>
       <h1 style={{fontSize:"22px",fontWeight:"600",marginBottom:"24px"}}>Usuários</h1>
       <div className="table-wrapper">
-        <div style={{padding:"16px",display:"flex",gap:"12px",borderBottom:"1px solid #2e2e2e"}}>
+        <div style={{padding:"16px",display:"flex",gap:"12px",borderBottom:"1px solid #E6EBF0"}}>
           <div style={{position:"relative",flex:1}}>
-            <Search size={14} style={{position:"absolute",left:"12px",top:"50%",transform:"translateY(-50%)",color:"#606060"}}/>
+            <Search size={14} style={{position:"absolute",left:"12px",top:"50%",transform:"translateY(-50%)",color:"#4A5B6C"}}/>
             <input className="search-input" placeholder="Buscar usuários..." value={busca} onChange={e=>setBusca(e.target.value)}/>
           </div>
           <button className="btn-primary" onClick={()=>setShowModal(true)} style={{cursor:"pointer"}}>
@@ -200,20 +200,20 @@ export default function UsuariosPage() {
           <thead><tr><th>NOME</th><th>CPF</th><th>E-MAIL</th><th>TIME</th><th>STATUS</th><th></th></tr></thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} style={{textAlign:"center",color:"#606060",padding:"40px"}}>Carregando...</td></tr>
+              <tr><td colSpan={6} style={{textAlign:"center",color:"#4A5B6C",padding:"40px"}}>Carregando...</td></tr>
             ) : !filtrados.length ? (
-              <tr><td colSpan={6} style={{textAlign:"center",color:"#606060",padding:"40px"}}>Nenhum usuário encontrado.</td></tr>
+              <tr><td colSpan={6} style={{textAlign:"center",color:"#4A5B6C",padding:"40px"}}>Nenhum usuário encontrado.</td></tr>
             ) : filtrados.map(u=>(
               <tr key={u.id}>
                 <td style={{fontWeight:"500"}}>{u.nome}</td>
-                <td style={{color:"#a0a0a0"}}>{u.cpf||"—"}</td>
-                <td style={{color:"#a0a0a0"}}>{u.email}</td>
+                <td style={{color:"#4A5B6C"}}>{u.cpf||"—"}</td>
+                <td style={{color:"#4A5B6C"}}>{u.email}</td>
                 <td><span className="badge badge-gray">{u.times?.nome||"—"}</span></td>
                 <td>
                   <span style={{
                     padding:"3px 10px",borderRadius:"20px",fontSize:"12px",fontWeight:"500",
                     background:u.ativo?"rgba(41,171,226,0.15)":"rgba(96,96,96,0.15)",
-                    color:u.ativo?"#f0f0f0":"#606060"
+                    color:u.ativo?"#0A1826":"#4A5B6C"
                   }}>{u.ativo?"Ativo":"Inativo"}</span>
                 </td>
                 <td>

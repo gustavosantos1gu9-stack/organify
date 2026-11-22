@@ -451,9 +451,9 @@ export default function RelatoriosMetaPage() {
         }}>
           <AlertCircle size={18} style={{ color: "#f59e0b", flexShrink: 0 }} />
           <div>
-            <p style={{ fontSize: "13px", fontWeight: "600", color: "#f0f0f0" }}>Configure suas conexões primeiro</p>
-            <p style={{ fontSize: "12px", color: "#a0a0a0" }}>
-              Acesse <a href="/relatorios-meta/conexoes" style={{ color: "#29ABE2", textDecoration: "underline" }}>Conexões</a> para conectar o Facebook e o WhatsApp antes de criar relatórios.
+            <p style={{ fontSize: "13px", fontWeight: "600", color: "#0A1826" }}>Configure suas conexões primeiro</p>
+            <p style={{ fontSize: "12px", color: "#4A5B6C" }}>
+              Acesse <a href="/relatorios-meta/conexoes" style={{ color: "#1C6CA6", textDecoration: "underline" }}>Conexões</a> para conectar o Facebook e o WhatsApp antes de criar relatórios.
             </p>
           </div>
         </div>
@@ -462,7 +462,7 @@ export default function RelatoriosMetaPage() {
       {/* Filtros */}
       <div style={{ display: "flex", gap: "12px", marginBottom: "20px", flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ position: "relative", flex: 1, minWidth: "200px" }}>
-          <Search size={14} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#606060" }} />
+          <Search size={14} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#4A5B6C" }} />
           <input className="form-input" placeholder="Pesquisar..." value={busca} onChange={e => setBusca(e.target.value)} style={{ paddingLeft: "34px" }} />
         </div>
         <select className="form-input" style={{ width: "160px" }} value={filtroStatus} onChange={e => setFiltroStatus(e.target.value as any)}>
@@ -474,16 +474,16 @@ export default function RelatoriosMetaPage() {
           <option value="">Todas frequências</option>
           {FREQUENCIAS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
         </select>
-        <span style={{ fontSize: "12px", color: "#606060" }}>{filtrados.length} registro(s)</span>
+        <span style={{ fontSize: "12px", color: "#4A5B6C" }}>{filtrados.length} registro(s)</span>
       </div>
 
       {/* Tabela */}
       {loading ? (
-        <p style={{ color: "#606060", fontSize: "13px" }}>Carregando...</p>
+        <p style={{ color: "#4A5B6C", fontSize: "13px" }}>Carregando...</p>
       ) : filtrados.length === 0 ? (
         <div className="card" style={{ textAlign: "center", padding: "40px" }}>
-          <FileText size={32} style={{ color: "#3a3a3a", margin: "0 auto 12px" }} />
-          <p style={{ color: "#606060", fontSize: "14px" }}>Nenhum relatório criado ainda.</p>
+          <FileText size={32} style={{ color: "#E6EBF0", margin: "0 auto 12px" }} />
+          <p style={{ color: "#4A5B6C", fontSize: "14px" }}>Nenhum relatório criado ainda.</p>
           {!semConexao && (
             <button className="btn-primary" onClick={() => abrirModal()} style={{ cursor: "pointer", marginTop: "12px" }}>
               <Plus size={14} /> Criar primeiro relatório
@@ -494,54 +494,54 @@ export default function RelatoriosMetaPage() {
         <div className="card" style={{ padding: 0, overflow: "hidden" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
             <thead>
-              <tr style={{ borderBottom: "1px solid #2e2e2e" }}>
+              <tr style={{ borderBottom: "1px solid #E6EBF0" }}>
                 {["Status", "Criação", "Nome", "Cliente", "Destino", "Frequência", "Período", "Último envio", "Ações"].map(h => (
-                  <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: "11px", color: "#606060", fontWeight: "600" }}>{h}</th>
+                  <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: "11px", color: "#4A5B6C", fontWeight: "600" }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtrados.map(rel => (
-                <tr key={rel.id} style={{ borderBottom: "1px solid #1a1a1a" }}>
+                <tr key={rel.id} style={{ borderBottom: "1px solid #FFFFFF" }}>
                   <td style={{ padding: "10px 14px" }}>
                     <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: rel.ativo ? "#22c55e" : "#ef4444" }} />
                   </td>
-                  <td style={{ padding: "10px 14px", color: "#606060", fontSize: "12px" }}>{fmtData(rel.created_at)}</td>
-                  <td style={{ padding: "10px 14px", fontWeight: "600", color: "#f0f0f0" }}>{rel.nome}</td>
-                  <td style={{ padding: "10px 14px", color: "#a0a0a0" }}>
+                  <td style={{ padding: "10px 14px", color: "#4A5B6C", fontSize: "12px" }}>{fmtData(rel.created_at)}</td>
+                  <td style={{ padding: "10px 14px", fontWeight: "600", color: "#0A1826" }}>{rel.nome}</td>
+                  <td style={{ padding: "10px 14px", color: "#4A5B6C" }}>
                     {rel.nome_cliente}
-                    <br /><span style={{ fontSize: "11px", color: "#606060" }}>{rel.ad_account_id}</span>
+                    <br /><span style={{ fontSize: "11px", color: "#4A5B6C" }}>{rel.ad_account_id}</span>
                   </td>
-                  <td style={{ padding: "10px 14px", color: "#a0a0a0", fontSize: "12px" }}>{rel.grupo_nome || rel.contato_numero || "—"}</td>
+                  <td style={{ padding: "10px 14px", color: "#4A5B6C", fontSize: "12px" }}>{rel.grupo_nome || rel.contato_numero || "—"}</td>
                   <td style={{ padding: "10px 14px" }}>
                     <span style={{
                       fontSize: "11px", padding: "3px 8px", borderRadius: "12px",
                       background: rel.frequencia === "diario" ? "rgba(41,171,226,0.1)" : rel.frequencia === "semanal" ? "rgba(245,158,11,0.1)" : "rgba(160,160,160,0.1)",
-                      color: rel.frequencia === "diario" ? "#29ABE2" : rel.frequencia === "semanal" ? "#f59e0b" : "#a0a0a0",
+                      color: rel.frequencia === "diario" ? "#1C6CA6" : rel.frequencia === "semanal" ? "#f59e0b" : "#4A5B6C",
                     }}>{FREQUENCIAS.find(f => f.value === rel.frequencia)?.label || rel.frequencia}</span>
                   </td>
-                  <td style={{ padding: "10px 14px", color: "#a0a0a0", fontSize: "12px" }}>{PERIODOS.find(p => p.value === rel.periodo)?.label || rel.periodo}</td>
-                  <td style={{ padding: "10px 14px", color: "#606060", fontSize: "12px" }}>{fmtData(rel.ultimo_envio)}</td>
+                  <td style={{ padding: "10px 14px", color: "#4A5B6C", fontSize: "12px" }}>{PERIODOS.find(p => p.value === rel.periodo)?.label || rel.periodo}</td>
+                  <td style={{ padding: "10px 14px", color: "#4A5B6C", fontSize: "12px" }}>{fmtData(rel.ultimo_envio)}</td>
                   <td style={{ padding: "10px 14px" }}>
                     <div style={{ display: "flex", gap: "4px" }}>
                       <button onClick={() => enviarAgora(rel)} disabled={enviando === rel.id} title="Enviar agora"
-                        style={{ background: "rgba(41,171,226,0.1)", border: "1px solid rgba(41,171,226,0.2)", borderRadius: "6px", padding: "6px", cursor: "pointer", color: "#29ABE2" }}>
+                        style={{ background: "rgba(41,171,226,0.1)", border: "1px solid rgba(41,171,226,0.2)", borderRadius: "6px", padding: "6px", cursor: "pointer", color: "#1C6CA6" }}>
                         {enviando === rel.id ? <RefreshCw size={13} className="spin" /> : <Send size={13} />}
                       </button>
                       <button onClick={() => router.push(`/relatorios-meta/dashboard?id=${rel.id}`)} title="Dashboard"
-                        style={{ background: "rgba(41,171,226,0.1)", border: "1px solid rgba(41,171,226,0.2)", borderRadius: "6px", padding: "6px", cursor: "pointer", color: "#29ABE2" }}>
+                        style={{ background: "rgba(41,171,226,0.1)", border: "1px solid rgba(41,171,226,0.2)", borderRadius: "6px", padding: "6px", cursor: "pointer", color: "#1C6CA6" }}>
                         <BarChart2 size={13} />
                       </button>
                       <button onClick={() => abrirModal(rel)} title="Editar"
-                        style={{ background: "rgba(160,160,160,0.1)", border: "1px solid #2e2e2e", borderRadius: "6px", padding: "6px", cursor: "pointer", color: "#a0a0a0" }}>
+                        style={{ background: "rgba(160,160,160,0.1)", border: "1px solid #E6EBF0", borderRadius: "6px", padding: "6px", cursor: "pointer", color: "#4A5B6C" }}>
                         <Edit3 size={13} />
                       </button>
                       <button onClick={() => toggleAtivo(rel)} title={rel.ativo ? "Pausar" : "Ativar"}
-                        style={{ background: "rgba(160,160,160,0.1)", border: "1px solid #2e2e2e", borderRadius: "6px", padding: "6px", cursor: "pointer", color: rel.ativo ? "#f59e0b" : "#22c55e" }}>
+                        style={{ background: "rgba(160,160,160,0.1)", border: "1px solid #E6EBF0", borderRadius: "6px", padding: "6px", cursor: "pointer", color: rel.ativo ? "#f59e0b" : "#22c55e" }}>
                         {rel.ativo ? <Pause size={13} /> : <Play size={13} />}
                       </button>
                       <button onClick={() => duplicar(rel)} title="Duplicar"
-                        style={{ background: "rgba(160,160,160,0.1)", border: "1px solid #2e2e2e", borderRadius: "6px", padding: "6px", cursor: "pointer", color: "#a0a0a0" }}>
+                        style={{ background: "rgba(160,160,160,0.1)", border: "1px solid #E6EBF0", borderRadius: "6px", padding: "6px", cursor: "pointer", color: "#4A5B6C" }}>
                         <Copy size={13} />
                       </button>
                       <button onClick={() => deletar(rel.id)} title="Deletar"
@@ -564,12 +564,12 @@ export default function RelatoriosMetaPage() {
           display: "flex", justifyContent: "center", alignItems: "flex-start", padding: "40px 20px", overflowY: "auto",
         }}>
           <div style={{
-            background: "#141414", border: "1px solid #2e2e2e", borderRadius: "12px",
+            background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: "12px",
             width: "100%", maxWidth: "900px", padding: "28px",
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
               <h2 style={{ fontSize: "18px", fontWeight: "600" }}>{editando ? "Editar Relatório" : "Criar Relatório"}</h2>
-              <button onClick={() => setModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#606060" }}><X size={20} /></button>
+              <button onClick={() => setModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#4A5B6C" }}><X size={20} /></button>
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
@@ -594,20 +594,20 @@ export default function RelatoriosMetaPage() {
             <div className="form-group" style={{ marginBottom: "20px" }}>
               <label className="form-label">Conta de Anúncio</label>
               {loadingContas ? (
-                <p style={{ fontSize: "12px", color: "#606060" }}>Carregando contas do Facebook...</p>
+                <p style={{ fontSize: "12px", color: "#4A5B6C" }}>Carregando contas do Facebook...</p>
               ) : erroContas ? (
                 <div>
                   <div style={{ padding: "12px 14px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "8px", marginBottom: "8px" }}>
                     <p style={{ fontSize: "12px", color: "#ef4444", marginBottom: "6px" }}>{erroContas}</p>
-                    <a href="/relatorios-meta/conexoes" style={{ fontSize: "12px", color: "#29ABE2", textDecoration: "underline" }}>Ir para Conexões e reconectar</a>
+                    <a href="/relatorios-meta/conexoes" style={{ fontSize: "12px", color: "#1C6CA6", textDecoration: "underline" }}>Ir para Conexões e reconectar</a>
                   </div>
                   <input className="form-input" placeholder="act_1234567890 (manual)" value={adAccountId} onChange={e => setAdAccountId(e.target.value)} />
                 </div>
               ) : contas.length === 0 ? (
                 <div>
                   <input className="form-input" placeholder="act_1234567890" value={adAccountId} onChange={e => setAdAccountId(e.target.value)} />
-                  <p style={{ fontSize: "11px", color: "#606060", marginTop: "4px" }}>
-                    Nenhuma conta encontrada. Verifique a conexão em <a href="/relatorios-meta/conexoes" style={{ color: "#29ABE2" }}>Conexões</a>.
+                  <p style={{ fontSize: "11px", color: "#4A5B6C", marginTop: "4px" }}>
+                    Nenhuma conta encontrada. Verifique a conexão em <a href="/relatorios-meta/conexoes" style={{ color: "#1C6CA6" }}>Conexões</a>.
                   </p>
                 </div>
               ) : (
@@ -619,12 +619,12 @@ export default function RelatoriosMetaPage() {
                       <button key={c.id} onClick={() => setAdAccountId(c.id)}
                         style={{
                           display: "flex", justifyContent: "space-between", alignItems: "center",
-                          padding: "10px 14px", background: adAccountId === c.id ? "rgba(41,171,226,0.1)" : "#1a1a1a",
-                          border: `1px solid ${adAccountId === c.id ? "#29ABE2" : "#2e2e2e"}`,
-                          borderRadius: "8px", cursor: "pointer", textAlign: "left", color: "#f0f0f0", fontSize: "12px",
+                          padding: "10px 14px", background: adAccountId === c.id ? "rgba(41,171,226,0.1)" : "#FFFFFF",
+                          border: `1px solid ${adAccountId === c.id ? "#1C6CA6" : "#E6EBF0"}`,
+                          borderRadius: "8px", cursor: "pointer", textAlign: "left", color: "#0A1826", fontSize: "12px",
                         }}>
                         <span style={{ fontWeight: adAccountId === c.id ? "600" : "400" }}>{c.name}</span>
-                        <span style={{ color: "#606060", fontSize: "11px" }}>{c.id}</span>
+                        <span style={{ color: "#4A5B6C", fontSize: "11px" }}>{c.id}</span>
                       </button>
                     ))}
                   </div>
@@ -662,29 +662,29 @@ export default function RelatoriosMetaPage() {
               <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
                 <button onClick={() => setDestinoTipo("grupo")} style={{
                   padding: "6px 16px", borderRadius: "6px", fontSize: "12px", cursor: "pointer",
-                  background: destinoTipo === "grupo" ? "rgba(41,171,226,0.15)" : "#1a1a1a",
-                  border: `1px solid ${destinoTipo === "grupo" ? "#29ABE2" : "#2e2e2e"}`, color: destinoTipo === "grupo" ? "#29ABE2" : "#a0a0a0",
+                  background: destinoTipo === "grupo" ? "rgba(41,171,226,0.15)" : "#FFFFFF",
+                  border: `1px solid ${destinoTipo === "grupo" ? "#1C6CA6" : "#E6EBF0"}`, color: destinoTipo === "grupo" ? "#1C6CA6" : "#4A5B6C",
                 }}><MessageCircle size={12} style={{ marginRight: "4px", verticalAlign: "middle" }} /> Grupo</button>
                 <button onClick={() => setDestinoTipo("contato")} style={{
                   padding: "6px 16px", borderRadius: "6px", fontSize: "12px", cursor: "pointer",
-                  background: destinoTipo === "contato" ? "rgba(41,171,226,0.15)" : "#1a1a1a",
-                  border: `1px solid ${destinoTipo === "contato" ? "#29ABE2" : "#2e2e2e"}`, color: destinoTipo === "contato" ? "#29ABE2" : "#a0a0a0",
+                  background: destinoTipo === "contato" ? "rgba(41,171,226,0.15)" : "#FFFFFF",
+                  border: `1px solid ${destinoTipo === "contato" ? "#1C6CA6" : "#E6EBF0"}`, color: destinoTipo === "contato" ? "#1C6CA6" : "#4A5B6C",
                 }}>Contato</button>
               </div>
 
               {destinoTipo === "grupo" ? (
                 loadingGrupos ? (
-                  <p style={{ fontSize: "12px", color: "#606060" }}>Carregando grupos...</p>
+                  <p style={{ fontSize: "12px", color: "#4A5B6C" }}>Carregando grupos...</p>
                 ) : grupos.length === 0 ? (
                   <div>
                     {semWhatsApp ? (
                       <p style={{ fontSize: "12px", color: "#f59e0b" }}>
-                        WhatsApp não conectado. Conecte em <a href="/relatorios-meta/conexoes" style={{ color: "#29ABE2", textDecoration: "underline" }}>Conexões</a> primeiro.
+                        WhatsApp não conectado. Conecte em <a href="/relatorios-meta/conexoes" style={{ color: "#1C6CA6", textDecoration: "underline" }}>Conexões</a> primeiro.
                       </p>
                     ) : (
                       <>
                         <input className="form-input" placeholder="ID do grupo" value={grupoId} onChange={e => setGrupoId(e.target.value)} />
-                        <p style={{ fontSize: "11px", color: "#606060", marginTop: "4px" }}>Nenhum grupo encontrado. Verifique a conexão em <a href="/relatorios-meta/conexoes" style={{ color: "#29ABE2" }}>Conexões</a>.</p>
+                        <p style={{ fontSize: "11px", color: "#4A5B6C", marginTop: "4px" }}>Nenhum grupo encontrado. Verifique a conexão em <a href="/relatorios-meta/conexoes" style={{ color: "#1C6CA6" }}>Conexões</a>.</p>
                       </>
                     )}
                   </div>
@@ -697,12 +697,12 @@ export default function RelatoriosMetaPage() {
                         <button key={g.id} onClick={() => { setGrupoId(g.id); setGrupoNome(g.subject); }}
                           style={{
                             display: "flex", justifyContent: "space-between", padding: "10px 14px",
-                            background: grupoId === g.id ? "rgba(41,171,226,0.1)" : "#1a1a1a",
-                            border: `1px solid ${grupoId === g.id ? "#29ABE2" : "#2e2e2e"}`,
-                            borderRadius: "8px", cursor: "pointer", textAlign: "left", color: "#f0f0f0", fontSize: "12px",
+                            background: grupoId === g.id ? "rgba(41,171,226,0.1)" : "#FFFFFF",
+                            border: `1px solid ${grupoId === g.id ? "#1C6CA6" : "#E6EBF0"}`,
+                            borderRadius: "8px", cursor: "pointer", textAlign: "left", color: "#0A1826", fontSize: "12px",
                           }}>
                           <span style={{ fontWeight: grupoId === g.id ? "600" : "400" }}>{g.subject}</span>
-                          <span style={{ color: "#606060", fontSize: "11px" }}>{g.size} membros</span>
+                          <span style={{ color: "#4A5B6C", fontSize: "11px" }}>{g.size} membros</span>
                         </button>
                       ))}
                     </div>
@@ -718,7 +718,7 @@ export default function RelatoriosMetaPage() {
               <div className="form-group">
                 <label className="form-label">Período dos dados</label>
                 {frequencia === "mensal" ? (
-                  <div className="form-input" style={{ background:"#0d0d0d", color:"#606060", cursor:"not-allowed" }}>
+                  <div className="form-input" style={{ background:"#0d0d0d", color:"#4A5B6C", cursor:"not-allowed" }}>
                     Mês anterior (automático)
                   </div>
                 ) : (
@@ -756,15 +756,15 @@ export default function RelatoriosMetaPage() {
             </div>
 
             {/* Variáveis */}
-            <div style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "8px", padding: "12px 16px", marginBottom: "20px" }}>
-              <p style={{ fontSize: "11px", fontWeight: "600", color: "#a0a0a0", marginBottom: "8px" }}>Variáveis (clique para inserir):</p>
+            <div style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: "8px", padding: "12px 16px", marginBottom: "20px" }}>
+              <p style={{ fontSize: "11px", fontWeight: "600", color: "#4A5B6C", marginBottom: "8px" }}>Variáveis (clique para inserir):</p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                 {VARIAVEIS.map(v => (
                   <button key={v.var} onClick={() => setTemplate(t => t + v.var)} title={v.desc}
                     style={{
                       padding: "3px 8px", borderRadius: "4px", fontSize: "11px", cursor: "pointer",
                       background: "rgba(41,171,226,0.1)", border: "1px solid rgba(41,171,226,0.2)",
-                      color: "#29ABE2", fontFamily: "monospace",
+                      color: "#1C6CA6", fontFamily: "monospace",
                     }}>{v.var}</button>
                 ))}
               </div>
@@ -772,10 +772,10 @@ export default function RelatoriosMetaPage() {
 
             {/* Preview */}
             {showPreview && (
-              <div style={{ background: "#0d1117", border: "1px solid #2e2e2e", borderRadius: "8px", padding: "16px", marginBottom: "20px", maxHeight: "300px", overflowY: "auto" }}>
-                <p style={{ fontSize: "11px", fontWeight: "600", color: "#29ABE2", marginBottom: "8px" }}>Preview:</p>
+              <div style={{ background: "#0d1117", border: "1px solid #E6EBF0", borderRadius: "8px", padding: "16px", marginBottom: "20px", maxHeight: "300px", overflowY: "auto" }}>
+                <p style={{ fontSize: "11px", fontWeight: "600", color: "#1C6CA6", marginBottom: "8px" }}>Preview:</p>
                 {previewLoading ? (
-                  <p style={{ color: "#606060", fontSize: "12px" }}>Gerando...</p>
+                  <p style={{ color: "#4A5B6C", fontSize: "12px" }}>Gerando...</p>
                 ) : (
                   <pre style={{ fontSize: "12px", color: "#d0d0d0", whiteSpace: "pre-wrap", fontFamily: "monospace", lineHeight: "1.6", margin: 0 }}>{previewMsg}</pre>
                 )}

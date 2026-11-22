@@ -60,9 +60,9 @@ export default function OrigensPage() {
       <h1 style={{ fontSize: "22px", fontWeight: "600", marginBottom: "24px" }}>Origens</h1>
 
       <div className="table-wrapper">
-        <div style={{ padding: "16px", display: "flex", gap: "12px", borderBottom: "1px solid #2e2e2e" }}>
+        <div style={{ padding: "16px", display: "flex", gap: "12px", borderBottom: "1px solid #E6EBF0" }}>
           <div style={{ position: "relative", flex: 1 }}>
-            <Search size={14} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#606060" }} />
+            <Search size={14} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#4A5B6C" }} />
             <input className="search-input" placeholder="Buscar origens..." value={busca} onChange={(e) => setBusca(e.target.value)} />
           </div>
           <button className="btn-primary" onClick={() => { setEditando(null); setNome(""); setAtivo(true); setShowModal(true); }}>
@@ -82,9 +82,9 @@ export default function OrigensPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={5} style={{ textAlign: "center", color: "#606060", padding: "40px" }}>Carregando...</td></tr>
+              <tr><td colSpan={5} style={{ textAlign: "center", color: "#4A5B6C", padding: "40px" }}>Carregando...</td></tr>
             ) : filtradas.length === 0 ? (
-              <tr><td colSpan={5} style={{ textAlign: "center", color: "#606060", padding: "40px" }}>Nenhuma origem encontrada.</td></tr>
+              <tr><td colSpan={5} style={{ textAlign: "center", color: "#4A5B6C", padding: "40px" }}>Nenhuma origem encontrada.</td></tr>
             ) : filtradas.map((o) => (
               <tr key={o.id}>
                 <td><input type="checkbox" style={{ width: "14px", height: "14px" }} /></td>
@@ -127,13 +127,13 @@ export default function OrigensPage() {
                 onKeyDown={(e) => e.key === "Enter" && handleSalvar()}
                 autoFocus
               />
-              <p style={{ fontSize: "11px", color: "#606060", marginTop: "6px" }}>
+              <p style={{ fontSize: "11px", color: "#4A5B6C", marginTop: "6px" }}>
                 Adicione a origem do seu lead ou cliente. Ex: Site, Instagram, Facebook, Google ads.
               </p>
             </div>
 
             <div className="form-group" style={{ marginTop: "12px" }}>
-              <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px", color: "#a0a0a0" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px", color: "#4A5B6C" }}>
                 <input type="checkbox" checked={ativo} onChange={(e) => setAtivo(e.target.checked)} />
                 Ativo
               </label>

@@ -31,10 +31,10 @@ export default function KPICard({
   subtitle,
 }: KPICardProps) {
   const changeColor =
-    change === undefined ? "#606060"
+    change === undefined ? "#4A5B6C"
     : change > 0 ? "#22c55e"
     : change < 0 ? "#ef4444"
-    : "#606060";
+    : "#4A5B6C";
 
   const changeLabel =
     change === undefined ? "0% vs. último período"
@@ -43,7 +43,7 @@ export default function KPICard({
   return (
     <div className="kpi-card" style={{ position: "relative" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
-        <span style={{ fontSize: "13px", color: "#a0a0a0" }}>{label}</span>
+        <span style={{ fontSize: "13px", color: "#4A5B6C" }}>{label}</span>
         <div
           style={{
             width: "34px",
@@ -59,12 +59,12 @@ export default function KPICard({
           {icon}
         </div>
       </div>
-      <div style={{ fontSize: "24px", fontWeight: "700", color: "#f0f0f0", marginBottom: "8px" }}>
+      <div style={{ fontSize: "24px", fontWeight: "700", color: "#0A1826", marginBottom: "8px" }}>
         {value}
       </div>
       {subtitle
-        ? <div style={{ fontSize: "12px", color: "#29ABE2" }}>{subtitle}</div>
-        : <div style={{ fontSize: "12px", color: changeColor }}>{changeLabel}</div>
+        ? <div style={{ fontSize: "12px", color: "#1C6CA6" }}>{subtitle}</div>
+        : (change !== undefined && change !== 0) ? <div style={{ fontSize: "12px", color: changeColor }}>{changeLabel}</div> : null
       }
     </div>
   );

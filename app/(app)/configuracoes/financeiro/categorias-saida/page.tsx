@@ -69,9 +69,9 @@ export default function CategoriasSaidaPage() {
       <h1 style={{ fontSize: "22px", fontWeight: "600", marginBottom: "24px" }}>Categorias de saída</h1>
 
       <div className="table-wrapper">
-        <div style={{ padding: "16px", display: "flex", gap: "12px", borderBottom: "1px solid #2e2e2e" }}>
+        <div style={{ padding: "16px", display: "flex", gap: "12px", borderBottom: "1px solid #E6EBF0" }}>
           <div style={{ position: "relative", flex: 1 }}>
-            <Search size={14} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#606060" }} />
+            <Search size={14} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#4A5B6C" }} />
             <input
               className="search-input"
               placeholder="Buscar tipos de saída..."
@@ -94,9 +94,9 @@ export default function CategoriasSaidaPage() {
           </thead>
           <tbody>
             {loadingCategorias ? (
-              <tr><td colSpan={3} style={{ textAlign: "center", color: "#606060", padding: "40px" }}>Carregando...</td></tr>
+              <tr><td colSpan={3} style={{ textAlign: "center", color: "#4A5B6C", padding: "40px" }}>Carregando...</td></tr>
             ) : !filtradas.length ? (
-              <tr><td colSpan={3} style={{ textAlign: "center", color: "#606060", padding: "40px" }}>Nenhuma categoria encontrada.</td></tr>
+              <tr><td colSpan={3} style={{ textAlign: "center", color: "#4A5B6C", padding: "40px" }}>Nenhuma categoria encontrada.</td></tr>
             ) : filtradas.map((cat) => (
               <tr key={cat.id}>
                 <td><input type="checkbox" style={{ width: "14px", height: "14px" }} /></td>
@@ -136,7 +136,7 @@ export default function CategoriasSaidaPage() {
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
               />
-              <p style={{ fontSize: "11px", color: "#606060", marginTop: "6px" }}>
+              <p style={{ fontSize: "11px", color: "#4A5B6C", marginTop: "6px" }}>
                 Adicione uma categoria de saída ex: Reembolso de cliente, escritório de contabilidade.
               </p>
             </div>

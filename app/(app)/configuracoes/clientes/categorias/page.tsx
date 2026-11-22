@@ -57,9 +57,9 @@ export default function CategoriasClientesPage() {
       <h1 style={{ fontSize: "22px", fontWeight: "600", marginBottom: "24px" }}>Categorias</h1>
 
       <div className="table-wrapper">
-        <div style={{ padding: "16px", display: "flex", gap: "12px", borderBottom: "1px solid #2e2e2e" }}>
+        <div style={{ padding: "16px", display: "flex", gap: "12px", borderBottom: "1px solid #E6EBF0" }}>
           <div style={{ position: "relative", flex: 1 }}>
-            <Search size={14} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#606060" }} />
+            <Search size={14} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#4A5B6C" }} />
             <input className="search-input" placeholder="Buscar categorias..." value={busca} onChange={(e) => setBusca(e.target.value)} />
           </div>
           <button className="btn-primary" onClick={() => { setEditando(null); setNome(""); setShowModal(true); }}>
@@ -78,9 +78,9 @@ export default function CategoriasClientesPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={4} style={{ textAlign: "center", color: "#606060", padding: "40px" }}>Carregando...</td></tr>
+              <tr><td colSpan={4} style={{ textAlign: "center", color: "#4A5B6C", padding: "40px" }}>Carregando...</td></tr>
             ) : filtradas.length === 0 ? (
-              <tr><td colSpan={4} style={{ textAlign: "center", color: "#606060", padding: "40px" }}>Nenhuma categoria encontrada.</td></tr>
+              <tr><td colSpan={4} style={{ textAlign: "center", color: "#4A5B6C", padding: "40px" }}>Nenhuma categoria encontrada.</td></tr>
             ) : filtradas.map((cat) => (
               <tr key={cat.id}>
                 <td><input type="checkbox" style={{ width: "14px", height: "14px" }} /></td>
@@ -122,7 +122,7 @@ export default function CategoriasClientesPage() {
                 onKeyDown={(e) => e.key === "Enter" && handleSalvar()}
                 autoFocus
               />
-              <p style={{ fontSize: "11px", color: "#606060", marginTop: "6px" }}>
+              <p style={{ fontSize: "11px", color: "#4A5B6C", marginTop: "6px" }}>
                 Adicione uma categoria ex: Agronegócio, Saúde, Microempresa, B2B, B2C.
               </p>
             </div>

@@ -195,59 +195,59 @@ export default function CadastrosPage() {
         <div>
           <div className="breadcrumb"><a href="/">Início</a><span>›</span><span className="current">Cadastros</span></div>
           <h1 style={{ fontSize: "22px", fontWeight: "600" }}>Cadastros de Clientes</h1>
-          <p style={{ fontSize: "13px", color: "#606060", marginTop: "4px" }}>Formulários enviados pelo link público</p>
+          <p style={{ fontSize: "13px", color: "#4A5B6C", marginTop: "4px" }}>Formulários enviados pelo link público</p>
         </div>
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
           {/* Link público */}
-          <div style={{ display: "flex", alignItems: "center", background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "8px", padding: "0 4px 0 12px", gap: "6px" }}>
-            <span style={{ fontSize: "12px", color: "#606060", whiteSpace: "nowrap" }}>Link público:</span>
-            <span style={{ fontSize: "12px", color: "#29ABE2", maxWidth: "220px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{LINK_PUBLICO}</span>
+          <div style={{ display: "flex", alignItems: "center", background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: "8px", padding: "0 4px 0 12px", gap: "6px" }}>
+            <span style={{ fontSize: "12px", color: "#4A5B6C", whiteSpace: "nowrap" }}>Link público:</span>
+            <span style={{ fontSize: "12px", color: "#1C6CA6", maxWidth: "220px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{LINK_PUBLICO}</span>
             <button onClick={copiarLink}
-              style={{ background: copiado ? "#052e16" : "#2a2a2a", border: "none", borderRadius: "6px", padding: "7px 10px", cursor: "pointer", color: copiado ? "#22c55e" : "#a0a0a0", display: "flex", alignItems: "center", gap: "4px", fontSize: "12px" }}>
+              style={{ background: copiado ? "#052e16" : "#E6EBF0", border: "none", borderRadius: "6px", padding: "7px 10px", cursor: "pointer", color: copiado ? "#22c55e" : "#4A5B6C", display: "flex", alignItems: "center", gap: "4px", fontSize: "12px" }}>
               {copiado ? <><Check size={13} /> Copiado</> : <><Copy size={13} /> Copiar</>}
             </button>
           </div>
           {/* Editar perguntas */}
           <button onClick={() => setModalCampos(true)}
-            style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "8px", padding: "8px 12px", cursor: "pointer", color: "#a0a0a0", display: "flex", alignItems: "center", gap: "6px", fontSize: "13px" }}>
+            style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: "8px", padding: "8px 12px", cursor: "pointer", color: "#4A5B6C", display: "flex", alignItems: "center", gap: "6px", fontSize: "13px" }}>
             <Settings size={14} /> Editar perguntas
           </button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: "4px", marginBottom: "20px", background: "#1a1a1a", padding: "4px", borderRadius: "10px", width: "fit-content" }}>
+      <div style={{ display: "flex", gap: "4px", marginBottom: "20px", background: "#FFFFFF", padding: "4px", borderRadius: "10px", width: "fit-content" }}>
         {TABS.map(t => (
           <button key={t.key} onClick={() => setFiltro(t.key)}
-            style={{ padding: "7px 20px", border: "none", borderRadius: "7px", cursor: "pointer", fontSize: "13px", fontWeight: filtro === t.key ? "600" : "400", background: filtro === t.key ? "#29ABE2" : "transparent", color: filtro === t.key ? "#000" : "#606060" }}>
+            style={{ padding: "7px 20px", border: "none", borderRadius: "7px", cursor: "pointer", fontSize: "13px", fontWeight: filtro === t.key ? "600" : "400", background: filtro === t.key ? "#1C6CA6" : "transparent", color: filtro === t.key ? "#000" : "#4A5B6C" }}>
             {t.label}
           </button>
         ))}
       </div>
 
       {/* Tabela */}
-      <div style={{ border: "1px solid #2e2e2e", borderRadius: "12px", overflow: "hidden" }}>
+      <div style={{ border: "1px solid #E6EBF0", borderRadius: "12px", overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
           <thead>
-            <tr style={{ background: "#1a1a1a", borderBottom: "1px solid #2e2e2e" }}>
-              <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "11px", color: "#606060", fontWeight: "600" }}>NOME</th>
-              <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "11px", color: "#606060", fontWeight: "600" }}>EMAIL</th>
-              <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "11px", color: "#606060", fontWeight: "600" }}>DATA DE ENTRADA</th>
-              <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "11px", color: "#606060", fontWeight: "600" }}>INVESTIMENTO</th>
-              <th style={{ padding: "12px 16px", textAlign: "right", fontSize: "11px", color: "#606060", fontWeight: "600" }}>AÇÕES</th>
+            <tr style={{ background: "#FFFFFF", borderBottom: "1px solid #E6EBF0" }}>
+              <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "11px", color: "#4A5B6C", fontWeight: "600" }}>NOME</th>
+              <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "11px", color: "#4A5B6C", fontWeight: "600" }}>EMAIL</th>
+              <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "11px", color: "#4A5B6C", fontWeight: "600" }}>DATA DE ENTRADA</th>
+              <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "11px", color: "#4A5B6C", fontWeight: "600" }}>INVESTIMENTO</th>
+              <th style={{ padding: "12px 16px", textAlign: "right", fontSize: "11px", color: "#4A5B6C", fontWeight: "600" }}>AÇÕES</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={5} style={{ textAlign: "center", color: "#606060", padding: "48px" }}>Carregando...</td></tr>
+              <tr><td colSpan={5} style={{ textAlign: "center", color: "#4A5B6C", padding: "48px" }}>Carregando...</td></tr>
             ) : !cadastros.length ? (
-              <tr><td colSpan={5} style={{ textAlign: "center", color: "#606060", padding: "48px" }}>Nenhum cadastro {filtro}.</td></tr>
+              <tr><td colSpan={5} style={{ textAlign: "center", color: "#4A5B6C", padding: "48px" }}>Nenhum cadastro {filtro}.</td></tr>
             ) : cadastros.map((c, idx) => (
-              <tr key={c.id} style={{ borderBottom: "1px solid #1e1e1e", background: idx % 2 === 0 ? "transparent" : "#0a0a0a" }}>
-                <td style={{ padding: "12px 16px", color: "#f0f0f0", fontWeight: "600" }}>{c.nome}</td>
-                <td style={{ padding: "12px 16px", color: "#a0a0a0" }}>{c.email}</td>
-                <td style={{ padding: "12px 16px", color: "#a0a0a0" }}>{formatarData(c.criado_em)}</td>
-                <td style={{ padding: "12px 16px", color: "#a0a0a0" }}>{c.investimento_anuncios}</td>
+              <tr key={c.id} style={{ borderBottom: "1px solid #FFFFFF", background: idx % 2 === 0 ? "transparent" : "#0a0a0a" }}>
+                <td style={{ padding: "12px 16px", color: "#0A1826", fontWeight: "600" }}>{c.nome}</td>
+                <td style={{ padding: "12px 16px", color: "#4A5B6C" }}>{c.email}</td>
+                <td style={{ padding: "12px 16px", color: "#4A5B6C" }}>{formatarData(c.criado_em)}</td>
+                <td style={{ padding: "12px 16px", color: "#4A5B6C" }}>{c.investimento_anuncios}</td>
                 <td style={{ padding: "12px 16px" }}>
                   <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
                     <button onClick={async () => {
@@ -264,7 +264,7 @@ export default function CadastrosPage() {
                         } catch { setSenhaDescriptografada("Erro"); }
                       }
                     }}
-                      style={{ background: "#2a2a2a", border: "none", borderRadius: "6px", padding: "6px 10px", cursor: "pointer", color: "#a0a0a0", display: "flex", alignItems: "center", gap: "4px", fontSize: "12px" }}>
+                      style={{ background: "#E6EBF0", border: "none", borderRadius: "6px", padding: "6px 10px", cursor: "pointer", color: "#4A5B6C", display: "flex", alignItems: "center", gap: "4px", fontSize: "12px" }}>
                       <Eye size={13} /> Ver
                     </button>
                     {(filtro === "pendente" || filtro === "notificado") && (
@@ -295,41 +295,41 @@ export default function CadastrosPage() {
       {detalhe && (
         <>
           <div onClick={() => setDetalhe(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 100 }} />
-          <div style={{ position: "fixed", right: 0, top: 0, bottom: 0, width: "420px", background: "#141414", borderLeft: "1px solid #2e2e2e", zIndex: 101, display: "flex", flexDirection: "column", overflowY: "auto" }}>
-            <div style={{ padding: "16px 20px", borderBottom: "1px solid #2e2e2e", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#1a1a1a", position: "sticky", top: 0 }}>
+          <div style={{ position: "fixed", right: 0, top: 0, bottom: 0, width: "420px", background: "#FFFFFF", borderLeft: "1px solid #E6EBF0", zIndex: 101, display: "flex", flexDirection: "column", overflowY: "auto" }}>
+            <div style={{ padding: "16px 20px", borderBottom: "1px solid #E6EBF0", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#FFFFFF", position: "sticky", top: 0 }}>
               <div>
-                <p style={{ fontSize: "15px", fontWeight: "700", color: "#f0f0f0", margin: 0 }}>{detalhe.nome}</p>
-                <p style={{ fontSize: "11px", color: "#606060", margin: 0 }}>Entrada: {formatarData(detalhe.criado_em)}</p>
+                <p style={{ fontSize: "15px", fontWeight: "700", color: "#0A1826", margin: 0 }}>{detalhe.nome}</p>
+                <p style={{ fontSize: "11px", color: "#4A5B6C", margin: 0 }}>Entrada: {formatarData(detalhe.criado_em)}</p>
               </div>
-              <button onClick={() => setDetalhe(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#606060" }}><X size={16} /></button>
+              <button onClick={() => setDetalhe(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#4A5B6C" }}><X size={16} /></button>
             </div>
             <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "14px" }}>
               {camposDetalhe.map(campo => (
                 <div key={campo.key}>
-                  <p style={{ fontSize: "11px", color: "#606060", margin: "0 0 3px" }}>{campo.label.toUpperCase()}</p>
+                  <p style={{ fontSize: "11px", color: "#4A5B6C", margin: "0 0 3px" }}>{campo.label.toUpperCase()}</p>
                   {campo.key === "_senha_facebook" ? (
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <p style={{ fontSize: "13px", color: "#f0f0f0", margin: 0, wordBreak: "break-word" }}>
+                      <p style={{ fontSize: "13px", color: "#0A1826", margin: 0, wordBreak: "break-word" }}>
                         {senhaVisivel ? senhaDescriptografada || "—" : "••••••••"}
                       </p>
                       <button onClick={() => setSenhaVisivel(!senhaVisivel)}
-                        style={{ background: "none", border: "1px solid #2e2e2e", borderRadius: "4px", padding: "2px 8px", cursor: "pointer", color: "#606060", fontSize: "11px" }}>
+                        style={{ background: "none", border: "1px solid #E6EBF0", borderRadius: "4px", padding: "2px 8px", cursor: "pointer", color: "#4A5B6C", fontSize: "11px" }}>
                         {senhaVisivel ? "Ocultar" : "Ver"}
                       </button>
                       {senhaVisivel && senhaDescriptografada && (
                         <button onClick={() => { navigator.clipboard.writeText(senhaDescriptografada); }}
-                          style={{ background: "none", border: "1px solid #2e2e2e", borderRadius: "4px", padding: "2px 8px", cursor: "pointer", color: "#606060", fontSize: "11px" }}>
+                          style={{ background: "none", border: "1px solid #E6EBF0", borderRadius: "4px", padding: "2px 8px", cursor: "pointer", color: "#4A5B6C", fontSize: "11px" }}>
                           Copiar
                         </button>
                       )}
                     </div>
                   ) : (
-                    <p style={{ fontSize: "13px", color: "#f0f0f0", margin: 0, wordBreak: "break-word" }}>{(detalhe as any)[campo.key] || "—"}</p>
+                    <p style={{ fontSize: "13px", color: "#0A1826", margin: 0, wordBreak: "break-word" }}>{(detalhe as any)[campo.key] || "—"}</p>
                   )}
                 </div>
               ))}
             </div>
-            <div style={{ padding: "16px 20px", borderTop: "1px solid #2e2e2e", display: "flex", gap: "10px", position: "sticky", bottom: 0, background: "#141414", flexWrap: "wrap" }}>
+            <div style={{ padding: "16px 20px", borderTop: "1px solid #E6EBF0", display: "flex", gap: "10px", position: "sticky", bottom: 0, background: "#FFFFFF", flexWrap: "wrap" }}>
               {(detalhe.status === "pendente" || detalhe.status === "notificado") && (
                 <>
                   <button onClick={() => aprovar(detalhe)} disabled={aprovando === detalhe.id}
@@ -344,7 +344,7 @@ export default function CadastrosPage() {
               )}
               {(detalhe.status === "pendente" || detalhe.status === "notificado" || detalhe.status === "aprovado") && (
                 <button onClick={() => setModalContrato(detalhe)}
-                  style={{ width: "100%", padding: "12px", background: "#29ABE215", border: "1px solid #29ABE240", borderRadius: "8px", cursor: "pointer", color: "#29ABE2", fontWeight: "600", fontSize: "13px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+                  style={{ width: "100%", padding: "12px", background: "#29ABE215", border: "1px solid #29ABE240", borderRadius: "8px", cursor: "pointer", color: "#1C6CA6", fontWeight: "600", fontSize: "13px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
                   <FileText size={14} /> Enviar Contrato via Autentique
                 </button>
               )}
@@ -376,27 +376,27 @@ export default function CadastrosPage() {
       {modalCampos && (
         <>
           <div onClick={() => setModalCampos(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 200 }} />
-          <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", background: "#141414", border: "1px solid #2e2e2e", borderRadius: "12px", width: "520px", maxHeight: "80vh", display: "flex", flexDirection: "column", zIndex: 201, boxShadow: "0 20px 60px rgba(0,0,0,0.8)" }}>
-            <div style={{ padding: "16px 20px", borderBottom: "1px solid #2e2e2e", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: "12px", width: "520px", maxHeight: "80vh", display: "flex", flexDirection: "column", zIndex: 201, boxShadow: "0 20px 60px rgba(0,0,0,0.8)" }}>
+            <div style={{ padding: "16px 20px", borderBottom: "1px solid #E6EBF0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div>
-                <p style={{ fontSize: "15px", fontWeight: "700", color: "#f0f0f0", margin: 0 }}>Editar perguntas do formulário</p>
-                <p style={{ fontSize: "12px", color: "#606060", margin: 0 }}>As alterações atualizam o formulário público</p>
+                <p style={{ fontSize: "15px", fontWeight: "700", color: "#0A1826", margin: 0 }}>Editar perguntas do formulário</p>
+                <p style={{ fontSize: "12px", color: "#4A5B6C", margin: 0 }}>As alterações atualizam o formulário público</p>
               </div>
-              <button onClick={() => setModalCampos(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#606060" }}><X size={16} /></button>
+              <button onClick={() => setModalCampos(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#4A5B6C" }}><X size={16} /></button>
             </div>
             <div style={{ overflowY: "auto", padding: "16px 20px", flex: 1 }}>
               {campos.map((campo, idx) => (
-                <div key={campo.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 10px", borderRadius: "8px", marginBottom: "4px", background: "#1a1a1a", border: "1px solid #2e2e2e" }}>
+                <div key={campo.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 10px", borderRadius: "8px", marginBottom: "4px", background: "#FFFFFF", border: "1px solid #E6EBF0" }}>
                   <GripVertical size={14} style={{ color: "#404040", flexShrink: 0 }} />
                   {editandoLabel === campo.id ? (
                     <input autoFocus defaultValue={campo.label}
                       onBlur={e => salvarLabel(campo.id, e.target.value)}
                       onKeyDown={e => { if (e.key === "Enter") salvarLabel(campo.id, (e.target as HTMLInputElement).value); }}
-                      style={{ flex: 1, background: "#0f0f0f", border: "1px solid #29ABE2", borderRadius: "6px", padding: "4px 8px", color: "#f0f0f0", fontSize: "13px", outline: "none" }} />
+                      style={{ flex: 1, background: "#FFFFFF", border: "1px solid #1C6CA6", borderRadius: "6px", padding: "4px 8px", color: "#0A1826", fontSize: "13px", outline: "none" }} />
                   ) : (
-                    <span onClick={() => setEditandoLabel(campo.id)} style={{ flex: 1, fontSize: "13px", color: "#f0f0f0", cursor: "pointer" }} title="Clique para editar">{campo.label}</span>
+                    <span onClick={() => setEditandoLabel(campo.id)} style={{ flex: 1, fontSize: "13px", color: "#0A1826", cursor: "pointer" }} title="Clique para editar">{campo.label}</span>
                   )}
-                  <span style={{ fontSize: "11px", color: "#404040", background: "#2a2a2a", padding: "2px 6px", borderRadius: "4px" }}>{campo.type}</span>
+                  <span style={{ fontSize: "11px", color: "#404040", background: "#E6EBF0", padding: "2px 6px", borderRadius: "4px" }}>{campo.type}</span>
                   {campo.obrigatorio && <span style={{ fontSize: "10px", color: "#f59e0b" }}>*</span>}
                   <button onClick={() => removerCampo(campo.id)}
                     style={{ background: "none", border: "none", cursor: "pointer", color: "#404040", padding: "2px", flexShrink: 0 }}
@@ -413,9 +413,9 @@ export default function CadastrosPage() {
                   <input autoFocus value={novoLabel} onChange={e => setNovoLabel(e.target.value)}
                     placeholder="Nome da pergunta..."
                     onKeyDown={e => { if (e.key === "Enter") adicionarCampo(); if (e.key === "Escape") setAdicionando(false); }}
-                    style={{ flex: 1, background: "#0f0f0f", border: "1px solid #29ABE2", borderRadius: "6px", padding: "8px 10px", color: "#f0f0f0", fontSize: "13px", outline: "none" }} />
+                    style={{ flex: 1, background: "#FFFFFF", border: "1px solid #1C6CA6", borderRadius: "6px", padding: "8px 10px", color: "#0A1826", fontSize: "13px", outline: "none" }} />
                   <select value={novoTipo} onChange={e => setNovoTipo(e.target.value)}
-                    style={{ background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: "6px", padding: "8px", color: "#f0f0f0", fontSize: "12px" }}>
+                    style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: "6px", padding: "8px", color: "#0A1826", fontSize: "12px" }}>
                     <option value="text">texto</option>
                     <option value="textarea">textarea</option>
                     <option value="email">email</option>
@@ -423,20 +423,20 @@ export default function CadastrosPage() {
                     <option value="number">número</option>
                   </select>
                   <button onClick={adicionarCampo}
-                    style={{ background: "#29ABE2", border: "none", borderRadius: "6px", padding: "8px 14px", cursor: "pointer", color: "#000", fontWeight: "600", fontSize: "13px" }}>
+                    style={{ background: "#1C6CA6", border: "none", borderRadius: "6px", padding: "8px 14px", cursor: "pointer", color: "#F3F5F7", fontWeight: "600", fontSize: "13px" }}>
                     Adicionar
                   </button>
                 </div>
               ) : (
                 <button onClick={() => setAdicionando(true)}
-                  style={{ display: "flex", alignItems: "center", gap: "6px", background: "none", border: "1px dashed #2e2e2e", borderRadius: "8px", padding: "8px 12px", cursor: "pointer", color: "#606060", fontSize: "13px", marginTop: "8px", width: "100%" }}>
+                  style={{ display: "flex", alignItems: "center", gap: "6px", background: "none", border: "1px dashed #E6EBF0", borderRadius: "8px", padding: "8px 12px", cursor: "pointer", color: "#4A5B6C", fontSize: "13px", marginTop: "8px", width: "100%" }}>
                   <Plus size={13} /> Adicionar pergunta
                 </button>
               )}
             </div>
-            <div style={{ padding: "14px 20px", borderTop: "1px solid #2e2e2e", display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+            <div style={{ padding: "14px 20px", borderTop: "1px solid #E6EBF0", display: "flex", justifyContent: "flex-end", gap: "8px" }}>
               <button onClick={() => setModalCampos(false)}
-                style={{ background: "#2a2a2a", border: "none", borderRadius: "8px", padding: "10px 20px", cursor: "pointer", color: "#f0f0f0", fontSize: "13px" }}>
+                style={{ background: "#E6EBF0", border: "none", borderRadius: "8px", padding: "10px 20px", cursor: "pointer", color: "#0A1826", fontSize: "13px" }}>
                 Fechar
               </button>
             </div>

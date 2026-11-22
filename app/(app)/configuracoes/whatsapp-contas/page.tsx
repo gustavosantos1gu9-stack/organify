@@ -224,11 +224,11 @@ export default function WhatsAppContasPage() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "16px", marginBottom: "28px" }}>
         <div className="card" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: "12px" }}>
           <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(41,171,226,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Building2 size={18} color="#29ABE2" />
+            <Building2 size={18} color="#1C6CA6" />
           </div>
           <div>
-            <p style={{ fontSize: 11, color: "#606060", margin: 0 }}>Total de Clientes</p>
-            <p style={{ fontSize: 22, fontWeight: 700, color: "#f0f0f0", margin: 0 }}>{total}</p>
+            <p style={{ fontSize: 11, color: "#4A5B6C", margin: 0 }}>Total de Clientes</p>
+            <p style={{ fontSize: 22, fontWeight: 700, color: "#0A1826", margin: 0 }}>{total}</p>
           </div>
         </div>
         <div className="card" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: "12px" }}>
@@ -236,7 +236,7 @@ export default function WhatsAppContasPage() {
             <Wifi size={18} color="#22c55e" />
           </div>
           <div>
-            <p style={{ fontSize: 11, color: "#606060", margin: 0 }}>Conectadas</p>
+            <p style={{ fontSize: 11, color: "#4A5B6C", margin: 0 }}>Conectadas</p>
             <p style={{ fontSize: 22, fontWeight: 700, color: "#22c55e", margin: 0 }}>{conectadas}</p>
           </div>
         </div>
@@ -245,14 +245,14 @@ export default function WhatsAppContasPage() {
             <WifiOff size={18} color="#ef4444" />
           </div>
           <div>
-            <p style={{ fontSize: 11, color: "#606060", margin: 0 }}>Desconectadas / Sem WhatsApp</p>
+            <p style={{ fontSize: 11, color: "#4A5B6C", margin: 0 }}>Desconectadas / Sem WhatsApp</p>
             <p style={{ fontSize: 22, fontWeight: 700, color: "#ef4444", margin: 0 }}>{total - conectadas}</p>
           </div>
         </div>
         <Link href="/configuracoes/whatsapp-status" style={{ textDecoration: "none" }}>
-          <div className="card" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: "12px", cursor: "pointer", border: alertasAbertos > 0 ? "1px solid rgba(239,68,68,0.5)" : "1px solid #2e2e2e", transition: "border-color 0.2s" }}>
+          <div className="card" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: "12px", cursor: "pointer", border: alertasAbertos > 0 ? "1px solid rgba(239,68,68,0.5)" : "1px solid #E6EBF0", transition: "border-color 0.2s" }}>
             <div style={{ position: "relative", width: 36, height: 36, borderRadius: 8, background: alertasAbertos > 0 ? "rgba(239,68,68,0.15)" : "rgba(100,100,100,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Heart size={18} color={alertasAbertos > 0 ? "#ef4444" : "#606060"} />
+              <Heart size={18} color={alertasAbertos > 0 ? "#ef4444" : "#4A5B6C"} />
               {alertasAbertos > 0 && (
                 <span style={{ position: "absolute", top: -4, right: -4, width: 16, height: 16, borderRadius: "50%", background: "#ef4444", color: "#fff", fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   {alertasAbertos}
@@ -260,8 +260,8 @@ export default function WhatsAppContasPage() {
               )}
             </div>
             <div>
-              <p style={{ fontSize: 11, color: "#606060", margin: 0 }}>Monitor de Saúde</p>
-              <p style={{ fontSize: alertasAbertos > 0 ? 13 : 22, fontWeight: 700, color: alertasAbertos > 0 ? "#ef4444" : "#f0f0f0", margin: 0 }}>
+              <p style={{ fontSize: 11, color: "#4A5B6C", margin: 0 }}>Monitor de Saúde</p>
+              <p style={{ fontSize: alertasAbertos > 0 ? 13 : 22, fontWeight: 700, color: alertasAbertos > 0 ? "#ef4444" : "#0A1826", margin: 0 }}>
                 {alertasAbertos > 0 ? `${alertasAbertos} alerta${alertasAbertos > 1 ? "s" : ""}` : "OK"}
               </p>
             </div>
@@ -270,9 +270,9 @@ export default function WhatsAppContasPage() {
       </div>
 
       <div className="table-wrapper">
-        <div style={{ padding: "16px", display: "flex", gap: "12px", borderBottom: "1px solid #2e2e2e", alignItems: "center" }}>
+        <div style={{ padding: "16px", display: "flex", gap: "12px", borderBottom: "1px solid #E6EBF0", alignItems: "center" }}>
           <div style={{ position: "relative", flex: 1, minWidth: "200px" }}>
-            <Search size={14} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#606060" }} />
+            <Search size={14} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#4A5B6C" }} />
             <input className="search-input" placeholder="Buscar cliente ou WhatsApp..." value={busca} onChange={e => setBusca(e.target.value)} />
           </div>
           <button className="btn-ghost" onClick={carregar} style={{ padding: "8px" }}><RefreshCw size={14} /></button>
@@ -296,20 +296,20 @@ export default function WhatsAppContasPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={5} style={{ textAlign: "center", color: "#606060", padding: "40px" }}>Carregando...</td></tr>
+              <tr><td colSpan={5} style={{ textAlign: "center", color: "#4A5B6C", padding: "40px" }}>Carregando...</td></tr>
             ) : !filtrados.length ? (
-              <tr><td colSpan={5} style={{ textAlign: "center", color: "#606060", padding: "40px" }}>Nenhuma conta encontrada.</td></tr>
+              <tr><td colSpan={5} style={{ textAlign: "center", color: "#4A5B6C", padding: "40px" }}>Nenhuma conta encontrada.</td></tr>
             ) : filtrados.map(c => (
               <tr key={c.id}>
                 <td>
                   <div>
-                    <p style={{ fontWeight: 500, margin: 0, color: "#f0f0f0" }}>{c.nome}</p>
-                    {c.whatsapp_instancia && <p style={{ fontSize: 11, color: "#606060", margin: 0 }}>Instância: {c.whatsapp_instancia}</p>}
+                    <p style={{ fontWeight: 500, margin: 0, color: "#0A1826" }}>{c.nome}</p>
+                    {c.whatsapp_instancia && <p style={{ fontSize: 11, color: "#4A5B6C", margin: 0 }}>Instância: {c.whatsapp_instancia}</p>}
                   </div>
                 </td>
                 <td>
                   {!c.whatsapp_instancia ? (
-                    <span style={{ fontSize: 12, padding: "3px 10px", borderRadius: 20, fontWeight: 500, background: "rgba(100,100,100,0.1)", color: "#606060" }}>Sem WhatsApp</span>
+                    <span style={{ fontSize: 12, padding: "3px 10px", borderRadius: 20, fontWeight: 500, background: "rgba(100,100,100,0.1)", color: "#4A5B6C" }}>Sem WhatsApp</span>
                   ) : (
                     <span style={{
                       fontSize: 12, padding: "3px 10px", borderRadius: 20, fontWeight: 500,
@@ -320,10 +320,10 @@ export default function WhatsAppContasPage() {
                     </span>
                   )}
                 </td>
-                <td style={{ color: "#a0a0a0", fontSize: 13 }}>{formatNumber(c.whatsapp_numero)}</td>
+                <td style={{ color: "#4A5B6C", fontSize: 13 }}>{formatNumber(c.whatsapp_numero)}</td>
                 <td>
                   {!c.whatsapp_instancia ? (
-                    <span style={{ fontSize: 12, color: "#606060" }}>—</span>
+                    <span style={{ fontSize: 12, color: "#4A5B6C" }}>—</span>
                   ) : (
                     <span style={{ fontSize: 12, fontWeight: 500, color: c.state === "open" ? "#22c55e" : "#ef4444" }}>
                       {c.state === "open" ? "Conectada" : "Desconectada"}
@@ -343,7 +343,7 @@ export default function WhatsAppContasPage() {
                         <button onClick={() => fixarWebhook(c)} title="Reconfigurar webhook (usar quando mensagens pararem de chegar)" style={{
                           display: "flex", alignItems: "center", gap: 6,
                           padding: "5px 8px", borderRadius: 6, fontSize: 12, cursor: "pointer",
-                          background: "rgba(41,171,226,0.08)", border: "1px solid rgba(41,171,226,0.2)", color: "#29ABE2",
+                          background: "rgba(41,171,226,0.08)", border: "1px solid rgba(41,171,226,0.2)", color: "#1C6CA6",
                         }}>
                           <Wifi size={12} />
                         </button>
@@ -366,7 +366,7 @@ export default function WhatsAppContasPage() {
                           padding: "5px 8px", borderRadius: 6, fontSize: 11, cursor: "pointer",
                           background: linkCopiado === c.id ? "rgba(37,211,102,0.08)" : "rgba(100,100,100,0.08)",
                           border: `1px solid ${linkCopiado === c.id ? "rgba(37,211,102,0.3)" : "rgba(100,100,100,0.2)"}`,
-                          color: linkCopiado === c.id ? "#22c55e" : "#a0a0a0",
+                          color: linkCopiado === c.id ? "#22c55e" : "#4A5B6C",
                         }}
                       >
                         {linkCopiado === c.id ? "✓" : "🔗"}
@@ -378,7 +378,7 @@ export default function WhatsAppContasPage() {
                         style={{
                           display: "flex", alignItems: "center", gap: 4,
                           padding: "5px 8px", borderRadius: 6, fontSize: 11, cursor: "pointer",
-                          background: "rgba(100,100,100,0.08)", border: "1px solid rgba(100,100,100,0.2)", color: "#606060",
+                          background: "rgba(100,100,100,0.08)", border: "1px solid rgba(100,100,100,0.2)", color: "#4A5B6C",
                         }}
                       >
                         🔗
@@ -401,23 +401,23 @@ export default function WhatsAppContasPage() {
 
       {showNova && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setShowNova(false)}>
-          <div onClick={e => e.stopPropagation()} style={{ background: "#141414", border: "1px solid #2e2e2e", borderRadius: 12, width: 400, boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }}>
-            <div style={{ padding: "16px 20px", borderBottom: "1px solid #2e2e2e", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "#f0f0f0" }}>Nova Conta</h3>
-              <button onClick={() => setShowNova(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#606060" }}><X size={16} /></button>
+          <div onClick={e => e.stopPropagation()} style={{ background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 12, width: 400, boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }}>
+            <div style={{ padding: "16px 20px", borderBottom: "1px solid #E6EBF0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "#0A1826" }}>Nova Conta</h3>
+              <button onClick={() => setShowNova(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#4A5B6C" }}><X size={16} /></button>
             </div>
             <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
-                <label style={{ fontSize: 12, color: "#a0a0a0", display: "block", marginBottom: 4 }}>Nome da cliente / agência</label>
+                <label style={{ fontSize: 12, color: "#4A5B6C", display: "block", marginBottom: 4 }}>Nome da cliente / agência</label>
                 <input placeholder="Ex: Studio Maria" value={novoNome} onChange={e => setNovoNome(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && criarConta()}
-                  style={{ width: "100%", background: "#1a1a1a", border: "1px solid #2e2e2e", borderRadius: 8, padding: "10px 12px", color: "#f0f0f0", fontSize: 13, boxSizing: "border-box" }} />
+                  style={{ width: "100%", background: "#FFFFFF", border: "1px solid #E6EBF0", borderRadius: 8, padding: "10px 12px", color: "#0A1826", fontSize: 13, boxSizing: "border-box" }} />
               </div>
-              <p style={{ fontSize: 11, color: "#606060", margin: 0 }}>
+              <p style={{ fontSize: 11, color: "#4A5B6C", margin: 0 }}>
                 A conta será criada como agência filha. Depois configure o WhatsApp na página de Integrações dela.
               </p>
               <button onClick={criarConta} disabled={criando || !novoNome.trim()}
-                style={{ background: !novoNome.trim() ? "#2e2e2e" : "#29ABE2", border: "none", borderRadius: 8, padding: 10, cursor: !novoNome.trim() ? "default" : "pointer", color: !novoNome.trim() ? "#606060" : "#000", fontWeight: 600, fontSize: 13 }}>
+                style={{ background: !novoNome.trim() ? "#E6EBF0" : "#1C6CA6", border: "none", borderRadius: 8, padding: 10, cursor: !novoNome.trim() ? "default" : "pointer", color: !novoNome.trim() ? "#4A5B6C" : "#000", fontWeight: 600, fontSize: 13 }}>
                 {criando ? "Criando..." : "Criar Conta"}
               </button>
             </div>

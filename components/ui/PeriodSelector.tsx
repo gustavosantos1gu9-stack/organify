@@ -57,8 +57,8 @@ export default function PeriodSelector({ onChange }: PeriodSelectorProps) {
   return (
     <div
       style={{
-        background: "#1e1e1e",
-        border: "1px solid #2e2e2e",
+        background: "#FFFFFF",
+        border: "1px solid #E6EBF0",
         borderRadius: "12px",
         padding: "16px 20px",
         marginBottom: "24px",
@@ -66,8 +66,8 @@ export default function PeriodSelector({ onChange }: PeriodSelectorProps) {
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <Calendar size={15} color="#a0a0a0" />
-          <span style={{ fontSize: "13px", color: "#a0a0a0", fontWeight: "500" }}>Período</span>
+          <Calendar size={15} color="#4A5B6C" />
+          <span style={{ fontSize: "13px", color: "#4A5B6C", fontWeight: "500" }}>Período</span>
         </div>
         <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
           {PERIODS.map((p) => (
@@ -82,14 +82,14 @@ export default function PeriodSelector({ onChange }: PeriodSelectorProps) {
         </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "12px" }}>
-        <span style={{ fontSize: "12px", color: "#606060" }}>De</span>
+        <span style={{ fontSize: "12px", color: "#4A5B6C" }}>De</span>
         <input
           type="date"
           value={range.from}
           onChange={(e) => setRange((r) => ({ ...r, from: e.target.value }))}
           style={{ padding: "5px 8px", fontSize: "12px", borderRadius: "6px" }}
         />
-        <span style={{ fontSize: "12px", color: "#606060" }}>Até</span>
+        <span style={{ fontSize: "12px", color: "#4A5B6C" }}>Até</span>
         <input
           type="date"
           value={range.to}

@@ -71,8 +71,8 @@ export default function NovoLeadModal({ onClose, onSave }: NovoLeadModalProps) {
           </div>
 
           {/* UTMs */}
-          <div style={{ background:"#1a1a1a", border:"1px solid #2e2e2e", borderRadius:"8px", padding:"14px" }}>
-            <p style={{ fontSize:"12px", fontWeight:"600", color:"#a0a0a0", marginBottom:"12px", textTransform:"uppercase", letterSpacing:"0.05em" }}>Rastreamento UTM</p>
+          <div style={{ background:"#FFFFFF", border:"1px solid #E6EBF0", borderRadius:"8px", padding:"14px" }}>
+            <p style={{ fontSize:"12px", fontWeight:"600", color:"#4A5B6C", marginBottom:"12px", textTransform:"uppercase", letterSpacing:"0.05em" }}>Rastreamento UTM</p>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"10px" }}>
               <div className="form-group">
                 <label className="form-label">utm_source</label>

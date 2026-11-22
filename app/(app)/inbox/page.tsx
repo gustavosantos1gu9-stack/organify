@@ -461,8 +461,8 @@ function MidiaMsg({ msg, conversa }: { msg: Mensagem; conversa: Conversa }) {
 
   const corTexto = msg.de_mim ? "#FFFFFF" : "var(--navy)";
 
-  if (erro) return <p style={{ fontSize:"12px", color:"#606060", margin:0, fontStyle:"italic" }}>{msg.conteudo}</p>;
-  if (loading) return <p style={{ fontSize:"12px", color:"#606060", margin:0 }}>Carregando mídia...</p>;
+  if (erro) return <p style={{ fontSize:"12px", color:"#4A5B6C", margin:0, fontStyle:"italic" }}>{msg.conteudo}</p>;
+  if (loading) return <p style={{ fontSize:"12px", color:"#4A5B6C", margin:0 }}>Carregando mídia...</p>;
 
   if (msg.tipo === "image" && media) {
     const src = media.startsWith("data:") ? media : `data:${mime || "image/jpeg"};base64,${media}`;

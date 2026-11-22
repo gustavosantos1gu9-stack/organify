@@ -21,10 +21,10 @@ function CopiarBotao({ texto, label = "Copiar" }: { texto: string; label?: strin
   return (
     <button onClick={copiar} style={{
       display:"flex", alignItems:"center", gap:"4px", padding:"6px 12px",
-      borderRadius:"6px", border:"1px solid #2e2e2e", background:"#222",
-      color:copiado?"#f0f0f0":"#a0a0a0", cursor:"pointer", fontSize:"12px", flexShrink:0,
+      borderRadius:"6px", border:"1px solid #E6EBF0", background:"#E6EBF0",
+      color:copiado?"#0A1826":"#4A5B6C", cursor:"pointer", fontSize:"12px", flexShrink:0,
     }}>
-      {copiado ? <Check size={12} color="#29ABE2"/> : <Copy size={12}/>}
+      {copiado ? <Check size={12} color="#1C6CA6"/> : <Copy size={12}/>}
       {copiado ? "Copiado!" : label}
     </button>
   );
@@ -72,15 +72,15 @@ function DetalhesLink({ link, onVoltar, waNumero, conversasPorLink }: { link: Li
         <div>
           <div className="breadcrumb">
             <a href="/">Início</a><span>›</span>
-            <button onClick={onVoltar} style={{ background:"none", border:"none", color:"#606060", cursor:"pointer", fontSize:"13px", padding:0 }}>
+            <button onClick={onVoltar} style={{ background:"none", border:"none", color:"#4A5B6C", cursor:"pointer", fontSize:"13px", padding:0 }}>
               Links Rastreáveis
             </button><span>›</span>
             <span className="current">{link.nome}</span>
           </div>
           <h1 style={{ fontSize:"22px", fontWeight:"600" }}>{link.nome}</h1>
         </div>
-        <span style={{ display:"flex", alignItems:"center", gap:"6px", fontSize:"12px", color:"#29ABE2", background:"rgba(41,171,226,0.1)", border:"1px solid rgba(41,171,226,0.2)", padding:"4px 10px", borderRadius:"20px" }}>
-          <span style={{ width:"6px", height:"6px", borderRadius:"50%", background:"#29ABE2", display:"inline-block" }}/>
+        <span style={{ display:"flex", alignItems:"center", gap:"6px", fontSize:"12px", color:"#1C6CA6", background:"rgba(41,171,226,0.1)", border:"1px solid rgba(41,171,226,0.2)", padding:"4px 10px", borderRadius:"20px" }}>
+          <span style={{ width:"6px", height:"6px", borderRadius:"50%", background:"#1C6CA6", display:"inline-block" }}/>
           WhatsApp Conectado
         </span>
       </div>
@@ -93,16 +93,16 @@ function DetalhesLink({ link, onVoltar, waNumero, conversasPorLink }: { link: Li
         return (
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"12px", marginBottom:"24px" }}>
             <div className="card" style={{ padding:"16px" }}>
-              <p style={{ fontSize:"12px", color:"#606060", marginBottom:"4px" }}>Conversas</p>
-              <p style={{ fontSize:"28px", fontWeight:"700", color:"#f0f0f0" }}>{total}</p>
-              <p style={{ fontSize:"11px", color:"#606060", margin:0 }}>{link.cliques} cliques · {conversasLink.length} no inbox</p>
+              <p style={{ fontSize:"12px", color:"#4A5B6C", marginBottom:"4px" }}>Conversas</p>
+              <p style={{ fontSize:"28px", fontWeight:"700", color:"#0A1826" }}>{total}</p>
+              <p style={{ fontSize:"11px", color:"#4A5B6C", margin:0 }}>{link.cliques} cliques · {conversasLink.length} no inbox</p>
             </div>
             <div className="card" style={{ padding:"16px" }}>
-              <p style={{ fontSize:"12px", color:"#606060", marginBottom:"4px" }}>Agendamentos</p>
+              <p style={{ fontSize:"12px", color:"#4A5B6C", marginBottom:"4px" }}>Agendamentos</p>
               <p style={{ fontSize:"28px", fontWeight:"700", color:"#f59e0b" }}>{agendamentos}</p>
             </div>
             <div className="card" style={{ padding:"16px" }}>
-              <p style={{ fontSize:"12px", color:"#606060", marginBottom:"4px" }}>Vendas</p>
+              <p style={{ fontSize:"12px", color:"#4A5B6C", marginBottom:"4px" }}>Vendas</p>
               <p style={{ fontSize:"28px", fontWeight:"700", color:"#22c55e" }}>{vendas}</p>
             </div>
           </div>
@@ -119,31 +119,31 @@ function DetalhesLink({ link, onVoltar, waNumero, conversasPorLink }: { link: Li
       {/* Lista de contatos */}
       {mostrarContatos && (
         <div className="card" style={{ marginBottom:"20px" }}>
-          <h3 style={{ fontSize:"13px", fontWeight:"600", color:"#f0f0f0", marginBottom:"12px" }}>
+          <h3 style={{ fontSize:"13px", fontWeight:"600", color:"#0A1826", marginBottom:"12px" }}>
             Contatos que vieram por este link
           </h3>
           {!conversasLink.length ? (
-            <p style={{ color:"#606060", fontSize:"13px" }}>Nenhum contato identificado ainda.</p>
+            <p style={{ color:"#4A5B6C", fontSize:"13px" }}>Nenhum contato identificado ainda.</p>
           ) : (
             <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"12px" }}>
               <thead>
-                <tr style={{ borderBottom:"1px solid #2e2e2e" }}>
+                <tr style={{ borderBottom:"1px solid #E6EBF0" }}>
                   {["Nome","Número","Etapa","Primeira Mensagem"].map(h=>(
-                    <th key={h} style={{ padding:"8px 12px", textAlign:"left", fontSize:"11px", color:"#606060", fontWeight:"600" }}>{h}</th>
+                    <th key={h} style={{ padding:"8px 12px", textAlign:"left", fontSize:"11px", color:"#4A5B6C", fontWeight:"600" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {conversasLink.map((c:any) => (
-                  <tr key={c.id} style={{ borderBottom:"1px solid #1e1e1e" }}>
-                    <td style={{ padding:"8px 12px", color:"#f0f0f0", fontWeight:"600" }}>{c.contato_nome||"—"}</td>
-                    <td style={{ padding:"8px 12px", color:"#a0a0a0" }}>{c.contato_numero}</td>
+                  <tr key={c.id} style={{ borderBottom:"1px solid #FFFFFF" }}>
+                    <td style={{ padding:"8px 12px", color:"#0A1826", fontWeight:"600" }}>{c.contato_nome||"—"}</td>
+                    <td style={{ padding:"8px 12px", color:"#4A5B6C" }}>{c.contato_numero}</td>
                     <td style={{ padding:"8px 12px" }}>
-                      <span style={{ fontSize:"11px", padding:"2px 8px", borderRadius:"20px", background:"rgba(41,171,226,0.1)", color:"#29ABE2" }}>
+                      <span style={{ fontSize:"11px", padding:"2px 8px", borderRadius:"20px", background:"rgba(41,171,226,0.1)", color:"#1C6CA6" }}>
                         {c.etapa_jornada||"Fez Contato"}
                       </span>
                     </td>
-                    <td style={{ padding:"8px 12px", color:"#606060", fontSize:"11px" }}>
+                    <td style={{ padding:"8px 12px", color:"#4A5B6C", fontSize:"11px" }}>
                       {c.primeira_mensagem_at ? new Date(c.primeira_mensagem_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"}) : "—"}
                     </td>
                   </tr>
@@ -156,7 +156,7 @@ function DetalhesLink({ link, onVoltar, waNumero, conversasPorLink }: { link: Li
 
       {/* Info do link */}
       <div className="card" style={{ marginBottom:"20px" }}>
-        <h2 style={{ fontSize:"15px", fontWeight:"600", marginBottom:"16px", paddingBottom:"12px", borderBottom:"1px solid #2e2e2e" }}>
+        <h2 style={{ fontSize:"15px", fontWeight:"600", marginBottom:"16px", paddingBottom:"12px", borderBottom:"1px solid #E6EBF0" }}>
           Informações do Link
         </h2>
         <div style={{ display:"flex", flexDirection:"column", gap:"12px" }}>
@@ -167,8 +167,8 @@ function DetalhesLink({ link, onVoltar, waNumero, conversasPorLink }: { link: Li
             { label: "Data de Criação", value: new Date(link.created_at).toLocaleString("pt-BR") },
           ].map(item => (
             <div key={item.label} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:"16px" }}>
-              <p style={{ fontSize:"13px", color:"#606060", flexShrink:0, minWidth:"200px" }}>{item.label}</p>
-              <p style={{ fontSize:"13px", color:"#f0f0f0", textAlign:"right", wordBreak:"break-all" }}>{item.value}</p>
+              <p style={{ fontSize:"13px", color:"#4A5B6C", flexShrink:0, minWidth:"200px" }}>{item.label}</p>
+              <p style={{ fontSize:"13px", color:"#0A1826", textAlign:"right", wordBreak:"break-all" }}>{item.value}</p>
             </div>
           ))}
         </div>
@@ -176,7 +176,7 @@ function DetalhesLink({ link, onVoltar, waNumero, conversasPorLink }: { link: Li
 
       {/* Links gerados */}
       <div className="card" style={{ marginBottom:"20px" }}>
-        <h2 style={{ fontSize:"15px", fontWeight:"600", marginBottom:"16px", paddingBottom:"12px", borderBottom:"1px solid #2e2e2e" }}>
+        <h2 style={{ fontSize:"15px", fontWeight:"600", marginBottom:"16px", paddingBottom:"12px", borderBottom:"1px solid #E6EBF0" }}>
           Links Rastreáveis
         </h2>
 
@@ -184,18 +184,18 @@ function DetalhesLink({ link, onVoltar, waNumero, conversasPorLink }: { link: Li
           {/* Link Meta Ads */}
           <div>
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"6px" }}>
-              <p style={{ fontSize:"13px", fontWeight:"600", color:"#f0f0f0" }}>Link para Meta Ads</p>
+              <p style={{ fontSize:"13px", fontWeight:"600", color:"#0A1826" }}>Link para Meta Ads</p>
               <div style={{ display:"flex", gap:"6px" }}>
                 <CopiarBotao texto={linkMeta}/>
-                <a href={linkMeta} target="_blank" rel="noreferrer" style={{ display:"flex", alignItems:"center", gap:"4px", padding:"6px 12px", borderRadius:"6px", border:"1px solid #2e2e2e", background:"#222", color:"#a0a0a0", textDecoration:"none", fontSize:"12px" }}>
+                <a href={linkMeta} target="_blank" rel="noreferrer" style={{ display:"flex", alignItems:"center", gap:"4px", padding:"6px 12px", borderRadius:"6px", border:"1px solid #E6EBF0", background:"#E6EBF0", color:"#4A5B6C", textDecoration:"none", fontSize:"12px" }}>
                   <ExternalLink size={12}/> Testar
                 </a>
               </div>
             </div>
-            <div style={{ background:"#111", borderRadius:"8px", padding:"10px 14px", border:"1px solid #2e2e2e" }}>
-              <p style={{ fontSize:"12px", color:"#606060", fontFamily:"monospace", wordBreak:"break-all" }}>{linkMeta}</p>
+            <div style={{ background:"#FFFFFF", borderRadius:"8px", padding:"10px 14px", border:"1px solid #E6EBF0" }}>
+              <p style={{ fontSize:"12px", color:"#4A5B6C", fontFamily:"monospace", wordBreak:"break-all" }}>{linkMeta}</p>
             </div>
-            <p style={{ fontSize:"11px", color:"#606060", marginTop:"6px" }}>
+            <p style={{ fontSize:"11px", color:"#4A5B6C", marginTop:"6px" }}>
               ⚡ Com countdown de 5 segundos — necessário para o Meta Ads rastrear o clique corretamente.
             </p>
           </div>
@@ -203,15 +203,15 @@ function DetalhesLink({ link, onVoltar, waNumero, conversasPorLink }: { link: Li
           {/* Link Site */}
           <div>
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"6px" }}>
-              <p style={{ fontSize:"13px", fontWeight:"600", color:"#f0f0f0" }}>Link para Site</p>
+              <p style={{ fontSize:"13px", fontWeight:"600", color:"#0A1826" }}>Link para Site</p>
               <div style={{ display:"flex", gap:"6px" }}>
                 <CopiarBotao texto={link.link_gerado}/>
               </div>
             </div>
-            <div style={{ background:"#111", borderRadius:"8px", padding:"10px 14px", border:"1px solid #2e2e2e" }}>
-              <p style={{ fontSize:"12px", color:"#606060", fontFamily:"monospace", wordBreak:"break-all" }}>{link.link_gerado}</p>
+            <div style={{ background:"#FFFFFF", borderRadius:"8px", padding:"10px 14px", border:"1px solid #E6EBF0" }}>
+              <p style={{ fontSize:"12px", color:"#4A5B6C", fontFamily:"monospace", wordBreak:"break-all" }}>{link.link_gerado}</p>
             </div>
-            <p style={{ fontSize:"11px", color:"#606060", marginTop:"6px" }}>
+            <p style={{ fontSize:"11px", color:"#4A5B6C", marginTop:"6px" }}>
               🌐 Para usar em sites, bio do Instagram, stories, etc.
             </p>
           </div>
@@ -219,11 +219,11 @@ function DetalhesLink({ link, onVoltar, waNumero, conversasPorLink }: { link: Li
           {/* Botão flutuante */}
           <div>
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"6px" }}>
-              <p style={{ fontSize:"13px", fontWeight:"600", color:"#f0f0f0" }}>Botão Flutuante para Site</p>
+              <p style={{ fontSize:"13px", fontWeight:"600", color:"#0A1826" }}>Botão Flutuante para Site</p>
               <CopiarBotao texto={botaoFlutuante} label="Copiar HTML"/>
             </div>
-            <div style={{ background:"#111", borderRadius:"8px", padding:"10px 14px", border:"1px solid #2e2e2e" }}>
-              <p style={{ fontSize:"11px", color:"#606060", fontFamily:"monospace", wordBreak:"break-all", maxHeight:"60px", overflow:"hidden" }}>
+            <div style={{ background:"#FFFFFF", borderRadius:"8px", padding:"10px 14px", border:"1px solid #E6EBF0" }}>
+              <p style={{ fontSize:"11px", color:"#4A5B6C", fontFamily:"monospace", wordBreak:"break-all", maxHeight:"60px", overflow:"hidden" }}>
                 {botaoFlutuante.slice(0, 120)}...
               </p>
             </div>
@@ -234,37 +234,37 @@ function DetalhesLink({ link, onVoltar, waNumero, conversasPorLink }: { link: Li
       {/* UTMs para Meta Ads */}
       <div className="card" style={{ marginBottom:"24px" }}>
         <h2 style={{ fontSize:"15px", fontWeight:"600", marginBottom:"6px" }}>Parâmetros de URL para Meta Ads</h2>
-        <p style={{ fontSize:"13px", color:"#606060", marginBottom:"16px" }}>
+        <p style={{ fontSize:"13px", color:"#4A5B6C", marginBottom:"16px" }}>
           Cole esses parâmetros no campo "Parâmetros de URL" da campanha no Meta Ads.
         </p>
 
         <div style={{ display:"flex", flexDirection:"column", gap:"16px" }}>
           <div>
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"6px" }}>
-              <p style={{ fontSize:"13px", fontWeight:"600", color:"#f0f0f0" }}>
+              <p style={{ fontSize:"13px", fontWeight:"600", color:"#0A1826" }}>
                 Caso você <span style={{ color:"#ef4444" }}>NÃO utilize UTMs</span>
               </p>
               <CopiarBotao texto={utmSemExistentes}/>
             </div>
-            <div style={{ background:"#111", borderRadius:"8px", padding:"10px 14px", border:"1px solid #2e2e2e" }}>
-              <p style={{ fontSize:"12px", color:"#a0a0a0", fontFamily:"monospace", wordBreak:"break-all" }}>{utmSemExistentes}</p>
+            <div style={{ background:"#FFFFFF", borderRadius:"8px", padding:"10px 14px", border:"1px solid #E6EBF0" }}>
+              <p style={{ fontSize:"12px", color:"#4A5B6C", fontFamily:"monospace", wordBreak:"break-all" }}>{utmSemExistentes}</p>
             </div>
           </div>
 
           <div>
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"6px" }}>
-              <p style={{ fontSize:"13px", fontWeight:"600", color:"#f0f0f0" }}>
-                Caso você <span style={{ color:"#29ABE2" }}>JÁ utilize UTMs</span>
+              <p style={{ fontSize:"13px", fontWeight:"600", color:"#0A1826" }}>
+                Caso você <span style={{ color:"#1C6CA6" }}>JÁ utilize UTMs</span>
               </p>
               <CopiarBotao texto={`utm_content={{adset.name}}_{{ad.name}}`}/>
             </div>
-            <div style={{ background:"#111", borderRadius:"8px", padding:"10px 14px", border:"1px solid #2e2e2e" }}>
-              <p style={{ fontSize:"12px", color:"#a0a0a0", fontFamily:"monospace" }}>utm_content={`{{adset.name}}_{{ad.name}}`}</p>
+            <div style={{ background:"#FFFFFF", borderRadius:"8px", padding:"10px 14px", border:"1px solid #E6EBF0" }}>
+              <p style={{ fontSize:"12px", color:"#4A5B6C", fontFamily:"monospace" }}>utm_content={`{{adset.name}}_{{ad.name}}`}</p>
             </div>
           </div>
 
           <div style={{ background:"rgba(41,171,226,0.05)", border:"1px solid rgba(41,171,226,0.15)", borderRadius:"8px", padding:"12px 14px" }}>
-            <p style={{ fontSize:"12px", color:"#a0a0a0" }}>
+            <p style={{ fontSize:"12px", color:"#4A5B6C" }}>
               💡 Essa configuração permite cruzar os dados dos cliques no Meta Ads com as conversas que chegam no WhatsApp, identificando qual anúncio gerou cada lead.
             </p>
           </div>
@@ -329,42 +329,42 @@ function FormLink({ onSave, onCancel, waNumero }: { onSave: (link: LinkCampanha)
         <div>
           <div className="breadcrumb">
             <a href="/">Início</a><span>›</span>
-            <button onClick={onCancel} style={{ background:"none", border:"none", color:"#606060", cursor:"pointer", fontSize:"13px", padding:0 }}>
+            <button onClick={onCancel} style={{ background:"none", border:"none", color:"#4A5B6C", cursor:"pointer", fontSize:"13px", padding:0 }}>
               Links Rastreáveis
             </button><span>›</span>
             <span className="current">Novo link</span>
           </div>
           <h1 style={{ fontSize:"22px", fontWeight:"600" }}>Criar Link Rastreável</h1>
         </div>
-        <span style={{ display:"flex", alignItems:"center", gap:"6px", fontSize:"12px", color:"#29ABE2", background:"rgba(41,171,226,0.1)", border:"1px solid rgba(41,171,226,0.2)", padding:"4px 10px", borderRadius:"20px" }}>
-          <span style={{ width:"6px", height:"6px", borderRadius:"50%", background:"#29ABE2", display:"inline-block" }}/>
+        <span style={{ display:"flex", alignItems:"center", gap:"6px", fontSize:"12px", color:"#1C6CA6", background:"rgba(41,171,226,0.1)", border:"1px solid rgba(41,171,226,0.2)", padding:"4px 10px", borderRadius:"20px" }}>
+          <span style={{ width:"6px", height:"6px", borderRadius:"50%", background:"#1C6CA6", display:"inline-block" }}/>
           WhatsApp Conectado
         </span>
       </div>
 
       <div className="card" style={{ marginBottom:"20px" }}>
-        <h2 style={{ fontSize:"15px", fontWeight:"600", marginBottom:"20px", paddingBottom:"12px", borderBottom:"1px solid #2e2e2e" }}>
+        <h2 style={{ fontSize:"15px", fontWeight:"600", marginBottom:"20px", paddingBottom:"12px", borderBottom:"1px solid #E6EBF0" }}>
           Configurações do Link
         </h2>
         <div style={{ display:"flex", flexDirection:"column", gap:"20px" }}>
           <div className="form-group">
             <label className="form-label">Nome do Link Rastreável *</label>
             <input className="form-input" placeholder="Ex: Meta Ads - Black Friday" value={form.nome} onChange={e=>set("nome",e.target.value)}/>
-            <p style={{ fontSize:"11px", color:"#606060", marginTop:"4px" }}>Nome para identificar o link internamente.</p>
+            <p style={{ fontSize:"11px", color:"#4A5B6C", marginTop:"4px" }}>Nome para identificar o link internamente.</p>
           </div>
 
           <div className="form-group">
             <label className="form-label">Mensagem Inicial no WhatsApp</label>
             <textarea className="form-input" rows={3} placeholder="Ex: Olá! Vi o anúncio e quero saber mais 😊"
               value={form.wa_mensagem} onChange={e=>set("wa_mensagem",e.target.value)} style={{ resize:"vertical" }}/>
-            <p style={{ fontSize:"11px", color:"#606060", marginTop:"4px" }}>Mensagem pré-pronta que aparece para o lead ao entrar no WhatsApp.</p>
+            <p style={{ fontSize:"11px", color:"#4A5B6C", marginTop:"4px" }}>Mensagem pré-pronta que aparece para o lead ao entrar no WhatsApp.</p>
           </div>
 
           <div className="form-group">
             <label className="form-label">Texto da página de espera (5 segundos)</label>
             <input className="form-input" value={form.titulo_redirect} onChange={e=>set("titulo_redirect",e.target.value)} style={{ marginBottom:"8px" }}/>
             <textarea className="form-input" rows={2} value={form.msg_redirect} onChange={e=>set("msg_redirect",e.target.value)} style={{ resize:"vertical" }}/>
-            <p style={{ fontSize:"11px", color:"#606060", marginTop:"4px" }}>Aparece na tela de espera antes de redirecionar para o WhatsApp.</p>
+            <p style={{ fontSize:"11px", color:"#4A5B6C", marginTop:"4px" }}>Aparece na tela de espera antes de redirecionar para o WhatsApp.</p>
           </div>
 
           <div className="form-group">
@@ -374,13 +374,13 @@ function FormLink({ onSave, onCancel, waNumero }: { onSave: (link: LinkCampanha)
                 <label key={op.value} style={{ display:"flex", alignItems:"center", gap:"8px", cursor:"pointer" }}>
                   <div onClick={()=>set("redirect_tipo",op.value)} style={{
                     width:"16px", height:"16px", borderRadius:"50%", flexShrink:0, cursor:"pointer",
-                    border:`2px solid ${form.redirect_tipo===op.value?"#29ABE2":"#3a3a3a"}`,
+                    border:`2px solid ${form.redirect_tipo===op.value?"#1C6CA6":"#E6EBF0"}`,
                     display:"flex", alignItems:"center", justifyContent:"center",
-                    background:form.redirect_tipo===op.value?"#29ABE2":"transparent",
+                    background:form.redirect_tipo===op.value?"#1C6CA6":"transparent",
                   }}>
                     {form.redirect_tipo===op.value && <div style={{ width:"5px", height:"5px", borderRadius:"50%", background:"#000" }}/>}
                   </div>
-                  <span style={{ fontSize:"13px", color:form.redirect_tipo===op.value?"#f0f0f0":"#a0a0a0" }}>{op.label}</span>
+                  <span style={{ fontSize:"13px", color:form.redirect_tipo===op.value?"#0A1826":"#4A5B6C" }}>{op.label}</span>
                 </label>
               ))}
             </div>
@@ -510,11 +510,11 @@ export default function GeradorLinksPage() {
         <div>
           <div className="breadcrumb"><a href="/">Início</a><span>›</span><span className="current">Links Rastreáveis</span></div>
           <h1 style={{ fontSize:"22px", fontWeight:"600" }}>Links Rastreáveis</h1>
-          <p style={{ fontSize:"13px", color:"#606060", marginTop:"4px" }}>Crie links rastreados para campanhas no Meta Ads e outros canais.</p>
+          <p style={{ fontSize:"13px", color:"#4A5B6C", marginTop:"4px" }}>Crie links rastreados para campanhas no Meta Ads e outros canais.</p>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:"10px" }}>
-          <span style={{ display:"flex", alignItems:"center", gap:"6px", fontSize:"12px", color:"#29ABE2", background:"rgba(41,171,226,0.1)", border:"1px solid rgba(41,171,226,0.2)", padding:"4px 10px", borderRadius:"20px" }}>
-            <span style={{ width:"6px", height:"6px", borderRadius:"50%", background:"#29ABE2", display:"inline-block" }}/>
+          <span style={{ display:"flex", alignItems:"center", gap:"6px", fontSize:"12px", color:"#1C6CA6", background:"rgba(41,171,226,0.1)", border:"1px solid rgba(41,171,226,0.2)", padding:"4px 10px", borderRadius:"20px" }}>
+            <span style={{ width:"6px", height:"6px", borderRadius:"50%", background:"#1C6CA6", display:"inline-block" }}/>
             WhatsApp Conectado
           </span>
           <button className="btn-primary" onClick={() => setView("form")} style={{ cursor:"pointer" }}>
@@ -536,36 +536,36 @@ export default function GeradorLinksPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={5} style={{ textAlign:"center", color:"#606060", padding:"40px" }}>Carregando...</td></tr>
+              <tr><td colSpan={5} style={{ textAlign:"center", color:"#4A5B6C", padding:"40px" }}>Carregando...</td></tr>
             ) : !links.length ? (
-              <tr><td colSpan={5} style={{ textAlign:"center", color:"#606060", padding:"48px" }}>
+              <tr><td colSpan={5} style={{ textAlign:"center", color:"#4A5B6C", padding:"48px" }}>
                 Nenhum link criado ainda.
               </td></tr>
             ) : links.map(l => (
               <tr key={l.id}>
                 <td style={{ fontWeight:"500", cursor:"pointer" }} onClick={() => { setLinkSelecionado(l); setView("detalhes"); }}>
                   <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
-                    <Link2 size={14} color="#606060"/>
+                    <Link2 size={14} color="#4A5B6C"/>
                     {l.nome}
                   </div>
                 </td>
-                <td><span style={{ fontWeight:"600", color:l.cliques>0?"#f0f0f0":"#606060" }}>
+                <td><span style={{ fontWeight:"600", color:l.cliques>0?"#0A1826":"#4A5B6C" }}>
                   {Math.max(l.cliques, (conversasPorLink[l.id]||[]).length, (conversasPorLink[l.nome]||[]).length)}
                 </span></td>
-                <td style={{ color:"#a0a0a0", fontSize:"12px" }}>{new Date(l.created_at).toLocaleDateString("pt-BR")}</td>
+                <td style={{ color:"#4A5B6C", fontSize:"12px" }}>{new Date(l.created_at).toLocaleDateString("pt-BR")}</td>
                 <td>
                   <div style={{ display:"flex", gap:"6px" }}>
                     <button onClick={() => { setLinkSelecionado(l); setView("detalhes"); }} style={{
                       display:"flex", alignItems:"center", gap:"4px", padding:"5px 10px",
-                      borderRadius:"6px", border:"1px solid #2e2e2e", background:"#222",
-                      color:"#a0a0a0", cursor:"pointer", fontSize:"12px"
+                      borderRadius:"6px", border:"1px solid #E6EBF0", background:"#E6EBF0",
+                      color:"#4A5B6C", cursor:"pointer", fontSize:"12px"
                     }}>
                       <Eye size={12}/> Ver
                     </button>
                     <button onClick={() => copiar(l.link_gerado, l.id)} style={{
                       display:"flex", alignItems:"center", gap:"4px", padding:"5px 10px",
-                      borderRadius:"6px", border:"1px solid #2e2e2e", background:"#222",
-                      color:copiado===l.id?"#f0f0f0":"#a0a0a0", cursor:"pointer", fontSize:"12px"
+                      borderRadius:"6px", border:"1px solid #E6EBF0", background:"#E6EBF0",
+                      color:copiado===l.id?"#0A1826":"#4A5B6C", cursor:"pointer", fontSize:"12px"
                     }}>
                       {copiado===l.id?<Check size={12}/>:<Copy size={12}/>}
                       {copiado===l.id?"Copiado!":"Copiar"}

@@ -69,13 +69,13 @@ export default function ConverterLeadModal({ lead, onClose, onSave }: ConverterL
             </div>
             <div>
               <h2 style={{ fontSize: "16px", fontWeight: "600" }}>Converter em cliente</h2>
-              <p style={{ fontSize: "12px", color: "#606060" }}>{lead.nome}</p>
+              <p style={{ fontSize: "12px", color: "#4A5B6C" }}>{lead.nome}</p>
             </div>
           </div>
           <button onClick={onClose} className="btn-ghost" style={{ padding: "6px" }}><X size={16} /></button>
         </div>
 
-        <div style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.15)", borderRadius: "8px", padding: "12px 14px", marginBottom: "20px", fontSize: "13px", color: "#a0a0a0" }}>
+        <div style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.15)", borderRadius: "8px", padding: "12px 14px", marginBottom: "20px", fontSize: "13px", color: "#4A5B6C" }}>
           Este lead será convertido em cliente e marcado como <strong style={{ color: "#22c55e" }}>Ganho</strong> no CRM. Os dados de UTM serão preservados.
         </div>
 
