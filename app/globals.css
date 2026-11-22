@@ -1020,3 +1020,5 @@ input[type="checkbox"], input[type="radio"] { height: auto; accent-color: var(--
 .churn-meses button[style*="rgba(180, 35, 24, 0.1)"] { background: var(--ink) !important; color: #FFFFFF !important; }
 .churn-meses button[style*="rgba(180, 35, 24, 0.1)"] span { color: #9FB3C6 !important; }
 .churn-tabela tbody td { padding-top: 12px !important; padding-bottom: 12px !important; }
+.faixa { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+.faixa-val { white-space: nowrap; }
