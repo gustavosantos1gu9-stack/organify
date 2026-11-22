@@ -6,6 +6,9 @@ import { usePathname } from "next/navigation";
 // O título antigo de cada página fica escondido quando este cabeçalho aparece.
 const CABECALHOS: Record<string, [string, string, string]> = {
   "/inicio": ["Gestão · visão geral", "Financeiro", "do mês"],
+  "/financeiro": ["Gestão · visão geral", "Financeiro", "do mês"],
+  "/churn": ["Clientes · histórico de saídas", "Churn", "de clientes"],
+  "/configuracoes/cadastros-auxiliares": ["Gestão · categorias, origens, contas e fornecedores", "Cadastros", "auxiliares"],
   "/uti": ["Clientes · custo alto, em recuperação", "UTI", "de clientes"],
   "/cadastros": ["Clientes · formulários enviados pelo link público", "Cadastros", "de clientes"],
   "/gerador-de-leads": ["Clientes · histórico de saídas", "Churn", "de clientes"],
@@ -18,7 +21,7 @@ const CABECALHOS: Record<string, [string, string, string]> = {
   "/crm/dashboard": ["Atendimento · números do CRM", "Painel", "do CRM"],
   "/jornada": ["Atendimento · etapas que disparam eventos para a Meta", "Jornada", "de compra"],
   "/funis": ["Atendimento · sequências automáticas de mensagens", "Funis", "de mensagens"],
-  "/reunioes": ["Atendimento · controle mensal de reuniões", "Reuniões", "agendadas"],
+  "/reunioes": ["Clientes · reuniões marcadas com as clientes", "Reuniões", "agendadas"],
   "/reunioes-vendas": ["Atendimento · SDR", "Reuniões", "de vendas"],
   "/secretaria-ia": ["Atendimento · atendente virtual no WhatsApp", "Secretária", "IA"],
   "/performance": ["Tráfego · campanhas, agendamentos e resultados", "Performance", "do mês"],

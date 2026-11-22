@@ -225,8 +225,8 @@ function RecModal({ rec, onClose, onSave }: { rec?: Recorrencia; onClose:()=>voi
           {!isEdit && form.valor && (
             <div style={{ background:"rgba(41,171,226,0.06)", border:"1px solid rgba(41,171,226,0.15)", borderRadius:"8px", padding:"10px 14px", fontSize:"12px", color:"var(--text-secondary)" }}>
               {form.periodicidade === "quinzenal"
-                ? <>💰 Serão gerados <strong style={{color:"var(--brand)"}}>24 lançamentos</strong> a cada 15 dias de <strong style={{color:"var(--brand)"}}>{form.valor}</strong></>
-                : <>💰 Serão gerados <strong style={{color:"var(--brand)"}}>{QTDE[form.periodicidade] || 12} lançamentos</strong> ({form.periodicidade}) de <strong style={{color:"var(--brand)"}}>{form.valor}</strong></>
+                ? <>Serão gerados <strong style={{color:"var(--brand)"}}>24 lançamentos</strong> a cada 15 dias de <strong style={{color:"var(--brand)"}}>{form.valor}</strong></>
+                : <>Serão gerados <strong style={{color:"var(--brand)"}}>{QTDE[form.periodicidade] || 12} lançamentos</strong> ({form.periodicidade}) de <strong style={{color:"var(--brand)"}}>{form.valor}</strong></>
               }
             </div>
           )}

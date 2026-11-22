@@ -128,14 +128,14 @@ export default function FinancasPage() {
   }
 
   function tipoLabel(tipo: string) {
-    if (tipo === "conta") return "📄 Conta";
-    if (tipo === "gasto") return "💸 Gasto";
-    if (tipo === "receita") return "💰 Receita";
+    if (tipo === "conta") return "Conta";
+    if (tipo === "gasto") return "Gasto";
+    if (tipo === "receita") return "Receita";
     return tipo;
   }
 
   function categoriaLabel(cat: string) {
-    return cat === "empresa" ? "🏢 Empresa" : "🏠 Pessoal";
+    return cat === "empresa" ? "Empresa" : "Pessoal";
   }
 
   function formatMoney(v: number) {
@@ -157,7 +157,7 @@ export default function FinancasPage() {
   return (
     <div style={{ padding: "32px", maxWidth: "860px", color: "var(--navy)" }}>
       <h1 style={{ fontSize: "22px", fontWeight: "700", marginBottom: "8px", color: "var(--navy)" }}>
-        💰 Finanças Pessoais
+        Finanças Pessoais
       </h1>
       <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "28px" }}>
         Agente financeiro via WhatsApp + Google Sheets
@@ -186,7 +186,7 @@ export default function FinancasPage() {
         marginBottom: "16px",
       }}>
         <h2 style={{ fontSize: "15px", fontWeight: "600", marginBottom: "14px", color: "var(--navy)" }}>
-          📊 Google Sheets
+          Google Sheets
         </h2>
 
         {config?.google_email ? (
@@ -243,11 +243,11 @@ export default function FinancasPage() {
                   opacity: syncing ? 0.8 : 1,
                 }}
               >
-                {syncing ? "Sincronizando..." : "📅 Sincronizar com Agenda"}
+                {syncing ? "Sincronizando..." : "Sincronizar com Agenda"}
               </button>
               {syncResult && (
                 <span style={{ fontSize: "12px", color: "var(--success)" }}>
-                  ✓ {syncResult.criados} evento{syncResult.criados !== 1 ? "s" : ""} criado{syncResult.criados !== 1 ? "s" : ""}
+                  {syncResult.criados} evento{syncResult.criados !== 1 ? "s" : ""} criado{syncResult.criados !== 1 ? "s" : ""}
                   {syncResult.pulados > 0 ? `, ${syncResult.pulados} já existiam` : ""}
                 </span>
               )}
@@ -286,7 +286,7 @@ export default function FinancasPage() {
         marginBottom: "16px",
       }}>
         <h2 style={{ fontSize: "15px", fontWeight: "600", marginBottom: "14px", color: "var(--navy)" }}>
-          💬 WhatsApp
+          WhatsApp
         </h2>
 
         <div style={{ marginBottom: "16px" }}>
@@ -370,7 +370,7 @@ export default function FinancasPage() {
         marginBottom: "16px",
       }}>
         <h2 style={{ fontSize: "15px", fontWeight: "600", marginBottom: "14px", color: "var(--navy)" }}>
-          📋 Lançamentos Recentes
+          Lançamentos Recentes
         </h2>
 
         {lancamentos.length === 0 ? (
@@ -415,7 +415,7 @@ export default function FinancasPage() {
                       color: l.pago ? "var(--success)" : "var(--alert-text)",
                       marginTop: "2px",
                     }}>
-                      {l.pago ? "Pago ✓" : l.dia_vencimento ? `Vence dia ${l.dia_vencimento}` : "Pendente"}
+                      {l.pago ? "Pago " : l.dia_vencimento ? `Vence dia ${l.dia_vencimento}` : "Pendente"}
                     </div>
                   )}
                 </div>

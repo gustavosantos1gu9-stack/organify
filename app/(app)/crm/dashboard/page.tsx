@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import PeriodSelector from "@/components/ui/PeriodSelector";
 import KPICard from "@/components/ui/KPICard";
-import { useLeads, calcularTempoMedioDecisao, supabase } from "@/lib/hooks";
+import { useLeads, calcularTempoMedioDecisao, supabase, useConversaoPorPublico } from "@/lib/hooks";
 import { formatCurrency } from "@/lib/utils";
 import { Flame, Percent, DollarSign, Clock, Plus, Users, Star, TrendingUp } from "lucide-react";
 
@@ -237,6 +237,42 @@ export default function CRMDashboardPage() {
           </table>
         </div>
       </div>
+      <ConversaoPorPublico />
+    </div>
+  );
+}
+
+// Conversão por público (UTM) — veio da visão geral do financeiro
+function ConversaoPorPublico() {
+  const { data: conversao } = useConversaoPorPublico();
+  const [todos, setTodos] = useState(false);
+  return (
+    <div className="card" style={{ marginTop: "16px", padding: "24px" }}>
+      <h3 style={{ fontSize: "17px", fontWeight: 600, marginBottom: "16px" }}>Conversão por público</h3>
+      {!conversao || conversao.length === 0 ? (
+        <p style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Nenhum dado de UTM ainda.</p>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          {(todos ? conversao : conversao.slice(0, 8)).map((c: any) => (
+            <div key={c.publico} style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+              <div style={{ minWidth: "220px", maxWidth: "320px" }}>
+                <p style={{ fontSize: "13px", fontWeight: 600, color: "var(--navy)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.publico}</p>
+                <p style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{c.campanha}</p>
+              </div>
+              <div style={{ flex: 1, height: "8px", background: "var(--canvas)", borderRadius: "999px" }}>
+                <div className="bar" style={{ width: `${c.taxa}%`, height: "100%", background: "var(--brand)", borderRadius: "999px" }} />
+              </div>
+              <span style={{ fontSize: "13px", color: "var(--brand-deep)", minWidth: "48px", textAlign: "right", fontWeight: 600 }}>{c.taxa}%</span>
+              <span style={{ fontSize: "12px", color: "var(--text-secondary)", minWidth: "90px" }}>{c.total_convertidos} de {c.total_leads} leads</span>
+            </div>
+          ))}
+          {conversao.length > 8 && (
+            <button type="button" className="btn-secondary" style={{ alignSelf: "flex-start", padding: "8px 14px", cursor: "pointer", fontSize: "13px" }} onClick={() => setTodos((v) => !v)}>
+              {todos ? "Mostrar só os 8 principais" : `Ver todos os ${conversao.length} públicos`}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

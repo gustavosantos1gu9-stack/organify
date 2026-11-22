@@ -108,7 +108,7 @@ export default function InicioDono({ nome }: { nome: string }) {
         kicker={`${mes.charAt(0).toUpperCase() + mes.slice(1)} · ao vivo`}
         titulo={`${ativos.length} clientes ativos,`}
         destaque="crescendo juntos"
-        acao={{ label: "Ver financeiro", href: "/dre" }}
+        acao={{ label: "Ver financeiro", href: "/financeiro" }}
         metricas={[
           { label: "Receita recorrente", valor: brl(receita.total), detalhe: `Ticket médio ${brl(ticket)}` },
           { label: "Clientes na carteira", valor: String(naCarteira.length), detalhe: `${pausados.length} pausados` },
@@ -178,6 +178,7 @@ export default function InicioDono({ nome }: { nome: string }) {
             { label: "UTI", href: "/uti", icone: <AlertTriangle {...ic} /> },
             { label: "Cadastros", href: "/cadastros", icone: <FileText {...ic} /> },
             { label: "Escalas", href: "/escala-nicolas", icone: <ClipboardList {...ic} /> },
+            { label: "Reuniões agendadas", href: "/reunioes", icone: <CalendarDays {...ic} /> },
           ] },
           { titulo: "Atendimento", itens: [
             { label: "Inbox", href: "/inbox", icone: <MessageCircle {...ic} /> },
@@ -189,7 +190,7 @@ export default function InicioDono({ nome }: { nome: string }) {
             { label: "Performance", href: "/performance", icone: <BarChart3 {...ic} /> },
             { label: "Relatórios Meta", href: "/relatorios-meta", icone: <BarChart3 {...ic} /> },
             { label: "Financeiro", href: "/dre", icone: <DollarSign {...ic} /> },
-            { label: "Base mensal", href: "/inicio", icone: <CalendarDays {...ic} /> },
+            { label: "Base mensal", href: "/financeiro", icone: <CalendarDays {...ic} /> },
             { label: "Clientes SaaS", href: "/clientes-saas", icone: <Building2 {...ic} /> },
             { label: "Configurações", href: "/configuracoes/integracoes", icone: <Settings {...ic} /> },
           ] },

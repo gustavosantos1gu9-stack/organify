@@ -27,6 +27,7 @@ const hrefToModuloKey: Record<string, string> = {
   "/escala-nicolas": "escala_nicolas",
   "/escala-lavinia": "escala_lavinia",
   "/gerador-de-leads": "churn",
+  "/churn": "churn",
   "/ferramentas/gerador-links": "links_campanhas",
   "/ferramentas/campanhas": "configurar_campanha",
   "/jornada": "jornada",

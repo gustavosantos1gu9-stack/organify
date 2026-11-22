@@ -552,11 +552,11 @@ function FormulariosPageInner() {
                         <button
                           onClick={() => setEditando({ ...editando, redirecionar_whatsapp: true, redirecionar_url: "" })}
                           style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: `1px solid ${editando.redirecionar_whatsapp ? "#1C6CA6" : "#E6EBF0"}`, background: editando.redirecionar_whatsapp ? "#1C6CA615" : "transparent", color: editando.redirecionar_whatsapp ? "#1C6CA6" : "#4A5B6C", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
-                        >💬 WhatsApp</button>
+                        >WhatsApp</button>
                         <button
                           onClick={() => setEditando({ ...editando, redirecionar_whatsapp: false })}
                           style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: `1px solid ${!editando.redirecionar_whatsapp && editando.redirecionar_url !== undefined ? "#1C6CA6" : "#E6EBF0"}`, background: !editando.redirecionar_whatsapp ? "#1C6CA615" : "transparent", color: !editando.redirecionar_whatsapp ? "#1C6CA6" : "#4A5B6C", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
-                        >🔗 Link personalizado</button>
+                        >Link personalizado</button>
                       </div>
                       {/* Texto do botão */}
                       <div>
@@ -695,7 +695,7 @@ function FormulariosPageInner() {
                                 color: "#4A5B6C", fontSize: 11, fontWeight: 600, cursor: "pointer",
                                 whiteSpace: "nowrap", flexShrink: 0,
                               }}>
-                                📎 Anexar
+                                Anexar
                                 <input type="file" accept="image/*" style={{ display: "none" }}
                                   onChange={async e => {
                                     const file = e.target.files?.[0];
@@ -730,11 +730,11 @@ function FormulariosPageInner() {
                             <button
                               onClick={() => { updatePergunta(idx, "whatsappNumero", p.whatsappNumero || ""); updatePergunta(idx, "redirectUrl", ""); }}
                               style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: `1px solid ${p.whatsappNumero !== undefined && p.whatsappNumero !== null && !p.redirectUrl ? "#1C6CA6" : "#E6EBF0"}`, background: (p.whatsappNumero !== undefined && !p.redirectUrl) ? "#1C6CA615" : "transparent", color: (p.whatsappNumero !== undefined && !p.redirectUrl) ? "#1C6CA6" : "#4A5B6C", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
-                            >💬 WhatsApp</button>
+                            >WhatsApp</button>
                             <button
                               onClick={() => { updatePergunta(idx, "redirectUrl", p.redirectUrl || ""); updatePergunta(idx, "whatsappNumero", undefined as any); updatePergunta(idx, "whatsappMensagem", undefined as any); }}
                               style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: `1px solid ${p.redirectUrl ? "#1C6CA6" : "#E6EBF0"}`, background: p.redirectUrl ? "#1C6CA615" : "transparent", color: p.redirectUrl ? "#1C6CA6" : "#4A5B6C", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
-                            >🔗 Link personalizado</button>
+                            >Link personalizado</button>
                           </div>
                           {/* Texto do botão */}
                           <div>
@@ -772,13 +772,13 @@ function FormulariosPageInner() {
                               fontSize: 12, fontWeight: 600, cursor: "pointer", textAlign: "left", width: "100%",
                             }}
                           >
-                            <span style={{ fontSize: 14 }}>{p.semDisparo ? "🚫" : "⚡"}</span>
+                            <span style={{ fontSize: 14 }}>{p.semDisparo ? "" : ""}</span>
                             {p.semDisparo ? "Não dispara Lead nem salva no banco" : "Disparar Lead ao chegar aqui"}
                           </button>
                           <p style={{ fontSize: 10, color: "#7E93A8", margin: 0 }}>
                             {p.semDisparo
-                              ? "⚠ Lead desqualificado — não será salvo nem contabilizado."
-                              : "💡 O pixel Lead dispara automaticamente ao chegar nesta tela."}
+                              ? "Lead desqualificado — não será salvo nem contabilizado."
+                              : "O pixel Lead dispara automaticamente ao chegar nesta tela."}
                           </p>
                         </div>
                       )}
@@ -793,7 +793,7 @@ function FormulariosPageInner() {
                               padding: "5px 10px", borderRadius: 7, border: "1px dashed #1C6CA6",
                               color: "#1C6CA6", fontSize: 11, fontWeight: 600, cursor: "pointer",
                             }}>
-                              📎 Anexar imagem
+                              Anexar imagem
                               <input type="file" accept="image/*" multiple style={{ display: "none" }}
                                 onChange={async e => {
                                   const files = Array.from(e.target.files || []);
@@ -869,7 +869,7 @@ function FormulariosPageInner() {
                                       {pDest.tipo === "obrigado" ? "✓ Obrigado: " : "Ir para: "}{pDest.label?.slice(0, 25) || `Campo ${pdi + 1}`}
                                     </option>
                                   ))}
-                                  <option value="__fim__">⚡ Enviar formulário agora</option>
+                                  <option value="__fim__">Enviar formulário agora</option>
                                 </select>
                               </div>
                             </div>
@@ -894,7 +894,7 @@ function FormulariosPageInner() {
                                   {pDest.tipo === "obrigado" ? "✓ Obrigado: " : "Pular para: "}{pDest.label?.slice(0, 25) || `Campo ${pdi + 1}`}
                                 </option>
                               ))}
-                              <option value="__fim__">⚡ Enviar formulário agora</option>
+                              <option value="__fim__">Enviar formulário agora</option>
                             </select>
                           </div>
                           {p.tipo === "select" || p.tipo === "radio" ? (

@@ -238,30 +238,6 @@ export default function DashboardMaster() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
-        <div className="card">
-          <h3 style={{ fontSize: "14px", fontWeight: "600", marginBottom: "20px", color: "var(--navy)" }}>Leads por etapa — Período atual</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={barDataEtapas}>
-              <XAxis dataKey="etapa" tick={{ fontSize: 10, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Bar dataKey="valor" fill="var(--brand)" radius={[4, 4, 0, 0]} name="Leads" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="card">
-          <h3 style={{ fontSize: "14px", fontWeight: "600", marginBottom: "20px", color: "var(--navy)" }}>Leads por origem — Período atual</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={barDataOrigem}>
-              <XAxis dataKey="origem" tick={{ fontSize: 11, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Bar dataKey="valor" fill="var(--brand)" radius={[4, 4, 0, 0]} name="Leads" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
 
       {/* Snapshots mensais */}
       {(() => {
@@ -331,33 +307,6 @@ export default function DashboardMaster() {
         );
       })()}
 
-      <div className="card">
-        <h3 style={{ fontSize: "14px", fontWeight: "600", marginBottom: "20px", color: "var(--navy)" }}>Conversão por público (UTM)</h3>
-        {!conversao || conversao.length === 0 ? (
-          <p style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Nenhum dado de UTM ainda.</p>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            {(verTodosPublicos ? conversao : conversao.slice(0, 8)).map(c => (
-              <div key={c.publico} style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                <div style={{ minWidth: "200px" }}>
-                  <p style={{ fontSize: "13px", fontWeight: "500", color: "var(--navy)" }}>{c.publico}</p>
-                  <p style={{ fontSize: "11px", color: "var(--text-secondary)" }}>{c.campanha}</p>
-                </div>
-                <div style={{ flex: 1, height: "6px", background: "var(--hover-row)", borderRadius: "3px" }}>
-                  <div style={{ width: `${c.taxa}%`, height: "100%", background: "var(--brand)", borderRadius: "3px" }} />
-                </div>
-                <span style={{ fontSize: "12px", color: "var(--brand)", minWidth: "48px", textAlign: "right", fontWeight: "600" }}>{c.taxa}%</span>
-                <span style={{ fontSize: "11px", color: "var(--text-secondary)", minWidth: "80px" }}>{c.total_convertidos}/{c.total_leads} leads</span>
-              </div>
-            ))}
-            {conversao.length > 8 && (
-              <button type="button" className="btn-secondary" style={{ alignSelf: "flex-start", padding: "8px 14px", cursor: "pointer", fontSize: "13px" }} onClick={() => setVerTodosPublicos(v => !v)}>
-                {verTodosPublicos ? "Mostrar só os 8 principais" : `Ver todos os ${conversao.length} públicos`}
-              </button>
-            )}
-          </div>
-        )}
-      </div>
     </div>
   );
 }

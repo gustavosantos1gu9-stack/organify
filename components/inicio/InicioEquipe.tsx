@@ -23,7 +23,7 @@ const ATALHOS: { grupo: string; modulo: string; a: Atalho }[] = [
   { grupo: "Clientes", modulo: "cadastros", a: { label: "Cadastros", href: "/cadastros", icone: <FileText {...ic} /> } },
   { grupo: "Atendimento", modulo: "inbox", a: { label: "Inbox", href: "/inbox", icone: <MessageCircle {...ic} /> } },
   { grupo: "Atendimento", modulo: "crm", a: { label: "CRM", href: "/crm", icone: <Kanban {...ic} /> } },
-  { grupo: "Atendimento", modulo: "reunioes", a: { label: "Reuniões", href: "/reunioes", icone: <CalendarDays {...ic} /> } },
+  { grupo: "Clientes", modulo: "reunioes", a: { label: "Reuniões agendadas", href: "/reunioes", icone: <CalendarDays {...ic} /> } },
   { grupo: "Atendimento", modulo: "reunioes_vendas", a: { label: "Reuniões de vendas", href: "/reunioes-vendas", icone: <CalendarDays {...ic} /> } },
   { grupo: "Atendimento", modulo: "secretaria_ia", a: { label: "Secretária IA", href: "/secretaria-ia", icone: <Bot {...ic} /> } },
   { grupo: "Tráfego", modulo: "relatorios_meta", a: { label: "Relatórios Meta", href: "/relatorios-meta", icone: <BarChart3 {...ic} /> } },

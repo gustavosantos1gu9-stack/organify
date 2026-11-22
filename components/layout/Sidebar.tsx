@@ -71,6 +71,7 @@ const hrefToModuloKey: Record<string, string> = {
   "/escala-nicolas": "escala_nicolas",
   "/escala-lavinia": "escala_lavinia",
   "/gerador-de-leads": "churn",
+  "/churn": "churn",
   "/ferramentas/gerador-links": "links_campanhas",
   "/ferramentas/campanhas": "configurar_campanha",
   "/jornada": "jornada",
@@ -91,6 +92,7 @@ const groupChildKeys: Record<string, string[]> = {
   Operacional: ["controle_clientes", "cadastros", "reunioes", "escala_ester", "escala_nicolas", "escala_lavinia", "churn"],
   Rastreamento: ["links_campanhas", "configurar_campanha", "jornada"],
   Escalas: ["escala_ester", "escala_nicolas", "escala_lavinia"],
+  Carteira: ["controle_clientes", "escala_ester", "escala_nicolas", "escala_lavinia"],
   "CRM e Jornada": ["crm", "jornada", "funis"],
   Reuniões: ["reunioes", "reunioes_vendas"],
   "Pixel e webhooks": ["disparos_pixel", "disparos_webhook"],
@@ -112,18 +114,20 @@ const masterGroups: NavGroup[] = [
   {
     group: "CLIENTES",
     items: [
-      { href: "/controle-clientes", label: "Carteira", icon: <Users size={16} strokeWidth={1.8} /> },
       {
-        label: "Escalas", icon: <ClipboardList size={16} strokeWidth={1.8} />,
+        // Carteira e escalas por gestor ficam juntas; as escalas viram abas da Carteira
+        label: "Carteira", icon: <Users size={16} strokeWidth={1.8} />,
         children: [
-          { href: "/escala-ester", label: "Carol" },
-          { href: "/escala-nicolas", label: "Nicolas" },
-          { href: "/escala-lavinia", label: "Lavínia" },
+          { href: "/controle-clientes", label: "Todas as clientes" },
+          { href: "/escala-ester", label: "Escala Carol" },
+          { href: "/escala-nicolas", label: "Escala Nicolas" },
+          { href: "/escala-lavinia", label: "Escala Lavínia" },
         ],
       },
+      { href: "/reunioes", label: "Reuniões agendadas", icon: <CalendarDays size={16} strokeWidth={1.8} /> },
       { href: "/uti", label: "UTI", icon: <AlertTriangle size={16} strokeWidth={1.8} /> },
       { href: "/cadastros", label: "Cadastros", icon: <FileText size={16} strokeWidth={1.8} /> },
-      { href: "/gerador-de-leads", label: "Churn", icon: <UserMinus size={16} strokeWidth={1.8} /> },
+      { href: "/churn", label: "Churn", icon: <UserMinus size={16} strokeWidth={1.8} /> },
     ],
   },
   {
@@ -138,13 +142,7 @@ const masterGroups: NavGroup[] = [
           { href: "/funis", label: "Funis" },
         ],
       },
-      {
-        label: "Reuniões", icon: <CalendarDays size={16} strokeWidth={1.8} />,
-        children: [
-          { href: "/reunioes", label: "Agendamentos" },
-          { href: "/reunioes-vendas", label: "SDR Dashboard" },
-        ],
-      },
+      { href: "/reunioes-vendas", label: "Reuniões de vendas", icon: <BarChart2 size={16} strokeWidth={1.8} /> },
       { href: "/secretaria-ia", label: "Secretária IA", icon: <Bot size={16} strokeWidth={1.8} /> },
     ],
   },
@@ -182,7 +180,7 @@ const masterGroups: NavGroup[] = [
       {
         label: "Financeiro", icon: <DollarSign size={16} strokeWidth={1.8} />,
         children: [
-          { href: "/inicio", label: "Dashboard" },
+          { href: "/financeiro", label: "Visão geral" },
           { href: "/financeiro/movimentacoes", label: "Movimentações" },
           { href: "/financeiro/lancamentos-futuros", label: "Lançamentos" },
           { href: "/financeiro/recorrencias", label: "Recorrências" },
@@ -213,6 +211,7 @@ const masterGroups: NavGroup[] = [
           { href: "/configuracoes/times", label: "Times" },
           { href: "/configuracoes/agencia", label: "Agência" },
           { href: "/configuracoes/usuarios", label: "Usuários" },
+          { href: "/configuracoes/cadastros-auxiliares", label: "Cadastros auxiliares" },
         ],
       },
     ],

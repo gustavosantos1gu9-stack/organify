@@ -5,11 +5,12 @@ import { usePathname } from "next/navigation";
 
 // Abas em pílula das áreas com mais de uma tela (padrão do canvas).
 // O menu lateral mostra uma entrada por área; aqui ficam as telas da área.
-export const SECOES: { area: string; itens: { label: string; href: string }[] }[] = [
-  { area: "Escalas", itens: [
-    { label: "Carol", href: "/escala-ester" },
-    { label: "Nicolas", href: "/escala-nicolas" },
-    { label: "Lavínia", href: "/escala-lavinia" },
+export const SECOES: { area: string; itens: { label: string; href: string; tambem?: string[] }[] }[] = [
+  { area: "Carteira", itens: [
+    { label: "Todas as clientes", href: "/controle-clientes" },
+    { label: "Escala Carol", href: "/escala-ester" },
+    { label: "Escala Nicolas", href: "/escala-nicolas" },
+    { label: "Escala Lavínia", href: "/escala-lavinia" },
   ] },
   { area: "CRM e Jornada", itens: [
     { label: "CRM", href: "/crm" },
@@ -20,10 +21,6 @@ export const SECOES: { area: string; itens: { label: string; href: string }[] }[
   { area: "Inbox", itens: [
     { label: "Conversas", href: "/inbox" },
     { label: "Painel", href: "/inbox/dashboard" },
-  ] },
-  { area: "Reuniões", itens: [
-    { label: "Agendamentos", href: "/reunioes" },
-    { label: "Reuniões de vendas", href: "/reunioes-vendas" },
   ] },
   { area: "Relatórios Meta", itens: [
     { label: "Relatórios", href: "/relatorios-meta" },
@@ -41,7 +38,7 @@ export const SECOES: { area: string; itens: { label: string; href: string }[] }[
     { label: "Disparos de Webhook", href: "/disparos-webhook" },
   ] },
   { area: "Financeiro", itens: [
-    { label: "Visão geral", href: "/inicio" },
+    { label: "Visão geral", href: "/financeiro", tambem: ["/inicio"] },
     { label: "Movimentações", href: "/financeiro/movimentacoes" },
     { label: "Lançamentos futuros", href: "/financeiro/lancamentos-futuros" },
     { label: "Recorrências", href: "/financeiro/recorrencias" },
@@ -60,11 +57,14 @@ export const SECOES: { area: string; itens: { label: string; href: string }[] }[
     { label: "Times", href: "/configuracoes/times" },
     { label: "Usuários", href: "/configuracoes/usuarios" },
     { label: "Agência", href: "/configuracoes/agencia" },
-    { label: "Fornecedores", href: "/configuracoes/fornecedores" },
+    { label: "Cadastros auxiliares", href: "/configuracoes/cadastros-auxiliares", tambem: ["/configuracoes/fornecedores", "/configuracoes/financeiro", "/configuracoes/clientes"] },
   ] },
 ];
 
 function ativo(pathname: string, href: string) {
+  const item = SECOES.flatMap((x) => x.itens).find((i) => i.href === href);
+  if (item?.tambem?.some((t) => pathname === t || pathname.startsWith(t + "/"))) return true;
+  if (href === "/financeiro") return pathname === "/financeiro";
   return pathname === href || (href !== "/" && pathname.startsWith(href + "/") && !SECOES.some((s) => s.itens.some((i) => i.href !== href && i.href.startsWith(href + "/") && pathname.startsWith(i.href))));
 }
 

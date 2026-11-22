@@ -262,7 +262,15 @@ export default function CadastrosPage() {
             {loading ? (
               <tr><td colSpan={4} style={{ textAlign: "center", color: "#4A5B6C", padding: "48px" }}>Carregando...</td></tr>
             ) : !cadastros.length ? (
-              <tr><td colSpan={4} style={{ textAlign: "center", color: "#4A5B6C", padding: "48px" }}>Nenhum cadastro nesta situação.</td></tr>
+              <tr><td colSpan={4} style={{ textAlign: "center", color: "#4A5B6C", padding: "48px" }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
+                  <span style={{ fontSize: "15px", color: "#0A1826", fontWeight: 600 }}>{filtro === "pendente" ? "Nenhum cadastro esperando aprovação" : "Nenhum cadastro nesta situação"}</span>
+                  {filtro === "pendente" && <>
+                    <span>Envie o link público para a cliente preencher os dados dela.</span>
+                    <button onClick={copiarLink} className="btn-primary" style={{ padding: "10px 18px", cursor: "pointer", fontSize: "14px" }}>{copiado ? "Link copiado" : "Copiar link do cadastro"}</button>
+                  </>}
+                </div>
+              </td></tr>
             ) : cadastros.map((c, idx) => (
               <tr key={c.id} className="cc-row" data-i={idx}>
                 <td style={{ padding: "12px 20px" }}>

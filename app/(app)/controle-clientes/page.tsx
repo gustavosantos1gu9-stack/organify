@@ -1229,7 +1229,7 @@ export default function ControleClientesPage() {
             contexto={`${mesLongo.charAt(0).toUpperCase() + mesLongo.slice(1).replace(" de ", " de ")} · base de ${mesPassadoStr}: ${basePassada || "—"}`}
             titulo={`${ativos.length} ativas,`}
             destaque={`${entrada.length} em entrada`}
-            link={{ label: "Ver churn", href: "/gerador-de-leads" }}
+            link={{ label: "Ver churn", href: "/churn" }}
             numeros={[
               { label: "Clientes totais", valor: clientes.length },
               { label: "Ativas", valor: ativos.length },
