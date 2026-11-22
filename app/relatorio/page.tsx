@@ -108,6 +108,8 @@ function DashboardContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const relatorioId = searchParams.get("id");
+  const sinceParam = searchParams.get("since");
+  const untilParam = searchParams.get("until");
 
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -126,10 +128,15 @@ function DashboardContent() {
     setLoading(true);
     setError("");
     try {
+      const payload: any = { relatorio_id: relatorioId };
+      if (sinceParam && untilParam) {
+        payload.date_from = sinceParam;
+        payload.date_to = untilParam;
+      }
       const res = await fetch("/api/relatorios/dashboard", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ relatorio_id: relatorioId }),
+        body: JSON.stringify(payload),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Erro ao carregar dados");

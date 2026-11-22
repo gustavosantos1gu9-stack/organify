@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 function CaptureContent() {
   const params = useSearchParams();
   const [contador, setContador] = useState(5);
   const [sessionId] = useState(() => `${Date.now()}-${Math.random().toString(36).substr(2,9)}`);
+  // ref_code retornado pelo /api/captura — usado para append na mensagem
+  const refCodeRef = useRef<string | null>(null);
 
   const wa = params.get("wa") || "";
   const msg = params.get("msg") || "Olá! Vim pelo link e gostaria de mais informações.";
@@ -23,10 +25,18 @@ function CaptureContent() {
   const link_id = params.get("link_id") || "";
 
   const isMobile = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-  // Mobile: redirect server-side. Desktop: direto pro web.whatsapp.com
-  const waUrl = isMobile
-    ? `/whatsapp?wa=${encodeURIComponent(wa)}&msg=${encodeURIComponent(msg)}`
-    : `https://web.whatsapp.com/send?phone=${wa}&text=${encodeURIComponent(msg)}`;
+
+  // Monta URL usando o refCode mais recente (lido via ref para evitar closure stale)
+  function buildWaUrl(code?: string | null) {
+    const c = code !== undefined ? code : refCodeRef.current;
+    const msgFinal = c ? `${msg} (cód. ${c})` : msg;
+    return isMobile
+      ? `/whatsapp?wa=${encodeURIComponent(wa)}&msg=${encodeURIComponent(msgFinal)}`
+      : `https://web.whatsapp.com/send?phone=${wa}&text=${encodeURIComponent(msgFinal)}`;
+  }
+
+  // waUrl para o botão (reativo — recalculado a cada render)
+  const [waUrl, setWaUrl] = useState(() => buildWaUrl(null));
 
   const origem = utm_source
     ? (["facebook","ig","fb"].some(s => utm_source.toLowerCase().includes(s)) ? "Meta Ads"
@@ -72,35 +82,43 @@ function CaptureContent() {
     // o fbclid/utm ficam na URL e o webhook captura via rastreamentos_pendentes
     sessionStorage.setItem("salx_tracking", JSON.stringify(trackingData));
 
-    // A mensagem enviada ao WhatsApp vai conter o session_id embutido
-    // para cruzar quando chegar no webhook
-    fetch("/api/captura", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(trackingData),
-    }).catch(() => {});
-
-    // Salvar também com fbclid como chave de cruzamento (se tiver)
-    if (fbclid) {
-      fetch("/api/captura", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...trackingData, chave: "fbclid", valor: fbclid }),
-      }).catch(() => {});
-    }
+    // Chamar /api/captura e aguardar ref_code (max 3s) para append na mensagem
+    // Usa IIFE async para poder usar await sem tornar o callback do useEffect async
+    (async () => {
+      const controller = new AbortController();
+      const capturaTimeout = setTimeout(() => controller.abort(), 3000);
+      try {
+        const capturaRes = await fetch("/api/captura", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(trackingData),
+          signal: controller.signal,
+        });
+        clearTimeout(capturaTimeout);
+        const capturaData = await capturaRes.json();
+        if (capturaData.ref_code) {
+          refCodeRef.current = capturaData.ref_code;
+          setWaUrl(buildWaUrl(capturaData.ref_code));
+        }
+      } catch {
+        clearTimeout(capturaTimeout);
+        // Timeout ou erro — redirecionar sem código
+      }
+    })();
 
     const timer = setInterval(() => {
       setContador(c => {
         if (c <= 1) {
           clearInterval(timer);
-          window.location.href = waUrl;
+          // Usar a URL mais atualizada (com ref_code se disponível)
+          window.location.href = buildWaUrl();
           return 0;
         }
         return c - 1;
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [wa, waUrl, sessionId]);
+  }, [wa, sessionId]);
 
   const origemLabel = utm_source
     ? (["facebook","ig","fb"].some(s => utm_source.toLowerCase().includes(s)) ? "Meta Ads"

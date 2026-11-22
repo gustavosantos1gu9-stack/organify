@@ -76,7 +76,7 @@ export default function LoginPage() {
             </button>
           </form>
         </div>
-        <p style={{ textAlign: "center", fontSize: "12px", color: "rgba(255,255,255,0.3)", marginTop: "24px" }}>© 2026 Organify. Todos os direitos reservados.</p>
+        <p style={{ textAlign: "center", fontSize: "12px", color: "rgba(255,255,255,0.3)", marginTop: "24px" }}>© 2026 SALX Digital. Todos os direitos reservados.</p>
       </div>
     </div>
   );
