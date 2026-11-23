@@ -15,7 +15,7 @@ import {
 } from "recharts";
 import KPICard from "@/components/ui/KPICard";
 import PeriodSelector from "@/components/ui/PeriodSelector";
-import { useKPIsDashboard, useDadosGraficos, useConversaoPorPublico, useLeads, useLancamentosFuturos, useRecorrencias, useClientes, useMovimentacoes } from "@/lib/hooks";
+import { useKPIsDashboard, useDadosGraficos, useLeadsResumo, useLancamentosPeriodo, useRecorrencias, useClientesResumo, useMovimentacoes } from "@/lib/hooks";
 import { formatCurrency } from "@/lib/utils";
 import { supabase as sbApp, getAgenciaId } from "@/lib/supabase";
 
@@ -103,11 +103,11 @@ export default function DashboardMaster() {
   }, []);
 
   const { data: graficos } = useDadosGraficos(6);
-  const { data: conversao } = useConversaoPorPublico();
-  const { data: leads } = useLeads();
-  const { data: lancamentos } = useLancamentosFuturos();
+  // Só as colunas usadas aqui (antes baixava as tabelas inteiras, com relações)
+  const { data: leads } = useLeadsResumo();
+  const { data: lancamentos } = useLancamentosPeriodo(from, to);
   const { data: recorrencias } = useRecorrencias();
-  const { data: clientes } = useClientes();
+  const { data: clientes } = useClientesResumo();
   const { data: movs } = useMovimentacoes("", from, to);
 
   const entradasPrev = lancamentos?.filter(l => {
