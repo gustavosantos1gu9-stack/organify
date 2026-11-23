@@ -8,6 +8,8 @@ const CABECALHOS: Record<string, [string, string, string]> = {
   "/inicio": ["Gestão · visão geral", "Financeiro", "do mês"],
   "/financeiro": ["Gestão · visão geral", "Financeiro", "do mês"],
   "/churn": ["Clientes · histórico de saídas", "Churn", "de clientes"],
+  "/acompanhamento": ["Clientes · metodologia Salx", "Acompanhamento", "das clientes"],
+  "/financeiro/equipe": ["Gestão · só o administrador vê", "Equipe", "e remuneração"],
   "/configuracoes/cadastros-auxiliares": ["Gestão · categorias, origens, contas e fornecedores", "Cadastros", "auxiliares"],
   "/uti": ["Clientes · custo alto, em recuperação", "UTI", "de clientes"],
   "/cadastros": ["Clientes · formulários enviados pelo link público", "Cadastros", "de clientes"],

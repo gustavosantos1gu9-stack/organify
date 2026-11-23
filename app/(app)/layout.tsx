@@ -22,6 +22,7 @@ const hrefToModuloKey: Record<string, string> = {
   "/relatorios-meta/conexoes": "relatorios_conexoes",
   "/relatorios-meta/alertas": "relatorios_alertas",
   "/controle-clientes": "controle_clientes",
+  "/acompanhamento": "controle_clientes",
   "/cadastros": "cadastros",
   "/reunioes": "reunioes",
   "/escala-ester": "escala_ester",
