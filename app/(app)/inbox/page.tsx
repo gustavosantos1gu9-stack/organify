@@ -626,18 +626,26 @@ function ChatLateral({ conversa, onClose }: { conversa: Conversa; onClose:()=>vo
     })();
   },[conversa.id]);
 
-  // Realtime + polling: atualizar mensagens quando novas chegarem
+  // Tempo real é a fonte principal. A recarga de segurança só roda a cada 5s se o
+  // tempo real cair; com ele ativo, a cada 30s. Aba escondida não recarrega.
   useEffect(()=>{
+    let tempoRealOk = false;
+    let espera: ReturnType<typeof setTimeout> | null = null;
+    const recarregarJa = () => { if (espera) clearTimeout(espera); espera = setTimeout(()=>carregar(false), 300); };
     const channel = supabase
       .channel(`chat-mensagens-${conversa.id}`)
       .on("postgres_changes",
         { event: "INSERT", schema: "public", table: "mensagens", filter: `conversa_id=eq.${conversa.id}` },
-        () => { carregar(false); }
+        () => { recarregarJa(); }
       )
-      .subscribe();
-    // Fallback polling a cada 5s caso realtime falhe silenciosamente
-    const intervalo = setInterval(()=>carregar(false), 5000);
-    return () => { supabase.removeChannel(channel); clearInterval(intervalo); };
+      .subscribe((status) => { tempoRealOk = status === "SUBSCRIBED"; });
+    let ultimo = Date.now();
+    const intervalo = setInterval(()=>{
+      if (typeof document !== "undefined" && document.hidden) return;
+      const passo = tempoRealOk ? 30000 : 5000;
+      if (Date.now() - ultimo >= passo) { ultimo = Date.now(); carregar(false); }
+    }, 5000);
+    return () => { supabase.removeChannel(channel); clearInterval(intervalo); if (espera) clearTimeout(espera); };
   }, [conversa.id]);
 
   // Agrupar mensagens por dia
@@ -1189,15 +1197,23 @@ export default function InboxPage() {
   // Carregar inicial
   useEffect(()=>{carregar();},[carregar]);
 
-  // Polling a cada 10s usando ref
+  // Tempo real atualiza a lista; várias mudanças juntas viram uma recarga só.
+  // Recarga de segurança: a cada 10s se o tempo real cair, a cada 60s com ele ativo.
+  const tempoRealListaOk = useRef(false);
   useEffect(()=>{
-    const i = setInterval(()=>carregarRef.current(), 10000);
+    let ultimo = Date.now();
+    const i = setInterval(()=>{
+      if (typeof document !== "undefined" && document.hidden) return;
+      const passo = tempoRealListaOk.current ? 60000 : 10000;
+      if (Date.now() - ultimo >= passo) { ultimo = Date.now(); carregarRef.current(); }
+    }, 5000);
     return()=>clearInterval(i);
   },[]);
 
   // Realtime: atualizar inbox quando conversas mudarem
   useEffect(()=>{
     let channel: ReturnType<typeof supabase.channel> | null = null;
+    let espera: ReturnType<typeof setTimeout> | null = null;
     (async()=>{
       const agId = await getAgenciaId();
       if(!agId) return;
@@ -1205,11 +1221,11 @@ export default function InboxPage() {
         .channel(`inbox-conversas-${agId}`)
         .on("postgres_changes",
           { event:"*", schema:"public", table:"conversas", filter:`agencia_id=eq.${agId}` },
-          ()=>{ carregarRef.current(); }
+          ()=>{ if (espera) clearTimeout(espera); espera = setTimeout(()=>carregarRef.current(), 500); }
         )
-        .subscribe();
+        .subscribe((status)=>{ tempoRealListaOk.current = status === "SUBSCRIBED"; });
     })();
-    return()=>{ if(channel) supabase.removeChannel(channel); };
+    return()=>{ if(channel) supabase.removeChannel(channel); if (espera) clearTimeout(espera); };
   },[]);
 
   const filtradas = conversas.filter(c => {

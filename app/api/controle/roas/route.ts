@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { unstable_cache } from "next/cache";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -49,92 +50,101 @@ function gerarSemanas(desde: string, ate: string): { inicio: string; fim: string
   return semanas;
 }
 
+// Velocidade: o cálculo (que consulta a Meta semana a semana) fica guardado por 1 hora.
+// Depois da primeira vez, Carteira e Escalas recebem o resultado na hora.
+async function calcularRoas(relatorio_ids: string[]) {
+  const { since, until } = getMesAnterior();
+  const semanas = gerarSemanas(since, until);
+
+  // 1. Dados performance_semanal (investimento + faturamento) do mês anterior
+  const { data: perfRows } = await supabase
+    .from("performance_semanal")
+    .select("relatorio_id, semana_inicio, investimento, faturamento")
+    .in("relatorio_id", relatorio_ids)
+    .gte("semana_inicio", since)
+    .lte("semana_inicio", until);
+
+  // Indexar por relatorio_id + semana_inicio
+  const perfIndex: Record<string, Record<string, any>> = {};
+  for (const row of perfRows || []) {
+    if (!perfIndex[row.relatorio_id]) perfIndex[row.relatorio_id] = {};
+    perfIndex[row.relatorio_id][row.semana_inicio] = row;
+  }
+
+  // Faturamento: soma do performance_semanal
+  const fatByRelId: Record<string, number> = {};
+  for (const row of perfRows || []) {
+    if (row.faturamento !== null && Number(row.faturamento) > 0) {
+      fatByRelId[row.relatorio_id] = (fatByRelId[row.relatorio_id] || 0) + Number(row.faturamento);
+    }
+  }
+
+  // 2. Tokens Meta
+  const { data: rels } = await supabase
+    .from("relatorios")
+    .select("id, ad_account_id, meta_token, agencia_id")
+    .in("id", relatorio_ids);
+
+  const agenciaIds = [...new Set((rels || []).filter((r: any) => !r.meta_token).map((r: any) => r.agencia_id))];
+  const conexoesMap: Record<string, string> = {};
+  if (agenciaIds.length) {
+    const { data: cons } = await supabase
+      .from("relatorios_conexoes")
+      .select("agencia_id, meta_token")
+      .in("agencia_id", agenciaIds)
+      .order("created_at", { ascending: false });
+    (cons || []).forEach((c: any) => {
+      if (!conexoesMap[c.agencia_id] && c.meta_token) conexoesMap[c.agencia_id] = c.meta_token;
+    });
+  }
+
+  const results = await Promise.all((rels || []).map(async (rel: any) => {
+    const faturamento = fatByRelId[rel.id] ?? null;
+    const token = rel.meta_token || conexoesMap[rel.agencia_id];
+    const acId = rel.ad_account_id?.startsWith("act_") ? rel.ad_account_id : `act_${rel.ad_account_id}`;
+
+    // Investimento: somar semana a semana (performance_semanal se tiver, Meta API se não tiver)
+    // Igual ao dashboard de performance
+    let totalSpend = 0;
+    let temAlgumDado = false;
+
+    for (const sem of semanas) {
+      const stored = perfIndex[rel.id]?.[sem.inicio];
+      if (stored && stored.investimento !== null) {
+        totalSpend += Number(stored.investimento);
+        temAlgumDado = true;
+      } else if (token && rel.ad_account_id) {
+        // Semana sem dado armazenado: buscar na Meta API
+        try {
+          const res = await fetch(
+            `${META_API}/${acId}/insights?fields=spend&time_range={"since":"${sem.inicio}","until":"${sem.fim}"}`,
+            { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(8000) }
+          );
+          if (res.ok) {
+            const data = await res.json();
+            const s = data.data?.[0]?.spend ? parseFloat(data.data[0].spend) : 0;
+            totalSpend += s;
+            if (s > 0) temAlgumDado = true;
+          }
+        } catch {}
+      }
+    }
+
+    const spend = temAlgumDado ? totalSpend : null;
+    return { relatorio_id: rel.id, spend, faturamento };
+  }));
+
+  return results;
+}
+const calcularRoasCache = unstable_cache(calcularRoas, ["controle-roas-v1"], { revalidate: 3600 });
+
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   try {
     const { relatorio_ids } = await req.json();
     if (!relatorio_ids?.length) return NextResponse.json({ results: [] });
-
-    const { since, until } = getMesAnterior();
-    const semanas = gerarSemanas(since, until);
-
-    // 1. Dados performance_semanal (investimento + faturamento) do mês anterior
-    const { data: perfRows } = await supabase
-      .from("performance_semanal")
-      .select("relatorio_id, semana_inicio, investimento, faturamento")
-      .in("relatorio_id", relatorio_ids)
-      .gte("semana_inicio", since)
-      .lte("semana_inicio", until);
-
-    // Indexar por relatorio_id + semana_inicio
-    const perfIndex: Record<string, Record<string, any>> = {};
-    for (const row of perfRows || []) {
-      if (!perfIndex[row.relatorio_id]) perfIndex[row.relatorio_id] = {};
-      perfIndex[row.relatorio_id][row.semana_inicio] = row;
-    }
-
-    // Faturamento: soma do performance_semanal
-    const fatByRelId: Record<string, number> = {};
-    for (const row of perfRows || []) {
-      if (row.faturamento !== null && Number(row.faturamento) > 0) {
-        fatByRelId[row.relatorio_id] = (fatByRelId[row.relatorio_id] || 0) + Number(row.faturamento);
-      }
-    }
-
-    // 2. Tokens Meta
-    const { data: rels } = await supabase
-      .from("relatorios")
-      .select("id, ad_account_id, meta_token, agencia_id")
-      .in("id", relatorio_ids);
-
-    const agenciaIds = [...new Set((rels || []).filter((r: any) => !r.meta_token).map((r: any) => r.agencia_id))];
-    const conexoesMap: Record<string, string> = {};
-    if (agenciaIds.length) {
-      const { data: cons } = await supabase
-        .from("relatorios_conexoes")
-        .select("agencia_id, meta_token")
-        .in("agencia_id", agenciaIds)
-        .order("created_at", { ascending: false });
-      (cons || []).forEach((c: any) => {
-        if (!conexoesMap[c.agencia_id] && c.meta_token) conexoesMap[c.agencia_id] = c.meta_token;
-      });
-    }
-
-    const results = await Promise.all((rels || []).map(async (rel: any) => {
-      const faturamento = fatByRelId[rel.id] ?? null;
-      const token = rel.meta_token || conexoesMap[rel.agencia_id];
-      const acId = rel.ad_account_id?.startsWith("act_") ? rel.ad_account_id : `act_${rel.ad_account_id}`;
-
-      // Investimento: somar semana a semana (performance_semanal se tiver, Meta API se não tiver)
-      // Igual ao dashboard de performance
-      let totalSpend = 0;
-      let temAlgumDado = false;
-
-      for (const sem of semanas) {
-        const stored = perfIndex[rel.id]?.[sem.inicio];
-        if (stored && stored.investimento !== null) {
-          totalSpend += Number(stored.investimento);
-          temAlgumDado = true;
-        } else if (token && rel.ad_account_id) {
-          // Semana sem dado armazenado: buscar na Meta API
-          try {
-            const res = await fetch(
-              `${META_API}/${acId}/insights?fields=spend&time_range={"since":"${sem.inicio}","until":"${sem.fim}"}`,
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
-            if (res.ok) {
-              const data = await res.json();
-              const s = data.data?.[0]?.spend ? parseFloat(data.data[0].spend) : 0;
-              totalSpend += s;
-              if (s > 0) temAlgumDado = true;
-            }
-          } catch {}
-        }
-      }
-
-      const spend = temAlgumDado ? totalSpend : null;
-      return { relatorio_id: rel.id, spend, faturamento };
-    }));
-
+    const results = await calcularRoasCache([...relatorio_ids].sort());
     return NextResponse.json({ results });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });

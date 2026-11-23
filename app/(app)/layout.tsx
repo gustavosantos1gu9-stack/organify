@@ -7,6 +7,7 @@ import Topbar from "@/components/layout/Topbar";
 import SubNav from "@/components/layout/SubNav";
 import AutoHead from "@/components/layout/AutoHead";
 import { supabase } from "@/lib/hooks";
+import { carregarPermissoes } from "@/lib/supabase";
 
 const hrefToModuloKey: Record<string, string> = {
   "/": "inicio",
@@ -94,12 +95,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       setRedirecionando(false);
 
       try {
-        const agenciaId = typeof window !== "undefined" ? sessionStorage.getItem("agencia_selecionada") : null;
-        const permUrl = agenciaId ? `/api/permissoes?agencia_id=${agenciaId}` : "/api/permissoes";
-        const res = await fetch(permUrl, {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
-        const { permissoes, modulos_agencia } = await res.json();
+        const { permissoes } = await carregarPermissoes();
 
         if (cancelled) return;
 

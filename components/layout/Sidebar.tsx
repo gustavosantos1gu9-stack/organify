@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { supabase, carregarPermissoes } from "@/lib/supabase";
 import {
   LayoutDashboard,
   Users,
@@ -260,11 +260,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
         if (!session?.access_token) { setPermLoaded(true); return; }
 
         const agenciaId = typeof window !== "undefined" ? sessionStorage.getItem("agencia_selecionada") : null;
-        const url = agenciaId ? `/api/permissoes?agencia_id=${agenciaId}` : "/api/permissoes";
-        const res = await fetch(url, {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
-        const { permissoes, modulos_agencia } = await res.json();
+        const { permissoes, modulos_agencia } = await carregarPermissoes();
         if (permissoes) setAllowedModulos(new Set<string>(permissoes));
         if (modulos_agencia) setModulosAgencia(new Set<string>(modulos_agencia));
 
