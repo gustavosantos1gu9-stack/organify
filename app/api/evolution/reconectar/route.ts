@@ -9,18 +9,27 @@ const supabase = createClient(
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.salxconvert.com.br";
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || "";
 
+export const maxDuration = 60;
+
+// Só aceita QR em imagem (base64). O texto cru do QR ("2@...") não vira imagem no navegador.
+function ehImagem(v: unknown): v is string {
+  return typeof v === "string" && v.length > 100 && (v.startsWith("data:image") || /^[A-Za-z0-9+/=]+$/.test(v.slice(0, 200)));
+}
 function extractQr(data: unknown): string | null {
   if (!data || typeof data !== "object") return null;
   const d = data as Record<string, unknown>;
   const qrcode = d.qrcode as Record<string, unknown> | undefined;
-  return (
-    (typeof d.base64 === "string" ? d.base64 : null) ||
-    (typeof qrcode?.base64 === "string" ? qrcode.base64 : null) ||
-    (typeof qrcode?.code === "string" ? qrcode.code : null) ||
-    (typeof d.code === "string" ? d.code : null) ||
-    (typeof d.qr === "string" ? d.qr : null) ||
-    null
-  );
+  for (const v of [d.base64, qrcode?.base64, d.qr, qrcode?.code, d.code]) {
+    if (ehImagem(v)) return v;
+  }
+  return null;
+}
+
+// WhatsApp exige o código do país; sem o 55 o código de pareamento nunca é aceito
+function normalizarNumero(n: string): string {
+  const d = String(n).replace(/\D/g, "");
+  if (d.length === 10 || d.length === 11) return "55" + d;
+  return d;
 }
 
 function sanitizarNome(nome: string): string {
@@ -326,7 +335,7 @@ export async function POST(req: NextRequest) {
     // 13. QR ou pairing code
     if (numero) {
       // Pairing code: usar instância recém-criada, sem recriar
-      const telefone = String(numero).replace(/\D/g, "");
+      const telefone = normalizarNumero(String(numero));
       console.log(`[reconectar] solicitando pairing code para ${telefone}`);
       await new Promise(r => setTimeout(r, 1000));
       try {
@@ -354,16 +363,16 @@ export async function POST(req: NextRequest) {
     // QR do create
     let qr = extractQr(createData);
 
-    // Fallback: chamar connect separado
-    if (!qr) {
-      await new Promise(r => setTimeout(r, 1000));
+    // Fallback: chamar connect separado (até 3 tentativas — a imagem às vezes demora a sair)
+    for (let tentativa = 0; !qr && tentativa < 3; tentativa++) {
+      await new Promise(r => setTimeout(r, 1200));
       try {
         const connectRes = await fetch(`${evoUrl}/instance/connect/${instNome}`, {
           headers: { apikey: evoKey },
         });
         const connectData = await connectRes.json();
         qr = extractQr(connectData);
-        console.log(`[reconectar] QR via connect: ${qr ? "obtido" : "não obtido"}`);
+        console.log(`[reconectar] QR via connect (tentativa ${tentativa + 1}): ${qr ? "obtido" : "não obtido"}`);
       } catch (e) {
         console.error("[reconectar] erro ao buscar QR via connect:", e);
       }

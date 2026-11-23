@@ -22,6 +22,13 @@ export default function ReconectarPage({ params }: PageProps) {
   const [reconectando, setReconectando] = useState(false);
 
   const reconexaoIniciadaRef = useRef(false);
+  // No celular não dá para escanear o QR da própria tela: começa pela aba Código
+  const [noCelular, setNoCelular] = useState(false);
+  useEffect(() => {
+    const cel = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+    setNoCelular(cel);
+    if (cel) { setPairingMode(true); reconexaoIniciadaRef.current = true; }
+  }, []);
 
   const api = useCallback(async (acao: string, extra: Record<string, unknown> = {}) => {
     const res = await fetch(`/api/reconexao/${token}`, {
@@ -144,11 +151,13 @@ export default function ReconectarPage({ params }: PageProps) {
   }, [qr, conectado, api]);
 
   async function conectarComCodigo() {
-    const num = telefone.replace(/\D/g, "");
+    let num = telefone.replace(/\D/g, "");
     if (num.length < 10) {
       setErro("Digite um número válido com DDD (ex: 11999999999)");
       return;
     }
+    // WhatsApp exige o código do país (55)
+    if (num.length === 10 || num.length === 11) num = "55" + num;
     reconexaoIniciadaRef.current = true;
     await iniciarReconexao(num);
   }
@@ -203,7 +212,10 @@ export default function ReconectarPage({ params }: PageProps) {
 
       {/* Tabs */}
       <div style={{ display: "flex", borderBottom: "1px solid #E6EBF0", marginBottom: 24, width: "100%", maxWidth: 360 }}>
-        <TabBtn active={!pairingMode} onClick={() => { setPairingMode(false); setErro(""); }}>QR Code</TabBtn>
+        <TabBtn active={!pairingMode} onClick={() => {
+          setPairingMode(false); setErro("");
+          if (!qr && !reconectando) { reconexaoIniciadaRef.current = true; iniciarReconexao(); }
+        }}>QR Code</TabBtn>
         <TabBtn active={pairingMode} onClick={() => { setPairingMode(true); setErro(""); setQr(null); }}>Código</TabBtn>
       </div>
 
@@ -217,6 +229,16 @@ export default function ReconectarPage({ params }: PageProps) {
       {/* Erro */}
       {erro && (
         <p style={{ color: "#B42318", fontSize: 13, marginBottom: 16, textAlign: "center", maxWidth: 320 }}>{erro}</p>
+      )}
+
+      {noCelular && (
+        <div style={{ background: "rgba(41,171,226,0.08)", border: "1px solid rgba(41,171,226,0.25)", borderRadius: 10, padding: "12px 16px", marginBottom: 20, maxWidth: 320, width: "100%" }}>
+          <p style={{ color: "#1C6CA6", fontSize: 13, margin: 0, textAlign: "center" }}>
+            {pairingMode
+              ? "Você abriu pelo celular: use o código abaixo. O QR Code só funciona se esta página estiver aberta em outro aparelho (computador ou outro celular)."
+              : "O QR Code precisa ser escaneado de outro aparelho. Se esta página está no mesmo celular do WhatsApp, use a aba Código."}
+          </p>
+        </div>
       )}
 
       {!pairingMode ? (
@@ -292,7 +314,7 @@ export default function ReconectarPage({ params }: PageProps) {
             <div style={{ background: "#FFFFFF", border: "1px solid #1C6CA6", borderRadius: 12, padding: "20px 24px", textAlign: "center" }}>
               <p style={{ color: "#4A5B6C", fontSize: 12, marginBottom: 8 }}>Código de pareamento:</p>
               <p style={{ color: "#0A1826", fontSize: 28, fontWeight: 700, letterSpacing: 4, margin: 0 }}>{pairingCode}</p>
-              <p style={{ color: "#4A5B6C", fontSize: 11, marginTop: 8 }}>Digite este código no WhatsApp → Aparelhos conectados → Conectar com número de telefone</p>
+              <p style={{ color: "#4A5B6C", fontSize: 11, marginTop: 8 }}>No WhatsApp: Aparelhos conectados → Conectar aparelho → "Conectar com número de telefone" (aparece embaixo da câmera) → digite este código. Ele vale por poucos minutos.</p>
             </div>
           )}
 
