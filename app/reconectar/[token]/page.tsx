@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { use } from "react";
 
 interface PageProps {
-  params: Promise<{ token: string }>;
+  params: { token: string };
 }
 
 export default function ReconectarPage({ params }: PageProps) {
-  const { token } = use(params);
+  // Next 14: params chega como objeto comum (use(params) quebrava a página com o erro React #438)
+  const token = params.token;
 
   const [agenciaNome, setAgenciaNome] = useState("");
   const [conectado, setConectado] = useState<boolean | null>(null);
