@@ -1,6 +1,16 @@
 "use client";
 
 import { Faixa, Cartao } from "@/components/ui/Canvas";
+import dynamic from "next/dynamic";
+
+const GraficosFinanceiro = dynamic(() => import("@/components/financeiro/GraficosFinanceiro"), {
+  ssr: false,
+  loading: () => (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
+      <div className="card" style={{ height: 240 }} /><div className="card" style={{ height: 240 }} />
+    </div>
+  ),
+});
 
 import { useState, useEffect } from "react";
 import {
@@ -9,10 +19,6 @@ import {
   UserCheck, ShoppingBag, Percent, Clock,
   MinusCircle, AlertCircle, PlusCircle, Calendar
 } from "lucide-react";
-import {
-  LineChart, Line, BarChart, Bar, XAxis, YAxis,
-  Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
-} from "recharts";
 import KPICard from "@/components/ui/KPICard";
 import PeriodSelector from "@/components/ui/PeriodSelector";
 import { useKPIsDashboard, useDadosGraficos, useLeadsResumo, useLancamentosPeriodo, useRecorrencias, useClientesResumo, useMovimentacoes } from "@/lib/hooks";
@@ -230,34 +236,8 @@ export default function DashboardMaster() {
         </Cartao>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
-        <div className="card">
-          <h3 style={{ fontSize: "14px", fontWeight: "600", marginBottom: "20px", color: "var(--navy)" }}>Entrada x Saída</h3>
-          <ResponsiveContainer width="100%" height={180}>
-            <LineChart data={graficos ?? []}>
-              <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} tickFormatter={v => `R$${v}`} />
-              <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => fmt(v)} />
-              <Line type="monotone" dataKey="entrada" stroke="var(--brand)" strokeWidth={2} dot={false} name="Entrada" />
-              <Line type="monotone" dataKey="saida" stroke="var(--alert-text)" strokeWidth={2} dot={false} name="Saída" />
-              <Legend wrapperStyle={{ fontSize: "11px" }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="card">
-          <h3 style={{ fontSize: "14px", fontWeight: "600", marginBottom: "20px", color: "var(--navy)" }}>Distribuição de clientes</h3>
-          <ResponsiveContainer width="100%" height={180}>
-            <PieChart>
-              <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value">
-                <Cell fill="var(--brand)" /><Cell fill="var(--alert-text)" />
-              </Pie>
-              <Legend wrapperStyle={{ fontSize: "11px" }} />
-              <Tooltip contentStyle={tooltipStyle} />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
+      {/* Gráficos carregados à parte: a biblioteca de gráficos não atrasa os números */}
+      <GraficosFinanceiro graficos={graficos ?? []} pieData={pieData} />
 
       {/* Snapshots mensais */}
       {(() => {
