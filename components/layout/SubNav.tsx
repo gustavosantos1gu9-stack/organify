@@ -42,6 +42,7 @@ export const SECOES: { area: string; itens: { label: string; href: string; tambe
     { label: "Movimentações", href: "/financeiro/movimentacoes" },
     { label: "Lançamentos futuros", href: "/financeiro/lancamentos-futuros" },
     { label: "Recorrências", href: "/financeiro/recorrencias" },
+    { label: "Equipe", href: "/financeiro/equipe" },
     { label: "DRE", href: "/dre" },
     { label: "Clientes", href: "/clientes" },
   ] },

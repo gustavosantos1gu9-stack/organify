@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { supabase, carregarPermissoes } from "@/lib/supabase";
 import {
   LayoutDashboard,
+  Compass,
   Users,
   Users2,
   ClipboardList,
@@ -64,6 +65,7 @@ const hrefToModuloKey: Record<string, string> = {
   "/relatorios-meta/conexoes": "relatorios_conexoes",
   "/relatorios-meta/alertas": "relatorios_alertas",
   "/controle-clientes": "controle_clientes",
+  "/acompanhamento": "controle_clientes",
   "/cadastros": "cadastros",
   "/reunioes": "reunioes",
   "/reunioes-vendas": "reunioes_vendas",
@@ -124,6 +126,7 @@ const masterGroups: NavGroup[] = [
           { href: "/escala-lavinia", label: "Escala Lavínia" },
         ],
       },
+      { href: "/acompanhamento", label: "Acompanhamento", icon: <Compass size={16} strokeWidth={1.8} /> },
       { href: "/reunioes", label: "Reuniões agendadas", icon: <CalendarDays size={16} strokeWidth={1.8} /> },
       { href: "/uti", label: "UTI", icon: <AlertTriangle size={16} strokeWidth={1.8} /> },
       { href: "/cadastros", label: "Cadastros", icon: <FileText size={16} strokeWidth={1.8} /> },
@@ -184,6 +187,7 @@ const masterGroups: NavGroup[] = [
           { href: "/financeiro/movimentacoes", label: "Movimentações" },
           { href: "/financeiro/lancamentos-futuros", label: "Lançamentos" },
           { href: "/financeiro/recorrencias", label: "Recorrências" },
+          { href: "/financeiro/equipe", label: "Equipe" },
           { href: "/dre", label: "DRE" },
           { href: "/clientes", label: "Clientes" },
         ],
