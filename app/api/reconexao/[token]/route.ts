@@ -10,6 +10,8 @@ const supabase = createClient(
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.salxconvert.com.br";
 
+export const maxDuration = 60;
+
 /** Comparação de token resistente a timing attacks */
 function tokenSeguro(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -157,16 +159,16 @@ export async function POST(
   }
 }
 
+// Só aceita QR em imagem (base64). O texto cru do QR ("2@...") não vira imagem no navegador.
+function ehImagem(v: unknown): v is string {
+  return typeof v === "string" && v.length > 100 && (v.startsWith("data:image") || /^[A-Za-z0-9+/=]+$/.test(v.slice(0, 200)));
+}
 function extractQr(data: unknown): string | null {
   if (!data || typeof data !== "object") return null;
   const d = data as Record<string, unknown>;
   const qrcode = d.qrcode as Record<string, unknown> | undefined;
-  return (
-    (typeof d.base64 === "string" ? d.base64 : null) ||
-    (typeof qrcode?.base64 === "string" ? qrcode.base64 : null) ||
-    (typeof qrcode?.code === "string" ? qrcode.code : null) ||
-    (typeof d.code === "string" ? d.code : null) ||
-    (typeof d.qr === "string" ? d.qr : null) ||
-    null
-  );
+  for (const v of [d.base64, qrcode?.base64, d.qr, qrcode?.code, d.code]) {
+    if (ehImagem(v)) return v;
+  }
+  return null;
 }
