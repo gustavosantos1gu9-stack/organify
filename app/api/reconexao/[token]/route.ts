@@ -19,15 +19,14 @@ function tokenSeguro(a: string, b: string): boolean {
 }
 
 async function buscarAgenciaPorToken(token: string) {
+  // Busca direto pelo token (antes pegava só 50 agências com token e podia não achar a certa)
   const { data, error } = await supabase
     .from("agencias")
     .select("id, nome, whatsapp_conectado, whatsapp_instancia, reconexao_token, evolution_url, evolution_key, parent_id")
-    .not("reconexao_token", "is", null)
-    .limit(50); // buscar candidatos e comparar de forma segura
+    .eq("reconexao_token", token)
+    .limit(1);
 
   if (error || !data) return null;
-
-  // Comparação segura (evita timing attacks com === direto no DB)
   const ag = data.find(a => a.reconexao_token && tokenSeguro(a.reconexao_token, token));
   return ag || null;
 }
