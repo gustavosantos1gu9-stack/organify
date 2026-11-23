@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { estadoInstancia, buscarQr, garantirWebhook } from "@/app/api/evolution/evo-util";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -31,6 +32,26 @@ async function buscarAgenciaPorToken(token: string) {
   if (error || !data) return null;
   const ag = data.find(a => a.reconexao_token && tokenSeguro(a.reconexao_token, token));
   return ag || null;
+}
+
+async function credenciaisEvo(ag: { evolution_url?: string | null; evolution_key?: string | null; parent_id?: string | null }) {
+  let evoUrl: string = ag.evolution_url || "";
+  let evoKey: string = ag.evolution_key || "";
+  if (!evoUrl && ag.parent_id) {
+    const { data: parent } = await supabase
+      .from("agencias")
+      .select("evolution_url, evolution_key")
+      .eq("id", ag.parent_id)
+      .single();
+    if (parent) { evoUrl = parent.evolution_url || ""; evoKey = parent.evolution_key || ""; }
+  }
+  return { evoUrl, evoKey };
+}
+
+async function marcarConectado(agenciaId: string) {
+  await supabase.from("agencias")
+    .update({ whatsapp_conectado: true, reconexao_pendente: false, reconexao_em_andamento: null })
+    .eq("id", agenciaId);
 }
 
 // GET: retorna nome da agência e status (sem dados sensíveis)
@@ -80,48 +101,63 @@ export async function POST(
     const body = await req.json() as { acao?: string; numero?: string };
     const acao = body.acao || "status";
 
-    // ── status ──
+    // ── status: confere ao vivo na Evolution (não depende só do webhook ter avisado) ──
     if (acao === "status") {
-      return NextResponse.json({
-        whatsapp_conectado: ag.whatsapp_conectado,
-        tem_instancia: !!ag.whatsapp_instancia,
-      });
+      let conectado = !!ag.whatsapp_conectado;
+      if (!conectado && ag.whatsapp_instancia) {
+        const { evoUrl, evoKey } = await credenciaisEvo(ag);
+        if (evoUrl && evoKey) {
+          const st = await estadoInstancia(evoUrl, evoKey, ag.whatsapp_instancia);
+          if (st === "open" || st === "connected") {
+            conectado = true;
+            await garantirWebhook(evoUrl, evoKey, ag.whatsapp_instancia);
+            await marcarConectado(ag.id);
+          }
+        }
+      }
+      return NextResponse.json({ whatsapp_conectado: conectado, tem_instancia: !!ag.whatsapp_instancia });
     }
 
-    // ── qr: renovar QR sem recriar instância ──
+    // ── qr: como o WhatsApp Web — sempre devolve o QR válido do momento ──
+    // instância esperando QR → QR atual; parou de gerar (fechada) → reinicia e gera outro;
+    // sumiu → recria pela rota de reconexão (que tem trava contra recriar em sequência)
     if (acao === "qr") {
-      if (!ag.whatsapp_instancia) {
-        return NextResponse.json({ error: "Sem instância configurada" }, { status: 400 });
-      }
-
-      let evoUrl: string = ag.evolution_url || "";
-      let evoKey: string = ag.evolution_key || "";
-      if (!evoUrl && ag.parent_id) {
-        const { data: parent } = await supabase
-          .from("agencias")
-          .select("evolution_url, evolution_key")
-          .eq("id", ag.parent_id)
-          .single();
-        if (parent) { evoUrl = parent.evolution_url || ""; evoKey = parent.evolution_key || ""; }
-      }
-
+      const { evoUrl, evoKey } = await credenciaisEvo(ag);
       if (!evoUrl || !evoKey) {
-        return NextResponse.json({ error: "Evolution API não configurada" }, { status: 400 });
+        return NextResponse.json({ aguarde: true, mensagem: "WhatsApp ainda não configurado para esta conta." });
+      }
+      const inst = ag.whatsapp_instancia || "";
+      const st = inst ? await estadoInstancia(evoUrl, evoKey, inst) : "";
+
+      if (st === "open" || st === "connected") {
+        await garantirWebhook(evoUrl, evoKey, inst);
+        await marcarConectado(ag.id);
+        return NextResponse.json({ conectado: true });
       }
 
-      try {
-        const connectRes = await fetch(`${evoUrl}/instance/connect/${ag.whatsapp_instancia}`, {
-          headers: { apikey: evoKey },
-        });
-        const connectData = await connectRes.json() as Record<string, unknown>;
-        const qr = extractQr(connectData);
+      if (st === "connecting" || st === "close") {
+        const qr = await buscarQr(evoUrl, evoKey, inst, 2);
         if (qr) {
+          await garantirWebhook(evoUrl, evoKey, inst);
           return NextResponse.json({ qr });
         }
-        return NextResponse.json({ error: "QR não disponível" }, { status: 500 });
+      }
+
+      // Sem QR: recria a instância
+      try {
+        const res = await fetch(`${APP_URL}/api/evolution/reconectar`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agencia_id: ag.id }),
+          signal: AbortSignal.timeout(50000),
+        });
+        const data = await res.json() as Record<string, unknown>;
+        if (data.ja_conectado) return NextResponse.json({ conectado: true });
+        if (data.qr) return NextResponse.json({ qr: data.qr });
+        return NextResponse.json({ aguarde: true, mensagem: (data.mensagem as string) || null });
       } catch (e) {
-        console.error("[reconexao/token qr] erro:", e);
-        return NextResponse.json({ error: "Erro ao buscar QR" }, { status: 500 });
+        console.error("[reconexao/token qr] recriar falhou:", e);
+        return NextResponse.json({ aguarde: true });
       }
     }
 
@@ -130,13 +166,20 @@ export async function POST(
       const payload: Record<string, unknown> = { agencia_id: ag.id };
       if (body.numero) payload.numero = body.numero;
 
-      const res = await fetch(`${APP_URL}/api/evolution/reconectar`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json() as Record<string, unknown>;
+      let data: Record<string, unknown> = {};
+      try {
+        const res = await fetch(`${APP_URL}/api/evolution/reconectar`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(55000),
+        });
+        data = await res.json() as Record<string, unknown>;
+      } catch (e) {
+        console.error("[reconexao/token reconectar] sem resposta:", e);
+        await supabase.from("agencias").update({ reconexao_em_andamento: null }).eq("id", ag.id);
+        return NextResponse.json({ aguarde: true, error: "O servidor do WhatsApp demorou para responder." });
+      }
       // Não repassa campos internos sensíveis — apenas o necessário para a página pública
       return NextResponse.json({
         qr: data.qr || null,
@@ -155,18 +198,4 @@ export async function POST(
     console.error("[reconexao/token POST] erro:", msg);
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
-}
-
-// Só aceita QR em imagem (base64). O texto cru do QR ("2@...") não vira imagem no navegador.
-function ehImagem(v: unknown): v is string {
-  return typeof v === "string" && v.length > 100 && (v.startsWith("data:image") || /^[A-Za-z0-9+/=]+$/.test(v.slice(0, 200)));
-}
-function extractQr(data: unknown): string | null {
-  if (!data || typeof data !== "object") return null;
-  const d = data as Record<string, unknown>;
-  const qrcode = d.qrcode as Record<string, unknown> | undefined;
-  for (const v of [d.base64, qrcode?.base64, d.qr, qrcode?.code, d.code]) {
-    if (ehImagem(v)) return v;
-  }
-  return null;
 }

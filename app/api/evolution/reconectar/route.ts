@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { fetchEvo, extractQr, garantirWebhook } from "@/app/api/evolution/evo-util";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,20 +11,6 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.salxconvert.com.
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || "";
 
 export const maxDuration = 60;
-
-// Só aceita QR em imagem (base64). O texto cru do QR ("2@...") não vira imagem no navegador.
-function ehImagem(v: unknown): v is string {
-  return typeof v === "string" && v.length > 100 && (v.startsWith("data:image") || /^[A-Za-z0-9+/=]+$/.test(v.slice(0, 200)));
-}
-function extractQr(data: unknown): string | null {
-  if (!data || typeof data !== "object") return null;
-  const d = data as Record<string, unknown>;
-  const qrcode = d.qrcode as Record<string, unknown> | undefined;
-  for (const v of [d.base64, qrcode?.base64, d.qr, qrcode?.code, d.code]) {
-    if (ehImagem(v)) return v;
-  }
-  return null;
-}
 
 // WhatsApp exige o código do país; sem o 55 o código de pareamento nunca é aceito
 function normalizarNumero(n: string): string {
@@ -44,8 +31,10 @@ function sanitizarNome(nome: string): string {
 }
 
 export async function POST(req: NextRequest) {
+  let agenciaTrava = "";
   try {
     const { agencia_id, numero } = await req.json();
+    agenciaTrava = agencia_id || "";
     if (!agencia_id) {
       return NextResponse.json({ error: "agencia_id obrigatório" }, { status: 400 });
     }
@@ -88,7 +77,7 @@ export async function POST(req: NextRequest) {
     let state = "";
     let instanciaExiste = false;
     try {
-      const statusRes = await fetch(`${evoUrl}/instance/connectionState/${instNome}`, {
+      const statusRes = await fetchEvo(`${evoUrl}/instance/connectionState/${instNome}`, {
         headers: { apikey: evoKey },
       });
       const statusData = await statusRes.json() as Record<string, unknown>;
@@ -114,12 +103,13 @@ export async function POST(req: NextRequest) {
     if (state === "connecting") {
       console.log("[reconectar] instância em connecting, devolvendo QR atual");
       try {
-        const connectRes = await fetch(`${evoUrl}/instance/connect/${instNome}`, {
+        const connectRes = await fetchEvo(`${evoUrl}/instance/connect/${instNome}`, {
           headers: { apikey: evoKey },
         });
         const connectData = await connectRes.json();
         const qr = extractQr(connectData);
         if (qr) {
+          await garantirWebhook(evoUrl, evoKey, instNome);
           return NextResponse.json({ qr, instancia: instNome, novo: false });
         }
       } catch (e) {
@@ -134,12 +124,13 @@ export async function POST(req: NextRequest) {
       if (agoMs < 2 * 60 * 1000) {
         console.log(`[reconectar] em andamento há ${Math.round(agoMs / 1000)}s, tentando QR atual`);
         try {
-          const connectRes = await fetch(`${evoUrl}/instance/connect/${instNome}`, {
+          const connectRes = await fetchEvo(`${evoUrl}/instance/connect/${instNome}`, {
             headers: { apikey: evoKey },
           });
           const connectData = await connectRes.json();
           const qr = extractQr(connectData);
           if (qr) {
+            await garantirWebhook(evoUrl, evoKey, instNome);
             return NextResponse.json({ qr, instancia: instNome, em_andamento: true });
           }
         } catch {}
@@ -159,7 +150,7 @@ export async function POST(req: NextRequest) {
 
     if (instanciaExiste) {
       try {
-        const wRes = await fetch(`${evoUrl}/webhook/find/${instNome}`, {
+        const wRes = await fetchEvo(`${evoUrl}/webhook/find/${instNome}`, {
           headers: { apikey: evoKey },
         });
         if (wRes.ok) {
@@ -172,7 +163,7 @@ export async function POST(req: NextRequest) {
       }
 
       try {
-        const sRes = await fetch(`${evoUrl}/settings/find/${instNome}`, {
+        const sRes = await fetchEvo(`${evoUrl}/settings/find/${instNome}`, {
           headers: { apikey: evoKey },
         });
         if (sRes.ok) {
@@ -185,7 +176,7 @@ export async function POST(req: NextRequest) {
 
       // 8. Logout
       try {
-        await fetch(`${evoUrl}/instance/logout/${instNome}`, {
+        await fetchEvo(`${evoUrl}/instance/logout/${instNome}`, {
           method: "DELETE",
           headers: { apikey: evoKey },
         });
@@ -196,7 +187,7 @@ export async function POST(req: NextRequest) {
 
       // 9. Apagar instância
       try {
-        const delRes = await fetch(`${evoUrl}/instance/delete/${instNome}`, {
+        const delRes = await fetchEvo(`${evoUrl}/instance/delete/${instNome}`, {
           method: "DELETE",
           headers: { apikey: evoKey },
         });
@@ -219,7 +210,7 @@ export async function POST(req: NextRequest) {
 
     let createData: Record<string, unknown> = {};
     try {
-      const createRes = await fetch(`${evoUrl}/instance/create`, {
+      const createRes = await fetchEvo(`${evoUrl}/instance/create`, {
         method: "POST",
         headers: { apikey: evoKey, "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -242,13 +233,13 @@ export async function POST(req: NextRequest) {
     if (createData.error || (createData as Record<string, unknown>).message) {
       console.log("[reconectar] create com syncFullHistory falhou, tentando sem");
       try {
-        await fetch(`${evoUrl}/instance/delete/${instNome}`, {
+        await fetchEvo(`${evoUrl}/instance/delete/${instNome}`, {
           method: "DELETE",
           headers: { apikey: evoKey },
         }).catch(() => {});
         await new Promise(r => setTimeout(r, 1000));
 
-        const createRes2 = await fetch(`${evoUrl}/instance/create`, {
+        const createRes2 = await fetchEvo(`${evoUrl}/instance/create`, {
           method: "POST",
           headers: { apikey: evoKey, "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -291,7 +282,7 @@ export async function POST(req: NextRequest) {
     } : defaultWebhook;
 
     try {
-      await fetch(`${evoUrl}/webhook/set/${instNome}`, {
+      await fetchEvo(`${evoUrl}/webhook/set/${instNome}`, {
         method: "POST",
         headers: { apikey: evoKey, "Content-Type": "application/json" },
         body: JSON.stringify({ webhook: webhookToApply }),
@@ -304,7 +295,7 @@ export async function POST(req: NextRequest) {
     // Reaplicar settings se foram lidas
     if (settingsConfig && Object.keys(settingsConfig).length > 0) {
       try {
-        await fetch(`${evoUrl}/settings/set/${instNome}`, {
+        await fetchEvo(`${evoUrl}/settings/set/${instNome}`, {
           method: "POST",
           headers: { apikey: evoKey, "Content-Type": "application/json" },
           body: JSON.stringify(settingsConfig),
@@ -339,7 +330,7 @@ export async function POST(req: NextRequest) {
       console.log(`[reconectar] solicitando pairing code para ${telefone}`);
       await new Promise(r => setTimeout(r, 1000));
       try {
-        const pairingRes = await fetch(`${evoUrl}/instance/connect/${instNome}?number=${telefone}`, {
+        const pairingRes = await fetchEvo(`${evoUrl}/instance/connect/${instNome}?number=${telefone}`, {
           headers: { apikey: evoKey },
         });
         const pairingData = await pairingRes.json() as Record<string, unknown>;
@@ -367,7 +358,7 @@ export async function POST(req: NextRequest) {
     for (let tentativa = 0; !qr && tentativa < 3; tentativa++) {
       await new Promise(r => setTimeout(r, 1200));
       try {
-        const connectRes = await fetch(`${evoUrl}/instance/connect/${instNome}`, {
+        const connectRes = await fetchEvo(`${evoUrl}/instance/connect/${instNome}`, {
           headers: { apikey: evoKey },
         });
         const connectData = await connectRes.json();
@@ -387,6 +378,7 @@ export async function POST(req: NextRequest) {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("[reconectar] erro não tratado:", msg);
+    if (agenciaTrava) await limparTrava(agenciaTrava).catch(() => {});
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
 }

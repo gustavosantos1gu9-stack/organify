@@ -12,7 +12,12 @@ export default function ReconectarPage({ params }: PageProps) {
 
   const [agenciaNome, setAgenciaNome] = useState("");
   const [conectado, setConectado] = useState<boolean | null>(null);
-  const [qr, setQr] = useState<string | null>(null);
+  const [qr, setQrBruto] = useState<string | null>(null);
+  const [qrEm, setQrEm] = useState(0);       // quando o QR atual chegou
+  const [agora, setAgora] = useState(0);     // relógio para saber se o QR venceu
+  const [renovando, setRenovando] = useState(false);
+  const renovandoRef = useRef(false);
+  const setQr = (v: string | null) => { setQrBruto(v); if (v) { setQrEm(Date.now()); setAgora(Date.now()); } };
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [pairingMode, setPairingMode] = useState(false);
   const [telefone, setTelefone] = useState("");
@@ -93,8 +98,8 @@ export default function ReconectarPage({ params }: PageProps) {
         setReconectando(false);
         return;
       }
-      if (data.em_andamento) {
-        setMensagem((data.mensagem as string) || "Reconexão em andamento. Aguarde...");
+      if (data.em_andamento || data.aguarde) {
+        setMensagem(numero ? ((data.mensagem as string) || "Reconexão em andamento. Aguarde...") : "Gerando QR Code...");
         setReconectando(false);
         return;
       }
@@ -108,47 +113,62 @@ export default function ReconectarPage({ params }: PageProps) {
         setReconectando(false);
         return;
       }
-      if (data.error) {
+      if (data.error && numero) {
         setErro((data.error as string) || "Erro ao reconectar.");
         setReconectando(false);
         return;
       }
-      setErro("Resposta inesperada. Tente novamente.");
+      // Modo QR: sem erro na tela — o relógio de renovação tenta de novo em alguns segundos
+      if (!numero) setMensagem("Gerando QR Code...");
+      else setErro("Resposta inesperada. Tente novamente.");
       setReconectando(false);
     } catch {
-      setErro("Erro de conexão. Verifique e tente novamente.");
+      if (!numero) setMensagem("Gerando QR Code...");
+      else setErro("Erro de conexão. Verifique e tente novamente.");
       setReconectando(false);
     }
   }
 
-  // Polling de status a cada 5s enquanto QR estiver visível
+  // Conectou? Confere a cada 5s enquanto a página estiver esperando
   useEffect(() => {
-    if (!qr && !pairingCode) return;
-    if (conectado) return;
+    if (conectado !== false) return;
     const interval = setInterval(async () => {
       try {
         const data = await api("status");
         if (data.whatsapp_conectado) {
           setConectado(true);
-          setQr(null);
+          setQrBruto(null);
           setPairingCode(null);
         }
       } catch {}
     }, 5000);
     return () => clearInterval(interval);
-  }, [qr, pairingCode, conectado, api]);
+  }, [conectado, api]);
 
-  // Auto-refresh do QR a cada 25s (só connect, sem recriar)
+  // Igual ao WhatsApp Web: o QR vence em ~20s e um novo aparece sozinho.
+  // Se a conexão parar de gerar QR, o servidor reinicia ou recria e devolve outro.
+  const renovarQr = useCallback(async () => {
+    if (renovandoRef.current) return;
+    renovandoRef.current = true;
+    setRenovando(true);
+    try {
+      const data = await api("qr");
+      if (data.conectado) { setConectado(true); setQrBruto(null); return; }
+      if (data.qr) { setQr(data.qr as string); setErro(""); setMensagem(""); }
+    } catch { /* tenta no próximo ciclo */ }
+    finally { renovandoRef.current = false; setRenovando(false); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [api]);
+
   useEffect(() => {
-    if (!qr || conectado) return;
-    const interval = setInterval(async () => {
-      try {
-        const data = await api("qr");
-        if (data.qr) setQr(data.qr as string);
-      } catch {}
-    }, 25000);
-    return () => clearInterval(interval);
-  }, [qr, conectado, api]);
+    if (pairingMode || conectado !== false || reconectando) return;
+    const tick = setInterval(() => {
+      const t = Date.now();
+      setAgora(t);
+      if (!qr || t - qrEm >= 20000) renovarQr();
+    }, 4000);
+    return () => clearInterval(tick);
+  }, [pairingMode, conectado, reconectando, qr, qrEm, renovarQr]);
 
   async function conectarComCodigo() {
     let num = telefone.replace(/\D/g, "");
@@ -249,15 +269,29 @@ export default function ReconectarPage({ params }: PageProps) {
               <p style={{ color: "#4A5B6C", fontSize: 13 }}>Gerando QR...</p>
             </div>
           ) : qr ? (
-            <img
-              src={qr.startsWith("data:") ? qr : `data:image/png;base64,${qr}`}
-              alt="QR Code WhatsApp"
-              style={{ width: 220, height: 220, borderRadius: 12, background: "#fff", padding: 8 }}
-            />
+            <div style={{ position: "relative", width: 236, height: 236 }}>
+              <img
+                src={qr.startsWith("data:") ? qr : `data:image/png;base64,${qr}`}
+                alt="QR Code WhatsApp"
+                style={{
+                  width: 236, height: 236, borderRadius: 12, background: "#fff", padding: 8, boxSizing: "border-box",
+                  filter: agora - qrEm > 35000 ? "blur(4px)" : "none", transition: "filter .3s",
+                }}
+              />
+              {agora - qrEm > 35000 && (
+                <button onClick={() => renovarQr()} style={{
+                  position: "absolute", inset: 0, margin: "auto", width: 150, height: 150, borderRadius: "50%",
+                  border: "none", background: "#1C6CA6", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer",
+                  boxShadow: "0 8px 24px rgba(10,24,38,.3)",
+                }}>
+                  {renovando ? "Gerando novo QR..." : "Clique para gerar um novo QR"}
+                </button>
+              )}
+            </div>
           ) : (
             <div style={{ width: 220, height: 220, background: "#FFFFFF", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <p style={{ color: "#4A5B6C", fontSize: 13, textAlign: "center", padding: 16 }}>
-                {mensagem || "Aguardando QR..."}
+                {renovando ? "Gerando QR Code..." : (mensagem || "Gerando QR Code...")}
               </p>
             </div>
           )}
@@ -281,7 +315,7 @@ export default function ReconectarPage({ params }: PageProps) {
 
           {qr && (
             <p style={{ color: "#4A5B6C", fontSize: 11, margin: 0 }}>
-              O QR expira em ~30s. Ele se atualiza automaticamente.
+              O QR muda sozinho a cada ~20 segundos, como no WhatsApp Web.
             </p>
           )}
         </div>
