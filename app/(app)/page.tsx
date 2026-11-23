@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { supabase, getAgenciaId, carregarPermissoes } from "@/lib/supabase";
 import InicioDono from "@/components/inicio/InicioDono";
-import InicioEquipe from "@/components/inicio/InicioEquipe";
-import InicioFilha from "@/components/inicio/InicioFilha";
+import dynamic from "next/dynamic";
+// Só baixa o Início da equipe ou da agência filha (que tem gráficos) para quem usa
+const InicioEquipe = dynamic(() => import("@/components/inicio/InicioEquipe"), { ssr: false, loading: () => <div className="ui-page"><Carregando /></div> });
+const InicioFilha = dynamic(() => import("@/components/inicio/InicioFilha"), { ssr: false, loading: () => <div className="ui-page"><Carregando /></div> });
 import { Carregando } from "@/components/inicio/ui";
 
 type Modo =
