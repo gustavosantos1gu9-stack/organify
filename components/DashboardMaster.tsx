@@ -17,6 +17,7 @@ import KPICard from "@/components/ui/KPICard";
 import PeriodSelector from "@/components/ui/PeriodSelector";
 import { useKPIsDashboard, useDadosGraficos, useConversaoPorPublico, useLeads, useLancamentosFuturos, useRecorrencias, useClientes, useMovimentacoes } from "@/lib/hooks";
 import { formatCurrency } from "@/lib/utils";
+import { supabase as sbApp, getAgenciaId } from "@/lib/supabase";
 
 const tooltipStyle = { background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px", color: "var(--navy)" };
 function fmt(n: number) { return formatCurrency(n); }
@@ -37,6 +38,24 @@ export default function DashboardMaster() {
   const [to, setTo] = useState(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split("T")[0]);
 
   const { data: kpis, loading } = useKPIsDashboard(from, to);
+
+  // Clientes novos: mesma base de Reuniões de vendas (conversas que fecharam no período, sem a equipe interna)
+  const [vendasPeriodo, setVendasPeriodo] = useState<number | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    (async () => {
+      try {
+        const agId = await getAgenciaId();
+        if (!agId) return;
+        const { data } = await sbApp.from("conversas").select("id").eq("agencia_id", agId)
+          .in("etapa_jornada", ["Fechou", "Comprou"])
+          .gte("etapa_alterada_at", from).lte("etapa_alterada_at", `${to}T23:59:59.999`)
+          .not("contato_nome", "in", '("Caroline Carneiro","Salx Digital Suporte","Nicolas Kich","Nico","Jacqueline Soares Beauty","Lala")');
+        if (vivo) setVendasPeriodo((data || []).length);
+      } catch { /* mantém a contagem pela data de entrada */ }
+    })();
+    return () => { vivo = false; };
+  }, [from, to]);
 
   const [snapshots, setSnapshots] = useState<any[]>([]);
   const [controleClientes, setControleClientes] = useState<any[]>([]);
@@ -115,7 +134,7 @@ export default function DashboardMaster() {
     (m.descricao || "").toLowerCase().includes("marketing")
   )).reduce((a, b) => a + b.valor, 0) ?? 0;
 
-  const novosClientes = controleClientes.filter(c => {
+  const novosPorEntrada = controleClientes.filter(c => {
     if (!c.data_entrada) return false;
     const de = c.data_entrada;
     if (de.includes("/")) {
@@ -129,6 +148,7 @@ export default function DashboardMaster() {
     const data = de.split("T")[0];
     return data >= from && data <= to;
   }).length;
+  const novosClientes = vendasPeriodo ?? novosPorEntrada;
   const cac = novosClientes > 0 ? totalCac / novosClientes : 0;
 
   const inadimplentes = clientes?.filter(c => c.status === "inadimplente" || c.status_recorrencia === "pendencia") ?? [];

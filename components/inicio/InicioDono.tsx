@@ -20,6 +20,8 @@ export default function InicioDono({ nome }: { nome: string }) {
   const [receita, setReceita] = useState({ total: 0, ativos: 0 });
   const [conv, setConv] = useState({ total: 0, rastreadas: 0, naoRastreadas: 0 });
   const [baseMesPassado, setBaseMesPassado] = useState(0);
+  const [faturamento, setFaturamento] = useState(0);
+  const [vendasMes, setVendasMes] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -33,6 +35,24 @@ export default function InicioDono({ nome }: { nome: string }) {
       ]);
       const ativos = ((cli as any[]) || []).filter((x) => x.status === "ativo");
       setReceita({ total: ativos.reduce((s, x) => s + (Number(x.valor_oportunidade) || 0), 0), ativos: ativos.length });
+      try {
+        const h = new Date();
+        const hojeStr = `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, "0")}-${String(h.getDate()).padStart(2, "0")}`;
+        const mesStr = hojeStr.slice(0, 7);
+        const proxMes = h.getMonth() === 11 ? `${h.getFullYear() + 1}-01-01` : `${h.getFullYear()}-${String(h.getMonth() + 2).padStart(2, "0")}-01`;
+        const [{ data: entradas }, { data: fechados }] = await Promise.all([
+          // Faturamento atual: entradas lançadas em Movimentações do dia 1 até hoje (mesma base do Financeiro)
+          supabase.from("movimentacoes").select("valor").eq("agencia_id", agId).eq("tipo", "entrada")
+            .gte("data", `${mesStr}-01`).lte("data", hojeStr),
+          // Novos no mês: mesma base de Reuniões de vendas (conversas que fecharam no mês, sem a equipe interna)
+          supabase.from("conversas").select("id").eq("agencia_id", agId)
+            .in("etapa_jornada", ["Fechou", "Comprou"])
+            .gte("etapa_alterada_at", `${mesStr}-01`).lt("etapa_alterada_at", proxMes)
+            .not("contato_nome", "in", '("Caroline Carneiro","Salx Digital Suporte","Nicolas Kich","Nico","Jacqueline Soares Beauty","Lala")'),
+        ]);
+        setFaturamento(((entradas as any[]) || []).reduce((s, x) => s + (Number(x.valor) || 0), 0));
+        setVendasMes(((fechados as any[]) || []).length);
+      } catch { /* mantém zero */ }
       setCarteira(cart);
       try {
         // Base de clientes ativos do mês passado (snapshot mensal), para a taxa de churn
@@ -110,9 +130,9 @@ export default function InicioDono({ nome }: { nome: string }) {
         destaque="crescendo juntos"
         acao={{ label: "Ver financeiro", href: "/financeiro" }}
         metricas={[
-          { label: "Receita recorrente", valor: brl(receita.total), detalhe: `Ticket médio ${brl(ticket)}` },
+          { label: "Faturamento atual", valor: brl(faturamento), detalhe: `entradas de 1 a ${hoje.getDate()} de ${hoje.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}` },
           { label: "Clientes na carteira", valor: String(naCarteira.length), detalhe: `${pausados.length} pausados` },
-          { label: "Novos no mês", valor: String(novos.length) },
+          { label: "Novos no mês", valor: String(vendasMes), detalhe: "fechados em Reuniões de vendas" },
           { label: "Churn do mês", valor: `${churnPct.toFixed(1).replace(".", ",")}%`, detalhe: `${churnMes.length} saíram` },
         ]}
       />
