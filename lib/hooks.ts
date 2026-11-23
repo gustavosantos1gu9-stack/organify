@@ -1088,3 +1088,30 @@ export async function enviarEscalaProximoMes(escala: Escala) {
   if (error) throw error;
   return data;
 }
+
+// ─── Versões leves para o painel do Financeiro (só as colunas usadas) ───────
+export function useLeadsResumo() {
+  return useQuery<{ etapa: string; valor: number | null; origens: { nome: string } | null }[]>(async (agenciaId) => {
+    const { data, error } = await supabase.from("leads").select("etapa, valor, origens(nome)").eq("agencia_id", agenciaId);
+    if (error) throw error;
+    return (data as any) ?? [];
+  });
+}
+export function useClientesResumo() {
+  return useQuery<{ status: string; status_recorrencia: string | null; valor_oportunidade: number | null }[]>(async (agenciaId) => {
+    const { data, error } = await supabase.from("clientes").select("status, status_recorrencia, valor_oportunidade").eq("agencia_id", agenciaId);
+    if (error) throw error;
+    return (data as any) ?? [];
+  });
+}
+export function useLancamentosPeriodo(from: string, to: string) {
+  return useQuery<{ tipo: string; pago: boolean; data_vencimento: string; valor: number }[]>(async (agenciaId) => {
+    const { data, error } = await supabase.from("lancamentos_futuros")
+      .select("tipo, pago, data_vencimento, valor")
+      .eq("agencia_id", agenciaId)
+      .gte("data_vencimento", from)
+      .lte("data_vencimento", `${to}T23:59:59`);
+    if (error) throw error;
+    return (data as any) ?? [];
+  }, [from, to]);
+}
