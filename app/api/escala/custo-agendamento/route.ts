@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { unstable_cache } from "next/cache";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -16,7 +17,7 @@ async function metaSpend(acId: string, token: string, desde: string, ate: string
       access_token: token,
     });
     const url = `${META_API}/${acId}/insights?${params}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (!res.ok) return 0;
     const json = await res.json();
     return parseFloat(json?.data?.[0]?.spend || "0");
@@ -27,18 +28,15 @@ async function metaSpend(acId: string, token: string, desde: string, ate: string
 
 export const maxDuration = 60;
 
-export async function POST(req: NextRequest) {
-  try {
-    const { relatorio_ids, date_from, date_to } = await req.json();
-    if (!relatorio_ids?.length) return NextResponse.json({});
-
+// Velocidade: custo por agendamento do mês passado fica guardado por 1 hora
+async function calcularCusto(relatorio_ids: string[], date_from: string, date_to: string) {
     // Buscar todos os relatorios de uma vez
     const { data: relatorios } = await supabase
       .from("relatorios")
       .select("id, ad_account_id, meta_token, agencia_id")
       .in("id", relatorio_ids);
 
-    if (!relatorios?.length) return NextResponse.json({});
+    if (!relatorios?.length) return {} as Record<string, number | null>;
 
     // Token da agência (fallback) — mesmo padrão do /api/relatorios/performance
     const agenciaId = relatorios[0].agencia_id;
@@ -81,6 +79,15 @@ export async function POST(req: NextRequest) {
     const out: Record<string, number | null> = {};
     for (const r of results) out[r.id] = r.custo;
 
+    return out;
+}
+const calcularCustoCache = unstable_cache(calcularCusto, ["escala-custo-agendamento-v1"], { revalidate: 3600 });
+
+export async function POST(req: NextRequest) {
+  try {
+    const { relatorio_ids, date_from, date_to } = await req.json();
+    if (!relatorio_ids?.length) return NextResponse.json({});
+    const out = await calcularCustoCache([...relatorio_ids].sort(), date_from, date_to);
     return NextResponse.json(out);
   } catch (e) {
     console.error("custo-agendamento error:", e);

@@ -213,6 +213,9 @@ interface Props {
   filtroGestor?: string;
 }
 
+// Cache da Escala nesta aba (some ao recarregar a página)
+const cacheEscala = new Map<string, ClientePainel[]>();
+
 export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGestor }: Props) {
   const [agenciaId, setAgenciaId] = useState<string | null>(null);
   const [clientes, setClientes] = useState<ClientePainel[]>([]);
@@ -244,7 +247,11 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
   }, [gestor, gestorEscala, filtroGestor]);
 
   async function carregarClientes(aid: string) {
-    setLoading(true);
+    // Visita anterior nesta aba: mostra na hora e atualiza por trás
+    const chaveCache = `${aid}|${gestorEscala}|${filtroGestor || ""}`;
+    const guardado = cacheEscala.get(chaveCache);
+    if (guardado) { setClientes(guardado); setLoading(false); }
+    else setLoading(true);
     try {
       let q = supabase
         .from("controle_clientes")
@@ -272,6 +279,26 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
         configMap[c.cliente_id] = { proxima_analise: c.proxima_analise, escala_ordem: c.escala_ordem };
       }
 
+      const montar = (custo: Record<string, number | null>, roas: Record<string, number | null>): ClientePainel[] =>
+        clientesData
+          .map(c => ({
+            ...c,
+            proxima_analise: configMap[c.id]?.proxima_analise ?? null,
+            escala_ordem: configMap[c.id]?.escala_ordem ?? null,
+            custo_por_agendamento: custo[c.id] ?? (guardado?.find(g => g.id === c.id)?.custo_por_agendamento ?? null),
+            roas: roas[c.id] ?? (guardado?.find(g => g.id === c.id)?.roas ?? null),
+          }))
+          .sort((a, b) => {
+            const oa = a.escala_ordem ?? 9999;
+            const ob = b.escala_ordem ?? 9999;
+            return oa !== ob ? oa - ob : a.nome.localeCompare(b.nome);
+          });
+
+      // A lista aparece já; custo por agendamento e ROAS (Meta) chegam em seguida
+      setClientes(montar({}, {}));
+      setLoading(false);
+      carregarAtualizacoes(aid, ids);
+
       // Carregar custo_por_agendamento e ROAS do mês passado
       const custoMap: Record<string, number | null> = {};
       const roasMap: Record<string, number | null> = {};
@@ -287,7 +314,8 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
         const lastDay = new Date(ultAnoNum, ultMesNum, 0).getDate();
         const dateTo = `${ultAnoNum}-${String(ultMesNum).padStart(2, "0")}-${lastDay}`;
 
-        // Custo por agendamento (Meta spend / agendamentos manuais)
+        // Custo por agendamento e ROAS saem juntos (antes um esperava o outro)
+        await Promise.all([(async () => {
         try {
           const res = await fetch("/api/escala/custo-agendamento", {
             method: "POST",
@@ -301,7 +329,7 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
             }
           }
         } catch {}
-
+        })(), (async () => {
         // ROAS (faturamento / investimento do performance_semanal)
         try {
           const res = await fetch("/api/controle/roas", {
@@ -321,24 +349,12 @@ export default function EscalaPainelClientes({ gestor, gestorEscala, filtroGesto
             }
           }
         } catch {}
+        })()]);
       }
 
-      const merged: ClientePainel[] = clientesData
-        .map(c => ({
-          ...c,
-          proxima_analise: configMap[c.id]?.proxima_analise ?? null,
-          escala_ordem: configMap[c.id]?.escala_ordem ?? null,
-          custo_por_agendamento: custoMap[c.id] ?? null,
-          roas: roasMap[c.id] ?? null,
-        }))
-        .sort((a, b) => {
-          const oa = a.escala_ordem ?? 9999;
-          const ob = b.escala_ordem ?? 9999;
-          return oa !== ob ? oa - ob : a.nome.localeCompare(b.nome);
-        });
-
+      const merged = montar(custoMap, roasMap);
+      cacheEscala.set(chaveCache, merged);
       setClientes(merged);
-      carregarAtualizacoes(aid, ids);
     } finally {
       setLoading(false);
     }

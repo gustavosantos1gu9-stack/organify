@@ -707,6 +707,9 @@ function PainelLateral({ cliente, onClose }: { cliente: ControleCliente; onClose
   );
 }
 
+// Cache da Carteira nesta aba (some ao recarregar a página)
+const cacheCarteira = new Map<string, any>();
+
 export default function ControleClientesPage() {
   const [clientes, setClientes] = useState<ControleCliente[]>([]);
   const [loading, setLoading] = useState(true);
@@ -770,52 +773,57 @@ export default function ControleClientesPage() {
     salvarColunas(colunas.filter((c: any) => c.key !== key));
   };
 
-  const carregar = async () => {
-    const id = await getAgenciaId();
-    setAgId(id||"");
-    const { data } = await supabase.from("controle_clientes").select("*").eq("agencia_id",id!).neq("status","saiu");
-    setClientes(data||[]);
-    const { data: churns } = await supabase.from("controle_clientes").select("data_churn").eq("agencia_id",id!).eq("status","saiu");
-    setChurnsMes(churns||[]);
-    const resSnap = await fetch(`/api/snapshots?agencia_id=${id}`);
-    const jsonSnap = await resSnap.json();
-    setSnapsMensais(jsonSnap.data||[]);
-    const { data: users } = await supabase.from("usuarios").select("nome").eq("agencia_id",id!).order("nome");
-    const { data: tms } = await supabase.from("times").select("nome").eq("agencia_id",id!);
-    setUsuarios(users?.map((u:any)=>u.nome)||[]);
-    setTimes(tms?.map((t:any)=>t.nome)||[]);
-
-    // Carregar cadastros para associação
-    const { data: cads } = await supabase.from("cadastros_clientes").select("*").eq("agencia_id", id!);
-    const lista = cads || [];
+  // Velocidade: todas as consultas da Carteira saem juntas (antes eram 9 em fila)
+  // e o resultado fica guardado para a próxima visita abrir na hora.
+  const aplicarCarteira = (id: string, r: any) => {
+    setAgId(id || "");
+    setClientes(r.data || []);
+    setChurnsMes(r.churns || []);
+    setSnapsMensais(r.snaps || []);
+    setUsuarios(r.users?.map((u: any) => u.nome) || []);
+    setTimes(r.tms?.map((t: any) => t.nome) || []);
+    const lista = r.cads || [];
     setCadastros(lista);
-    const mapa: Record<string,Cadastro> = {};
+    const mapa: Record<string, Cadastro> = {};
     lista.forEach((c: Cadastro) => { mapa[c.id] = c; });
     setCadastrosMap(mapa);
-
-    // Carregar relatórios para associação Dashboard
-    const { data: rels } = await supabase.from("relatorios").select("id, nome, nome_cliente, ativo").eq("agencia_id", id!);
-    const listaRels = rels || [];
+    const listaRels = r.rels || [];
     setRelatorios(listaRels);
-    const mapaRels: Record<string,Relatorio> = {};
-    listaRels.forEach((r: Relatorio) => { mapaRels[r.id] = r; });
+    const mapaRels: Record<string, Relatorio> = {};
+    listaRels.forEach((x: Relatorio) => { mapaRels[x.id] = x; });
     setRelatoriosMap(mapaRels);
-
-    // Carregar alertas de saldo
-    const { data: alts } = await supabase.from("alertas_saldo").select("id, nome_cliente, ad_account_id, ativo").eq("agencia_id", id!);
-    setAlertas(alts || []);
-
-    // Carregar clientes do financeiro para reconciliação
-    const { data: clientesFinan } = await supabase.from("clientes").select("cadastro_id, nome").eq("agencia_id", id!).neq("status", "inativo");
+    setAlertas(r.alts || []);
     const setCadFinan = new Set<string>();
     const setNomesFinan = new Set<string>();
-    (clientesFinan || []).forEach((c: any) => {
+    (r.clientesFinan || []).forEach((c: any) => {
       if (c.cadastro_id) setCadFinan.add(c.cadastro_id);
       if (c.nome) setNomesFinan.add(c.nome.toLowerCase().trim());
     });
     setCadastrosFinanceiro(setCadFinan);
     setNomesFinanceiro(setNomesFinan);
+  };
 
+  const carregar = async () => {
+    const id = await getAgenciaId();
+    const guardado = cacheCarteira.get(id || "");
+    if (guardado) { aplicarCarteira(id || "", guardado); setLoading(false); }
+    const [
+      { data }, { data: churns }, snaps, { data: users }, { data: tms },
+      { data: cads }, { data: rels }, { data: alts }, { data: clientesFinan },
+    ] = await Promise.all([
+      supabase.from("controle_clientes").select("*").eq("agencia_id", id!).neq("status", "saiu"),
+      supabase.from("controle_clientes").select("data_churn").eq("agencia_id", id!).eq("status", "saiu"),
+      fetch(`/api/snapshots?agencia_id=${id}`).then(x => x.json()).then(j => j.data || []).catch(() => []),
+      supabase.from("usuarios").select("nome").eq("agencia_id", id!).order("nome"),
+      supabase.from("times").select("nome").eq("agencia_id", id!),
+      supabase.from("cadastros_clientes").select("*").eq("agencia_id", id!),
+      supabase.from("relatorios").select("id, nome, nome_cliente, ativo").eq("agencia_id", id!),
+      supabase.from("alertas_saldo").select("id, nome_cliente, ad_account_id, ativo").eq("agencia_id", id!),
+      supabase.from("clientes").select("cadastro_id, nome").eq("agencia_id", id!).neq("status", "inativo"),
+    ]);
+    const r = { data, churns, snaps, users, tms, cads, rels, alts, clientesFinan };
+    cacheCarteira.set(id || "", r);
+    aplicarCarteira(id || "", r);
     setLoading(false);
 
     // Carregar ROAS do mês atual para clientes elegíveis (>1 mês de campanha + relatório vinculado)

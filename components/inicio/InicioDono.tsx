@@ -14,6 +14,9 @@ import { carregarCarteira, contarFases, contarConversas, inicioDoMes, ClienteCar
 
 const ic = { size: 14, strokeWidth: 1.8 } as const;
 
+// Cache do Início nesta aba (some ao recarregar a página)
+const cacheInicio = new Map<string, any>();
+
 export default function InicioDono({ nome }: { nome: string }) {
   const [carregado, setCarregado] = useState(false);
   const [carteira, setCarteira] = useState<ClienteCarteira[]>([]);
@@ -24,48 +27,55 @@ export default function InicioDono({ nome }: { nome: string }) {
   const [vendasMes, setVendasMes] = useState(0);
 
   useEffect(() => {
+    const aplicar = (r: any) => {
+      setReceita(r.receita); setFaturamento(r.faturamento); setVendasMes(r.vendasMes);
+      setCarteira(r.carteira); setBaseMesPassado(r.baseMesPassado); setConv(r.conv);
+      setCarregado(true);
+    };
     (async () => {
       const agId = await getAgenciaId();
       if (!agId) { setCarregado(true); return; }
+      // Visita anterior nesta aba: mostra na hora e atualiza por trás
+      const guardado = cacheInicio.get(agId);
+      if (guardado) aplicar(guardado);
+
       const desde = inicioDoMes();
-      const [cart, { data: cli }, c] = await Promise.all([
+      const h = new Date();
+      const hojeStr = `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, "0")}-${String(h.getDate()).padStart(2, "0")}`;
+      const mesStr = hojeStr.slice(0, 7);
+      const proxMes = h.getMonth() === 11 ? `${h.getFullYear() + 1}-01-01` : `${h.getFullYear()}-${String(h.getMonth() + 2).padStart(2, "0")}-01`;
+      const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+      const idx = h.getMonth() === 0 ? 11 : h.getMonth() - 1;
+      const anoPassado = h.getMonth() === 0 ? h.getFullYear() - 1 : h.getFullYear();
+
+      // Tudo junto (antes eram três rodadas em fila)
+      const [cart, { data: cli }, c, { data: entradas }, { data: fechados }, snaps] = await Promise.all([
         carregarCarteira(agId),
         supabase.from("clientes").select("status, valor_oportunidade").eq("agencia_id", agId),
         contarConversas(agId, desde),
+        // Faturamento atual: entradas lançadas em Movimentações do dia 1 até hoje (mesma base do Financeiro)
+        supabase.from("movimentacoes").select("valor").eq("agencia_id", agId).eq("tipo", "entrada")
+          .gte("data", `${mesStr}-01`).lte("data", hojeStr),
+        // Novos no mês: mesma base de Reuniões de vendas (conversas que fecharam no mês, sem a equipe interna)
+        supabase.from("conversas").select("id").eq("agencia_id", agId)
+          .in("etapa_jornada", ["Fechou", "Comprou"])
+          .gte("etapa_alterada_at", `${mesStr}-01`).lt("etapa_alterada_at", proxMes)
+          .not("contato_nome", "in", '("Caroline Carneiro","Salx Digital Suporte","Nicolas Kich","Nico","Jacqueline Soares Beauty","Lala")'),
+        // Base de clientes ativos do mês passado (snapshot mensal), para a taxa de churn
+        fetch(`/api/snapshots?agencia_id=${agId}`).then((r) => r.json()).catch(() => null),
       ]);
       const ativos = ((cli as any[]) || []).filter((x) => x.status === "ativo");
-      setReceita({ total: ativos.reduce((s, x) => s + (Number(x.valor_oportunidade) || 0), 0), ativos: ativos.length });
-      try {
-        const h = new Date();
-        const hojeStr = `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, "0")}-${String(h.getDate()).padStart(2, "0")}`;
-        const mesStr = hojeStr.slice(0, 7);
-        const proxMes = h.getMonth() === 11 ? `${h.getFullYear() + 1}-01-01` : `${h.getFullYear()}-${String(h.getMonth() + 2).padStart(2, "0")}-01`;
-        const [{ data: entradas }, { data: fechados }] = await Promise.all([
-          // Faturamento atual: entradas lançadas em Movimentações do dia 1 até hoje (mesma base do Financeiro)
-          supabase.from("movimentacoes").select("valor").eq("agencia_id", agId).eq("tipo", "entrada")
-            .gte("data", `${mesStr}-01`).lte("data", hojeStr),
-          // Novos no mês: mesma base de Reuniões de vendas (conversas que fecharam no mês, sem a equipe interna)
-          supabase.from("conversas").select("id").eq("agencia_id", agId)
-            .in("etapa_jornada", ["Fechou", "Comprou"])
-            .gte("etapa_alterada_at", `${mesStr}-01`).lt("etapa_alterada_at", proxMes)
-            .not("contato_nome", "in", '("Caroline Carneiro","Salx Digital Suporte","Nicolas Kich","Nico","Jacqueline Soares Beauty","Lala")'),
-        ]);
-        setFaturamento(((entradas as any[]) || []).reduce((s, x) => s + (Number(x.valor) || 0), 0));
-        setVendasMes(((fechados as any[]) || []).length);
-      } catch { /* mantém zero */ }
-      setCarteira(cart);
-      try {
-        // Base de clientes ativos do mês passado (snapshot mensal), para a taxa de churn
-        const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-        const h = new Date();
-        const idx = h.getMonth() === 0 ? 11 : h.getMonth() - 1;
-        const ano = h.getMonth() === 0 ? h.getFullYear() - 1 : h.getFullYear();
-        const snaps = await fetch(`/api/snapshots?agencia_id=${agId}`).then((r) => r.json());
-        const snap = (snaps?.data || []).find((x: any) => x.mes_ano === `${MESES[idx]}/${ano}`);
-        setBaseMesPassado(snap?.clientes_ativos || 0);
-      } catch { /* sem snapshot, a taxa fica 0 */ }
-      setConv(c);
-      setCarregado(true);
+      const snap = (snaps?.data || []).find((x: any) => x.mes_ano === `${MESES[idx]}/${anoPassado}`);
+      const r = {
+        receita: { total: ativos.reduce((s, x) => s + (Number(x.valor_oportunidade) || 0), 0), ativos: ativos.length },
+        faturamento: ((entradas as any[]) || []).reduce((s, x) => s + (Number(x.valor) || 0), 0),
+        vendasMes: ((fechados as any[]) || []).length,
+        carteira: cart,
+        baseMesPassado: snap?.clientes_ativos || 0,
+        conv: c,
+      };
+      cacheInicio.set(agId, r);
+      aplicar(r);
     })();
   }, []);
 

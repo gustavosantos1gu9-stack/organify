@@ -158,20 +158,33 @@ export interface KPIDashboard {
 }
 
 // ─── helper genérico ─────────────────────────────────────────────────────────
+// ─── Velocidade: cache das páginas já visitadas ────────────────────────────
+// Ao voltar para uma página, os dados guardados aparecem na hora e uma busca nova
+// atualiza por trás (stale-while-revalidate). Vale só nesta aba e some ao recarregar.
+const cacheQuery = new Map<string, unknown>();
+function agenciaGuardada(): string {
+  try { return (typeof window !== "undefined" && sessionStorage.getItem("agencia_selecionada")) || ""; } catch { return ""; }
+}
+
 function useQuery<T>(
   fetcher: (agenciaId: string) => Promise<T>,
   deps: unknown[] = []
 ) {
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
+  const base = fetcher.toString() + "|" + JSON.stringify(deps);
+  const [data, setData] = useState<T | null>(() => (cacheQuery.get(agenciaGuardada() + "|" + base) as T) ?? null);
+  const [loading, setLoading] = useState(() => !cacheQuery.has(agenciaGuardada() + "|" + base));
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    setLoading(true);
+    const chaveRapida = agenciaGuardada() + "|" + base;
+    const temCache = cacheQuery.has(chaveRapida);
+    if (temCache) setData(cacheQuery.get(chaveRapida) as T);
+    else setLoading(true);
     try {
       const agenciaId = await getAgenciaId();
       if (!agenciaId) { setError("Agência não encontrada"); setLoading(false); return; }
       const result = await fetcher(agenciaId);
+      cacheQuery.set(agenciaId + "|" + base, result);
       setData(result);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Erro desconhecido");
