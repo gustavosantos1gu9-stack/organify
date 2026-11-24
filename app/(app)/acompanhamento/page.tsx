@@ -26,7 +26,6 @@ interface Mensagem { id: string; cliente_id: string; semana: string; texto: stri
 const brl = (n: number | null | undefined) => n === null || n === undefined ? "—" : `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const pct = (n: number | null) => n === null ? "—" : `${n.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
 const hojeISO = () => new Date().toISOString().slice(0, 10);
-const diasAtras = (d: number) => new Date(Date.now() - d * 864e5).toISOString().slice(0, 10);
 const segundaDaSemana = () => { const d = new Date(); const g = (d.getDay() + 6) % 7; d.setDate(d.getDate() - g); return d.toISOString().slice(0, 10); };
 const dataBR = (s?: string | null) => s ? new Date(s.length === 10 ? s + "T12:00:00" : s).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }).replace(".", "") : "—";
 const parseEntrada = (s?: string | null): Date | null => {
@@ -44,7 +43,8 @@ export default function AcompanhamentoPage() {
   const [equipe, setEquipe] = useState<string[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [acomp, setAcomp] = useState<Record<string, Acomp>>({});
-  const [perf, setPerf] = useState<Record<string, any[]>>({});
+  const [numeros, setNumeros] = useState<Record<string, any>>({});
+  const [numerosProntos, setNumerosProntos] = useState(false);
   const [registros, setRegistros] = useState<Registro[]>([]);
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
@@ -88,36 +88,43 @@ export default function AcompanhamentoPage() {
     setUsuario(meuNome);
     setDono((perm as any).permissoes === null);
 
+    setCarregando(false);
+    // Números da Meta (investimento, mensagens, leads) + planilha, calculados no servidor e guardados por 1h
     const rels = lista.map(c => c.relatorio_id).filter(Boolean) as string[];
     if (rels.length) {
-      const { data: ps } = await supabase.from("performance_semanal")
-        .select("relatorio_id, semana_inicio, investimento, mensagens, agendamentos, comparecimentos, vendas, faturamento")
-        .in("relatorio_id", rels).gte("semana_inicio", diasAtras(56));
-      const pm: Record<string, any[]> = {};
-      (ps || []).forEach((r: any) => { (pm[r.relatorio_id] ||= []).push(r); });
-      setPerf(pm);
+      try {
+        const r = await fetch("/api/acompanhamento/numeros", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ relatorio_ids: rels }) });
+        setNumeros(await r.json());
+      } catch { /* segue sem números */ }
     }
-    setCarregando(false);
+    setNumerosProntos(true);
   }, []);
   useEffect(() => { carregar(); }, [carregar]);
 
   // Cálculos por cliente
   const calc = useMemo(() => {
     const out: Record<string, any> = {};
-    const corte = diasAtras(28);
+    const vazio = somar([]);
     for (const c of clientes) {
-      const a = acomp[c.id] || { cliente_id: c.id };
-      const linhas = c.relatorio_id ? perf[c.relatorio_id] || [] : [];
-      const atual = somar(linhas.filter(l => l.semana_inicio >= corte));
-      const anterior = somar(linhas.filter(l => l.semana_inicio < corte));
+      const num = c.relatorio_id ? numeros[c.relatorio_id] : null;
+      const a = { ...(acomp[c.id] || { cliente_id: c.id }), tipo_contato: num?.tipo_contato || null };
+      const atual: Numeros = num?.atual || vazio;
+      const anterior: Numeros = num?.anterior || vazio;
+      const semDados = !num || (atual.investimento === 0 && atual.contatos === 0 && atual.agendamentos === 0);
       const ob = a.onboarding || {};
       const obFeitos = ONBOARDING_ITENS.filter(i => ob[i.k]).length;
       const obCompleto = obFeitos === ONBOARDING_ITENS.length;
-      const sug = sugerirFase({ onboardingCompleto: obCompleto || !!c.data_inicio_campanha, temCampanha: !!c.relatorio_id, atual, anterior, ideais: a, faixas, faseConfirmada: c.escala_jornada });
+      const sugCalc = sugerirFase({ onboardingCompleto: obCompleto || !!c.data_inicio_campanha, temCampanha: !!c.relatorio_id, atual, anterior, ideais: a, faixas, faseConfirmada: c.escala_jornada });
       const regs = registros.filter(r => r.cliente_id === c.id);
-      const diag = diagnosticar({ atual, ideais: a, faixas, avaliacaoGratuita: a.avaliacao_gratuita, ultimoTipo: regs[0]?.tipo });
+      const diagCalc = diagnosticar({ atual, ideais: a, faixas, avaliacaoGratuita: a.avaliacao_gratuita, ultimoTipo: regs[0]?.tipo });
       const ini = c.data_inicio_campanha ? new Date(c.data_inicio_campanha) : null;
       const diasCampanha = ini && !isNaN(+ini) ? Math.round((Date.now() - +ini) / 864e5) : null;
+      const sug = semDados
+        ? { fase: c.escala_jornada || "", motivo: !c.relatorio_id ? "Sem relatório vinculado na Carteira." : !numerosProntos ? "Carregando números da Meta…" : "Sem dados da Meta e da planilha no período." }
+        : sugCalc;
+      const diag = semDados
+        ? { gargalo: "Sem dados", passo: !c.relatorio_id ? "Vincular o relatório da cliente na Carteira para trazer os números da Meta." : !numerosProntos ? "Carregando números…" : "Conferir a conta de anúncio no relatório e pedir para a cliente preencher agendamentos e vendas.", area: "dados" }
+        : diagCalc;
       const cen = cenarioTrafego({ atual, ideais: a, faixas, diasCampanha });
       const t = taxas(atual);
       const entrada = parseEntrada(c.data_entrada);
@@ -126,14 +133,14 @@ export default function AcompanhamentoPage() {
       const onboardingAtrasado = !obCompleto && diasEntrada !== null && diasEntrada > 15 && !c.data_inicio_campanha;
       const tarefasVencidas = tarefas.filter(x => x.cliente_id === c.id && x.prazo && x.prazo < hojeISO()).length;
       const msgSemana = mensagens.find(m => m.cliente_id === c.id);
-      const faseDif = sug.fase !== "preparacao" && sug.fase !== c.escala_jornada;
-      const tomGeral: Tom = diag.area === "escala" ? "ok" : diag.gargalo === "Lote mínimo" || diag.gargalo === "Dados de venda" ? "sem" :
+      const faseDif = !semDados && sug.fase !== "preparacao" && sug.fase !== c.escala_jornada;
+      const tomGeral: Tom = semDados ? "sem" : diag.area === "escala" ? "ok" : diag.gargalo === "Lote mínimo" || diag.gargalo === "Dados de venda" ? "sem" :
         (tomCusto(t.custoContato, idealContato(a, faixas)) === "ruim" || tomTaxa(t.taxaAgend, faixas.taxaAgendMin) === "ruim") ? "ruim" : "atencao";
       const atencao = (c.uti ? 5 : 0) + (analiseVencida ? 3 : 0) + (onboardingAtrasado ? 3 : 0) + (faseDif ? 2 : 0) + (tomGeral === "ruim" ? 2 : tomGeral === "atencao" ? 1 : 0) + tarefasVencidas;
-      out[c.id] = { a, atual, anterior, t, sug, diag, cen, obFeitos, obCompleto, analiseVencida, onboardingAtrasado, tarefasVencidas, msgSemana, faseDif, tomGeral, atencao, diasCampanha, regs };
+      out[c.id] = { a, atual, anterior, t, sug, diag, cen, semDados, num, obFeitos, obCompleto, analiseVencida, onboardingAtrasado, tarefasVencidas, msgSemana, faseDif, tomGeral, atencao, diasCampanha, regs };
     }
     return out;
-  }, [clientes, acomp, perf, registros, tarefas, mensagens, faixas]);
+  }, [clientes, acomp, numeros, numerosProntos, registros, tarefas, mensagens, faixas]);
 
   const gestores = useMemo(() => Array.from(new Set(clientes.map(c => c.gestor).filter(Boolean))) as string[], [clientes]);
   const css = useMemo(() => Array.from(new Set(Object.values(acomp).map(a => a.cs).filter(Boolean))) as string[], [acomp]);
@@ -327,7 +334,7 @@ function Ficha(props: {
         <div className="ac-col">
           {/* Números vs ideais */}
           <section className="ac-card">
-            <header><h3><Gauge size={15} /> Últimas 4 semanas</h3><small>{n.semanas} semanas com dados · {n.contatos} contatos</small></header>
+            <header><h3><Gauge size={15} /> Últimas 4 semanas</h3><small>{k.num?.meta_ok ? `${(n as any).mensagens || 0} mensagens · ${(n as any).leads || 0} leads · ${n.agendamentos} agendamentos` : "sem dados da Meta"}</small></header>
             <div className="ac-kpis">
               <Kpi l="Custo por contato" v={brl(t.custoContato)} d={`ideal ${brl(iCont)}`} tom={tomCusto(t.custoContato, iCont)} />
               <Kpi l="Custo por agendamento" v={brl(t.custoAgend)} d={`ideal ${brl(iAg)}`} tom={tomCusto(t.custoAgend, iAg)} />
