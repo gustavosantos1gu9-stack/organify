@@ -10,7 +10,26 @@ import { Saudacao, Hero, Painel, BarraLinha, Vazio, Atalhos, Carregando, LinkSut
 const ic = { size: 14, strokeWidth: 1.8 } as const;
 const CORES = ["#1C6CA6", "#0A1826", "#8CC6EC", "#144E73", "#E8915A", "#8B6FD6"];
 
-interface Conversa { origem: string | null; created_at: string; etapa_jornada: string | null }
+interface Conversa { origem: string | null; created_at: string; primeira_mensagem_at: string | null; etapa_jornada: string | null }
+
+// Data que conta para o período: a primeira mensagem da conversa (não o dia em que ela entrou no sistema).
+// Assim, o histórico importado ao conectar o WhatsApp cai nos meses certos.
+const dataRef = (c: Conversa) => {
+  const iso = c.primeira_mensagem_at || c.created_at;
+  return iso ? new Date(iso).toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }) : "";
+};
+
+// Busca todas as conversas (o Supabase devolve no máximo 1000 por vez)
+async function todasConversas(agId: string): Promise<Conversa[]> {
+  const out: Conversa[] = [];
+  for (let de = 0; de < 50000; de += 1000) {
+    const { data } = await supabase.from("conversas").select("origem, created_at, primeira_mensagem_at, etapa_jornada")
+      .eq("agencia_id", agId).order("created_at", { ascending: false }).range(de, de + 999);
+    out.push(...((data as Conversa[]) || []));
+    if (!data || data.length < 1000) break;
+  }
+  return out;
+}
 
 export default function InicioFilha() {
   const hoje = new Date();
@@ -24,12 +43,12 @@ export default function InicioFilha() {
     (async () => {
       const agId = await getAgenciaId();
       if (!agId) { setCarregado(true); return; }
-      const [{ data: ag }, { data: convs }] = await Promise.all([
+      const [{ data: ag }, convs] = await Promise.all([
         supabase.from("agencias").select("nome").eq("id", agId).single(),
-        supabase.from("conversas").select("origem, created_at, etapa_jornada").eq("agencia_id", agId).order("created_at", { ascending: false }),
+        todasConversas(agId),
       ]);
       if (ag) setAgNome((ag as any).nome || "");
-      setConversas((convs as Conversa[]) || []);
+      setConversas(convs);
       setCarregado(true);
     })();
   }, []);
@@ -37,7 +56,7 @@ export default function InicioFilha() {
   if (!carregado) return <Carregando />;
 
   const doPeriodo = conversas.filter((c) => {
-    const d = c.created_at?.split("T")[0];
+    const d = dataRef(c);
     return d >= from && d <= to;
   });
   const naoRastreada = (c: Conversa) => !c.origem || c.origem === "Não Rastreada";
@@ -56,7 +75,7 @@ export default function InicioFilha() {
   const maxEtapa = etapas[0]?.[1] || 0;
 
   const porDia: Record<string, number> = {};
-  doPeriodo.forEach((c) => { const d = c.created_at.split("T")[0]; porDia[d] = (porDia[d] || 0) + 1; });
+  doPeriodo.forEach((c) => { const d = dataRef(c); porDia[d] = (porDia[d] || 0) + 1; });
   const grafico = Object.keys(porDia).sort().map((d) => ({
     dia: new Date(d + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }),
     conversas: porDia[d],

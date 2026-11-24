@@ -398,7 +398,7 @@ async function syncConversa(agencia: any, jid: string, info: any) {
       contato_foto: info.foto, contato_jid: jid,
       ultima_mensagem: ultimaMsgConteudo || info.ultimaMsg || "",
       ultima_mensagem_at: ultimaMsgAt || info.ultimaAt || new Date().toISOString(),
-      primeira_mensagem_at: primeiraMsgAt || info.primeiraAt,
+      primeira_mensagem_at: primeiraMsgAt || info.primeiraAt || info.ultimaAt || null,
       nao_lidas: info.naoLidas || 0,
       ...(ctwaData || {}),
     }).select("id").single();

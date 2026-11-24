@@ -127,7 +127,8 @@ async function syncConversaQuick(agencia: any, jid: string, chatInfo: any, pagin
       contato_foto: chatInfo.foto || null, contato_jid: jid,
       ultima_mensagem: ultimaMsgConteudo || chatInfo.ultimaMsg || "",
       ultima_mensagem_at: ultimaMsgAt || chatInfo.ultimaAt || new Date().toISOString(),
-      primeira_mensagem_at: primeiraMsgAt || chatInfo.primeiraAt || null,
+      // Histórico importado: nunca deixar sem data (senão a conversa conta como "nova hoje")
+      primeira_mensagem_at: primeiraMsgAt || chatInfo.primeiraAt || chatInfo.ultimaAt || null,
       nao_lidas: chatInfo.naoLidas || 0,
     }).select("id, primeira_mensagem_at").single();
     if (error) {
