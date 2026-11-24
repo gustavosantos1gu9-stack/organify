@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { supabase, getAgenciaId } from "@/lib/supabase";
 
 // Abas em pílula das áreas com mais de uma tela (padrão do canvas).
 // O menu lateral mostra uma entrada por área; aqui ficam as telas da área.
-export const SECOES: { area: string; itens: { label: string; href: string; tambem?: string[] }[] }[] = [
+export const SECOES: { area: string; itens: { label: string; href: string; tambem?: string[]; soMaster?: boolean }[] }[] = [
   { area: "Carteira", itens: [
     { label: "Todas as clientes", href: "/controle-clientes" },
     { label: "Escala Carol", href: "/escala-ester" },
@@ -53,8 +55,8 @@ export const SECOES: { area: string; itens: { label: string; href: string; tambe
   ] },
   { area: "Configurações", itens: [
     { label: "Integrações", href: "/configuracoes/integracoes" },
-    { label: "Contas de WhatsApp", href: "/configuracoes/whatsapp-contas" },
-    { label: "Status do WhatsApp", href: "/configuracoes/whatsapp-status" },
+    { label: "Contas de WhatsApp", href: "/configuracoes/whatsapp-contas", soMaster: true },
+    { label: "Status do WhatsApp", href: "/configuracoes/whatsapp-status", soMaster: true },
     { label: "Times", href: "/configuracoes/times" },
     { label: "Usuários", href: "/configuracoes/usuarios" },
     { label: "Agência", href: "/configuracoes/agencia" },
@@ -73,13 +75,33 @@ export function secaoDaRota(pathname: string) {
   return SECOES.find((s) => s.itens.some((i) => ativo(pathname, i.href)));
 }
 
+// Agência filha não vê telas que mostram as outras filhas (contas e status de WhatsApp)
+function useEhFilha() {
+  const [filha, setFilha] = useState(false);
+  useEffect(() => {
+    let vivo = true;
+    (async () => {
+      const id = await getAgenciaId();
+      if (!id) return;
+      const { data } = await supabase.from("agencias").select("parent_id").eq("id", id).maybeSingle();
+      if (vivo) setFilha(!!(data as any)?.parent_id);
+    })();
+    return () => { vivo = false; };
+  }, []);
+  return filha;
+}
+
 export default function SubNav() {
   const pathname = usePathname() || "";
+  const router = useRouter();
+  const ehFilha = useEhFilha();
   const secao = secaoDaRota(pathname);
+  const bloqueada = ehFilha && !!secao?.itens.find((i) => i.soMaster && ativo(pathname, i.href));
+  useEffect(() => { if (bloqueada) router.replace("/configuracoes/integracoes"); }, [bloqueada, router]);
   if (!secao) return null;
   return (
     <nav aria-label={`Seções de ${secao.area}`} className="subnav">
-      {secao.itens.map((i) => (
+      {secao.itens.filter((i) => !(ehFilha && i.soMaster)).map((i) => (
         <Link key={i.href} href={i.href} className={ativo(pathname, i.href) ? "subnav-item on" : "subnav-item"}>
           {i.label}
         </Link>
