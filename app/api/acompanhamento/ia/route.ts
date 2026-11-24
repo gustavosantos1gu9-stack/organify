@@ -39,7 +39,8 @@ async function chamarIA(key: string, modeloAgencia: string, tarefa: "organizar" 
       });
       const j = await r.json().catch(() => ({}));
       if (r.ok) return (j?.content?.[0]?.text as string) || "";
-      ultimoErro = j?.error?.message || `HTTP ${r.status}`;
+      if (r.status === 401 || r.status === 403) throw new Error("CHAVE_INVALIDA");
+      ultimoErro = /model/i.test(j?.error?.message || "") ? "modelo" : `HTTP ${r.status}`;
       if (r.status !== 404 && !/model/i.test(ultimoErro)) break;
     }
     throw new Error(ultimoErro || "Falha na IA");
@@ -56,7 +57,8 @@ async function chamarIA(key: string, modeloAgencia: string, tarefa: "organizar" 
     signal: AbortSignal.timeout(45000),
   });
   const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(j?.error?.message || `HTTP ${r.status}`);
+  if (r.status === 401 || r.status === 403) throw new Error("CHAVE_INVALIDA");
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
   return (j?.choices?.[0]?.message?.content as string) || "";
 }
 
@@ -105,7 +107,9 @@ Máximo 8 linhas, tom de parceria, sem travessão, no máximo 1 emoji. Use os n�
     return NextResponse.json({ error: "Ação inválida" }, { status: 400 });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    console.error("[acompanhamento/ia]", msg);
-    return NextResponse.json({ error: "Não foi possível falar com a IA agora: " + msg.slice(0, 160) }, { status: 500 });
+    console.error("[acompanhamento/ia]", msg.replace(/sk-[A-Za-z0-9_-]+/g, "sk-***"));
+    // Nunca devolve o texto do provedor (pode conter parte da chave)
+    if (msg === "CHAVE_INVALIDA") return NextResponse.json({ error: "A chave de IA cadastrada na agência é inválida ou expirou. Atualize a chave na página Secretária IA." }, { status: 400 });
+    return NextResponse.json({ error: "Não foi possível falar com a IA agora. Tente de novo em instantes." }, { status: 500 });
   }
 }
