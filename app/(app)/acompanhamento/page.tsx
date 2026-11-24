@@ -83,7 +83,7 @@ export default function AcompanhamentoPage() {
     setRegistros((regR.data || []) as Registro[]);
     setTarefas((tarR.data || []) as Tarefa[]);
     setMensagens((msgR.data || []) as Mensagem[]);
-    setEquipe(((usrR.data || []) as any[]).map(u => u.nome).filter(Boolean));
+    setEquipe(Array.from(new Set(((usrR.data || []) as any[]).map(u => u.nome).filter(Boolean))));
     const meuNome = ((euR as any).data?.[0]?.nome) || user?.email?.split("@")[0] || "";
     setUsuario(meuNome);
     setDono((perm as any).permissoes === null);

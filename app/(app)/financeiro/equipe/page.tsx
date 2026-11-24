@@ -6,7 +6,7 @@ import { faseOrdem, ONBOARDING_ITENS } from "@/lib/metodologia";
 
 type Papel = "gestor" | "cs";
 interface Linha { pessoa: string; papel: Papel; clientes: number; m: Record<string, number | null> }
-interface Rem { pessoa: string; papel: Papel; fixo: number; bonus_max: number; metas: Record<string, number>; pesos: Record<string, number> }
+interface Rem { pessoa: string; papel: Papel; fixo: number; bonus_max: number; metas: Record<string, number>; pesos: Record<string, number>; oculto?: boolean }
 
 const METRICAS: Record<Papel, { k: string; l: string; meta: number; un: string }[]> = {
   gestor: [
@@ -97,18 +97,20 @@ export default function EquipePage() {
     })();
   }, []);
 
+  // Só aparece quem tem cliente ativo e não foi removido da equipe
+  const visiveis = useMemo(() => linhas.filter(l => l.clientes > 0 && !rem[`${l.papel}|${l.pessoa}`]?.oculto), [linhas, rem]);
   const mediaCarteira = useMemo(() => {
     const m: Record<string, number> = {};
-    (["gestor", "cs"] as Papel[]).forEach(p => { const l = linhas.filter(x => x.papel === p); m[p] = l.length ? l.reduce((s, x) => s + x.clientes, 0) / l.length : 0; });
+    (["gestor", "cs"] as Papel[]).forEach(p => { const l = visiveis.filter(x => x.papel === p); m[p] = l.length ? l.reduce((s, x) => s + x.clientes, 0) / l.length : 0; });
     return m;
-  }, [linhas]);
+  }, [visiveis]);
 
   const salvar = async (l: Linha, patch: Partial<Rem>) => {
     const key = `${l.papel}|${l.pessoa}`;
     const atual: Rem = rem[key] || { pessoa: l.pessoa, papel: l.papel, fixo: 0, bonus_max: 0, metas: {}, pesos: {} };
     const novo = { ...atual, ...patch };
     setRem(p => ({ ...p, [key]: novo }));
-    await supabase.from("equipe_remuneracao").upsert({ agencia_id: agId, pessoa: l.pessoa, papel: l.papel, fixo: novo.fixo, bonus_max: novo.bonus_max, metas: novo.metas, pesos: novo.pesos, updated_at: new Date().toISOString() }, { onConflict: "agencia_id,pessoa,papel" });
+    await supabase.from("equipe_remuneracao").upsert({ agencia_id: agId, pessoa: l.pessoa, papel: l.papel, fixo: novo.fixo, bonus_max: novo.bonus_max, metas: novo.metas, pesos: novo.pesos, oculto: !!novo.oculto, updated_at: new Date().toISOString() }, { onConflict: "agencia_id,pessoa,papel" });
   };
 
   if (permitido === null) return <div className="ac-carregando">Carregando…</div>;
@@ -117,14 +119,14 @@ export default function EquipePage() {
   return (
     <div className="eq">
       {(["gestor", "cs"] as Papel[]).map(papel => {
-        const ls = linhas.filter(l => l.papel === papel);
+        const ls = visiveis.filter(l => l.papel === papel);
         return (
           <section key={papel} className="ac-card">
             <header><h3>{papel === "gestor" ? "Gestores de tráfego" : "CS"}</h3><small>bônus = bônus máximo × atingimento ponderado das metas × ajuste pelo tamanho da carteira</small></header>
             {ls.length === 0 ? <p className="ac-vazio">{papel === "cs" ? "Nenhuma CS definida ainda. Defina a CS de cada cliente no Acompanhamento." : "Nenhum gestor na Carteira."}</p> : (
               <div style={{ overflowX: "auto" }}>
                 <table className="eq-tabela">
-                  <thead><tr><th>Pessoa</th><th>Clientes</th>{METRICAS[papel].map(m => <th key={m.k}>{m.l}<br /><span style={{ textTransform: "none", fontWeight: 400 }}>meta {m.meta}{m.un}</span></th>)}<th>Atingimento</th><th>Fixo</th><th>Bônus máx.</th><th>Total do mês</th></tr></thead>
+                  <thead><tr><th>Pessoa</th><th>Clientes</th>{METRICAS[papel].map(m => <th key={m.k}>{m.l}<br /><span style={{ textTransform: "none", fontWeight: 400 }}>meta {m.meta}{m.un}</span></th>)}<th>Atingimento</th><th>Fixo</th><th>Bônus máx.</th><th>Total do mês</th><th></th></tr></thead>
                   <tbody>
                     {ls.map(l => {
                       const r = rem[`${papel}|${l.pessoa}`];
@@ -144,6 +146,7 @@ export default function EquipePage() {
                           <td><input inputMode="decimal" defaultValue={r?.fixo || ""} placeholder="0" onBlur={e => salvar(l, { fixo: Number(e.target.value.replace(",", ".")) || 0 })} /></td>
                           <td><input inputMode="decimal" defaultValue={r?.bonus_max || ""} placeholder="0" onBlur={e => salvar(l, { bonus_max: Number(e.target.value.replace(",", ".")) || 0 })} /></td>
                           <td className="eq-bonus">{brl((r?.fixo || 0) + bonus)}<br /><small style={{ fontWeight: 400, color: "#7E93A8" }}>bônus {brl(bonus)} · ajuste {ajuste.toFixed(2)}×</small></td>
+                          <td><button className="eq-remover" title="Remover da equipe" onClick={() => { if (window.confirm(`Remover ${l.pessoa} da equipe? Os clientes continuam na Carteira.`)) salvar(l, { oculto: true }); }}>Remover</button></td>
                         </tr>
                       );
                     })}

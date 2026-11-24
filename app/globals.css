@@ -1588,3 +1588,5 @@ input[type="checkbox"], input[type="radio"] { height: auto; accent-color: var(--
 .eq-barra { display: inline-block; width: 80px; height: 6px; border-radius: 999px; background: #F1F4F7; vertical-align: middle; margin-right: 8px; overflow: hidden; }
 .eq-barra span { display: block; height: 100%; background: linear-gradient(90deg, #29ABE2, #1C6CA6); border-radius: 999px; }
 .eq-bonus { font-weight: 700; color: #1E6B52; }
+.eq-remover{background:none;border:1px solid #D9E1EA;border-radius:6px;padding:4px 10px;font-size:11px;color:#7E93A8;cursor:pointer}
+.eq-remover:hover{border-color:#E5484D;color:#E5484D}

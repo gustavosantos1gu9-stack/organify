@@ -336,7 +336,9 @@ function StatusSelect({ valor, onSave }: { valor: string; onSave: (v: string) =>
     e.stopPropagation();
     if (btnRef.current) {
       const rect = btnRef.current.getBoundingClientRect();
-      setPos({ top: rect.bottom + 4, left: rect.left });
+      const alturaMenu = STATUS_OPTS.length * 36 + 8;
+      const top = rect.bottom + 4 + alturaMenu > window.innerHeight ? Math.max(8, rect.top - alturaMenu - 4) : rect.bottom + 4;
+      setPos({ top, left: Math.min(rect.left, window.innerWidth - 160) });
     }
     setOpen(v => !v);
   };
@@ -351,9 +353,9 @@ function StatusSelect({ valor, onSave }: { valor: string; onSave: (v: string) =>
         <span className="cc-status-dot"/>
         <span>{opt.label}</span>
       </button>
-      {open && (
+      {open && typeof document !== "undefined" && createPortal(
         <>
-          <div onClick={()=>setOpen(false)} style={{ position:"fixed", inset:0, zIndex:9998 }}/>
+          <div onClick={(e)=>{ e.stopPropagation(); setOpen(false); }} style={{ position:"fixed", inset:0, zIndex:9998 }}/>
           <div style={{ position:"fixed", top:pos.top, left:pos.left, background:"var(--card-bg)", border:"1px solid var(--border)", borderRadius:"8px", zIndex:9999, minWidth:"140px", overflow:"hidden", boxShadow:"0 8px 24px rgba(0,0,0,0.7)" }}>
             {STATUS_OPTS.map(s => (
               <button key={s.value} onClick={e=>handleSelect(e,s.value)}
@@ -364,7 +366,8 @@ function StatusSelect({ valor, onSave }: { valor: string; onSave: (v: string) =>
               </button>
             ))}
           </div>
-        </>
+        </>,
+        document.body
       )}
     </>
   );
