@@ -64,10 +64,16 @@ export async function GET(req: NextRequest) {
     const meRes = await fetch(`${META_API}/me?fields=id,name`, {
       headers: { Authorization: `Bearer ${longToken}` },
     });
-    const meData = await meRes.json();
+    let meData = await meRes.json();
 
     if (meData.error) {
-      return NextResponse.redirect(`${url.origin}${returnTo}?meta_error=${encodeURIComponent(meData.error.message)}`);
+      // Limite de chamadas do app (#4/#17/#32/#613) é temporário: o token já foi gerado,
+      // então salva mesmo assim em vez de perder a conexão
+      const limite = [4, 17, 32, 613].includes(Number(meData.error.code)) || meData.error.is_transient;
+      if (!limite) {
+        return NextResponse.redirect(`${url.origin}${returnTo}?meta_error=${encodeURIComponent(meData.error.message)}`);
+      }
+      meData = { id: null, name: "Facebook" };
     }
 
     // 4. Salvar token conforme o contexto
