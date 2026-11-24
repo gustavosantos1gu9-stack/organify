@@ -55,6 +55,7 @@ export interface Ideais {
   custo_agend_ideal?: number | null;
   cpa_ideal?: number | null;
   ticket_medio?: number | null;
+  tipo_contato?: string | null;   // "mensagem" ou "lead" (vem da Meta)
 }
 
 export interface Numeros {
@@ -104,6 +105,7 @@ export function taxas(n: Numeros): Taxas {
 
 /** Custo ideal de contato: o de mensagem, ou o de lead se a cliente trabalha com cadastro. */
 export function idealContato(i: Ideais, f: Faixas) {
+  if (i.tipo_contato === "lead") return i.custo_lead_ideal || i.custo_msg_ideal || f.custoMsgPadrao;
   return i.custo_msg_ideal || i.custo_lead_ideal || f.custoMsgPadrao;
 }
 export function idealAgend(i: Ideais, f: Faixas) {
