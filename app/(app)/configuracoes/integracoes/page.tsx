@@ -291,12 +291,14 @@ function IntegracoesCliente() {
           if (params.get("meta_success") === "true") {
             // Usar agencia_id da URL se disponível (caso de agência filha onde sessionStorage tem o master)
             const agenciaIdUrl = params.get("agencia_id");
-            let tokenParaSeletor = data.meta_business_token;
+            // Token recém-gerado no login: o callback grava nos dois campos; usa o business e cai pro meta_token
+            let tokenParaSeletor = data.meta_business_token || data.meta_token;
             if (agenciaIdUrl && agenciaIdUrl !== agId) {
               // Buscar token da agência correta (filha)
               const { data: agFilha } = await supabase.from("agencias")
-                .select("meta_business_token").eq("id", agenciaIdUrl).single();
-              if (agFilha?.meta_business_token) tokenParaSeletor = agFilha.meta_business_token;
+                .select("meta_business_token, meta_token").eq("id", agenciaIdUrl).single();
+              const t = agFilha?.meta_business_token || agFilha?.meta_token;
+              if (t) tokenParaSeletor = t;
             }
             if (tokenParaSeletor) {
               setCarregandoMeta(true);
@@ -305,7 +307,8 @@ function IntegracoesCliente() {
                   method: "POST", headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ token: tokenParaSeletor, agencia_id: agenciaIdUrl || agId }),
                 });
-                const { contas } = await resContas.json();
+                const { contas, error: erroContas } = await resContas.json();
+                if (erroContas) alert("Não foi possível listar as contas de anúncio: " + erroContas);
                 setContasDisponiveis(contas || []);
                 setAgenciaIdSeletor(agenciaIdUrl || agId);
                 setShowSelector(true);

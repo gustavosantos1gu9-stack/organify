@@ -72,7 +72,14 @@ export async function GET(req: NextRequest) {
 
     // 4. Salvar token conforme o contexto
     if (agenciaId) {
-      if (tokenType === "pixel" || tokenType === "master") {
+      if (tokenType === "master") {
+        // AGÊNCIA FILHA: um único login serve para pixel/CAPI e para o gerenciador
+        // (o seletor de conta de anúncio + pixel usa o meta_business_token)
+        await supabase.from("agencias").update({
+          meta_token: longToken,
+          meta_business_token: longToken,
+        }).eq("id", agenciaId);
+      } else if (tokenType === "pixel") {
         // MASTER INBOX: conectando para inbox/formulários — salva em agencias.meta_token
         await supabase.from("agencias").update({
           meta_token: longToken,
