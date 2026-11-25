@@ -1203,7 +1203,7 @@ function IntegracoesMaster() {
         token: novoToken || novaInstancia,
         qrcode: true,
         integration: "WHATSAPP-BAILEYS",
-        syncFullHistory: true,
+        syncFullHistory: false, // histórico completo sobrecarrega números grandes (Bad MAC / atraso)
       });
       if (data.qrcode?.base64) {
         setQrCode(data.qrcode.base64);

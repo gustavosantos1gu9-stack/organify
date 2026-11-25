@@ -336,7 +336,7 @@ export default function ConexoesPage() {
           token: nomeInst,
           qrcode: true,
           integration: "WHATSAPP-BAILEYS",
-          syncFullHistory: true,
+          syncFullHistory: false, // histórico completo sobrecarrega números grandes (Bad MAC / atraso)
         }),
       });
       const createData = await createRes.json();

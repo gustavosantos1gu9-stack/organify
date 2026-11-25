@@ -218,7 +218,9 @@ export async function POST(req: NextRequest) {
           token: instNome,
           qrcode: qrcodeFlag,
           integration: "WHATSAPP-BAILEYS",
-          syncFullHistory: true,
+          // Sem histórico completo: em números grandes ele sobrecarrega a sessão nova
+          // (erros "Bad MAC" e fila de mensagens atrasada). O sync-on-connect já importa as conversas recentes.
+          syncFullHistory: false,
         }),
       });
       createData = await createRes.json() as Record<string, unknown>;
