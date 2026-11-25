@@ -247,6 +247,19 @@ export async function GET(req: NextRequest) {
       } else {
         await resolverAlerta(ag.id, inst, ag.nome, "delay", evoUrl, evoKey);
       }
+      // Nível crítico: atraso acima de 1h quase sempre é sessão com erro de criptografia ("Bad MAC")
+      // e a fila só cresce. Avisa uma vez, pelo grupo e também por e-mail, com a ação a tomar.
+      const atrasoCritico = maxDelayMin !== null && maxDelayMin > 60;
+      if (atrasoCritico) {
+        const horas = maxDelayMin! >= 120 ? `${Math.round(maxDelayMin! / 60)}h` : `${Math.round(maxDelayMin!)} min`;
+        const motivo = `🔴 CRÍTICO: mensagens chegando com ${horas} de atraso e a fila tende a crescer. ` +
+          `Reconecte este WhatsApp com QR Code novo (Integrações → Desconectar → conectar de novo).`;
+        const antes = await supabase.from("instancia_alertas").select("id").eq("instancia", inst).eq("tipo", "delay_critico").eq("resolvido", false).limit(1);
+        await abrirAlerta(ag.id, inst, ag.nome, "delay_critico", motivo, evoUrl, evoKey);
+        if (!antes.data?.length) await enviarEmail(`⚠️ WhatsApp com problema: ${ag.nome} (${inst}) — ${motivo}`);
+      } else if (avgDelayMin !== null && avgDelayMin <= 5 && (maxDelayMin ?? 0) <= 15) {
+        await resolverAlerta(ag.id, inst, ag.nome, "delay_critico", evoUrl, evoKey);
+      }
     }
     // Se delayCheckRodou === false (sem logs nos últimos 15 min), não tocar no alerta de delay
 

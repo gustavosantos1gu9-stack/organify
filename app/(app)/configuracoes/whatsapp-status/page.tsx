@@ -40,6 +40,7 @@ function tipoLabel(tipo: string) {
   if (tipo === "state") return "Desconectado";
   if (tipo === "delay") return "Atraso";
   if (tipo === "silence") return "Silêncio";
+  if (tipo === "delay_critico") return "Atraso crítico";
   return tipo;
 }
 
