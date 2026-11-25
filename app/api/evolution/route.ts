@@ -48,6 +48,10 @@ export async function POST(req: NextRequest) {
         url = `${EVO_URL}/instance/create`; method = "POST"; body = JSON.stringify(payload); break;
       case "delete":
         url = `${EVO_URL}/instance/delete/${instancia}`; method = "DELETE"; break;
+      case "logout":
+        // Desconecta o número (sai do WhatsApp). O webhook de logout limpa a instância
+        // para o próximo QR começar uma sessão nova.
+        url = `${EVO_URL}/instance/logout/${instancia}`; method = "DELETE"; break;
       case "status":
         url = `${EVO_URL}/instance/connectionState/${instancia}`; method = "GET"; break;
       case "sendText":

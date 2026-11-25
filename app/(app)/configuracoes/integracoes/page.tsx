@@ -22,6 +22,7 @@ function IntegracoesCliente() {
   const [evoUrl, setEvoUrl] = useState("");
   const [evoKey, setEvoKey] = useState("");
   const [instancia, setInstancia] = useState("");
+  const [desconectando, setDesconectando] = useState(false);
   const [agenciaId, setAgenciaId] = useState<string | null>(null);
   const [waConectado, setWaConectado] = useState(false);
   const [profileName, setProfileName] = useState("");
@@ -594,10 +595,26 @@ function IntegracoesCliente() {
                 <Wifi size={20} color="#25d366" />
               </div>
             )}
-            <div>
+            <div style={{ flex: 1 }}>
               <p style={{ fontSize: "14px", fontWeight: "600", color: "#0A1826" }}>{profileName}</p>
               <p style={{ fontSize: "12px", color: "#25d366" }}>Conectado</p>
             </div>
+            <button className="btn-secondary" disabled={desconectando} style={{ cursor: "pointer", fontSize: "12px", padding: "6px 12px" }}
+              onClick={async () => {
+                if (!window.confirm("Desconectar este WhatsApp do sistema? As mensagens param de chegar até você conectar de novo com um QR Code novo.")) return;
+                setDesconectando(true);
+                try {
+                  await evoCall("logout", instancia);
+                  await supabase.from("agencias").update({ whatsapp_conectado: false }).eq("id", agenciaId);
+                  setWaConectado(false);
+                  window.location.reload();
+                } catch {
+                  alert("Não foi possível desconectar agora. Tente de novo em instantes.");
+                }
+                setDesconectando(false);
+              }}>
+              {desconectando ? "Desconectando…" : "Desconectar"}
+            </button>
           </div>
         ) : qrCode ? (
           <div style={{ textAlign: "center", padding: "20px", background: "#FFFFFF", border: "1px solid rgba(37,211,102,0.3)", borderRadius: "10px" }}>
