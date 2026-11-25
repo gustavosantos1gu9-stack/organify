@@ -424,6 +424,19 @@ ${ag.openai_prompt_sistema}`;
         dateDisplay[dataStr] = `${String(brtDay.getUTCDate()).padStart(2,"0")}/${String(brtDay.getUTCMonth()+1).padStart(2,"0")}`;
       }
 
+      // Data de hoje + calendário explícito: o modelo não sabe a data sozinho e erra dia da semana
+      // quando a cliente pergunta "dia 2 é na quarta?" (inventava quinta/sábado).
+      const hojeLabel = `${diasSemana[brtNow.getUTCDay()]}, ${String(brtNow.getUTCDate()).padStart(2,"0")}/${String(brtNow.getUTCMonth()+1).padStart(2,"0")}/${brtNow.getUTCFullYear()}`;
+      const calendario = dates.map(d => `${dateDisplay[d]} = ${dateLabels[d]}`).join("\n");
+      systemPromptFinal += `\n\nDATA DE HOJE (horário de Brasília): ${hojeLabel}.
+CALENDÁRIO DOS PRÓXIMOS DIAS (use SEMPRE esta tabela para saber o dia da semana de uma data — nunca calcule de cabeça):
+${calendario}
+REGRAS DE DATA:
+- Ao citar uma data, o dia da semana tem que ser o desta tabela. Ex.: se a tabela diz "02/12 = quarta-feira", nunca diga "quinta (02/12)".
+- Se a cliente corrigir ou perguntar o dia da semana de uma data, confira na tabela e responda certo; se ela estiver certa, concorde e siga.
+- Só ofereça dias e horários que estejam na lista de horários disponíveis. Nunca ofereça sábado ou domingo se não estiverem na lista.
+- Os dias da semana citados em exemplos do roteiro são só ilustração: use sempre os da lista real.`;
+
       const tipoMap: Record<string,string> = { zoom: "Zoom", google_meet: "Google Meet", presencial: "presencial", link_customizado: "link" };
       const tipoLabel = tipoMap[ag.reuniao_tipo || "google_meet"] || "online";
       const isPresencial = ag.reuniao_tipo === "presencial";
