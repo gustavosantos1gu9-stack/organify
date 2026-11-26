@@ -5,6 +5,7 @@ import { ReactNode } from "react";
 
 // ─── Fases da escala (mesmas chaves de controle_clientes.escala_jornada) ───
 export const FASES = [
+  { key: "onboarding", label: "Onboarding", cor: "#8CC6EC" },
   { key: "etapa0", label: "Fase 0", cor: "#D9534F" },
   { key: "etapa1", label: "Fase 1", cor: "#E8915A" },
   { key: "etapa2", label: "Fase 2", cor: "#E6C44F" },
@@ -14,6 +15,7 @@ export const FASES = [
 ] as const;
 
 export const FASE_BADGE: Record<string, { bg: string; fg: string; label: string }> = {
+  onboarding: { bg: "#E4F1FA", fg: "#144E73", label: "Onboarding" },
   etapa0: { bg: "var(--alert-bg)", fg: "var(--alert-text)", label: "Fase 0" },
   etapa1: { bg: "var(--warning-bg)", fg: "var(--warning-text)", label: "Fase 1" },
   etapa2: { bg: "var(--caution-bg)", fg: "var(--caution-text)", label: "Fase 2" },

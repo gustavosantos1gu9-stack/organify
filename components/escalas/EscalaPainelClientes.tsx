@@ -53,6 +53,10 @@ const RESPOSTA: Record<string, { cor: string; label: string }> = {
 
 const JORNADAS: { value: string; label: string; cor: string; bg: string; descricao: string[] }[] = [
   {
+    value: "onboarding", label: "Onboarding", cor: "#144E73", bg: "#E4F1FA",
+    descricao: ["Cliente nova", "Grupo, drive e campanha sendo preparados"],
+  },
+  {
     value: "etapa0", label: "Fase 0", cor: "var(--alert-text)", bg: "var(--alert-bg)",
     descricao: ["Sem mensagem", "Pouca mensagem", "Custo alto", "Não bate os dados com o tráfego"],
   },
@@ -80,6 +84,7 @@ const JORNADAS: { value: string; label: string; cor: string; bg: string; descric
 
 // Cores do canvas para cada fase: ponto, fundo da pílula e texto
 const VISUAL_FASE: Record<string, { dot: string; tint: string; ink: string }> = {
+  onboarding: { dot: "#8CC6EC", tint: "#E4F1FA", ink: "#144E73" },
   etapa0: { dot: "#D9534F", tint: "#FBE3E1", ink: "#B42318" },
   etapa1: { dot: "#E8915A", tint: "#FCE9DA", ink: "#8A3B12" },
   etapa2: { dot: "#E6C44F", tint: "#FBF3D5", ink: "#7A5B00" },
@@ -95,7 +100,8 @@ function TrilhoFases({ clientes, filtro, onFiltro, total, pctResposta, totalUti 
   total: number; pctResposta: number; totalUti: number;
 }) {
   const contar = (v: string) => clientes.filter(c => v === "sem" ? !c.escala_jornada : c.escala_jornada === v).length;
-  const etapas = JORNADAS.filter(j => j.value !== "resultado_oscilando");
+  const onboarding = JORNADAS.find(j => j.value === "onboarding")!;
+  const etapas = JORNADAS.filter(j => j.value !== "resultado_oscilando" && j.value !== "onboarding");
   const extras = [
     { value: "resultado_oscilando", label: "Oscilando", descricao: ["Resultado oscilando"] },
     { value: "sem", label: "Sem fase", descricao: ["Definir a fase"] },
@@ -108,7 +114,7 @@ function TrilhoFases({ clientes, filtro, onFiltro, total, pctResposta, totalUti 
     return (
       <button type="button" className={`esc-step${on ? " on" : ""}${n === 0 ? " vazio" : ""}`} style={{ ["--c" as any]: vis.dot, ["--t" as any]: vis.tint }}
         onClick={() => onFiltro(on ? null : value)} title={on ? "Mostrar todas" : `Mostrar só ${label}`}>
-        <span className="esc-step-dot">{idx !== undefined ? idx : value === "sem" ? "?" : "~"}</span>
+        <span className="esc-step-dot">{idx !== undefined ? idx : value === "sem" ? "?" : value === "onboarding" ? "+" : "~"}</span>
         <span className="esc-step-label">{label}</span>
         <span className="esc-step-n">{n}</span>
         <span className="esc-step-desc">{descricao.join(", ")}</span>
@@ -133,6 +139,7 @@ function TrilhoFases({ clientes, filtro, onFiltro, total, pctResposta, totalUti 
       </div>
       <div className="esc-steps">
         <div className="esc-track">
+          <Passo key={onboarding.value} value={onboarding.value} label={onboarding.label} descricao={onboarding.descricao} />
           {etapas.map((j, i) => <Passo key={j.value} value={j.value} label={j.label} descricao={j.descricao} idx={i} />)}
         </div>
         <div className="esc-extras">

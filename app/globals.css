@@ -933,12 +933,12 @@ input[type="checkbox"], input[type="radio"] { height: auto; accent-color: var(--
 
 .esc-barra { display: flex; height: 10px; border-radius: 999px; overflow: hidden; gap: 3px; }
 
-.esc-steps { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 2fr); gap: 16px; }
+.esc-steps { display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 2fr); gap: 16px; }
 .esc-track, .esc-extras { display: grid; gap: 10px; position: relative; }
-.esc-track { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.esc-track { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 .esc-extras { grid-template-columns: repeat(2, minmax(0, 1fr)); padding-left: 16px; border-left: 1px dashed var(--line); }
-/* linha que liga as fases 0 → 4 */
-.esc-track::before { content: ""; position: absolute; top: 30px; left: 10%; right: 10%; height: 2px; background: linear-gradient(90deg, #D9534F, #E8915A, #E6C44F, #1C6CA6, #0A1826); opacity: .35; border-radius: 2px; }
+/* linha que liga Onboarding → Fase 4 */
+.esc-track::before { content: ""; position: absolute; top: 30px; left: 8%; right: 8%; height: 2px; background: linear-gradient(90deg, #8CC6EC, #D9534F, #E8915A, #E6C44F, #1C6CA6, #0A1826); opacity: .35; border-radius: 2px; }
 
 .esc-step {
   position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px;

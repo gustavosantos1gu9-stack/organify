@@ -11,6 +11,7 @@ import { Cartao } from "@/components/ui/Canvas";
 // Só leitura: as mudanças continuam sendo feitas na Carteira, na Escala e no Financeiro.
 
 const FASES = [
+  { key: "onboarding", label: "Onboarding", cor: "#8CC6EC", desc: "Cliente nova: grupo, drive e campanha sendo preparados" },
   { key: "etapa0", label: "Fase 0", cor: "#D9534F", desc: "Sem mensagem, pouca mensagem ou custo alto" },
   { key: "etapa1", label: "Fase 1", cor: "#E8915A", desc: "Bom custo por oportunidade" },
   { key: "etapa2", label: "Fase 2", cor: "#E6C44F", desc: "Agendamento com custo alto" },

@@ -2,7 +2,7 @@
 // Usa os custos ideais de CADA cliente (variam por região, potencial e know-how).
 
 export const FASES = [
-  { v: "preparacao", label: "Preparação", ordem: 0, cor: "#7E93A8" },
+  { v: "onboarding", label: "Onboarding", ordem: 0, cor: "#8CC6EC" },
   { v: "etapa0", label: "Fase 0", ordem: 1, cor: "#B42318" },
   { v: "etapa1", label: "Fase 1", ordem: 2, cor: "#C2620E" },
   { v: "etapa2", label: "Fase 2", ordem: 3, cor: "#B7791F" },
@@ -138,7 +138,7 @@ export function sugerirFase(args: {
 }): { fase: string; motivo: string } {
   const { atual, anterior, ideais, faixas: f, faseConfirmada } = args;
   if (!args.onboardingCompleto && (!args.temCampanha || atual.contatos === 0)) {
-    return { fase: "preparacao", motivo: "Onboarding ainda não terminou." };
+    return { fase: "onboarding", motivo: "Onboarding ainda não terminou." };
   }
   const t = taxas(atual);
   const tAnt = taxas(anterior);

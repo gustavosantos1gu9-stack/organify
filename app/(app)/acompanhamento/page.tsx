@@ -133,7 +133,7 @@ export default function AcompanhamentoPage() {
       const onboardingAtrasado = !obCompleto && diasEntrada !== null && diasEntrada > 15 && !c.data_inicio_campanha;
       const tarefasVencidas = tarefas.filter(x => x.cliente_id === c.id && x.prazo && x.prazo < hojeISO()).length;
       const msgSemana = mensagens.find(m => m.cliente_id === c.id);
-      const faseDif = !semDados && sug.fase !== "preparacao" && sug.fase !== c.escala_jornada;
+      const faseDif = !semDados && sug.fase !== c.escala_jornada;
       const tomGeral: Tom = semDados ? "sem" : diag.area === "escala" ? "ok" : diag.gargalo === "Lote mínimo" || diag.gargalo === "Dados de venda" ? "sem" :
         (tomCusto(t.custoContato, idealContato(a, faixas)) === "ruim" || tomTaxa(t.taxaAgend, faixas.taxaAgendMin) === "ruim") ? "ruim" : "atencao";
       const atencao = (c.uti ? 5 : 0) + (analiseVencida ? 3 : 0) + (onboardingAtrasado ? 3 : 0) + (faseDif ? 2 : 0) + (tomGeral === "ruim" ? 2 : tomGeral === "atencao" ? 1 : 0) + tarefasVencidas;
@@ -218,7 +218,7 @@ export default function AcompanhamentoPage() {
             <label className="ac-busca"><Search size={14} /><input placeholder="Buscar cliente" value={f.busca} onChange={e => setF(p => ({ ...p, busca: e.target.value }))} /></label>
             <select value={f.gestor} onChange={e => setF(p => ({ ...p, gestor: e.target.value }))}><option value="">Gestor</option>{gestores.map(g => <option key={g}>{g}</option>)}</select>
             <select value={f.cs} onChange={e => setF(p => ({ ...p, cs: e.target.value }))}><option value="">CS</option>{css.map(g => <option key={g}>{g}</option>)}</select>
-            <select value={f.fase} onChange={e => setF(p => ({ ...p, fase: e.target.value }))}><option value="">Fase</option>{FASES.filter(x => x.v !== "preparacao").map(x => <option key={x.v} value={x.v}>{x.label}</option>)}</select>
+            <select value={f.fase} onChange={e => setF(p => ({ ...p, fase: e.target.value }))}><option value="">Fase</option>{FASES.map(x => <option key={x.v} value={x.v}>{x.label}</option>)}</select>
           </div>
           <div className="ac-itens">
             {filtrados.map(c => {
