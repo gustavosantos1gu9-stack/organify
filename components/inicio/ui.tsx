@@ -57,7 +57,7 @@ export function Saudacao({ nome, destaque, direita }: { nome: string; destaque: 
 }
 
 // ─── Banner escuro com os números principais ───────────────────
-export interface Metrica { label: string; valor: string; detalhe?: string }
+export interface Metrica { label: string; valor: ReactNode; detalhe?: string }
 
 export function Hero({ kicker, titulo, destaque, metricas, acao, delay = 0.05 }: {
   kicker: string; titulo: string; destaque?: string; metricas: Metrica[];

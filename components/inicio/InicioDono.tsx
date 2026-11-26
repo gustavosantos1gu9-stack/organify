@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase, getAgenciaId } from "@/lib/supabase";
 import {
   Users, ClipboardList, AlertTriangle, MessageCircle, Kanban, CalendarDays, BarChart3,
-  DollarSign, Settings, Bot, FileText, Building2,
+  DollarSign, Settings, Bot, FileText, Building2, Eye, EyeOff,
 } from "lucide-react";
 import {
   Saudacao, Hero, Painel, BarraFases, ItemAtencao, Vazio, BarraLinha, Atalhos, Carregando,
@@ -25,6 +25,8 @@ export default function InicioDono({ nome }: { nome: string }) {
   const [baseMesPassado, setBaseMesPassado] = useState(0);
   const [faturamento, setFaturamento] = useState(0);
   const [vendasMes, setVendasMes] = useState(0);
+  // Faturamento escondido por padrão; o olho mostra só nesta visita
+  const [verFaturamento, setVerFaturamento] = useState(false);
 
   useEffect(() => {
     const aplicar = (r: any) => {
@@ -140,7 +142,16 @@ export default function InicioDono({ nome }: { nome: string }) {
         destaque="crescendo juntos"
         acao={{ label: "Ver financeiro", href: "/financeiro" }}
         metricas={[
-          { label: "Faturamento atual", valor: brl(faturamento), detalhe: `entradas de 1 a ${hoje.getDate()} de ${hoje.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}` },
+          { label: "Faturamento atual", valor: (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+              <span>{verFaturamento ? brl(faturamento) : "R$ ******"}</span>
+              <button type="button" onClick={() => setVerFaturamento(v => !v)}
+                aria-label={verFaturamento ? "Esconder faturamento" : "Mostrar faturamento"} title={verFaturamento ? "Esconder" : "Mostrar"}
+                style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 8, width: 30, height: 30, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#9FB3C6" }}>
+                {verFaturamento ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </span>
+          ), detalhe: `entradas de 1 a ${hoje.getDate()} de ${hoje.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}` },
           { label: "Clientes na carteira", valor: String(naCarteira.length), detalhe: `${pausados.length} pausados` },
           { label: "Novos no mês", valor: String(vendasMes), detalhe: "fechados em Reuniões de vendas" },
           { label: "Churn do mês", valor: `${churnPct.toFixed(1).replace(".", ",")}%`, detalhe: `${churnMes.length} saíram` },
