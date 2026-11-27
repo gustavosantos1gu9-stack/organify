@@ -53,9 +53,10 @@ export function getMetaToken(
 export async function resolverAnuncioMeta(
   sourceId: string,
   token: string
-): Promise<{ campanha: string; conjunto: string; criativo: string }> {
+): Promise<{ campanha: string; conjunto: string; criativo: string; campanha_id: string | null; conjunto_id: string | null; anuncio_id: string | null }> {
+  // IDs junto com os nomes: o público é o conjunto pelo ID (nomes parecidos não se misturam)
   const res = await fetch(
-    `https://graph.facebook.com/v21.0/${sourceId}?fields=name,adset{name},campaign{name}&access_token=${token}`
+    `https://graph.facebook.com/v21.0/${sourceId}?fields=id,name,adset{id,name},campaign{id,name}&access_token=${token}`
   );
   const json = await res.json();
   if (json.error) {
@@ -67,6 +68,9 @@ export async function resolverAnuncioMeta(
     campanha: json.campaign?.name || "",
     conjunto: json.adset?.name || "",
     criativo: json.name || "",
+    campanha_id: json.campaign?.id || null,
+    conjunto_id: json.adset?.id || null,
+    anuncio_id: json.id || null,
   };
 }
 

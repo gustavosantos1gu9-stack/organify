@@ -1135,6 +1135,9 @@ export async function POST(req: NextRequest) {
                   if (resultado.campanha && !rpRef.link_id) tracking.utm_campaign = resultado.campanha;
                   if (resultado.conjunto) tracking.utm_content = resultado.conjunto;
                   if (resultado.criativo) tracking._nome_anuncio = resultado.criativo;
+                  if (resultado.campanha_id) tracking._meta_campaign_id = resultado.campanha_id;
+                  if (resultado.conjunto_id) tracking._meta_adset_id = resultado.conjunto_id;
+                  if (resultado.anuncio_id) tracking._meta_ad_id = resultado.anuncio_id;
                 } catch {}
               }
 
@@ -1295,6 +1298,8 @@ export async function POST(req: NextRequest) {
           let campanha = "";
           let conjunto = "";
           let criativo = "";
+          let conjuntoId: string | null = null;
+          let campanhaId: string | null = null;
 
           const adsToken = adsTokenMeta;
           if (sourceId && adsToken) {
@@ -1303,6 +1308,8 @@ export async function POST(req: NextRequest) {
               campanha = resultado.campanha;
               conjunto = resultado.conjunto;
               criativo = resultado.criativo;
+              conjuntoId = resultado.conjunto_id;
+              campanhaId = resultado.campanha_id;
               _rastreioStatus = "resolvido";
             } catch (e: any) {
               _rastreioStatus = isFilha ? "pendente_nomes" : "erro_graph";
@@ -1326,6 +1333,8 @@ export async function POST(req: NextRequest) {
             link_id: null,
             _nome_anuncio: criativo || "",
             ...(isFilha ? { _meta_ad_id: sourceId || null } : {}),  // ad_id só para filha
+            ...(conjuntoId ? { _meta_adset_id: conjuntoId } : {}),
+            ...(campanhaId ? { _meta_campaign_id: campanhaId } : {}),
           };
         }
 
@@ -1490,6 +1499,9 @@ export async function POST(req: NextRequest) {
             if (resultado.campanha && !tracking.link_id) tracking.utm_campaign = resultado.campanha;
             if (resultado.conjunto) tracking.utm_content = resultado.conjunto;
             if (resultado.criativo) tracking._nome_anuncio = resultado.criativo;
+            if (resultado.campanha_id) tracking._meta_campaign_id = resultado.campanha_id;
+            if (resultado.conjunto_id) tracking._meta_adset_id = resultado.conjunto_id;
+            if (resultado.anuncio_id) tracking._meta_ad_id = resultado.anuncio_id;
             _rastreioStatus = "resolvido";
           } catch (e: any) {
             _rastreioStatus = isFilha ? "pendente_nomes" : "erro_graph";

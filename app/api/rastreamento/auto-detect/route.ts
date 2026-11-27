@@ -201,6 +201,9 @@ export async function POST(req: NextRequest) {
               utm_campaign: campanha,
               utm_content: conjunto ? `${conjunto}_${criativo}` : criativo || conv.utm_content,
               nome_anuncio: criativo,
+              ...(resultado.conjunto_id ? { meta_adset_id: resultado.conjunto_id } : {}),
+              ...(resultado.campanha_id ? { meta_campaign_id: resultado.campanha_id } : {}),
+              ...(resultado.anuncio_id ? { meta_ad_id: resultado.anuncio_id } : {}),
               utm_source: "facebook",
               utm_medium: "cpc",
               rastreio_status: "resolvido",
@@ -273,6 +276,9 @@ export async function POST(req: NextRequest) {
                 utm_campaign: campanha,
                 utm_content: conjunto ? `${conjunto}_${criativo}` : criativo || sourceId,
                 nome_anuncio: criativo,
+                ...(resultado.conjunto_id ? { meta_adset_id: resultado.conjunto_id } : {}),
+                ...(resultado.campanha_id ? { meta_campaign_id: resultado.campanha_id } : {}),
+                ...(resultado.anuncio_id ? { meta_ad_id: resultado.anuncio_id } : {}),
                 utm_source: "facebook",
                 utm_medium: "cpc",
                 rastreio_status: "resolvido",
@@ -301,6 +307,7 @@ export async function POST(req: NextRequest) {
         let campanha = "";
         let conjunto = "";
         let criativo = "";
+        let idsMeta: Record<string, string | null> = {};
         let sourceId: string | null = null;
 
         if (evoUrl && evoKey) {
@@ -333,6 +340,7 @@ export async function POST(req: NextRequest) {
             campanha = resultado.campanha;
             conjunto = resultado.conjunto;
             criativo = resultado.criativo;
+            idsMeta = { meta_adset_id: resultado.conjunto_id, meta_campaign_id: resultado.campanha_id, meta_ad_id: resultado.anuncio_id };
           } catch (e: any) {
             console.error("[auto-detect] Meta API erro @lid", { agencia_id, sourceId, code: e.code });
           }
@@ -345,6 +353,7 @@ export async function POST(req: NextRequest) {
           if (campanha) { updateData.utm_campaign = campanha; updateData.rastreio_status = "resolvido"; }
           if (conjunto || criativo) updateData.utm_content = conjunto ? `${conjunto}_${criativo}` : criativo;
           if (criativo) updateData.nome_anuncio = criativo;
+          for (const [k, v] of Object.entries(idsMeta)) if (v) updateData[k] = v;
           if (!campanha) { updateData.utm_content = sourceId; }
 
           await supabase.from("conversas").update(updateData).eq("id", conv.id);

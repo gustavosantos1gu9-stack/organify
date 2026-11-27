@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { getAgenciaId } from "@/lib/hooks";
+import QualidadePublicos from "@/components/performance/QualidadePublicos";
 import {
   TrendingUp, DollarSign, Users, Calendar, CheckCircle,
   ShoppingBag, RefreshCw, Save, ChevronDown, ChevronUp, BarChart2, Layers
@@ -65,6 +66,7 @@ export default function PerformanceFilha() {
   const [desde, setDesde] = useState(primDiaMes);
   const [ate, setAte] = useState(hoje);
   const [periodoLabel, setPeriodoLabel] = useState("Este mês");
+  const [versaoQualidade, setVersaoQualidade] = useState(0);
 
   const carregar = useCallback(async (agId: string, d = desde, a = ate) => {
     setLoading(true);
@@ -171,7 +173,7 @@ export default function PerformanceFilha() {
           <span style={{ color: "var(--text-secondary)" }}>→</span>
           <input type="date" value={ate} onChange={e => { setAte(e.target.value); setPeriodoLabel(""); }}
             style={{ background: "var(--hover-row)", border: "1px solid var(--border)", borderRadius: "8px", color: "var(--navy)", padding: "6px 10px", fontSize: "12px" }} />
-          <button onClick={() => agenciaId && carregar(agenciaId, desde, ate)}
+          <button onClick={() => { if (agenciaId) { carregar(agenciaId, desde, ate); setVersaoQualidade(v => v + 1); } }}
             style={{ background: "var(--hover-row)", border: "1px solid var(--border)", borderRadius: "8px", color: "var(--brand)", padding: "6px 12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px", fontSize: "12px" }}>
             <RefreshCw size={13} />
           </button>
@@ -338,6 +340,8 @@ export default function PerformanceFilha() {
               )}
             </div>
           )}
+
+          <QualidadePublicos agenciaId={agenciaId} desde={desde} ate={ate} versao={versaoQualidade} />
 
           {!temMeta && (
             <div style={{ marginTop: "16px", padding: "12px 16px", background: "var(--caution-bg)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "13px", color: "var(--caution-text)" }}>
