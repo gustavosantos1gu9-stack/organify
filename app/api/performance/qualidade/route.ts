@@ -99,7 +99,13 @@ async function calcular(agencia_id: string | null, date_from: string | null, dat
       let nomeConj: string | null = null;
       if (c.utm_content && c.nome_anuncio && c.utm_content.endsWith(`_${c.nome_anuncio}`)) nomeConj = c.utm_content.slice(0, -(c.nome_anuncio.length + 1));
       else if (c.utm_content) nomeConj = c.utm_content;
-      const ids = nomeConj && c.utm_campaign ? porNome.get(`${c.utm_campaign}||${nomeConj}`) : undefined;
+      let ids = nomeConj && c.utm_campaign ? porNome.get(`${c.utm_campaign}||${nomeConj}`) : undefined;
+      // Sem o nome do anúncio guardado: "conjunto_anúncio" começa EXATAMENTE com "<nome do conjunto>_"
+      if (!ids?.length && c.utm_content && c.utm_campaign) {
+        const cand = conjuntosMeta.filter(x => x.campanha === c.utm_campaign && x.nome && c.utm_content.startsWith(`${x.nome}_`));
+        if (cand.length) ids = cand.map(x => x.id);
+      }
+      // Só liga quando há UM conjunto possível; dois candidatos = não identificado (não chuta)
       if (ids && ids.length === 1) { conjuntoDa.set(c.id, ids[0]); aGravar.push({ id: c.id, meta_adset_id: ids[0] }); }
       else conjuntoDa.set(c.id, null);
     }
