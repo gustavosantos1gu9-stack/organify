@@ -49,7 +49,7 @@ async function auditar(clienteId: string, modo: "semana_anterior" | "ultimos_7_d
 
   // 1. Leads do Meta que chegaram na janela (fora o histórico importado)
   const { data: convsRaw } = await supabase.from("conversas")
-    .select("id, primeira_mensagem_at, created_at")
+    .select("id, primeira_mensagem_at, created_at, agendou_at, etapa_jornada")
     .eq("agencia_id", filhaId).ilike("origem", "meta ads%")
     .gte("primeira_mensagem_at", new Date(ini).toISOString()).lt("primeira_mensagem_at", new Date(fim).toISOString())
     .limit(2000);
@@ -76,8 +76,11 @@ async function auditar(clienteId: string, modo: "semana_anterior" | "ultimos_7_d
     if (r.respondidaPorIA) n.por_ia++;
     if (r.primeiraResposta) tempos.push(minutosComerciais(r.inicio, r.primeiraResposta));
     if (r.classe === "desenvolveu") n.desenvolveram++; else if (r.classe === "nao_desenvolveu") n.nao_desenvolveram++; else n.aberto++;
-    // "Parou de responder": última mensagem da conversa é nossa
+    // "Parou de responder": última mensagem da conversa é nossa — exceto quem agendou
+    // (a última mensagem nesse caso é a nossa confirmação, não falta de follow-up)
+    const agendou = !!c.agendou_at || /agend|compar|comprou|fechou/i.test(c.etapa_jornada || "");
     const l = msgs.get(c.id) || [];
+    if (agendou) { grupos.desenvolveu.push(c.id); continue; }
     if (l.length && l[l.length - 1].de_mim) {
       n.pararam++;
       if (r.semFollowup) n.sem_followup++;
