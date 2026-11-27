@@ -68,23 +68,39 @@ function toques(nossas: Date[]): Date[] {
 
 export function classificar(msgs: Msg[], inicioEntrada: string | null, agora = new Date()): {
   classe: Classe; inicio: Date | null; primeiraResposta: Date | null; respondidaPorIA: boolean;
+  /** follow-ups feitos depois que o lead parou de responder (0, 1, 2…) */
+  followups: number;
+  /** o lead parou de responder, recebeu só a 1ª resposta (nenhum follow-up) e já passaram 24h */
+  semFollowup: boolean;
 } {
   const ordenadas = [...msgs].sort((a, b) => a.created_at.localeCompare(b.created_at));
   const ini = inicioEntrada ? new Date(new Date(inicioEntrada).getTime() - MIN) : null;
   const daEntrada = ini ? ordenadas.filter(m => new Date(m.created_at) >= ini) : ordenadas;
   const primeiraDoLead = daEntrada.find(m => !m.de_mim);
-  if (!primeiraDoLead) return { classe: "aberto", inicio: null, primeiraResposta: null, respondidaPorIA: false };
+  const vazio = { followups: 0, semFollowup: false };
+  if (!primeiraDoLead) return { classe: "aberto", inicio: null, primeiraResposta: null, respondidaPorIA: false, ...vazio };
   const inicio = new Date(primeiraDoLead.created_at);
   const resposta = daEntrada.find(m => m.de_mim && new Date(m.created_at) > inicio);
-  if (!resposta) return { classe: "sem_resposta", inicio, primeiraResposta: null, respondidaPorIA: false };
+  if (!resposta) return { classe: "sem_resposta", inicio, primeiraResposta: null, respondidaPorIA: false, ...vazio };
   const tResp = new Date(resposta.created_at);
+  const porIA = !!resposta.enviada_por_ia;
+
+  // Follow-ups contam a partir da ÚLTIMA mensagem do lead: toques nossos depois dela, menos a resposta
+  const ultimaDoLead = [...daEntrada].reverse().find(m => !m.de_mim)!;
+  const tUltLead = new Date(ultimaDoLead.created_at);
+  const nossasDepois = daEntrada.filter(m => m.de_mim && new Date(m.created_at) > tUltLead).map(m => new Date(m.created_at));
+  const tqDepois = toques(nossasDepois);
+  const followups = Math.max(0, tqDepois.length - 1);
+  const passou24h = (t: Date) => agora.getTime() - t.getTime() >= PRAZO_APOS_2FU_H * 60 * MIN;
+  const semFollowup = tqDepois.length === 1 && passou24h(tqDepois[0]);
+
   const respondeuDepois = daEntrada.some(m => !m.de_mim && new Date(m.created_at) > tResp);
-  if (respondeuDepois) return { classe: "desenvolveu", inicio, primeiraResposta: tResp, respondidaPorIA: !!resposta.enviada_por_ia };
+  if (respondeuDepois) return { classe: "desenvolveu", inicio, primeiraResposta: tResp, respondidaPorIA: porIA, followups, semFollowup };
   const nossas = daEntrada.filter(m => m.de_mim && new Date(m.created_at) >= tResp).map(m => new Date(m.created_at));
   const tq = toques(nossas);
   // toque 1 = resposta; precisa de mais 2 (follow-ups) e 24h depois do último
-  const fechado = tq.length >= 3 && agora.getTime() - tq[tq.length - 1].getTime() >= PRAZO_APOS_2FU_H * 60 * MIN;
-  return { classe: fechado ? "nao_desenvolveu" : "aberto", inicio, primeiraResposta: tResp, respondidaPorIA: !!resposta.enviada_por_ia };
+  const fechado = tq.length >= 3 && passou24h(tq[tq.length - 1]);
+  return { classe: fechado ? "nao_desenvolveu" : "aberto", inicio, primeiraResposta: tResp, respondidaPorIA: porIA, followups, semFollowup };
 }
 
 export function mediana(v: number[]): number | null {

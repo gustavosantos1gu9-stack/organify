@@ -7,7 +7,8 @@ import {
   FASES, faseLabel, faseCor, faseOrdem, ONBOARDING_ITENS, PILARES, FAIXAS_PADRAO, Faixas, Numeros,
   somar, taxas, sugerirFase, diagnosticar, cenarioTrafego, idealContato, idealAgend, tomCusto, tomTaxa, Tom, INSTRUCOES_PADRAO,
 } from "@/lib/metodologia";
-import { Search, Settings, Sparkles, Copy, Check, X, Plus, ExternalLink, CalendarClock, ClipboardList, MessageSquare, Target, Gauge } from "lucide-react";
+import { Search, Settings, Sparkles, Copy, Check, X, Plus, ExternalLink, CalendarClock, ClipboardList, MessageSquare, Target, Gauge, Headphones } from "lucide-react";
+import { ETAPAS_PADRAO, PADRAO_ATENDIMENTO_PADRAO } from "@/lib/padrao-atendimento";
 
 interface Cliente {
   id: string; nome: string; status: string | null; gestor: string | null; escala_jornada: string | null;
@@ -18,6 +19,7 @@ interface Acomp {
   preco?: string | null; avaliacao_gratuita?: boolean | null; oferta?: string | null; pacotes?: string | null; ticket_medio?: number | null;
   custo_msg_ideal?: number | null; custo_lead_ideal?: number | null; custo_agend_ideal?: number | null; cpa_ideal?: number | null;
   proxima_analise?: string | null; onboarding?: Record<string, boolean>; notas_parceria?: Record<string, number>;
+  filha_id?: string | null;
 }
 interface Registro { id: string; cliente_id: string; autor: string | null; tipo: string | null; feito: string | null; pendencia: string | null; proximo_passo: string | null; reavaliar_em: string | null; created_at: string; texto_original?: string | null }
 interface Tarefa { id: string; cliente_id: string; titulo: string; prazo: string | null; feita: boolean }
@@ -372,6 +374,8 @@ function Ficha(props: {
 
           <MensagemSemanal c={c} k={k} agId={agId} usuario={usuario} tarefas={props.tarefas} faixas={faixas} setMensagens={props.setMensagens} />
 
+          <AtendimentoCliente c={c} a={a} agId={agId} onAcomp={props.onAcomp} />
+
           {/* Linha do tempo */}
           <section className="ac-card">
             <header><h3>Linha do tempo</h3><small>registros, fases, Escalas e anotações</small></header>
@@ -625,10 +629,134 @@ function Reuniao({ c, k, tarefas }: { c: Cliente; k: any; tarefas: Tarefa[] }) {
   );
 }
 
+// Atendimento da cliente: números (sem IA) + leitura semanal da IA comparando com o Padrão de atendimento
+function AtendimentoCliente({ c, a, agId, onAcomp }: { c: Cliente; a: Acomp; agId: string; onAcomp: (p: Partial<Acomp>) => void }) {
+  const [filhas, setFilhas] = useState<{ id: string; nome: string }[]>([]);
+  const [hist, setHist] = useState<any[]>([]);
+  const [ocupado, setOcupado] = useState(false);
+  const [erro, setErro] = useState("");
+  const [copiado, setCopiado] = useState(false);
+  const [aberta, setAberta] = useState(0);
+
+  useEffect(() => {
+    supabase.from("agencias").select("id, nome").eq("parent_id", agId).order("nome").then(({ data }) => setFilhas((data as any[]) || []));
+  }, [agId]);
+  useEffect(() => {
+    supabase.from("acomp_auditorias").select("*").eq("cliente_id", c.id).order("semana_inicio", { ascending: false }).limit(8)
+      .then(({ data }) => { setHist((data as any[]) || []); setAberta(0); });
+  }, [c.id]);
+
+  const analisar = async () => {
+    setOcupado(true); setErro("");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const r = await fetch("/api/acompanhamento/auditoria", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` }, body: JSON.stringify({ cliente_id: c.id }) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Não foi possível analisar agora.");
+      setHist(p => [j.auditoria, ...p.filter(x => x.semana_inicio !== j.auditoria.semana_inicio)]); setAberta(0);
+    } catch (e: any) { setErro(e.message); }
+    setOcupado(false);
+  };
+
+  const atual = hist[aberta];
+  const anterior = hist[aberta + 1];
+  const nu = atual?.numeros || {};
+  const nuA = anterior?.numeros || null;
+  const pct = (v: number | null | undefined) => v === null || v === undefined ? "—" : `${Math.round(v * 100)}%`;
+  const tempo = (m: number | null | undefined) => m === null || m === undefined ? "—" : m < 60 ? `${m} min` : `${Math.floor(m / 60)}h${m % 60 ? String(m % 60).padStart(2, "0") : ""}`;
+  const seta = (agora?: number | null, antes?: number | null, menorMelhor = false) => {
+    if (agora === null || agora === undefined || antes === null || antes === undefined || agora === antes) return "";
+    const melhorou = menorMelhor ? agora < antes : agora > antes;
+    return melhorou ? " ▲" : " ▼";
+  };
+  const ia = atual?.ia;
+
+  return (
+    <section className="ac-card">
+      <header><h3><Headphones size={15} /> Atendimento da cliente</h3><small>leads do Meta · horário comercial seg–sex 9h–18h</small></header>
+      <div className="ac-form g1">
+        <label>Agência na plataforma (WhatsApp da cliente)
+          <select value={a.filha_id || ""} onChange={e => onAcomp({ filha_id: e.target.value || null })}>
+            <option value="">Não está na plataforma</option>
+            {filhas.map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}
+          </select>
+        </label>
+      </div>
+
+      {!a.filha_id ? <p className="ac-vazio">Quando a cliente estiver na plataforma, escolha a agência dela acima para analisar o atendimento.</p> : (
+        <>
+          <div className="ac-acoes">
+            <button className="ac-btn" disabled={ocupado} onClick={analisar}><Sparkles size={13} /> {ocupado ? "Analisando conversas…" : "Analisar últimos 7 dias"}</button>
+            {hist.length > 1 && (
+              <select className="ac-sel-claro" value={aberta} onChange={e => setAberta(Number(e.target.value))}>
+                {hist.map((h, i) => <option key={h.id} value={i}>Semana de {dataBR(h.semana_inicio)}</option>)}
+              </select>
+            )}
+          </div>
+          {erro && <p className="ac-erro">{erro}</p>}
+          {!atual ? <p className="ac-vazio">Ainda sem análise. A análise automática roda toda segunda-feira, ou clique em analisar.</p> : (
+            <>
+              <div className="ac-kpis">
+                <Kpi l="1ª resposta (mediana)" v={tempo(nu.tempo_mediana_min) + seta(nu.tempo_mediana_min, nuA?.tempo_mediana_min, true)} d={`${pct(nu.ate_15min)} em até 15 min${nu.pct_ia ? ` · ${pct(nu.pct_ia)} pela IA` : ""}`} tom={nu.tempo_mediana_min === null ? "sem" : nu.tempo_mediana_min <= 15 ? "ok" : nu.tempo_mediana_min <= 60 ? "atencao" : "ruim"} />
+                <Kpi l="Sem nenhuma resposta" v={String(nu.sem_resposta ?? 0)} d={`de ${nu.leads ?? 0} leads do anúncio`} tom={(nu.sem_resposta || 0) > 0 ? "ruim" : "ok"} />
+                <Kpi l="Pararam e ficaram sem follow-up" v={`${nu.sem_followup ?? 0} de ${nu.pararam ?? 0}`} d={`${nu.com_2_followups ?? 0} receberam os 2 follow-ups`} tom={(nu.sem_followup || 0) === 0 ? "ok" : "ruim"} />
+                <Kpi l="Desenvolveram conversa" v={pct(nu.taxa_desenvolvimento) + seta(nu.taxa_desenvolvimento, nuA?.taxa_desenvolvimento)} d={`${nu.desenvolveram ?? 0} desenvolveram · ${nu.aberto ?? 0} em aberto`} tom={nu.taxa_desenvolvimento === null || nu.taxa_desenvolvimento === undefined ? "sem" : nu.taxa_desenvolvimento >= 0.5 ? "ok" : "ruim"} />
+              </div>
+
+              {ia ? (
+                <>
+                  <div className="ac-diag">
+                    <p><b>Nota geral: {ia.nota_geral ?? "—"}/10</b> · {ia.resumo}</p>
+                    <small>Leitura da IA em {atual.conversas_lidas} conversas, comparando com o Padrão de atendimento.</small>
+                  </div>
+                  <ul className="ac-etapas-at">
+                    {ETAPAS_PADRAO.map(e => {
+                      const x = (ia.etapas || []).find((y: any) => y.k === e.k);
+                      if (!x) return null;
+                      const nota = x.nota;
+                      return (
+                        <li key={e.k}>
+                          <div className="ac-et-top"><span>{e.label}</span><b className={nota === null || nota === undefined ? "" : nota >= 7 ? "ok" : nota >= 5 ? "atencao" : "ruim"}>{nota === null || nota === undefined ? "—" : `${nota}/10`}</b></div>
+                          {x.comentario && <p>{x.comentario}</p>}
+                          {x.exemplo && <p className="ac-et-ex">“{x.exemplo}”</p>}
+                          {x.como_deveria && <p className="ac-et-dev">Como deveria: {x.como_deveria}</p>}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  {ia.followups?.comentario && <p className="ac-nota"><b>Follow-ups:</b> {ia.followups.comentario}</p>}
+                  <div className="ac-form g2">
+                    <div><b className="ac-mini-tit">Pontos fortes</b><ul className="ac-pontos">{(ia.pontos_fortes || []).map((p: string, i: number) => <li key={i}>{p}</li>)}</ul></div>
+                    <div><b className="ac-mini-tit">Para melhorar</b><ul className="ac-pontos">{(ia.melhorar || []).map((p: string, i: number) => <li key={i}>{p}</li>)}</ul></div>
+                  </div>
+                  {ia.mensagem_cliente && (
+                    <>
+                      <b className="ac-mini-tit">Mensagem para a cliente</b>
+                      <textarea className="ac-area" rows={7} defaultValue={ia.mensagem_cliente} key={atual.id} id={`msg-at-${atual.id}`} />
+                      <div className="ac-acoes">
+                        <button className="ac-btn claro" onClick={async () => { const el = document.getElementById(`msg-at-${atual.id}`) as HTMLTextAreaElement | null; await navigator.clipboard.writeText(el?.value || ia.mensagem_cliente); setCopiado(true); setTimeout(() => setCopiado(false), 2000); }}><Copy size={13} /> {copiado ? "Copiado" : "Copiar mensagem"}</button>
+                      </div>
+                    </>
+                  )}
+                </>
+              ) : <p className="ac-nota">Poucas conversas na semana para a leitura da IA (precisa de pelo menos 3). Os números acima valem normalmente.</p>}
+            </>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
 function Configuracao({ agId, faixas, instrucoes, onSalvo }: { agId: string; faixas: Faixas; instrucoes: string; onSalvo: (f: Faixas, i: string) => void }) {
   const [fx, setFx] = useState<Faixas>(faixas);
   const [ins, setIns] = useState(instrucoes);
+  const [padrao, setPadrao] = useState(PADRAO_ATENDIMENTO_PADRAO);
   const [salvando, setSalvando] = useState(false);
+  useEffect(() => {
+    supabase.from("acomp_config").select("padrao_atendimento").eq("agencia_id", agId).maybeSingle()
+      .then(({ data }) => { if ((data as any)?.padrao_atendimento) setPadrao((data as any).padrao_atendimento); });
+  }, [agId]);
   const campos: [keyof Faixas, string][] = [
     ["taxaAgendMin", "Taxa de agendamento mínima (%)"], ["taxaAgendBoa", "Taxa de agendamento boa (%)"], ["taxaAgendMuitoBoa", "Taxa de agendamento muito boa (%)"],
     ["comparecMin", "Comparecimento mínimo (%)"], ["conversaoMin", "Conversão mínima (%)"], ["ticketMin", "Ticket mínimo (R$)"],
@@ -641,9 +769,10 @@ function Configuracao({ agId, faixas, instrucoes, onSalvo }: { agId: string; fai
         {campos.map(([k, l]) => <label key={k}>{l}<input inputMode="decimal" value={String(fx[k])} onChange={e => setFx({ ...fx, [k]: Number(e.target.value.replace(",", ".")) || 0 })} /></label>)}
       </div>
       <div className="ac-form g1"><label>Instruções da IA (a metodologia que ela segue)<textarea rows={8} value={ins} onChange={e => setIns(e.target.value)} /></label></div>
+      <div className="ac-form g1"><label>Padrão de atendimento (a IA compara o atendimento das clientes com este texto toda semana)<textarea rows={14} value={padrao} onChange={e => setPadrao(e.target.value)} /></label></div>
       <div className="ac-acoes">
-        <button className="ac-btn" disabled={salvando} onClick={async () => { setSalvando(true); await supabase.from("acomp_config").upsert({ agencia_id: agId, faixas: fx, instrucoes: ins, updated_at: new Date().toISOString() }, { onConflict: "agencia_id" }); setSalvando(false); onSalvo(fx, ins); }}>{salvando ? "Salvando…" : "Salvar"}</button>
-        <button className="ac-btn claro" onClick={() => { setFx(FAIXAS_PADRAO); setIns(INSTRUCOES_PADRAO); }}><X size={13} /> Voltar ao padrão</button>
+        <button className="ac-btn" disabled={salvando} onClick={async () => { setSalvando(true); await supabase.from("acomp_config").upsert({ agencia_id: agId, faixas: fx, instrucoes: ins, padrao_atendimento: padrao, updated_at: new Date().toISOString() }, { onConflict: "agencia_id" }); setSalvando(false); onSalvo(fx, ins); }}>{salvando ? "Salvando…" : "Salvar"}</button>
+        <button className="ac-btn claro" onClick={() => { setFx(FAIXAS_PADRAO); setIns(INSTRUCOES_PADRAO); setPadrao(PADRAO_ATENDIMENTO_PADRAO); }}><X size={13} /> Voltar ao padrão</button>
       </div>
     </section>
   );

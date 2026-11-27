@@ -1590,3 +1590,20 @@ input[type="checkbox"], input[type="radio"] { height: auto; accent-color: var(--
 .eq-bonus { font-weight: 700; color: #1E6B52; }
 .eq-remover{background:none;border:1px solid #D9E1EA;border-radius:6px;padding:4px 10px;font-size:11px;color:#7E93A8;cursor:pointer}
 .eq-remover:hover{border-color:#E5484D;color:#E5484D}
+
+/* Acompanhamento · Atendimento da cliente (auditoria semanal) */
+.ac-sel-claro { border: 1px solid var(--linha); border-radius: 8px; padding: 6px 8px; font-size: 12.5px; color: var(--ink); background: #fff; }
+.ac-diag { margin: 12px 0 6px; padding: 12px 14px; border-radius: 14px; background: #F3F5F7; }
+.ac-diag p { margin: 0; font-size: 13px; color: var(--ink); line-height: 1.5; }
+.ac-diag small { display: block; margin-top: 4px; font-size: 11px; color: var(--ink3); }
+.ac-etapas-at { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; }
+.ac-etapas-at li { padding: 10px 0; border-bottom: 1px solid var(--linha); display: flex; flex-direction: column; gap: 3px; }
+.ac-etapas-at li:last-child { border-bottom: none; }
+.ac-et-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; font-weight: 600; color: var(--ink); }
+.ac-et-top b { font-variant-numeric: tabular-nums; color: var(--ink3); }
+.ac-et-top b.ok { color: var(--ok); } .ac-et-top b.atencao { color: var(--at); } .ac-et-top b.ruim { color: var(--ruim); }
+.ac-etapas-at p { margin: 0; font-size: 12.5px; color: var(--ink2); line-height: 1.45; }
+.ac-etapas-at p.ac-et-ex { font-style: italic; color: var(--ink3); padding-left: 10px; border-left: 2px solid var(--linha); }
+.ac-etapas-at p.ac-et-dev { color: #144E73; }
+.ac-mini-tit { display: block; margin: 12px 0 4px; font-size: 12px; font-weight: 600; color: var(--ink); }
+.ac-pontos { margin: 0; padding-left: 18px; font-size: 12.5px; color: var(--ink2); line-height: 1.5; }
