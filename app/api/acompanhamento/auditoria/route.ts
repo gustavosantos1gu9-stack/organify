@@ -29,7 +29,7 @@ function segundaDe(t: number) {
   return seg.toISOString().slice(0, 10);
 }
 
-async function auditar(clienteId: string, modo: "semana_anterior" | "ultimos_7_dias") {
+async function auditar(clienteId: string, modo: "semana_anterior" | "ultimos_7_dias", soNumeros = false) {
   const { data: cli } = await supabase.from("controle_clientes").select("id, nome, agencia_id").eq("id", clienteId).single();
   if (!cli) throw new Error("Cliente não encontrada");
   const { data: ac } = await supabase.from("acomp_clientes").select("filha_id").eq("cliente_id", clienteId).maybeSingle();
@@ -106,6 +106,8 @@ async function auditar(clienteId: string, modo: "semana_anterior" | "ultimos_7_d
   for (const g of ["sem_followup", "nao_desenvolveu", "desenvolveu", "aberto"]) amostra.push(...grupos[g].slice(0, 3));
   for (const g of ["sem_followup", "nao_desenvolveu", "desenvolveu", "aberto"]) for (const id of grupos[g]) if (amostra.length < AMOSTRA && !amostra.includes(id)) amostra.push(id);
 
+  if (soNumeros) return { semana_inicio: semana, numeros, amostra: amostra.length };
+
   let ia: any = null; let modelo: string | null = null;
   if (amostra.length >= 3) {
     const { key, modelo: modeloAg } = await credencialIA(supabase, (cli as any).agencia_id);
@@ -181,6 +183,12 @@ export async function POST(req: NextRequest) {
 
 // Cron de segunda-feira: semana anterior, em lotes (roda de hora em hora até cobrir todas)
 export async function GET(req: NextRequest) {
+  // Conferência: ?conferir=<cliente_id> devolve só os números (sem IA, sem gravar)
+  const conferir = new URL(req.url).searchParams.get("conferir");
+  if (conferir) {
+    try { return NextResponse.json(await auditar(conferir, "ultimos_7_dias", true)); }
+    catch (e: any) { return NextResponse.json({ error: erroAmigavel(e?.message) }, { status: 400 }); }
+  }
   const ua = req.headers.get("user-agent") || "";
   const auth = req.headers.get("authorization") || "";
   const okCron = ua.includes("vercel-cron") || (process.env.CRON_SECRET && auth === `Bearer ${process.env.CRON_SECRET}`);
