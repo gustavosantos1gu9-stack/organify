@@ -9,6 +9,7 @@ import {
 } from "@/lib/metodologia";
 import { Search, Settings, Sparkles, Copy, Check, X, Plus, ExternalLink, CalendarClock, ClipboardList, MessageSquare, Target, Gauge, Headphones } from "lucide-react";
 import { ETAPAS_PADRAO, PADRAO_ATENDIMENTO_PADRAO } from "@/lib/padrao-atendimento";
+import QualidadePublicos from "@/components/performance/QualidadePublicos";
 
 interface Cliente {
   id: string; nome: string; status: string | null; gestor: string | null; escala_jornada: string | null;
@@ -276,8 +277,27 @@ function Ficha(props: {
 }) {
   const { c, k, agId, usuario, faixas } = props;
   const a: Acomp = k.a;
-  const t = k.t;
-  const n: Numeros = k.atual;
+  // Período do card de números: padrão últimos 28 dias; o calendário troca para qualquer intervalo
+  const hojeBR = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
+  const ini28 = (() => { const d = new Date(hojeBR + "T12:00:00"); d.setDate(d.getDate() - 27); return d.toISOString().slice(0, 10); })();
+  const [periodo, setPeriodo] = useState({ de: ini28, ate: hojeBR });
+  const padrao = periodo.de === ini28 && periodo.ate === hojeBR;
+  const [numPer, setNumPer] = useState<any>(null);
+  const [carregPer, setCarregPer] = useState(false);
+  useEffect(() => { setPeriodo({ de: ini28, ate: hojeBR }); setNumPer(null); }, [c.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (padrao || !c.relatorio_id || !periodo.de || !periodo.ate || periodo.de > periodo.ate) { setNumPer(null); return; }
+    let vivo = true;
+    setCarregPer(true);
+    fetch("/api/acompanhamento/numeros", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ relatorio_ids: [c.relatorio_id], de: periodo.de, ate: periodo.ate }) })
+      .then(r => r.json()).then(j => { if (vivo) setNumPer(j?.[c.relatorio_id!] || null); })
+      .catch(() => { if (vivo) setNumPer(null); })
+      .finally(() => { if (vivo) setCarregPer(false); });
+    return () => { vivo = false; };
+  }, [c.relatorio_id, periodo.de, periodo.ate, padrao]);
+  const numAtivo = !padrao && numPer ? numPer : k.num;
+  const n: Numeros = !padrao && numPer ? numPer.atual : k.atual;
+  const t = !padrao && numPer ? taxas(n) : k.t;
   const iCont = idealContato(a, faixas);
   const iAg = idealAgend(a, faixas);
   const [timeline, setTimeline] = useState<{ quando: string; quem: string; texto: string; tipo: string }[]>([]);
@@ -336,7 +356,16 @@ function Ficha(props: {
         <div className="ac-col">
           {/* Números vs ideais */}
           <section className="ac-card">
-            <header><h3><Gauge size={15} /> Últimas 4 semanas</h3><small>{k.num?.meta_ok ? `${(n as any).mensagens || 0} mensagens · ${(n as any).leads || 0} leads · ${n.agendamentos} agendamentos` : "sem dados da Meta"}</small></header>
+            <header>
+              <h3><Gauge size={15} /> {padrao ? "Últimas 4 semanas" : "Período escolhido"}</h3>
+              <div className="ac-periodo">
+                <input type="date" value={periodo.de} max={periodo.ate} onChange={e => e.target.value && setPeriodo(p => ({ ...p, de: e.target.value }))} aria-label="Data inicial" />
+                <span>até</span>
+                <input type="date" value={periodo.ate} min={periodo.de} max={hojeBR} onChange={e => e.target.value && setPeriodo(p => ({ ...p, ate: e.target.value }))} aria-label="Data final" />
+                {!padrao && <button className="ac-btn-link" onClick={() => setPeriodo({ de: ini28, ate: hojeBR })}>Últimas 4 semanas</button>}
+              </div>
+            </header>
+            <small className="ac-periodo-resumo">{carregPer ? "Carregando período…" : numAtivo?.meta_ok ? `${(n as any).mensagens || 0} mensagens · ${(n as any).leads || 0} leads · ${n.agendamentos} agendamentos` : "sem dados da Meta"}</small>
             <div className="ac-kpis">
               <Kpi l="Custo por contato" v={brl(t.custoContato)} d={`ideal ${brl(iCont)}`} tom={tomCusto(t.custoContato, iCont)} />
               <Kpi l="Custo por agendamento" v={brl(t.custoAgend)} d={`ideal ${brl(iAg)}`} tom={tomCusto(t.custoAgend, iAg)} />
@@ -347,6 +376,12 @@ function Ficha(props: {
             </div>
             {!c.relatorio_id && <p className="ac-aviso">Esta cliente não tem relatório vinculado na Carteira: os números vêm de lá.</p>}
           </section>
+
+          {/* Contatos reais × Meta, no mesmo período */}
+          {a.filha_id
+            ? <QualidadePublicos agenciaId={a.filha_id} desde={periodo.de} ate={periodo.ate} versao={0} compacto />
+            : <section className="ac-card"><header><h3><Target size={15} /> Contatos reais × Meta</h3></header>
+                <p className="ac-aviso">Para comparar o que o Meta informa com os contatos que chegaram de verdade, escolha a agência da cliente em “Atendimento da cliente” (precisa estar com o WhatsApp na plataforma).</p></section>}
 
           {/* Gargalo e próximo passo */}
           <section className="ac-card destaque">

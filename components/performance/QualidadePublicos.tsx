@@ -26,7 +26,7 @@ const STATUS = {
   aguardando: { label: "Aguardando lote", bg: "#F3F5F7", fg: "#4A5B6C" },
 };
 
-export default function QualidadePublicos({ agenciaId, desde, ate, versao }: { agenciaId: string | null; desde: string; ate: string; versao: number }) {
+export default function QualidadePublicos({ agenciaId, desde, ate, versao, compacto }: { agenciaId: string | null; desde: string; ate: string; versao: number; compacto?: boolean }) {
   const [dados, setDados] = useState<{ total: Linha; conjuntos: Linha[]; meta_ok: boolean } | null>(null);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState("");
@@ -52,6 +52,54 @@ export default function QualidadePublicos({ agenciaId, desde, ate, versao }: { a
   );
   const th = { padding: "9px 10px", textAlign: "right" as const, fontWeight: 600, fontSize: 11, color: "var(--text-secondary)", whiteSpace: "nowrap" as const };
   const td = { padding: "9px 10px", textAlign: "right" as const, fontSize: 12, color: "var(--navy)", whiteSpace: "nowrap" as const };
+
+  // Versão da ficha da cliente (Acompanhamento): só a diferença Meta × contatos reais, por público
+  if (compacto) {
+    const faltam = t ? Math.max(0, t.mensagens_meta - t.contatos_reais) : 0;
+    return (
+      <section className="ac-card">
+        <header>
+          <h3><Users size={15} /> Contatos reais × Meta</h3>
+          <small>só leads de anúncio do Meta, no período acima</small>
+        </header>
+        {carregando && !dados && <p className="ac-aviso">Calculando…</p>}
+        {erro && <p className="ac-aviso">{erro}</p>}
+        {t && (
+          <>
+            <div className="ac-kpis">
+              <div className="ac-kpi"><span>Meta informou</span><b>{t.mensagens_meta || "—"}</b><small>{brl(t.custo_mensagem_meta)} por mensagem</small></div>
+              <div className={`ac-kpi ${t.entrega !== null && t.entrega < 0.8 ? "ruim" : "ok"}`}><span>Chegaram de verdade</span><b>{t.contatos_reais}</b><small>{t.entrega !== null ? `${pct(t.entrega)} do que o Meta informou${faltam ? ` · ${faltam} não chegaram` : ""}` : "Meta sem mensagens no período"}</small></div>
+              <div className="ac-kpi"><span>Custo por contato real</span><b>{brl(t.custo_contato_real)}</b><small>investimento {brl(t.investimento)}</small></div>
+            </div>
+            {dados!.conjuntos.length > 0 && (
+              <div style={{ overflowX: "auto", marginTop: 12 }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead><tr style={{ borderBottom: "1px solid var(--border)" }}>
+                    <th style={{ ...th, textAlign: "left" }}>Público (conjunto)</th><th style={th}>Meta</th><th style={th}>Reais</th><th style={th}>Não chegaram</th><th style={th}>Custo real</th>
+                  </tr></thead>
+                  <tbody>
+                    {dados!.conjuntos.map(l => {
+                      const dif = Math.max(0, l.mensagens_meta - l.contatos_reais);
+                      return (
+                        <tr key={l.conjunto_id || "_sem"} style={{ borderBottom: "1px solid var(--border)" }}>
+                          <td style={{ ...td, textAlign: "left", whiteSpace: "normal" }}><div style={{ fontWeight: 600 }}>{l.conjunto}</div></td>
+                          <td style={td}>{l.mensagens_meta || "—"}</td>
+                          <td style={{ ...td, fontWeight: 700 }}>{l.contatos_reais}</td>
+                          <td style={{ ...td, color: dif ? "#B42318" : "var(--text-secondary)", fontWeight: dif ? 700 : 400 }}>{dif || "—"}</td>
+                          <td style={td}>{brl(l.custo_contato_real)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {!dados!.meta_ok && <p className="ac-aviso">O Meta não respondeu agora: os números do Meta podem aparecer zerados.</p>}
+          </>
+        )}
+      </section>
+    );
+  }
 
   return (
     <section style={{ marginTop: 28 }}>

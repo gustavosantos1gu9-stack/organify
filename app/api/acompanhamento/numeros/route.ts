@@ -19,11 +19,14 @@ function contar(actions: any[], tipos: string[]) {
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 
 /** Números dos últimos 28 dias e dos 28 anteriores: Meta (investimento, mensagens, leads) + planilha (agendamentos, comparecimentos, vendas, faturamento). */
-async function calcular(relatorio_ids: string[], hoje: string) {
-  const fim = new Date(hoje + "T12:00:00");
-  const iniAtual = new Date(fim); iniAtual.setDate(iniAtual.getDate() - 27);
+async function calcular(relatorio_ids: string[], hoje: string, de?: string | null, ate?: string | null) {
+  // Período escolhido na ficha (de/ate) ou, por padrão, os últimos 28 dias. O "anterior" tem o mesmo tamanho.
+  const fim = new Date((ate || hoje) + "T12:00:00");
+  const iniAtual = de ? new Date(de + "T12:00:00") : new Date(fim);
+  if (!de) iniAtual.setDate(iniAtual.getDate() - 27);
+  const dias = Math.round((+fim - +iniAtual) / 864e5);
   const fimAnt = new Date(iniAtual); fimAnt.setDate(fimAnt.getDate() - 1);
-  const iniAnt = new Date(fimAnt); iniAnt.setDate(iniAnt.getDate() - 27);
+  const iniAnt = new Date(fimAnt); iniAnt.setDate(iniAnt.getDate() - dias);
   const janelas = { atual: [iso(iniAtual), iso(fim)], anterior: [iso(iniAnt), iso(fimAnt)] } as const;
 
   const [{ data: rels }, { data: plan }] = await Promise.all([
@@ -78,9 +81,12 @@ const calcularCache = unstable_cache(calcular, ["acompanhamento-numeros-v1"], { 
 
 export async function POST(req: NextRequest) {
   try {
-    const { relatorio_ids } = await req.json();
+    const { relatorio_ids, de, ate } = await req.json();
     if (!Array.isArray(relatorio_ids) || !relatorio_ids.length) return NextResponse.json({});
     const hoje = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
+    const data = (s: unknown) => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
+    const d1 = data(de), d2 = data(ate);
+    if (d1 && d2 && d1 <= d2) return NextResponse.json(await calcularCache([...relatorio_ids].sort(), hoje, d1, d2));
     return NextResponse.json(await calcularCache([...relatorio_ids].sort(), hoje));
   } catch (e: any) {
     console.error("[acompanhamento/numeros]", e?.message);
